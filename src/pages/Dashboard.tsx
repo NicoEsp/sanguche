@@ -1,0 +1,62 @@
+import { Seo } from "@/components/Seo";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as RTooltip,
+  ResponsiveContainer,
+} from "recharts";
+
+const data = [
+  { area: "Discovery", nivel: 60 },
+  { area: "Analítica", nivel: 40 },
+  { area: "Roadmap", nivel: 55 },
+  { area: "Liderazgo", nivel: 70 },
+  { area: "Go-to-Market", nivel: 35 },
+];
+
+export default function Dashboard() {
+  return (
+    <>
+      <Seo
+        title="Panel de progreso — ProductPrepa"
+        description="Monitorea tu avance en habilidades clave de producto."
+        canonical="/progreso"
+      />
+      <section className="container py-10">
+        <h1 className="text-3xl font-semibold mb-6">Tu progreso</h1>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Avance general</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-2">Objetivos completados</p>
+              <Progress value={48} />
+              <p className="mt-2 text-sm">48% completado</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Nivel por área</CardTitle>
+            </CardHeader>
+            <CardContent className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data}>
+                  <XAxis dataKey="area" tickLine={false} axisLine={false} />
+                  <YAxis hide />
+                  <RTooltip />
+                  <Bar dataKey="nivel" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+    </>
+  );
+}
