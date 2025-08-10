@@ -1,20 +1,14 @@
 import { Seo } from "@/components/Seo";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Link } from "react-router-dom";
-
-const skills = [
-  "Discovery de usuarios",
-  "Definición de métricas (North Star KPI)",
-  "Roadmapping y priorización",
-  "Liderazgo y alineación de stakeholders",
-  "Diseño de experimentos A/B",
-  "Analítica y SQL básico",
-  "Go-to-Market y lanzamientos",
-  "Gestión de backlog y refinamiento",
-];
+import { getAssessment } from "@/utils/storage";
 
 export default function SkillGaps() {
+  const record = getAssessment();
+  const gaps = record?.result.gaps ?? [];
+
   return (
     <>
       <Seo
@@ -24,19 +18,35 @@ export default function SkillGaps() {
       />
       <section className="container py-10">
         <h1 className="text-3xl font-semibold mb-3">Identifica tus brechas</h1>
-        <p className="text-muted-foreground mb-6">
-          Marca las áreas donde sientes que necesitas reforzar conocimientos.
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {skills.map((s) => (
-            <label key={s} className="flex items-center gap-3 rounded-md border p-4 bg-card cursor-pointer">
-              <Checkbox id={s} />
-              <span>{s}</span>
-            </label>
-          ))}
-        </div>
+        {!record ? (
+          <Alert className="mb-6">
+            <AlertTitle>No hay resultados aún</AlertTitle>
+            <AlertDescription>
+              Realiza primero la <Link to="/autoevaluacion" className="underline">autoevaluación</Link> para ver tus brechas priorizadas.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <p className="text-muted-foreground mb-6">
+            Nivel estimado: <strong>{record.result.nivel}</strong> (promedio {record.result.promedioGlobal}).
+          </p>
+        )}
+
+        {record && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {gaps.map((g) => (
+              <div key={g.key} className="flex items-center justify-between rounded-md border p-4 bg-card">
+                <div>
+                  <div className="font-medium">{g.label}</div>
+                  <div className="text-sm text-muted-foreground">Puntaje: {g.value} / 5</div>
+                </div>
+                <Badge variant={g.prioridad === "Alta" ? "destructive" : "secondary"}>{g.prioridad}</Badge>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="mt-8 flex gap-3">
-          <Button asChild>
+          <Button asChild disabled={!record}>
             <Link to="/recomendaciones">Ver recomendaciones</Link>
           </Button>
           <Button asChild variant="outline">

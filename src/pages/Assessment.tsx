@@ -1,8 +1,35 @@
 import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { assessmentSchema, DOMAINS, type AssessmentValues, computeSeniorityScore } from "@/utils/scoring";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "@/components/ui/use-toast";
+import { saveAssessment } from "@/utils/storage";
 
 export default function Assessment() {
+  const navigate = useNavigate();
+  const form = useForm<AssessmentValues>({
+    resolver: zodResolver(assessmentSchema),
+    defaultValues: {} as AssessmentValues,
+    mode: "onChange",
+  });
+
+  const values = form.watch();
+  const total = DOMAINS.length;
+  const answered = Object.values(values || {}).filter((v) => typeof v === "number").length;
+  const progress = Math.round((answered / total) * 100);
+
+  function onSubmit(data: AssessmentValues) {
+    const result = computeSeniorityScore(data);
+    saveAssessment(data, result);
+    toast({ title: "Autoevaluación guardada", description: `Nivel estimado: ${result.nivel} (promedio ${result.promedioGlobal})` });
+    navigate("/brechas");
+  }
+
   return (
     <>
       <Seo
@@ -12,20 +39,60 @@ export default function Assessment() {
       />
       <section className="container py-10">
         <h1 className="text-3xl font-semibold mb-3">Autoevaluación de seniority</h1>
-        <p className="text-muted-foreground mb-8">
-          Responde preguntas sobre tu experiencia en estrategia, ejecución, liderazgo, analítica, discovery y más.
-        </p>
-        <div className="rounded-lg border p-6 bg-card">
-          <p className="mb-6">Próximamente verás aquí el cuestionario interactivo.</p>
-          <div className="flex gap-3">
-            <Button asChild>
-              <Link to="/brechas">Continuar</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link to="/">Volver</Link>
-            </Button>
+        <p className="text-muted-foreground mb-6">Responde del 1 al 5 según tu dominio en cada área.</p>
+
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2 text-sm">
+            <span>Progreso</span>
+            <span>{answered}/{total} ({progress}%)</span>
           </div>
+          <Progress value={progress} />
         </div>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid gap-6">
+              {DOMAINS.map((d) => (
+                <fieldset key={d.key} className="rounded-lg border p-4 bg-card">
+                  <legend className="font-medium mb-3">{d.label}</legend>
+                  <FormField
+                    control={form.control}
+                    name={d.key as keyof AssessmentValues}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="sr-only">{d.label}</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            className="grid grid-cols-5 gap-3"
+                            value={field.value ? String(field.value) : undefined}
+                            onValueChange={(val) => field.onChange(parseInt(val))}
+                          >
+                            {[1,2,3,4,5].map((n) => (
+                              <label key={n} className="flex items-center gap-2 rounded-md border p-3 cursor-pointer">
+                                <RadioGroupItem value={String(n)} />
+                                <span className="text-sm">
+                                  {n} {n===1?"(Novato)":n===2?"(Básico)":n===3?"(Intermedio)":n===4?"(Avanzado)":"(Experto)"}
+                                </span>
+                              </label>
+                            ))}
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </fieldset>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <Button type="submit">Guardar y continuar</Button>
+              <Button asChild variant="outline">
+                <Link to="/">Volver</Link>
+              </Button>
+            </div>
+          </form>
+        </Form>
       </section>
     </>
   );
