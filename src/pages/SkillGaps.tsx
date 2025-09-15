@@ -10,6 +10,7 @@ import { LinkedInShareCard } from "@/components/LinkedInShareCard";
 export default function SkillGaps() {
   const record = getAssessment();
   const gaps = record?.result.gaps ?? [];
+  const strengths = record?.result.strengths ?? [];
   const canAccessRecommendations = isFeatureAvailable(FEATURES.RECOMMENDATIONS);
   const hasSharedAccess = hasTemporaryAccess();
   const shouldShowShareCard = record && !canAccessRecommendations;
@@ -17,12 +18,12 @@ export default function SkillGaps() {
   return (
     <>
       <Seo
-        title="Brechas de habilidades — ProductPrepa"
-        description="Selecciona las habilidades que deseas fortalecer."
+        title="Resultados de tu evaluación — ProductPrepa"
+        description="Revisa tu desempeño completo: fortalezas y áreas de mejora identificadas."
         canonical="/brechas"
       />
       <section className="container py-6 sm:py-10 px-4 sm:px-6">
-        <h1 className="text-2xl sm:text-3xl font-semibold mb-3">Identifica tus brechas</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold mb-3">Resultados de tu evaluación</h1>
         {!record ? (
           <Alert className="mb-6">
             <AlertTitle>No hay resultados aún</AlertTitle>
@@ -37,21 +38,52 @@ export default function SkillGaps() {
         )}
 
         {record && (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {gaps.map((g) => (
-              <div key={g.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-md border p-4 bg-card gap-2 sm:gap-0">
-                <div>
-                  <div className="font-medium">{g.label}</div>
-                  <div className="text-sm text-muted-foreground">Puntaje: {g.value} / 5</div>
+          <div className="space-y-8">
+            {/* Fortalezas */}
+            {strengths.length > 0 && (
+              <div>
+                <h2 className="text-xl font-semibold mb-4">🎯 Tus fortalezas</h2>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {strengths.map((s) => (
+                    <div key={s.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-md border p-4 bg-card gap-2 sm:gap-0">
+                      <div>
+                        <div className="font-medium">{s.label}</div>
+                        <div className="text-sm text-muted-foreground">Puntaje: {s.value} / 5</div>
+                      </div>
+                      <Badge 
+                        variant="default"
+                        className="self-start sm:self-auto"
+                      >
+                        Fortaleza
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
-                <Badge 
-                  variant={g.prioridad === "Alta" ? "destructive" : "secondary"}
-                  className="self-start sm:self-auto"
-                >
-                  {g.prioridad}
-                </Badge>
               </div>
-            ))}
+            )}
+
+            {/* Áreas de mejora */}
+            {gaps.length > 0 && (
+              <div>
+                <h2 className="text-xl font-semibold mb-4">📈 Áreas de mejora</h2>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {gaps.map((g) => (
+                    <div key={g.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-md border p-4 bg-card gap-2 sm:gap-0">
+                      <div>
+                        <div className="font-medium">{g.label}</div>
+                        <div className="text-sm text-muted-foreground">Puntaje: {g.value} / 5</div>
+                      </div>
+                      <Badge 
+                        variant={g.prioridad === "Alta" ? "destructive" : "secondary"}
+                        className="self-start sm:self-auto"
+                      >
+                        {g.prioridad}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
