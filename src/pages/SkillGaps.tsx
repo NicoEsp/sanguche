@@ -3,12 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Link } from "react-router-dom";
-import { getAssessment } from "@/utils/storage";
+import { getAssessment, hasTemporaryAccess } from "@/utils/storage";
 import { isFeatureAvailable, FEATURES } from "@/utils/features";
+import { LinkedInShareCard } from "@/components/LinkedInShareCard";
 
 export default function SkillGaps() {
   const record = getAssessment();
   const gaps = record?.result.gaps ?? [];
+  const canAccessRecommendations = isFeatureAvailable(FEATURES.RECOMMENDATIONS);
+  const hasSharedAccess = hasTemporaryAccess();
+  const shouldShowShareCard = record && !canAccessRecommendations;
 
   return (
     <>
@@ -51,14 +55,23 @@ export default function SkillGaps() {
           </div>
         )}
 
+        {shouldShowShareCard && (
+          <div className="mt-8">
+            <LinkedInShareCard />
+          </div>
+        )}
+
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
-          {isFeatureAvailable(FEATURES.RECOMMENDATIONS) ? (
+          {canAccessRecommendations ? (
             <Button asChild disabled={!record} className="w-full sm:w-auto">
-              <Link to="/recomendaciones">Ver recomendaciones</Link>
+              <Link to="/recomendaciones">
+                Ver recomendaciones
+                {hasSharedAccess && <Badge variant="secondary" className="ml-2">Acceso temporal</Badge>}
+              </Link>
             </Button>
           ) : (
-            <Button asChild disabled={!record} className="w-full sm:w-auto">
-              <Link to="/recomendaciones">Desbloquear recomendaciones</Link>
+            <Button asChild disabled={!record} variant="outline" className="w-full sm:w-auto">
+              <Link to="/recomendaciones">Ver recomendaciones (Premium)</Link>
             </Button>
           )}
           <Button asChild variant="outline" className="w-full sm:w-auto">

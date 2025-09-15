@@ -30,6 +30,14 @@ export function isFeatureAvailable(feature: Feature): boolean {
   }
   
   if (PREMIUM_FEATURES.includes(feature)) {
+    // Verificar si tiene acceso temporal por compartir
+    if (feature === FEATURES.RECOMMENDATIONS) {
+      const { hasTemporaryAccess } = require('./storage');
+      if (hasTemporaryAccess()) {
+        return true;
+      }
+    }
+    
     return hasSubscription;
   }
   
