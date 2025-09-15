@@ -21,7 +21,7 @@ export function PaywallCard({
   ];
 
   return (
-    <div className="container py-10">
+    <div className="container py-6 sm:py-10 px-4 sm:px-6">
       <Card className="max-w-2xl mx-auto">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
@@ -29,8 +29,8 @@ export function PaywallCard({
             <Badge variant="secondary">Premium</Badge>
             <Star className="h-5 w-5 text-primary" />
           </div>
-          <CardTitle className="text-2xl mb-2">{title}</CardTitle>
-          <p className="text-muted-foreground">
+          <CardTitle className="text-xl sm:text-2xl mb-2">{title}</CardTitle>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Para acceder a {feature} necesitas una suscripción premium
           </p>
         </CardHeader>
@@ -57,10 +57,10 @@ export function PaywallCard({
           </div>
           
           <div className="flex flex-col gap-3 pt-2">
-            <Button size="lg" className="w-full">
+            <Button size="lg" className="w-full min-h-[44px]">
               Suscribirse por $10/mes
             </Button>
-            <Button variant="outline" size="lg" className="w-full">
+            <Button variant="outline" size="lg" className="w-full min-h-[44px]">
               Ya tengo cuenta
             </Button>
           </div>

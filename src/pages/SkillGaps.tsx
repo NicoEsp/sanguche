@@ -17,8 +17,8 @@ export default function SkillGaps() {
         description="Selecciona las habilidades que deseas fortalecer."
         canonical="/brechas"
       />
-      <section className="container py-10">
-        <h1 className="text-3xl font-semibold mb-3">Identifica tus brechas</h1>
+      <section className="container py-6 sm:py-10 px-4 sm:px-6">
+        <h1 className="text-2xl sm:text-3xl font-semibold mb-3">Identifica tus brechas</h1>
         {!record ? (
           <Alert className="mb-6">
             <AlertTitle>No hay resultados aún</AlertTitle>
@@ -33,30 +33,35 @@ export default function SkillGaps() {
         )}
 
         {record && (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {gaps.map((g) => (
-              <div key={g.key} className="flex items-center justify-between rounded-md border p-4 bg-card">
+              <div key={g.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-md border p-4 bg-card gap-2 sm:gap-0">
                 <div>
                   <div className="font-medium">{g.label}</div>
                   <div className="text-sm text-muted-foreground">Puntaje: {g.value} / 5</div>
                 </div>
-                <Badge variant={g.prioridad === "Alta" ? "destructive" : "secondary"}>{g.prioridad}</Badge>
+                <Badge 
+                  variant={g.prioridad === "Alta" ? "destructive" : "secondary"}
+                  className="self-start sm:self-auto"
+                >
+                  {g.prioridad}
+                </Badge>
               </div>
             ))}
           </div>
         )}
 
-        <div className="mt-8 flex gap-3">
+        <div className="mt-8 flex flex-col sm:flex-row gap-3">
           {isFeatureAvailable(FEATURES.RECOMMENDATIONS) ? (
-            <Button asChild disabled={!record}>
+            <Button asChild disabled={!record} className="w-full sm:w-auto">
               <Link to="/recomendaciones">Ver recomendaciones</Link>
             </Button>
           ) : (
-            <Button asChild disabled={!record}>
+            <Button asChild disabled={!record} className="w-full sm:w-auto">
               <Link to="/recomendaciones">Desbloquear recomendaciones</Link>
             </Button>
           )}
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link to="/autoevaluacion">Atrás</Link>
           </Button>
         </div>

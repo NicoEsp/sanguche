@@ -37,8 +37,8 @@ export default function Assessment() {
         description="Evalúa tu nivel de seniority en Product Management."
         canonical="/autoevaluacion"
       />
-      <section className="container py-10">
-        <h1 className="text-3xl font-semibold mb-3">Autoevaluación de seniority</h1>
+      <section className="container py-6 sm:py-10 px-4 sm:px-6">
+        <h1 className="text-2xl sm:text-3xl font-semibold mb-3">Autoevaluación de seniority</h1>
         <p className="text-muted-foreground mb-6">Responde del 1 al 5 según tu dominio en cada área.</p>
 
         <div className="mb-6">
@@ -63,15 +63,15 @@ export default function Assessment() {
                         <FormLabel className="sr-only">{d.label}</FormLabel>
                         <FormControl>
                           <RadioGroup
-                            className="grid grid-cols-5 gap-3"
+                            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3"
                             value={field.value ? String(field.value) : undefined}
                             onValueChange={(val) => field.onChange(parseInt(val))}
                           >
                             {[1,2,3,4,5].map((n) => (
-                              <label key={n} className="flex items-center gap-2 rounded-md border p-3 cursor-pointer">
+                              <label key={n} className="flex items-center gap-2 rounded-md border p-2 sm:p-3 cursor-pointer min-h-[44px] hover:bg-muted/50 transition-colors">
                                 <RadioGroupItem value={String(n)} />
-                                <span className="text-sm">
-                                  {n} {n===1?"(Novato)":n===2?"(Básico)":n===3?"(Intermedio)":n===4?"(Avanzado)":"(Experto)"}
+                                <span className="text-xs sm:text-sm leading-tight">
+                                  {n} <span className="hidden sm:inline">{n===1?"(Novato)":n===2?"(Básico)":n===3?"(Intermedio)":n===4?"(Avanzado)":"(Experto)"}</span>
                                 </span>
                               </label>
                             ))}
@@ -85,9 +85,9 @@ export default function Assessment() {
               ))}
             </div>
 
-            <div className="flex gap-3">
-              <Button type="submit">Guardar y continuar</Button>
-              <Button asChild variant="outline">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button type="submit" className="w-full sm:w-auto">Guardar y continuar</Button>
+              <Button asChild variant="outline" className="w-full sm:w-auto">
                 <Link to="/">Volver</Link>
               </Button>
             </div>

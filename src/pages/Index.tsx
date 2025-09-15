@@ -15,31 +15,31 @@ const Index = () => {
       />
       <main className="min-h-screen bg-background">
         {/* Hero Section */}
-        <section className="container text-center py-16">
-          <h1 className="text-4xl font-bold mb-4">Impulsa tu carrera en Product Management</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
+        <section className="container text-center py-12 sm:py-16 px-4 sm:px-6">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-4">Impulsa tu carrera en Product Management</h1>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
             Autoevalúa tu nivel de seniority, identifica brechas de habilidades y recibe recomendaciones personalizadas para crecer más rápido.
           </p>
-          <div className="flex items-center justify-center gap-4">
-            <Button asChild size="lg">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button asChild size="lg" className="w-full sm:w-auto">
               <Link to="/autoevaluacion">Comenzar gratis</Link>
             </Button>
-            <Button asChild variant="outline" size="lg">
+            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
               <Link to="/progreso">Ver funciones premium</Link>
             </Button>
           </div>
         </section>
 
         {/* Free vs Premium Section */}
-        <section className="container py-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Todo lo que necesitas para crecer</h2>
+        <section className="container py-12 sm:py-16 px-4 sm:px-6">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4">Todo lo que necesitas para crecer</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Comienza gratis con la autoevaluación y brechas. Desbloquea recomendaciones y seguimiento con Premium.
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid gap-6 md:grid-cols-2 md:gap-8 max-w-4xl mx-auto">
             {/* Plan Gratuito */}
             <Card>
               <CardHeader>
