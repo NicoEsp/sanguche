@@ -19,7 +19,10 @@ export const DOMAINS = [
 export type DomainKey = (typeof DOMAINS)[number]["key"];
 
 const shape: Record<DomainKey, z.ZodNumber> = DOMAINS.reduce((acc, d) => {
-  (acc as Record<string, z.ZodNumber>)[d.key] = z.number().int().min(1).max(5);
+  (acc as Record<string, z.ZodNumber>)[d.key] = z.number({ 
+    required_error: "Obligatorio para avanzar",
+    invalid_type_error: "Debe seleccionar una opción válida"
+  }).int().min(1, "Debe seleccionar al menos 1").max(5, "El valor máximo es 5");
   return acc;
 }, {} as Record<DomainKey, z.ZodNumber>);
 
