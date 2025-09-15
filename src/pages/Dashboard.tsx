@@ -9,6 +9,8 @@ import {
   Tooltip as RTooltip,
   ResponsiveContainer,
 } from "recharts";
+import { PaywallCard } from "@/components/PaywallCard";
+import { isFeatureAvailable, FEATURES } from "@/utils/features";
 
 const data = [
   { area: "Discovery", nivel: 60 },
@@ -19,6 +21,25 @@ const data = [
 ];
 
 export default function Dashboard() {
+  // Verificar si el usuario tiene acceso al dashboard de progreso
+  const hasAccess = isFeatureAvailable(FEATURES.PROGRESS);
+
+  if (!hasAccess) {
+    return (
+      <>
+        <Seo
+          title="Panel de progreso — ProductPrepa"
+          description="Monitorea tu avance en habilidades clave de producto."
+          canonical="/progreso"
+        />
+        <PaywallCard 
+          title="Desbloquea tu panel de progreso"
+          feature="el seguimiento de tu avance"
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <Seo

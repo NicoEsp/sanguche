@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
+import { PaywallCard } from "@/components/PaywallCard";
+import { isFeatureAvailable, FEATURES } from "@/utils/features";
 
 const recs = [
   {
@@ -20,27 +22,49 @@ const recs = [
 ];
 
 export default function Recommendations() {
+  // Verificar si el usuario tiene acceso a recomendaciones
+  const hasAccess = isFeatureAvailable(FEATURES.RECOMMENDATIONS);
+
+  if (!hasAccess) {
+    return (
+      <>
+        <Seo
+          title="Recomendaciones personalizadas — ProductPrepa"
+          description="Descubre recomendaciones curadas para cerrar tus brechas de habilidades en Product Management."
+          canonical="/recomendaciones"
+        />
+        <PaywallCard 
+          title="Desbloquea recomendaciones personalizadas"
+          feature="recomendaciones curadas"
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <Seo
         title="Recomendaciones personalizadas — ProductPrepa"
-        description="Recibe sugerencias accionables para avanzar en tu carrera."
+        description="Descubre recomendaciones curadas para cerrar tus brechas de habilidades en Product Management."
         canonical="/recomendaciones"
       />
       <section className="container py-10">
         <h1 className="text-3xl font-semibold mb-6">Recomendaciones personalizadas</h1>
-        <div className="grid gap-6 md:grid-cols-3">
-          {recs.map((r) => (
-            <Card key={r.title} className="h-full">
+        <div className="space-y-6">
+          {recs.map((rec, index) => (
+            <Card key={index}>
               <CardHeader>
-                <CardTitle>{r.title}</CardTitle>
+                <CardTitle>{rec.title}</CardTitle>
               </CardHeader>
               <CardContent>
-                <ol className="list-decimal list-inside space-y-2 text-sm">
-                  {r.steps.map((s) => (
-                    <li key={s}>{s}</li>
+                <ul className="space-y-2">
+                  {rec.steps.map((step, stepIndex) => (
+                    <li key={stepIndex} className="flex items-start gap-2">
+                      <span className="text-primary font-medium">{stepIndex + 1}.</span>
+                      <span>{step}</span>
+                    </li>
                   ))}
-                </ol>
+                </ul>
               </CardContent>
             </Card>
           ))}

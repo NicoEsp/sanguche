@@ -1,0 +1,75 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Check, Star } from "lucide-react";
+
+interface PaywallCardProps {
+  title?: string;
+  feature?: string;
+}
+
+export function PaywallCard({ 
+  title = "Desbloquea funcionalidades premium",
+  feature = "esta funcionalidad"
+}: PaywallCardProps) {
+  const benefits = [
+    "Recomendaciones personalizadas basadas en tus brechas",
+    "Seguimiento detallado de tu progreso",
+    "Recursos curados por expertos PM",
+    "Roadmap de carrera personalizado",
+    "Actualizaciones mensuales de contenido"
+  ];
+
+  return (
+    <div className="container py-10">
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader className="text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Star className="h-5 w-5 text-primary" />
+            <Badge variant="secondary">Premium</Badge>
+            <Star className="h-5 w-5 text-primary" />
+          </div>
+          <CardTitle className="text-2xl mb-2">{title}</CardTitle>
+          <p className="text-muted-foreground">
+            Para acceder a {feature} necesitas una suscripción premium
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-3">
+            <h3 className="font-semibold">Lo que obtienes con Premium:</h3>
+            <ul className="space-y-2">
+              {benefits.map((benefit, index) => (
+                <li key={index} className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">{benefit}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          
+          <div className="bg-muted/50 p-4 rounded-lg text-center">
+            <div className="text-2xl font-bold text-primary mb-1">
+              $19 <span className="text-base font-normal text-muted-foreground">/mes</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Cancela cuando quieras
+            </p>
+          </div>
+          
+          <div className="flex flex-col gap-3 pt-2">
+            <Button size="lg" className="w-full">
+              Comenzar prueba gratuita de 7 días
+            </Button>
+            <Button variant="outline" size="lg" className="w-full">
+              Ya tengo cuenta
+            </Button>
+          </div>
+          
+          <p className="text-xs text-center text-muted-foreground">
+            Sin compromiso. Cancela tu prueba gratuita en cualquier momento.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

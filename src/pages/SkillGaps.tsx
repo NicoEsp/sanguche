@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Link } from "react-router-dom";
 import { getAssessment } from "@/utils/storage";
+import { isFeatureAvailable, FEATURES } from "@/utils/features";
 
 export default function SkillGaps() {
   const record = getAssessment();
@@ -46,9 +47,15 @@ export default function SkillGaps() {
         )}
 
         <div className="mt-8 flex gap-3">
-          <Button asChild disabled={!record}>
-            <Link to="/recomendaciones">Ver recomendaciones</Link>
-          </Button>
+          {isFeatureAvailable(FEATURES.RECOMMENDATIONS) ? (
+            <Button asChild disabled={!record}>
+              <Link to="/recomendaciones">Ver recomendaciones</Link>
+            </Button>
+          ) : (
+            <Button asChild disabled={!record}>
+              <Link to="/recomendaciones">Desbloquear recomendaciones</Link>
+            </Button>
+          )}
           <Button asChild variant="outline">
             <Link to="/autoevaluacion">Atrás</Link>
           </Button>
