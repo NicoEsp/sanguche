@@ -11,19 +11,19 @@ export default function LinkedInConnect() {
         canonical="/linkedin"
       />
       <section className="container py-10">
-        <h1 className="text-3xl font-semibold mb-4">Conectar con LinkedIn</h1>
+        <h1 className="text-3xl font-semibold mb-4">Compartir en LinkedIn</h1>
         <p className="text-muted-foreground mb-6">
-          Próximamente podrás sincronizar tu perfil para potenciar tus recomendaciones.
+          Próximamente podrás compartir tus resultados y avances en tu perfil profesional.
         </p>
         <Button
           onClick={() =>
             toast({
               title: "Próximamente",
-              description: "La integración con LinkedIn estará disponible en el siguiente paso.",
+              description: "La función de compartir en LinkedIn estará disponible pronto.",
             })
           }
         >
-          Conectar con LinkedIn
+          Compartir en LinkedIn
         </Button>
       </section>
     </>

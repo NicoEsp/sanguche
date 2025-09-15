@@ -1,6 +1,7 @@
 import { Seo } from "@/components/Seo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
 
 const recs = [
@@ -45,9 +46,14 @@ export default function Recommendations() {
           ))}
         </div>
         <div className="mt-8 flex gap-3">
-          <Button asChild>
-            <Link to="/linkedin">Conectar LinkedIn</Link>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button disabled>Compartir en LinkedIn</Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Próximamente</p>
+            </TooltipContent>
+          </Tooltip>
           <Button asChild variant="outline">
             <Link to="/brechas">Atrás</Link>
           </Button>
