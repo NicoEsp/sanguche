@@ -49,7 +49,7 @@ export function PaywallCard({
           
           <div className="bg-muted/50 p-4 rounded-lg text-center">
             <div className="text-2xl font-bold text-primary mb-1">
-              $19 <span className="text-base font-normal text-muted-foreground">/mes</span>
+              $10 <span className="text-base font-normal text-muted-foreground">/mes</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Cancela cuando quieras
@@ -58,16 +58,12 @@ export function PaywallCard({
           
           <div className="flex flex-col gap-3 pt-2">
             <Button size="lg" className="w-full">
-              Comenzar prueba gratuita de 7 días
+              Suscribirse por $10/mes
             </Button>
             <Button variant="outline" size="lg" className="w-full">
               Ya tengo cuenta
             </Button>
           </div>
-          
-          <p className="text-xs text-center text-muted-foreground">
-            Sin compromiso. Cancela tu prueba gratuita en cualquier momento.
-          </p>
         </CardContent>
       </Card>
     </div>

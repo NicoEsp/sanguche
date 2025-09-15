@@ -82,7 +82,7 @@ const Index = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">Premium</CardTitle>
                   <div className="text-right">
-                    <div className="text-2xl font-bold">$19</div>
+                    <div className="text-2xl font-bold">$10</div>
                     <div className="text-sm text-muted-foreground">/mes</div>
                   </div>
                 </div>
@@ -108,7 +108,7 @@ const Index = () => {
                   </div>
                 </div>
                 <Button asChild className="w-full">
-                  <Link to="/recomendaciones">Probar Premium</Link>
+                  <Link to="/recomendaciones">Suscribirse a Premium</Link>
                 </Button>
               </CardContent>
             </Card>
