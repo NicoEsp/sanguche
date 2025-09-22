@@ -31,9 +31,7 @@ const Index = () => {
             Impulsa tu carrera en <span className="text-primary">Product Management</span>
           </h1>
           
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">¿No sabes donde estás parado? ¿Sentis que todo lo que haces como Persona de Producto no agrega nada de valor en tu equipo o la compañia?
-
-Autoevalúa tu nivel de seniority en 11 dominios clave, identifica brechas específicas y recibe un roadmap personalizado para acelerar tu crecimiento profesional como Persona de Producto</p>
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">Autoevalúa tu nivel de seniority en 11 dominios clave, identifica brechas específicas y recibe un roadmap personalizado para acelerar tu crecimiento profesional como Persona de Producto</p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Button asChild size="lg" className="w-full sm:w-auto text-base px-8 py-6 font-semibold">
