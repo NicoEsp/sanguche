@@ -6,12 +6,14 @@ import { Link } from "react-router-dom";
 import { getAssessment, hasTemporaryAccess } from "@/utils/storage";
 import { isFeatureAvailable, FEATURES } from "@/utils/features";
 import { LinkedInShareCard } from "@/components/LinkedInShareCard";
+import { useSubscription } from "@/hooks/useAuth";
 
 export default function SkillGaps() {
+  const { hasActivePremium } = useSubscription();
   const record = getAssessment();
   const gaps = record?.result.gaps ?? [];
   const strengths = record?.result.strengths ?? [];
-  const canAccessRecommendations = isFeatureAvailable(FEATURES.RECOMMENDATIONS);
+  const canAccessRecommendations = isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium);
   const hasSharedAccess = hasTemporaryAccess();
   const shouldShowShareCard = record && !canAccessRecommendations;
 

@@ -8,16 +8,49 @@ export type AssessmentRecord = {
   createdAt: string; // ISO string
 };
 
-export function saveAssessment(values: AssessmentValues, result: AssessmentResult) {
+export async function saveAssessment(
+  values: AssessmentValues, 
+  result: AssessmentResult,
+  supabaseClient?: any
+) {
   const record: AssessmentRecord = {
     values,
     result,
     createdAt: new Date().toISOString(),
   };
+  
+  // Save to localStorage for backward compatibility
   try {
     localStorage.setItem(KEY, JSON.stringify(record));
   } catch (e) {
     // noop
+  }
+
+  // Also save to Supabase if client is provided and user is authenticated
+  if (supabaseClient) {
+    try {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (user) {
+        // Get user profile
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profile) {
+          await supabaseClient
+            .from('assessments')
+            .insert({
+              user_id: profile.id,
+              assessment_values: values,
+              assessment_result: result,
+            });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save assessment to Supabase:', error);
+    }
   }
 }
 

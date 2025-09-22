@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Link } from "react-router-dom";
 import { PaywallCard } from "@/components/PaywallCard";
 import { isFeatureAvailable, FEATURES } from "@/utils/features";
+import { useSubscription } from "@/hooks/useAuth";
 
 const recs = [
   {
@@ -22,8 +23,28 @@ const recs = [
 ];
 
 export default function Recommendations() {
+  const { hasActivePremium, loading } = useSubscription();
+  
   // Verificar si el usuario tiene acceso a recomendaciones
-  const hasAccess = isFeatureAvailable(FEATURES.RECOMMENDATIONS);
+  const hasAccess = isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium);
+
+  if (loading) {
+    return (
+      <>
+        <Seo
+          title="Recomendaciones personalizadas — ProductPrepa"
+          description="Descubre recomendaciones curadas para cerrar tus brechas de habilidades en Product Management."
+          canonical="/recomendaciones"
+        />
+        <div className="container py-10 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Cargando...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   if (!hasAccess) {
     return (

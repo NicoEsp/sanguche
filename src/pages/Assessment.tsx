@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/use-toast";
 import { saveAssessment } from "@/utils/storage";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Assessment() {
   const navigate = useNavigate();
@@ -23,9 +24,9 @@ export default function Assessment() {
   const answered = Object.values(values || {}).filter((v) => typeof v === "number").length;
   const progress = Math.round((answered / total) * 100);
 
-  function onSubmit(data: AssessmentValues) {
+  async function onSubmit(data: AssessmentValues) {
     const result = computeSeniorityScore(data);
-    saveAssessment(data, result);
+    await saveAssessment(data, result, supabase);
     toast({ title: "Autoevaluación guardada", description: `Nivel estimado: ${result.nivel} (promedio ${result.promedioGlobal})` });
     navigate("/brechas");
   }

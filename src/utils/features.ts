@@ -21,11 +21,10 @@ const PREMIUM_FEATURES: Feature[] = [
   FEATURES.PROGRESS,
 ];
 
-// Por ahora mock - luego se conectará con auth real
-export function isFeatureAvailable(feature: Feature): boolean {
-  // Usuario mock sin suscripción premium
-  const hasSubscription = false;
-  
+export function isFeatureAvailable(
+  feature: Feature, 
+  hasSubscription: boolean = false
+): boolean {
   if (FREE_FEATURES.includes(feature)) {
     return true;
   }
