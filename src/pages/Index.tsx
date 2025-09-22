@@ -9,17 +9,12 @@ import { Testimonials } from "@/components/sections/Testimonials";
 import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
 import { FAQ } from "@/components/sections/FAQ";
 import { useAuth } from '@/contexts/AuthContext';
-
 const Index = () => {
-  const { isAuthenticated } = useAuth();
-  
-  return (
-    <>
-      <Seo
-        title="ProductPrepa — Autoevaluación PM"
-        description="Evalúa tu seniority en Product Management y descubre tus brechas de habilidades."
-        canonical="/"
-      />
+  const {
+    isAuthenticated
+  } = useAuth();
+  return <>
+      <Seo title="ProductPrepa — Autoevaluación PM" description="Evalúa tu seniority en Product Management y descubre tus brechas de habilidades." canonical="/" />
       <main className="min-h-screen bg-background">
         {/* Enhanced Hero Section */}
         <section className="container text-center py-16 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
@@ -36,9 +31,9 @@ const Index = () => {
             Impulsa tu carrera en <span className="text-primary">Product Management</span>
           </h1>
           
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">
-            Autoevalúa tu nivel de seniority en 11 dominios clave, identifica brechas específicas y recibe un roadmap personalizado para acelerar tu crecimiento profesional.
-          </p>
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">¿No sabes donde estás parado? ¿Sentis que todo lo que haces como Persona de Producto no agrega nada de valor en tu equipo o la compañia?
+
+Autoevalúa tu nivel de seniority en 11 dominios clave, identifica brechas específicas y recibe un roadmap personalizado para acelerar tu crecimiento profesional como Persona de Producto</p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Button asChild size="lg" className="w-full sm:w-auto text-base px-8 py-6 font-semibold">
@@ -163,8 +158,6 @@ const Index = () => {
         
         <FAQ />
       </main>
-    </>
-  );
+    </>;
 };
-
 export default Index;
