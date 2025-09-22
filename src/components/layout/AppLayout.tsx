@@ -3,13 +3,22 @@ import { ReactNode, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, X } from "lucide-react";
+import { Menu, User, LogOut } from "lucide-react";
 import { isPremiumFeature, FEATURES } from "@/utils/features";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
+  const { user, isAuthenticated, signOut, isLoading } = useAuth();
 
   const navItems = [
     { href: "/autoevaluacion", label: "Autoevaluación", premium: false },
@@ -28,21 +37,55 @@ export function AppLayout({ children }: { children: ReactNode }) {
           
           {/* Desktop Navigation */}
           {!isMobile && (
-            <div className="flex items-center gap-4 text-sm">
-              {navItems.map((item) => (
-                <NavLink 
-                  key={item.href}
-                  to={item.href} 
-                  className={({ isActive }) => isActive ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}
-                >
-                  <span className="flex items-center gap-2">
-                    {item.label}
-                    {item.premium && (
-                      <Badge variant="secondary" className="text-xs px-1.5 py-0.5">Premium</Badge>
-                    )}
-                  </span>
-                </NavLink>
-              ))}
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4 text-sm">
+                {navItems.map((item) => (
+                  <NavLink 
+                    key={item.href}
+                    to={item.href} 
+                    className={({ isActive }) => isActive ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}
+                  >
+                    <span className="flex items-center gap-2">
+                      {item.label}
+                      {item.premium && (
+                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5">Premium</Badge>
+                      )}
+                    </span>
+                  </NavLink>
+                ))}
+              </div>
+
+              {/* Sección de autenticación desktop */}
+              <div className="flex items-center">
+                {isAuthenticated ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        <span className="max-w-32 truncate">{user?.email}</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem disabled>
+                        <User className="h-4 w-4 mr-2" />
+                        Mi Perfil
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => signOut()}
+                        disabled={isLoading}
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Cerrar Sesión
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Button asChild variant="default" size="sm">
+                    <Link to="/auth">Iniciar Sesión</Link>
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
@@ -79,6 +122,34 @@ export function AppLayout({ children }: { children: ReactNode }) {
                       )}
                     </NavLink>
                   ))}
+
+                  {/* Sección de autenticación móvil */}
+                  <div className="mt-6 pt-6 border-t">
+                    {isAuthenticated ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
+                          <User className="h-4 w-4" />
+                          <span className="truncate">{user?.email}</span>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start" 
+                          onClick={() => {
+                            signOut();
+                            setIsOpen(false);
+                          }}
+                          disabled={isLoading}
+                        >
+                          <LogOut className="h-4 w-4 mr-2" />
+                          Cerrar Sesión
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button asChild variant="default" className="w-full" onClick={() => setIsOpen(false)}>
+                        <Link to="/auth">Iniciar Sesión</Link>
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>

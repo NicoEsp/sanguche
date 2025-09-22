@@ -1,17 +1,13 @@
-import { AuthState } from '@/types/user';
-
-// Hook placeholder para autenticación - retorna valores mock por ahora
-export function useAuth(): AuthState {
-  return {
-    user: null,
-    subscription: null, 
-    isLoading: false,
-    isAuthenticated: false,
-  };
-}
+// Re-export useAuth from AuthContext
+export { useAuth } from '@/contexts/AuthContext';
 
 export function useSubscription() {
-  const { subscription } = useAuth();
+  // TODO: Implementar lógica de suscripción real cuando se conecte con Supabase
+  const subscription = {
+    plan: 'free' as 'free' | 'premium',
+    status: 'active' as 'active' | 'inactive' | 'cancelled',
+    trialEnd: null as Date | null,
+  };
   
   return {
     subscription,

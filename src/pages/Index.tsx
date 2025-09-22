@@ -8,8 +8,11 @@ import { HowItWorks } from "@/components/sections/HowItWorks";
 import { Testimonials } from "@/components/sections/Testimonials";
 import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
 import { FAQ } from "@/components/sections/FAQ";
+import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
+  const { isAuthenticated } = useAuth();
+  
   return (
     <>
       <Seo
@@ -39,8 +42,8 @@ const Index = () => {
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Button asChild size="lg" className="w-full sm:w-auto text-base px-8 py-6 font-semibold">
-              <Link to="/autoevaluacion">
-                Comenzar evaluación gratis
+              <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
+                {isAuthenticated ? "Continuar evaluación" : "Comenzar evaluación gratis"}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -106,7 +109,9 @@ const Index = () => {
                   </div>
                 </div>
                 <Button asChild className="w-full">
-                  <Link to="/autoevaluacion">Comenzar gratis</Link>
+                  <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
+                    {isAuthenticated ? "Ir a evaluación" : "Comenzar gratis"}
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
