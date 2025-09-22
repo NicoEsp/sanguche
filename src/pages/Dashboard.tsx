@@ -1,14 +1,6 @@
 import { Seo } from "@/components/Seo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip as RTooltip,
-  ResponsiveContainer,
-} from "recharts";
 import { PaywallCard } from "@/components/PaywallCard";
 import { isFeatureAvailable, FEATURES } from "@/utils/features";
 
@@ -65,15 +57,18 @@ export default function Dashboard() {
             <CardHeader>
               <CardTitle>Nivel por área</CardTitle>
             </CardHeader>
-            <CardContent className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data}>
-                  <XAxis dataKey="area" tickLine={false} axisLine={false} />
-                  <YAxis hide />
-                  <RTooltip />
-                  <Bar dataKey="nivel" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <CardContent>
+              <div className="space-y-4">
+                {data.map((item) => (
+                  <div key={item.area} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">{item.area}</span>
+                      <span className="text-sm text-muted-foreground">{item.nivel}%</span>
+                    </div>
+                    <Progress value={item.nivel} className="h-2" />
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
