@@ -3,11 +3,12 @@ import React, { ReactNode, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, User, LogOut } from "lucide-react";
+import { Menu, User, LogOut, Shield } from "lucide-react";
 import { isPremiumFeature, FEATURES } from "@/utils/features";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -21,6 +22,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const { user, isAuthenticated, signOut, isLoading } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
+  const { isAdmin } = useAdminAuth();
 
   const navItems = [
     { href: "/autoevaluacion", label: "Autoevaluación", premium: false },
@@ -69,20 +71,29 @@ export function AppLayout({ children }: { children: ReactNode }) {
                         </span>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem disabled>
-                        <User className="h-4 w-4 mr-2" />
-                        Mi Perfil
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => signOut()}
-                        disabled={isLoading}
-                      >
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Cerrar Sesión
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
+                     <DropdownMenuContent align="end">
+                       <DropdownMenuItem disabled>
+                         <User className="h-4 w-4 mr-2" />
+                         Mi Perfil
+                       </DropdownMenuItem>
+                       {isAdmin && (
+                         <>
+                           <DropdownMenuSeparator />
+                           <DropdownMenuItem onClick={() => window.location.href = '/admin'}>
+                             <Shield className="h-4 w-4 mr-2" />
+                             Panel de Admin
+                           </DropdownMenuItem>
+                         </>
+                       )}
+                       <DropdownMenuSeparator />
+                       <DropdownMenuItem 
+                         onClick={() => signOut()}
+                         disabled={isLoading}
+                       >
+                         <LogOut className="h-4 w-4 mr-2" />
+                         Cerrar Sesión
+                       </DropdownMenuItem>
+                     </DropdownMenuContent>
                   </DropdownMenu>
                 ) : (
                   <Button asChild variant="default" size="sm">
@@ -136,19 +147,32 @@ export function AppLayout({ children }: { children: ReactNode }) {
                            <span className="truncate">
                              {profileLoading ? "Cargando..." : `Hola ${profile?.name}!`}
                            </span>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          className="w-full justify-start" 
-                          onClick={() => {
-                            signOut();
-                            setIsOpen(false);
-                          }}
-                          disabled={isLoading}
-                        >
-                          <LogOut className="h-4 w-4 mr-2" />
-                          Cerrar Sesión
-                        </Button>
+                         </div>
+                         {isAdmin && (
+                           <Button 
+                             variant="ghost" 
+                             onClick={() => {
+                               window.location.href = '/admin';
+                               setIsOpen(false);
+                             }}
+                             className="w-full justify-start mb-2"
+                           >
+                             <Shield className="h-4 w-4 mr-2" />
+                             Panel de Admin
+                           </Button>
+                         )}
+                         <Button 
+                           variant="ghost" 
+                           className="w-full justify-start" 
+                           onClick={() => {
+                             signOut();
+                             setIsOpen(false);
+                           }}
+                           disabled={isLoading}
+                         >
+                           <LogOut className="h-4 w-4 mr-2" />
+                           Cerrar Sesión
+                         </Button>
                       </div>
                     ) : (
                       <Button asChild variant="default" className="w-full" onClick={() => setIsOpen(false)}>

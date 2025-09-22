@@ -15,6 +15,13 @@ import Recommendations from "@/pages/Recommendations";
 import LinkedInConnect from "@/pages/LinkedIn";
 import Dashboard from "@/pages/Dashboard";
 import Auth from "@/pages/Auth";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminUsers from "@/pages/admin/AdminUsers";
+import AdminAssessments from "@/pages/admin/AdminAssessments";
+import AdminRecommendations from "@/pages/admin/AdminRecommendations";
+import AdminSettings from "@/pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -25,8 +32,26 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppLayout>
-            <Routes>
+          <Routes>
+            {/* Rutas de Admin */}
+            <Route path="/admin/*" element={
+              <AdminProtectedRoute>
+                <AdminLayout>
+                  <Routes>
+                    <Route path="/" element={<AdminDashboard />} />
+                    <Route path="/usuarios" element={<AdminUsers />} />
+                    <Route path="/evaluaciones" element={<AdminAssessments />} />
+                    <Route path="/recomendaciones" element={<AdminRecommendations />} />
+                    <Route path="/configuracion" element={<AdminSettings />} />
+                  </Routes>
+                </AdminLayout>
+              </AdminProtectedRoute>
+            } />
+            
+            {/* Rutas principales con AppLayout */}
+            <Route path="/*" element={
+              <AppLayout>
+                <Routes>
               {/* Rutas públicas */}
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
@@ -54,10 +79,12 @@ const App = () => (
                 </ProtectedRoute>
               } />
               
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AppLayout>
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </AppLayout>
+            } />
+          </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
