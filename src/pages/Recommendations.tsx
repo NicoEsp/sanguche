@@ -6,6 +6,8 @@ import { Link } from "react-router-dom";
 import { PaywallCard } from "@/components/PaywallCard";
 import { isFeatureAvailable, FEATURES } from "@/utils/features";
 import { useSubscription } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 const recs = [
   {
@@ -24,6 +26,20 @@ const recs = [
 
 export default function Recommendations() {
   const { hasActivePremium, loading } = useSubscription();
+  const { toast } = useToast();
+
+  // Check for success payment
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true') {
+      toast({
+        title: "¡Suscripción exitosa!",
+        description: "Bienvenido a ProductPrepa Premium. Ya tienes acceso a todas las funcionalidades."
+      });
+      // Clean URL
+      window.history.replaceState({}, '', '/recomendaciones');
+    }
+  }, [toast]);
   
   // Verificar si el usuario tiene acceso a recomendaciones
   const hasAccess = isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium);

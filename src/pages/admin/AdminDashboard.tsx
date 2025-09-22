@@ -1,7 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdminAnalytics } from '@/hooks/useAdminAnalytics';
-import { Loader2, Users, ClipboardList, TrendingUp, Crown, Target, Calendar } from 'lucide-react';
+import { Loader2, Users, ClipboardList, TrendingUp, Crown, Target, Calendar, DollarSign } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export default function AdminDashboard() {
   const { analytics, loading, error } = useAdminAnalytics();
@@ -24,6 +25,18 @@ export default function AdminDashboard() {
       </div>
     );
   }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+
+  // Calculate financial metrics
+  const mrr = analytics.premiumUsers * 9.99; // Monthly Recurring Revenue
+  const arr = mrr * 12; // Annual Recurring Revenue
 
   return (
     <div className="space-y-6">
@@ -50,19 +63,6 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Evaluaciones</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{analytics.totalAssessments}</div>
-            <p className="text-xs text-muted-foreground">
-              +{analytics.assessmentsToday} hoy
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Usuarios Premium</CardTitle>
             <Crown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -70,6 +70,44 @@ export default function AdminDashboard() {
             <div className="text-2xl font-bold text-foreground">{analytics.premiumUsers}</div>
             <p className="text-xs text-muted-foreground">
               {analytics.conversionRate.toFixed(1)}% conversión
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">MRR</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{formatCurrency(mrr)}</div>
+            <p className="text-xs text-muted-foreground">Ingresos mensuales recurrentes</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">ARR</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{formatCurrency(arr)}</div>
+            <p className="text-xs text-muted-foreground">Ingresos anuales recurrentes</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Secondary Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Evaluaciones</CardTitle>
+            <ClipboardList className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{analytics.totalAssessments}</div>
+            <p className="text-xs text-muted-foreground">
+              +{analytics.assessmentsToday} hoy
             </p>
           </CardContent>
         </Card>
@@ -84,11 +122,61 @@ export default function AdminDashboard() {
             <p className="text-xs text-muted-foreground">Evaluaciones completadas</p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">ARPU</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              {analytics.premiumUsers > 0 ? formatCurrency(mrr / analytics.premiumUsers) : '$0.00'}
+            </div>
+            <p className="text-xs text-muted-foreground">Ingreso promedio por usuario</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Conversión</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{analytics.conversionRate.toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground">Free to Premium</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Charts Grid - Simplified without recharts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* User Growth Summary */}
+      {/* Financial Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Resumen Financiero</CardTitle>
+            <CardDescription>Métricas clave de ingresos Polar</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm">Ingresos Mensuales (MRR)</span>
+              <Badge variant="secondary">{formatCurrency(mrr)}</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm">Ingresos Anuales (ARR)</span>
+              <Badge variant="secondary">{formatCurrency(arr)}</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm">ARPU (Avg Revenue Per User)</span>
+              <Badge variant="secondary">
+                {analytics.premiumUsers > 0 ? formatCurrency(mrr / analytics.premiumUsers) : '$0.00'}
+              </Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm">Total de Clientes Pagantes</span>
+              <Badge variant="outline">{analytics.premiumUsers}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -120,8 +208,10 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Skill Gap Distribution Summary */}
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

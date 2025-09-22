@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Star } from "lucide-react";
+import { PolarCheckout } from "@/components/PolarCheckout";
 
 interface PaywallCardProps {
   title?: string;
@@ -49,7 +50,7 @@ export function PaywallCard({
           
           <div className="bg-muted/50 p-4 rounded-lg text-center">
             <div className="text-2xl font-bold text-primary mb-1">
-              $10 <span className="text-base font-normal text-muted-foreground">/mes</span>
+              $9.99 <span className="text-base font-normal text-muted-foreground">/mes</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Cancela cuando quieras
@@ -57,9 +58,7 @@ export function PaywallCard({
           </div>
           
           <div className="flex flex-col gap-3 pt-2">
-            <Button size="lg" className="w-full min-h-[44px]">
-              Suscribirse por $10/mes
-            </Button>
+            <PolarCheckout />
             <Button variant="outline" size="lg" className="w-full min-h-[44px]">
               Ya tengo cuenta
             </Button>
