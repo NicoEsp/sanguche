@@ -3,7 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star } from "lucide-react";
+import { Check, Star, ArrowRight, Zap } from "lucide-react";
+import { HowItWorks } from "@/components/sections/HowItWorks";
+import { Testimonials } from "@/components/sections/Testimonials";
+import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
+import { FAQ } from "@/components/sections/FAQ";
 
 const Index = () => {
   return (
@@ -14,21 +18,58 @@ const Index = () => {
         canonical="/"
       />
       <main className="min-h-screen bg-background">
-        {/* Hero Section */}
-        <section className="container text-center py-12 sm:py-16 px-4 sm:px-6">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-4">Impulsa tu carrera en Product Management</h1>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-            Autoevalúa tu nivel de seniority, identifica brechas de habilidades y recibe recomendaciones personalizadas para crecer más rápido.
+        {/* Enhanced Hero Section */}
+        <section className="container text-center py-16 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 -z-10" />
+          
+          <div className="flex items-center justify-center mb-6">
+            <Badge variant="secondary" className="px-4 py-2 text-sm font-medium">
+              <Zap className="h-4 w-4 mr-2" />
+              Evaluación específica para Product Managers
+            </Badge>
+          </div>
+          
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
+            Impulsa tu carrera en <span className="text-primary">Product Management</span>
+          </h1>
+          
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">
+            Autoevalúa tu nivel de seniority en 11 dominios clave, identifica brechas específicas y recibe un roadmap personalizado para acelerar tu crecimiento profesional.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button asChild size="lg" className="w-full sm:w-auto">
-              <Link to="/autoevaluacion">Comenzar gratis</Link>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+            <Button asChild size="lg" className="w-full sm:w-auto text-base px-8 py-6 font-semibold">
+              <Link to="/autoevaluacion">
+                Comenzar evaluación gratis
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-base px-8 py-6">
               <Link to="/progreso">Ver funciones premium</Link>
             </Button>
           </div>
+          
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-primary" />
+              <span>100% gratis para empezar</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-primary" />
+              <span>Sin tarjeta de crédito</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-primary" />
+              <span>Resultados inmediatos</span>
+            </div>
+          </div>
         </section>
+
+        <HowItWorks />
+        
+        <Testimonials />
+        
+        <WhyProductPrepa />
 
         {/* Free vs Premium Section */}
         <section className="container py-12 sm:py-16 px-4 sm:px-6">
@@ -114,6 +155,8 @@ const Index = () => {
             </Card>
           </div>
         </section>
+        
+        <FAQ />
       </main>
     </>
   );
