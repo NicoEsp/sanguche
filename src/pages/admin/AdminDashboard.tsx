@@ -2,9 +2,6 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdminAnalytics } from '@/hooks/useAdminAnalytics';
 import { Loader2, Users, ClipboardList, TrendingUp, Crown, Target, Calendar } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
-
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))', 'hsl(var(--destructive))'];
 
 export default function AdminDashboard() {
   const { analytics, loading, error } = useAdminAnalytics();
@@ -89,44 +86,42 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Charts Grid */}
+      {/* Charts Grid - Simplified without recharts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* User Growth Chart */}
+        {/* User Growth Summary */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
               Crecimiento de Usuarios (30 días)
             </CardTitle>
-            <CardDescription>Nuevos registros por día</CardDescription>
+            <CardDescription>Resumen de nuevos registros</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analytics.userGrowth}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => new Date(value).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
-                />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip 
-                  labelFormatter={(value) => new Date(value).toLocaleDateString('es-ES')}
-                  formatter={(value) => [value, 'Nuevos usuarios']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="count" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                  dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
+                <span className="text-sm font-medium">Total nuevos usuarios (30 días)</span>
+                <span className="text-2xl font-bold text-primary">
+                  {analytics.userGrowth.reduce((acc, day) => acc + day.count, 0)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
+                <span className="text-sm font-medium">Promedio diario</span>
+                <span className="text-lg font-semibold">
+                  {Math.round(analytics.userGrowth.reduce((acc, day) => acc + day.count, 0) / 30)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
+                <span className="text-sm font-medium">Día con más registros</span>
+                <span className="text-lg font-semibold">
+                  {Math.max(...analytics.userGrowth.map(day => day.count))}
+                </span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Skill Gap Distribution */}
+        {/* Skill Gap Distribution Summary */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -136,25 +131,24 @@ export default function AdminDashboard() {
             <CardDescription>Áreas más problemáticas identificadas</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={analytics.skillGapDistribution}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis 
-                  dataKey="skill" 
-                  tick={{ fontSize: 10 }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(value) => [value, 'Ocurrencias']} />
-                <Bar 
-                  dataKey="count" 
-                  fill="hsl(var(--primary))" 
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="space-y-3">
+              {analytics.skillGapDistribution.map((skill, index) => (
+                <div key={skill.skill} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                  <span className="text-sm font-medium">{skill.skill}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 bg-muted rounded-full h-2">
+                      <div 
+                        className="bg-primary h-2 rounded-full" 
+                        style={{ 
+                          width: `${(skill.count / Math.max(...analytics.skillGapDistribution.map(s => s.count))) * 100}%` 
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm font-bold min-w-[2rem]">{skill.count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
