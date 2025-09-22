@@ -238,6 +238,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bootstrap_first_admin: {
+        Args: { admin_user_id: string }
+        Returns: boolean
+      }
       create_admin_user: {
         Args: { admin_user_id: string }
         Returns: boolean
