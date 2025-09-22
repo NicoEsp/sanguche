@@ -1,5 +1,4 @@
 // Sistema de feature flags para funcionalidades freemium
-import { hasTemporaryAccess } from './storage';
 export const FEATURES = {
   ASSESSMENT: 'assessment',
   SKILL_GAPS: 'skill_gaps', 
@@ -30,13 +29,6 @@ export function isFeatureAvailable(
   }
   
   if (PREMIUM_FEATURES.includes(feature)) {
-    // Verificar si tiene acceso temporal por compartir
-    if (feature === FEATURES.RECOMMENDATIONS) {
-      if (hasTemporaryAccess()) {
-        return true;
-      }
-    }
-    
     return hasSubscription;
   }
   

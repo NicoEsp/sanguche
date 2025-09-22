@@ -72,7 +72,9 @@ export function clearAssessment() {
   }
 }
 
-// LinkedIn sharing tracking
+// LinkedIn sharing tracking - DESACTIVADO TEMPORALMENTE
+// Esta funcionalidad estará disponible próximamente
+/*
 const LINKEDIN_SHARE_KEY = "productprepa:linkedin_share";
 
 export type LinkedInShareRecord = {
@@ -115,3 +117,4 @@ export function hasTemporaryAccess(): boolean {
   
   return now < expiresAt;
 }
+*/

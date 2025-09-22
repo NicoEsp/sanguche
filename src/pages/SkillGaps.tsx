@@ -3,9 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Link } from "react-router-dom";
-import { getAssessment, hasTemporaryAccess } from "@/utils/storage";
+import { getAssessment } from "@/utils/storage";
 import { isFeatureAvailable, FEATURES } from "@/utils/features";
-import { LinkedInShareCard } from "@/components/LinkedInShareCard";
 import { useSubscription } from "@/hooks/useAuth";
 
 export default function SkillGaps() {
@@ -14,8 +13,6 @@ export default function SkillGaps() {
   const gaps = record?.result.gaps ?? [];
   const strengths = record?.result.strengths ?? [];
   const canAccessRecommendations = isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium);
-  const hasSharedAccess = hasTemporaryAccess();
-  const shouldShowShareCard = record && !canAccessRecommendations;
 
   return (
     <>
@@ -89,19 +86,11 @@ export default function SkillGaps() {
           </div>
         )}
 
-        {shouldShowShareCard && (
-          <div className="mt-8">
-            <LinkedInShareCard />
-          </div>
-        )}
 
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
           {canAccessRecommendations ? (
             <Button asChild disabled={!record} className="w-full sm:w-auto">
-              <Link to="/recomendaciones">
-                Ver recomendaciones
-                {hasSharedAccess && <Badge variant="secondary" className="ml-2">Acceso temporal</Badge>}
-              </Link>
+              <Link to="/recomendaciones">Ver recomendaciones</Link>
             </Button>
           ) : (
             <Button asChild disabled={!record} variant="outline" className="w-full sm:w-auto">

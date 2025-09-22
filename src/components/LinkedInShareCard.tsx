@@ -2,7 +2,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LinkedinIcon, Share2Icon } from "lucide-react";
-import { saveLinkedInShare } from "@/utils/storage";
 import { toast } from "@/hooks/use-toast";
 
 const LINKEDIN_MESSAGE = `🚀 Estuve probando ProductPrepa de @Nicolás Espíndola y me ayudó a identificar mis brechas como Product Manager.
@@ -15,23 +14,11 @@ Si estás en producto o querés crecer en el área, te la recomiendo 💯
 
 export function LinkedInShareCard() {
   const handleShare = () => {
-    // Guardar que el usuario compartió
-    saveLinkedInShare();
-    
-    // Crear URL de LinkedIn con mensaje pre-cargado
-    const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://productprepa.com')}&summary=${encodeURIComponent(LINKEDIN_MESSAGE)}`;
-    
-    // Abrir LinkedIn en nueva ventana
-    window.open(linkedinUrl, '_blank', 'width=550,height=550');
-    
-    // Mostrar mensaje de éxito
+    // Funcionalidad temporalmente desactivada
     toast({
-      title: "¡Acceso desbloqueado!",
-      description: "Ya podés acceder a las recomendaciones por las próximas 48 horas.",
+      title: "Próximamente",
+      description: "La función de compartir en LinkedIn estará disponible pronto.",
     });
-    
-    // Recargar la página para actualizar el estado
-    setTimeout(() => window.location.reload(), 1000);
   };
 
   return (
