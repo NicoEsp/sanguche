@@ -163,6 +163,35 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_subscriptions: {
         Row: {
           created_at: string
@@ -209,6 +238,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_admin_user: {
+        Args: { admin_user_id: string }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: { check_user_id?: string }
+        Returns: boolean
+      }
       log_security_event: {
         Args: {
           p_action: string
@@ -222,6 +259,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "user"
       subscription_plan: "free" | "premium"
       subscription_status: "active" | "inactive" | "cancelled"
     }
@@ -351,6 +389,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "user"],
       subscription_plan: ["free", "premium"],
       subscription_status: ["active", "inactive", "cancelled"],
     },
