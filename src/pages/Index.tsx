@@ -67,7 +67,7 @@ const Index = () => {
 
         <HowItWorks />
         
-        <Testimonials />
+        {/* <Testimonials /> */}
         
         <WhyProductPrepa />
 
