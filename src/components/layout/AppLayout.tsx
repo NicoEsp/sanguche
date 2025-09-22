@@ -7,6 +7,7 @@ import { Menu, User, LogOut } from "lucide-react";
 import { isPremiumFeature, FEATURES } from "@/utils/features";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -19,6 +20,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const { user, isAuthenticated, signOut, isLoading } = useAuth();
+  const { profile, loading: profileLoading } = useUserProfile();
 
   const navItems = [
     { href: "/autoevaluacion", label: "Autoevaluación", premium: false },
@@ -62,7 +64,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="flex items-center gap-2">
                         <User className="h-4 w-4" />
-                        <span className="max-w-32 truncate">{user?.email}</span>
+                        <span className="max-w-32 truncate">
+                          {profileLoading ? "Cargando..." : `Hola ${profile?.name}!`}
+                        </span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -129,7 +133,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
                           <User className="h-4 w-4" />
-                          <span className="truncate">{user?.email}</span>
+                           <span className="truncate">
+                             {profileLoading ? "Cargando..." : `Hola ${profile?.name}!`}
+                           </span>
                         </div>
                         <Button 
                           variant="ghost" 
