@@ -41,7 +41,7 @@ const App = () => (
                     <Route path="/" element={<AdminDashboard />} />
                     <Route path="/usuarios" element={<AdminUsers />} />
                     <Route path="/evaluaciones" element={<AdminAssessments />} />
-                    <Route path="/recomendaciones" element={<AdminRecommendations />} />
+                    <Route path="/mentoria" element={<AdminRecommendations />} />
                     <Route path="/configuracion" element={<AdminSettings />} />
                   </Routes>
                 </AdminLayout>
@@ -63,12 +63,12 @@ const App = () => (
                   <Assessment />
                 </ProtectedRoute>
               } />
-              <Route path="/brechas" element={
+              <Route path="/mejoras" element={
                 <ProtectedRoute>
                   <SkillGaps />
                 </ProtectedRoute>
               } />
-              <Route path="/recomendaciones" element={
+              <Route path="/mentoria" element={
                 <ProtectedRoute>
                   <Recommendations />
                 </ProtectedRoute>

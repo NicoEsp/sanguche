@@ -19,7 +19,7 @@ export default function SkillGaps() {
       <Seo
         title="Resultados de tu evaluación — ProductPrepa"
         description="Revisa tu desempeño completo: fortalezas y áreas de mejora identificadas."
-        canonical="/brechas"
+        canonical="/mejoras"
       />
       <section className="container py-6 sm:py-10 px-4 sm:px-6">
         <h1 className="text-2xl sm:text-3xl font-semibold mb-3">Resultados de tu evaluación</h1>
@@ -90,11 +90,11 @@ export default function SkillGaps() {
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
           {canAccessRecommendations ? (
             <Button asChild disabled={!record} className="w-full sm:w-auto">
-              <Link to="/recomendaciones">Ver mentoría personalizada</Link>
+              <Link to="/mentoria">Ver mentoría personalizada</Link>
             </Button>
           ) : (
             <Button asChild disabled={!record} variant="outline" className="w-full sm:w-auto">
-              <Link to="/recomendaciones">Ver mentoría personalizada (Premium)</Link>
+              <Link to="/mentoria">Ver mentoría personalizada (Premium)</Link>
             </Button>
           )}
           <Button asChild variant="outline" className="w-full sm:w-auto">

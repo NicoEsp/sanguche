@@ -26,8 +26,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   const navItems = [
     { href: "/autoevaluacion", label: "Autoevaluación", premium: false },
-    { href: "/brechas", label: "Áreas de mejora", premium: false },
-    { href: "/recomendaciones", label: "Mentoría", premium: isPremiumFeature(FEATURES.RECOMMENDATIONS) },
+    { href: "/mejoras", label: "Áreas de mejora", premium: false },
+    { href: "/mentoria", label: "Mentoría", premium: isPremiumFeature(FEATURES.RECOMMENDATIONS) },
     { href: "/progreso", label: "Progreso", premium: isPremiumFeature(FEATURES.PROGRESS) },
   ];
 

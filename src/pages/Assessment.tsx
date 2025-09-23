@@ -28,7 +28,7 @@ export default function Assessment() {
     const result = computeSeniorityScore(data);
     await saveAssessment(data, result, supabase);
     toast({ title: "Autoevaluación guardada", description: `Nivel estimado: ${result.nivel} (promedio ${result.promedioGlobal})` });
-    navigate("/brechas");
+    navigate("/mejoras");
   }
 
   return (

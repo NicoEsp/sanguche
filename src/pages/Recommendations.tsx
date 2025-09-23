@@ -37,7 +37,7 @@ export default function Recommendations() {
         description: "Bienvenido a ProductPrepa Premium. Ya tienes acceso a todas las funcionalidades."
       });
       // Clean URL
-      window.history.replaceState({}, '', '/recomendaciones');
+      window.history.replaceState({}, '', '/mentoria');
     }
   }, [toast]);
   
@@ -50,7 +50,7 @@ export default function Recommendations() {
         <Seo
           title="Mentoría personalizada — ProductPrepa"
           description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
-          canonical="/recomendaciones"
+          canonical="/mentoria"
         />
         <div className="container py-10 flex items-center justify-center">
           <div className="text-center">
@@ -68,7 +68,7 @@ export default function Recommendations() {
         <Seo
           title="Mentoría personalizada — ProductPrepa"
           description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
-          canonical="/recomendaciones"
+          canonical="/mentoria"
         />
         <PaywallCard 
           title="Desbloquea mentoría personalizada"
@@ -83,7 +83,7 @@ export default function Recommendations() {
       <Seo
         title="Mentoría personalizada — ProductPrepa"
         description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
-        canonical="/recomendaciones"
+        canonical="/mentoria"
       />
       <section className="container py-10">
         <h1 className="text-3xl font-semibold mb-6">Mentoría personalizada</h1>
@@ -116,7 +116,7 @@ export default function Recommendations() {
             </TooltipContent>
           </Tooltip>
           <Button asChild variant="outline">
-            <Link to="/brechas">Atrás</Link>
+            <Link to="/mejoras">Atrás</Link>
           </Button>
         </div>
       </section>

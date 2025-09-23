@@ -25,7 +25,7 @@ const adminNavItems = [
   { title: 'Dashboard', url: '/admin', icon: BarChart3, exact: true },
   { title: 'Usuarios', url: '/admin/usuarios', icon: Users },
   { title: 'Evaluaciones', url: '/admin/evaluaciones', icon: ClipboardList },
-  { title: 'Recomendaciones', url: '/admin/recomendaciones', icon: Target },
+  { title: 'Recomendaciones', url: '/admin/mentoria', icon: Target },
   { title: 'Configuración', url: '/admin/configuracion', icon: Settings },
 ];
 

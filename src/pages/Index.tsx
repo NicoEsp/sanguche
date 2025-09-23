@@ -158,7 +158,7 @@ const Index = () => {
                   </div>
                 </div>
                 <Button asChild className="w-full">
-                  <Link to="/recomendaciones">Suscribirse a Premium</Link>
+                  <Link to="/mentoria">Suscribirse a Premium</Link>
                 </Button>
               </CardContent>
             </Card>
