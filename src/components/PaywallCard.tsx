@@ -10,7 +10,7 @@ interface PaywallCardProps {
 }
 
 export function PaywallCard({ 
-  title = "Preparate aún más para dar el salto",
+  title = "Desbloquea funcionalidades premium",
   feature = "esta funcionalidad"
 }: PaywallCardProps) {
   const benefits = [
