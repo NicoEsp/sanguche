@@ -3,7 +3,7 @@ import React, { ReactNode, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, User, LogOut, Shield, CheckSquare, Target, BookOpen, TrendingUp } from "lucide-react";
+import { Menu, User, LogOut, Shield, CheckSquare, Target, BookOpen, TrendingUp, Twitter, Linkedin } from "lucide-react";
 import { isPremiumFeature, FEATURES } from "@/utils/features";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,14 +34,42 @@ export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
-        <nav className="container h-14 flex items-center justify-between">
+        <nav className="container h-14 flex items-center justify-start">
           <Link to="/" className="font-semibold">
             <span className="text-primary">Product</span>Prepa
           </Link>
           
+          {/* Branding card */}
+          {!isMobile && (
+            <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-3 py-2 shadow-sm ml-12">
+              <span className="text-sm text-muted-foreground">
+                <span className="hidden sm:inline">Un producto por </span>
+                <span className="font-medium text-foreground">NicoProducto</span>
+              </span>
+              <div className="flex items-center gap-2">
+                <a
+                  href="https://x.com/nicoproducto"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Twitter className="h-4 w-4" />
+                </a>
+                <a
+                  href="https://www.linkedin.com/in/nicolas-espindola/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Linkedin className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
+          )}
+          
           {/* Desktop Navigation */}
           {!isMobile && (
-            <div className="flex items-center">
+            <div className="flex items-center ml-auto">
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
