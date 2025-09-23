@@ -48,8 +48,8 @@ export default function Recommendations() {
     return (
       <>
         <Seo
-          title="Recomendaciones personalizadas — ProductPrepa"
-          description="Descubre recomendaciones curadas para cerrar tus brechas de habilidades en Product Management."
+          title="Mentoría personalizada — ProductPrepa"
+          description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
           canonical="/recomendaciones"
         />
         <div className="container py-10 flex items-center justify-center">
@@ -66,13 +66,13 @@ export default function Recommendations() {
     return (
       <>
         <Seo
-          title="Recomendaciones personalizadas — ProductPrepa"
-          description="Descubre recomendaciones curadas para cerrar tus brechas de habilidades en Product Management."
+          title="Mentoría personalizada — ProductPrepa"
+          description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
           canonical="/recomendaciones"
         />
         <PaywallCard 
-          title="Desbloquea recomendaciones personalizadas"
-          feature="recomendaciones curadas"
+          title="Desbloquea mentoría personalizada"
+          feature="mentoría curada"
         />
       </>
     );
@@ -81,12 +81,12 @@ export default function Recommendations() {
   return (
     <>
       <Seo
-        title="Recomendaciones personalizadas — ProductPrepa"
-        description="Descubre recomendaciones curadas para cerrar tus brechas de habilidades en Product Management."
+        title="Mentoría personalizada — ProductPrepa"
+        description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
         canonical="/recomendaciones"
       />
       <section className="container py-10">
-        <h1 className="text-3xl font-semibold mb-6">Recomendaciones personalizadas</h1>
+        <h1 className="text-3xl font-semibold mb-6">Mentoría personalizada</h1>
         <div className="space-y-6">
           {recs.map((rec, index) => (
             <Card key={index}>

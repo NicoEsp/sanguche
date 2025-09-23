@@ -7,7 +7,6 @@ import { Check, Star, ArrowRight, Zap } from "lucide-react";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { Testimonials } from "@/components/sections/Testimonials";
 import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
-import { FAQ } from "@/components/sections/FAQ";
 import { useAuth } from '@/contexts/AuthContext';
 const Index = () => {
   const {
@@ -28,10 +27,10 @@ const Index = () => {
           </div>
           
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
-            Impulsa tu carrera en <span className="text-primary">Product Management</span>
+            Descubrí tus fortalezas y áreas de mejora como Product Manager. Evaluate gratis en 5 minutos.
           </h1>
           
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">Autoevalúa tu nivel de seniority en 11 dominios clave, identifica brechas específicas y recibe un roadmap personalizado para acelerar tu crecimiento profesional como Persona de Producto</p>
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">Evaluación integral que identifica tu nivel actual y áreas de crecimiento.</p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Button asChild size="lg" className="w-full sm:w-auto text-base px-8 py-6 font-semibold">
@@ -63,6 +62,18 @@ const Index = () => {
 
         <HowItWorks />
         
+        {/* CTA after HowItWorks */}
+        <section className="py-16 text-center">
+          <div className="container mx-auto px-4">
+            <Button size="lg" asChild className="bg-primary hover:bg-primary/90">
+              <Link to="/auth">
+                Evalúate ahora
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </section>
+        
         {/* <Testimonials /> */}
         
         <WhyProductPrepa />
@@ -72,7 +83,7 @@ const Index = () => {
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4">Todo lo que necesitas para crecer</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Comienza gratis con la autoevaluación y brechas. Desbloquea recomendaciones y seguimiento con Premium.
+              Comienza gratis con la autoevaluación y áreas de mejora. Desbloquea mentoría y seguimiento con Premium.
             </p>
           </div>
           
@@ -94,7 +105,7 @@ const Index = () => {
                   </div>
                   <div className="flex items-start gap-3">
                     <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">Identificación y priorización de brechas</span>
+                    <span className="text-sm">Identificación y priorización de áreas de mejora</span>
                   </div>
                   <div className="flex items-start gap-3">
                     <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
@@ -131,7 +142,7 @@ const Index = () => {
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">Recomendaciones personalizadas</span>
+                    <span className="text-sm">Mentoría personalizada</span>
                   </div>
                   <div className="flex items-start gap-3">
                     <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
@@ -153,8 +164,6 @@ const Index = () => {
             </Card>
           </div>
         </section>
-        
-        <FAQ />
       </main>
     </>;
 };

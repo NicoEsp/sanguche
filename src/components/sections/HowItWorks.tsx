@@ -10,13 +10,13 @@ const steps = [
   },
   {
     icon: Target,
-    title: "Identifica Brechas",
+    title: "Identifica Áreas de Mejora",
     description: "Descubre las áreas específicas donde puedes mejorar tu perfil profesional",
     color: "text-secondary-foreground"
   },
   {
     icon: TrendingUp,
-    title: "Recomendaciones Personalizadas",
+    title: "Mentoría Personalizada",
     description: "Recibe recursos curados y un roadmap específico para tu crecimiento",
     color: "text-primary"
   },

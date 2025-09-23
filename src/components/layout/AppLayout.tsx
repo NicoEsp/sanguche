@@ -26,8 +26,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   const navItems = [
     { href: "/autoevaluacion", label: "Autoevaluación", premium: false },
-    { href: "/brechas", label: "Brechas", premium: false },
-    { href: "/recomendaciones", label: "Recomendaciones", premium: isPremiumFeature(FEATURES.RECOMMENDATIONS) },
+    { href: "/brechas", label: "Áreas de mejora", premium: false },
+    { href: "/recomendaciones", label: "Mentoría personalizada", premium: isPremiumFeature(FEATURES.RECOMMENDATIONS) },
     { href: "/progreso", label: "Progreso", premium: isPremiumFeature(FEATURES.PROGRESS) },
   ];
 
@@ -40,7 +40,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </Link>
           
           {/* Desktop Navigation */}
-          {!isMobile && (
+          {!isMobile && isAuthenticated && (
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-4 text-sm">
                 {navItems.map((item) => (
@@ -118,7 +118,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   <SheetTitle>Navegación</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-4 mt-6">
-                  {navItems.map((item) => (
+                  {isAuthenticated && navItems.map((item) => (
                     <NavLink 
                       key={item.href}
                       to={item.href}

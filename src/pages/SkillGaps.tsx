@@ -90,11 +90,11 @@ export default function SkillGaps() {
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
           {canAccessRecommendations ? (
             <Button asChild disabled={!record} className="w-full sm:w-auto">
-              <Link to="/recomendaciones">Ver recomendaciones</Link>
+              <Link to="/recomendaciones">Ver mentoría personalizada</Link>
             </Button>
           ) : (
             <Button asChild disabled={!record} variant="outline" className="w-full sm:w-auto">
-              <Link to="/recomendaciones">Ver recomendaciones (Premium)</Link>
+              <Link to="/recomendaciones">Ver mentoría personalizada (Premium)</Link>
             </Button>
           )}
           <Button asChild variant="outline" className="w-full sm:w-auto">
