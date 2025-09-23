@@ -25,7 +25,7 @@ export default function Dashboard() {
           canonical="/progreso"
         />
         <PaywallCard 
-          title="Desbloquea tu panel de progreso"
+          title="Preparate aún más para dar el salto"
           feature="el seguimiento de tu avance"
         />
       </>
