@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -58,6 +59,11 @@ const App = () => (
               <Route path="/linkedin" element={<LinkedInConnect />} />
               
               {/* Rutas protegidas */}
+              <Route path="/home" element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              } />
               <Route path="/autoevaluacion" element={
                 <ProtectedRoute>
                   <Assessment />

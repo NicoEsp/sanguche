@@ -24,12 +24,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { profile, loading: profileLoading } = useUserProfile();
   const { isAdmin } = useAdminAuth();
 
-  const navItems = [
-    { href: "/autoevaluacion", label: "Autoevaluación", premium: false },
-    { href: "/brechas", label: "Áreas de mejora", premium: false },
-    { href: "/recomendaciones", label: "Mentoría personalizada", premium: isPremiumFeature(FEATURES.RECOMMENDATIONS) },
-    { href: "/progreso", label: "Progreso", premium: isPremiumFeature(FEATURES.PROGRESS) },
-  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -40,67 +34,47 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </Link>
           
           {/* Desktop Navigation */}
-          {!isMobile && isAuthenticated && (
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-4 text-sm">
-                {navItems.map((item) => (
-                  <NavLink 
-                    key={item.href}
-                    to={item.href} 
-                    className={({ isActive }) => isActive ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}
-                  >
-                    <span className="flex items-center gap-2">
-                      {item.label}
-                      {item.premium && (
-                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5">Premium</Badge>
-                      )}
-                    </span>
-                  </NavLink>
-                ))}
-              </div>
-
-              {/* Sección de autenticación desktop */}
-              <div className="flex items-center">
-                {isAuthenticated ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <span className="max-w-32 truncate">
-                          {profileLoading ? "Cargando..." : `Hola ${profile?.name}!`}
-                        </span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                     <DropdownMenuContent align="end">
-                       <DropdownMenuItem disabled>
-                         <User className="h-4 w-4 mr-2" />
-                         Mi Perfil
-                       </DropdownMenuItem>
-                       {isAdmin && (
-                         <>
-                           <DropdownMenuSeparator />
-                           <DropdownMenuItem onClick={() => window.location.href = '/admin'}>
-                             <Shield className="h-4 w-4 mr-2" />
-                             Panel de Admin
-                           </DropdownMenuItem>
-                         </>
-                       )}
-                       <DropdownMenuSeparator />
-                       <DropdownMenuItem 
-                         onClick={() => signOut()}
-                         disabled={isLoading}
-                       >
-                         <LogOut className="h-4 w-4 mr-2" />
-                         Cerrar Sesión
-                       </DropdownMenuItem>
-                     </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
-                  <Button asChild variant="default" size="sm">
-                    <Link to="/auth">Iniciar Sesión</Link>
-                  </Button>
-                )}
-              </div>
+          {!isMobile && (
+            <div className="flex items-center">
+              {isAuthenticated ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span className="max-w-32 truncate">
+                        {profileLoading ? "Cargando..." : `Hola ${profile?.name}!`}
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                   <DropdownMenuContent align="end">
+                     <DropdownMenuItem disabled>
+                       <User className="h-4 w-4 mr-2" />
+                       Mi Perfil
+                     </DropdownMenuItem>
+                     {isAdmin && (
+                       <>
+                         <DropdownMenuSeparator />
+                         <DropdownMenuItem onClick={() => window.location.href = '/admin'}>
+                           <Shield className="h-4 w-4 mr-2" />
+                           Panel de Admin
+                         </DropdownMenuItem>
+                       </>
+                     )}
+                     <DropdownMenuSeparator />
+                     <DropdownMenuItem 
+                       onClick={() => signOut()}
+                       disabled={isLoading}
+                     >
+                       <LogOut className="h-4 w-4 mr-2" />
+                       Cerrar Sesión
+                     </DropdownMenuItem>
+                   </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button asChild variant="default" size="sm">
+                  <Link to="/auth">Iniciar Sesión</Link>
+                </Button>
+              )}
             </div>
           )}
 
@@ -118,28 +92,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   <SheetTitle>Navegación</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-4 mt-6">
-                  {isAuthenticated && navItems.map((item) => (
-                    <NavLink 
-                      key={item.href}
-                      to={item.href}
-                      onClick={() => setIsOpen(false)}
-                      className={({ isActive }) => 
-                        `flex items-center justify-between p-3 rounded-lg transition-colors ${
-                          isActive 
-                            ? "bg-primary/10 text-primary font-medium" 
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                        }`
-                      }
-                    >
-                      <span>{item.label}</span>
-                      {item.premium && (
-                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5">Premium</Badge>
-                      )}
-                    </NavLink>
-                  ))}
-
                   {/* Sección de autenticación móvil */}
-                  <div className="mt-6 pt-6 border-t">
+                  <div className="pt-6">
                     {isAuthenticated ? (
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
