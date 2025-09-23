@@ -14,7 +14,7 @@ export function PaywallCard({
   feature = "esta funcionalidad"
 }: PaywallCardProps) {
   const benefits = [
-    "Recomendaciones personalizadas basadas en tus brechas",
+    "Mentoria personalizada una vez por mes con NicoProducto",
     "Seguimiento detallado de tu progreso",
     "Recursos curados por expertos PM",
     "Roadmap de carrera personalizado",
