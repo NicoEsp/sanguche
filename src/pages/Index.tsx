@@ -130,8 +130,8 @@ const Index = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">Premium</CardTitle>
                   <div className="text-right">
-                    <div className="text-2xl font-bold">$10</div>
-                    <div className="text-sm text-muted-foreground">USD 9.99</div>
+                  <div className="text-2xl font-bold">$9.99</div>
+                  <div className="text-sm text-muted-foreground">por mes</div>
                   </div>
                 </div>
                 <p className="text-muted-foreground">Todo lo gratuito, más funciones avanzadas</p>
