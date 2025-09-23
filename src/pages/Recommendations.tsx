@@ -71,7 +71,7 @@ export default function Recommendations() {
           canonical="/mentoria"
         />
         <PaywallCard 
-          title="Desbloquea mentoría personalizada"
+          title="Preparate aún más para dar el salto"
           feature="mentoría curada"
         />
       </>
