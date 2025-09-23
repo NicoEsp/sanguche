@@ -35,8 +35,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             title: "¡Bienvenido!",
             description: "Has iniciado sesión correctamente.",
           });
-          // Redirigir a home después del login
-          window.location.href = '/home';
         } else if (event === 'SIGNED_OUT') {
           toast({
             title: "Sesión cerrada",
