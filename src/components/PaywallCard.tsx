@@ -32,7 +32,7 @@ export function PaywallCard({
           </div>
           <CardTitle className="text-xl sm:text-2xl mb-2">{title}</CardTitle>
           <p className="text-muted-foreground text-sm sm:text-base">
-            Para acceder a {feature} necesitas una suscripción premium
+            Para acceder a más funcionalidades de ProductPrepa necesitas una suscripción Premium
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
