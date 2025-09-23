@@ -168,13 +168,21 @@ export type DomainScore = {
   value: number;
 };
 
-export type Gap = DomainScore & { prioridad: "Alta" | "Media" | "Baja" };
+export type Gap = DomainScore & { prioridad: "Alta" | "Media" };
+
+export type NeutralArea = DomainScore;
+
+export type Strength = DomainScore & { nivel: "Destacada" | "Sólida" };
 
 export type AssessmentResult = {
   promedioGlobal: number;
   nivel: SeniorityLevel;
-  strengths: DomainScore[];
+  strengths: Strength[];
   gaps: Gap[];
+  neutralAreas: NeutralArea[];
+  profileEstimate: string;
+  standardDeviation: number;
+  specialization: string;
 };
 
 export function computeSeniorityScore(values: AssessmentValues): AssessmentResult {
@@ -182,6 +190,10 @@ export function computeSeniorityScore(values: AssessmentValues): AssessmentResul
   const sum = entries.reduce((acc, [, v]) => acc + v, 0);
   const n = entries.length || 1;
   const promedioGlobal = Number((sum / n).toFixed(2));
+
+  // Calcular desviación estándar
+  const variance = entries.reduce((acc, [, v]) => acc + Math.pow(v - promedioGlobal, 2), 0) / n;
+  const standardDeviation = Number(Math.sqrt(variance).toFixed(2));
 
   const nivel: SeniorityLevel =
     promedioGlobal <= 2.0
@@ -200,13 +212,88 @@ export function computeSeniorityScore(values: AssessmentValues): AssessmentResul
     value,
   }));
 
-  const strengths = [...all].sort((a, b) => b.value - a.value).slice(0, 3);
+  // Categorizar basado en umbrales lógicos
+  const realStrengths = all.filter(d => d.value >= 4.0);
+  const realGaps = all.filter(d => d.value < 3.0);
+  const neutralAreas = all.filter(d => d.value >= 3.0 && d.value < 4.0);
 
-  const gapsBase = [...all].sort((a, b) => a.value - b.value).slice(0, 3);
-  const gaps: Gap[] = gapsBase.map((g) => ({
-    ...g,
-    prioridad: g.value <= 2.5 ? "Alta" : g.value <= 3.5 ? "Media" : "Baja",
-  }));
+  // Fortalezas con niveles
+  const strengths: Strength[] = realStrengths
+    .sort((a, b) => b.value - a.value)
+    .map(s => ({
+      ...s,
+      nivel: s.value >= 4.5 ? "Destacada" : "Sólida"
+    }));
 
-  return { promedioGlobal, nivel, strengths, gaps };
+  // Brechas con priorización inteligente
+  const gaps: Gap[] = realGaps
+    .sort((a, b) => a.value - b.value)
+    .map(g => ({
+      ...g,
+      prioridad: g.value < 2.5 ? "Alta" : "Media"
+    }));
+
+  // Identificar especialización (área más fuerte)
+  const specialization = all.reduce((prev, current) => 
+    current.value > prev.value ? current : prev
+  ).label;
+
+  // Generar perfil estimado
+  const profileEstimate = generateProfileEstimate(
+    nivel, 
+    promedioGlobal, 
+    standardDeviation, 
+    specialization, 
+    strengths.length, 
+    gaps.filter(g => g.prioridad === "Alta").length
+  );
+
+  return { 
+    promedioGlobal, 
+    nivel, 
+    strengths, 
+    gaps, 
+    neutralAreas,
+    profileEstimate,
+    standardDeviation,
+    specialization
+  };
+}
+
+function generateProfileEstimate(
+  nivel: SeniorityLevel, 
+  promedio: number, 
+  desviacion: number, 
+  especializacion: string,
+  fortalezas: number,
+  brechasCriticas: number
+): string {
+  const isBalanced = desviacion < 0.8;
+  const hasSpecialization = desviacion > 1.2;
+
+  if (brechasCriticas >= 3) {
+    return `Perfil en desarrollo con potencial ${nivel}. Se recomienda enfocarse en las áreas críticas antes de avanzar.`;
+  }
+
+  if (isBalanced && fortalezas >= 3) {
+    return `Perfil equilibrado de PM ${nivel} con competencias sólidas en todas las áreas. Listo para el siguiente nivel.`;
+  }
+
+  if (hasSpecialization) {
+    if (nivel === "Senior" || nivel === "Lead" || nivel === "Head") {
+      return `Perfil especializado de PM ${nivel} con dominio destacado en ${especializacion}. Considera desarrollar áreas complementarias.`;
+    } else {
+      return `Perfil con especialización temprana en ${especializacion}. Desarrolla competencias generales para un perfil más balanceado de PM ${nivel}.`;
+    }
+  }
+
+  if (promedio >= 4.0) {
+    return `Perfil sólido de PM ${nivel} con consistencia en la mayoría de áreas. Excelente base para roles de mayor responsabilidad.`;
+  }
+
+  if (promedio >= 3.5) {
+    return `Perfil competente de PM ${nivel} con buen potencial de crecimiento. Algunas áreas clave necesitan desarrollo adicional.`;
+  }
+
+  return `Perfil emergente de PM ${nivel}. Enfócate en desarrollar las competencias fundamentales para consolidar tu nivel actual.`;
 }
