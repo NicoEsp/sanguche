@@ -26,9 +26,7 @@ const Index = () => {
             </Badge>
           </div>
           
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
-            Descubrí tus fortalezas y áreas de mejora como Product Manager. Evaluate gratis en 5 minutos.
-          </h1>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">Impulsa tu carrera como Product Person</h1>
           
           <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">Evaluación integral que identifica tu nivel actual y áreas de crecimiento.</p>
           
