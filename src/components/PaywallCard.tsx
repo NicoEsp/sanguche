@@ -18,7 +18,7 @@ export function PaywallCard({
     "Seguimiento detallado de tu progreso",
     "Recursos curados en base a tus Áreas de mejora",
     "Roadmap de carrera personalizado (Career Path)",
-    "Actualizaciones mensuales de contenido"
+    "Actualizaciones mensuales de contenido y recursos"
   ];
 
   return (
