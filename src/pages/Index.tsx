@@ -26,10 +26,7 @@ const Index = () => {
             </Badge>
           </div>
           
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">Impulsa tu carrera como </span>
-            <span className="text-primary">Product Person</span>
-          </h1>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">Impulsa tu carrera como Product Person</h1>
           
           <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">Evaluación integral que identifica tu nivel actual y áreas de crecimiento.</p>
           
@@ -134,7 +131,7 @@ const Index = () => {
                   <CardTitle className="text-xl">Premium</CardTitle>
                   <div className="text-right">
                     <div className="text-2xl font-bold">$10</div>
-                    <div className="text-sm text-muted-foreground">/mes</div>
+                    <div className="text-sm text-muted-foreground">USD 9.99</div>
                   </div>
                 </div>
                 <p className="text-muted-foreground">Todo lo gratuito, más funciones avanzadas</p>
