@@ -14,6 +14,7 @@ import SkillGaps from "@/pages/SkillGaps";
 import Recommendations from "@/pages/Recommendations";
 import LinkedInConnect from "@/pages/LinkedIn";
 import Dashboard from "@/pages/Dashboard";
+import Home from "@/pages/Home";
 import Auth from "@/pages/Auth";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
@@ -58,6 +59,11 @@ const App = () => (
               <Route path="/linkedin" element={<LinkedInConnect />} />
               
               {/* Rutas protegidas */}
+              <Route path="/home" element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              } />
               <Route path="/autoevaluacion" element={
                 <ProtectedRoute>
                   <Assessment />
