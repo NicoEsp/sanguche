@@ -46,7 +46,7 @@ export default function Auth() {
   // Redirigir usuarios autenticados
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/', { replace: true });
+      navigate('/home', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -86,7 +86,7 @@ export default function Auth() {
   const onLoginSubmit = async (data: LoginFormData) => {
     const { error } = await signIn(data.email, data.password);
     if (!error) {
-      navigate('/', { replace: true });
+      navigate('/home', { replace: true });
     }
   };
 

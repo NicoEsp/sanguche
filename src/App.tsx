@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
@@ -23,8 +23,19 @@ import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminAssessments from "@/pages/admin/AdminAssessments";
 import AdminRecommendations from "@/pages/admin/AdminRecommendations";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import { useAuth } from "@/contexts/AuthContext";
 
 const queryClient = new QueryClient();
+
+const ConditionalRoot = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return <div>Cargando...</div>;
+  }
+  
+  return isAuthenticated ? <Navigate to="/home" replace /> : <Index />;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -54,7 +65,7 @@ const App = () => (
               <AppLayout>
                 <Routes>
               {/* Rutas públicas */}
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<ConditionalRoot />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/linkedin" element={<LinkedInConnect />} />
               
