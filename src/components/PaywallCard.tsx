@@ -14,7 +14,7 @@ export function PaywallCard({
   feature = "esta funcionalidad"
 }: PaywallCardProps) {
   const benefits = [
-    "Mentoria personalizada una vez por mes con NicoProducto",
+    <>Mentoria personalizada una vez por mes con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>,
     "Seguimiento detallado de tu progreso",
     "Recursos curados en base a tus Áreas de mejora",
     "Roadmap de carrera personalizado (Career Path)",
