@@ -12,6 +12,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
+  resendConfirmation: (email: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -146,6 +147,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resendConfirmation = async (email: string) => {
+    setIsLoading(true);
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: redirectUrl,
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Error al reenviar confirmación",
+          description: getErrorMessage(error.message),
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Email reenviado",
+          description: "Te hemos enviado un nuevo email de confirmación.",
+        });
+      }
+
+      return { error };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Función para traducir mensajes de error comunes
   const getErrorMessage = (message: string): string => {
     const errorMessages: Record<string, string> = {
@@ -169,6 +202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signOut,
     resetPassword,
+    resendConfirmation,
   };
 
   return (

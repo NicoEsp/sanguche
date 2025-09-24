@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Mail, ArrowLeft, RefreshCw } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Por favor ingresa un email válido'),
@@ -36,10 +36,12 @@ type SignUpFormData = z.infer<typeof signUpSchema>;
 type ResetFormData = z.infer<typeof resetSchema>;
 
 export default function Auth() {
-  const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'reset' | 'email-verification'>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { signIn, signUp, resetPassword, isLoading, isAuthenticated } = useAuth();
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const { signIn, signUp, resetPassword, resendConfirmation, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -93,7 +95,8 @@ export default function Auth() {
   const onSignUpSubmit = async (data: SignUpFormData) => {
     const { error } = await signUp(data.email, data.password, data.name);
     if (!error) {
-      setMode('login');
+      setVerificationEmail(data.email);
+      setMode('email-verification');
       signUpForm.reset();
     }
   };
@@ -107,10 +110,33 @@ export default function Auth() {
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
   const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
+  const handleResendConfirmation = async () => {
+    if (resendCooldown > 0) return;
+    
+    const { error } = await resendConfirmation(verificationEmail);
+    if (!error) {
+      setResendCooldown(30);
+      const interval = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
+
   return (
     <>
       <Seo
-        title={`${mode === 'login' ? 'Iniciar Sesión' : mode === 'signup' ? 'Registrarse' : 'Recuperar Contraseña'} — ProductPrepa`}
+        title={`${
+          mode === 'login' ? 'Iniciar Sesión' : 
+          mode === 'signup' ? 'Registrarse' : 
+          mode === 'reset' ? 'Recuperar Contraseña' :
+          'Verifica tu Email'
+        } — ProductPrepa`}
         description="Accede a tu cuenta de ProductPrepa para continuar con tu evaluación y recomendaciones personalizadas."
         canonical="/auth"
       />
@@ -122,11 +148,13 @@ export default function Auth() {
               {mode === 'login' && 'Iniciar Sesión'}
               {mode === 'signup' && 'Crear Cuenta'}
               {mode === 'reset' && 'Recuperar Contraseña'}
+              {mode === 'email-verification' && 'Verifica tu Email'}
             </CardTitle>
             <CardDescription className="text-center">
               {mode === 'login' && 'Ingresa tus credenciales para acceder a tu cuenta'}
               {mode === 'signup' && 'Crea una cuenta nueva para empezar'}
               {mode === 'reset' && 'Te enviaremos un enlace para restablecer tu contraseña'}
+              {mode === 'email-verification' && 'Te enviamos un correo para validar tu cuenta'}
             </CardDescription>
           </CardHeader>
           
@@ -326,49 +354,113 @@ export default function Auth() {
               </form>
             )}
 
+            {mode === 'email-verification' && (
+              <div className="space-y-6 text-center">
+                <div className="flex justify-center">
+                  <div className="rounded-full bg-primary/10 p-3">
+                    <Mail className="h-8 w-8 text-primary" />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">Revisa tu bandeja de entrada</h3>
+                  <p className="text-muted-foreground">
+                    Te enviamos un correo de confirmación a:
+                  </p>
+                  <p className="font-medium text-primary">{verificationEmail}</p>
+                </div>
+
+                <div className="space-y-3 text-sm text-muted-foreground">
+                  <p>
+                    Haz clic en el enlace del correo para activar tu cuenta.
+                  </p>
+                  <p>
+                    Si no encuentras el correo, revisa tu carpeta de spam.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleResendConfirmation}
+                    variant="outline"
+                    className="w-full"
+                    disabled={isLoading || resendCooldown > 0}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Reenviando...
+                      </>
+                    ) : resendCooldown > 0 ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Reenviar en {resendCooldown}s
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Reenviar correo
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    onClick={() => setMode('login')}
+                    variant="ghost"
+                    className="w-full"
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Volver al login
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-4">
               <Separator />
               
-              <div className="text-center space-y-2">
-                {mode === 'login' && (
-                  <>
+              {mode !== 'email-verification' && (
+                <div className="text-center space-y-2">
+                  {mode === 'login' && (
+                    <>
+                      <Button
+                        variant="link"
+                        className="text-sm"
+                        onClick={() => setMode('signup')}
+                      >
+                        ¿No tienes cuenta? Regístrate
+                      </Button>
+                      <Button
+                        variant="link"
+                        className="text-sm block mx-auto"
+                        onClick={() => setMode('reset')}
+                      >
+                        ¿Olvidaste tu contraseña?
+                      </Button>
+                    </>
+                  )}
+                  
+                  {mode === 'signup' && (
                     <Button
                       variant="link"
                       className="text-sm"
-                      onClick={() => setMode('signup')}
+                      onClick={() => setMode('login')}
                     >
-                      ¿No tienes cuenta? Regístrate
+                      ¿Ya tienes cuenta? Inicia sesión
                     </Button>
+                  )}
+                  
+                  {mode === 'reset' && (
                     <Button
                       variant="link"
-                      className="text-sm block mx-auto"
-                      onClick={() => setMode('reset')}
+                      className="text-sm"
+                      onClick={() => setMode('login')}
                     >
-                      ¿Olvidaste tu contraseña?
+                      Volver al inicio de sesión
                     </Button>
-                  </>
-                )}
-                
-                {mode === 'signup' && (
-                  <Button
-                    variant="link"
-                    className="text-sm"
-                    onClick={() => setMode('login')}
-                  >
-                    ¿Ya tienes cuenta? Inicia sesión
-                  </Button>
-                )}
-                
-                {mode === 'reset' && (
-                  <Button
-                    variant="link"
-                    className="text-sm"
-                    onClick={() => setMode('login')}
-                  >
-                    Volver al inicio de sesión
-                  </Button>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
