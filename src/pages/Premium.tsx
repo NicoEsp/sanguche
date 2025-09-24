@@ -29,7 +29,7 @@ export default function Premium() {
             </Badge>
             
             <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              Acelera tu crecimiento como Product Manager
+              Destaca como Product Manager
             </h1>
             
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed">
@@ -87,19 +87,23 @@ export default function Premium() {
                     </li>
                     <li className="flex items-center gap-3">
                       <Check className="w-5 h-5 text-primary" />
-                      <span>Mentoría personalizada mensual</span>
+                      <span>Mentoria personalizada una vez por mes con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></span>
                     </li>
                     <li className="flex items-center gap-3">
                       <Check className="w-5 h-5 text-primary" />
-                      <span>Dashboard de progreso detallado</span>
+                      <span>Seguimiento detallado de tu progreso</span>
                     </li>
                     <li className="flex items-center gap-3">
                       <Check className="w-5 h-5 text-primary" />
-                      <span>Recursos curados específicos</span>
+                      <span>Recursos curados en base a tus Áreas de mejora</span>
                     </li>
                     <li className="flex items-center gap-3">
                       <Check className="w-5 h-5 text-primary" />
-                      <span>Roadmap de carrera personalizado</span>
+                      <span>Roadmap de carrera personalizado (Career Path)</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <Check className="w-5 h-5 text-primary" />
+                      <span>Actualizaciones mensuales de contenido y recursos</span>
                     </li>
                   </ul>
                   
@@ -198,10 +202,31 @@ export default function Premium() {
 
         <Separator className="max-w-6xl mx-auto" />
 
-        {/* FAQ Section */}
+        {/* Free Resource Section */}
         <section className="py-16 px-4">
-          <div className="max-w-4xl mx-auto">
-            <FAQ />
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl font-bold mb-6">
+              ¿No estás seguro? Accede a este recurso gratuito como ejemplo
+            </h2>
+            <p className="text-lg mb-8 text-muted-foreground max-w-2xl mx-auto">
+              Prueba nuestra autoevaluación gratuita y descubre qué puede ayudarte en el momento en el que estás
+            </p>
+            <Card className="max-w-md mx-auto bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <BookOpen className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Autoevaluación Gratuita</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Evalúa tus habilidades actuales como PM y recibe feedback personalizado
+                  </p>
+                  <Button asChild className="w-full">
+                    <Link to="/assessment">Probar gratis ahora</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </section>
       </div>
