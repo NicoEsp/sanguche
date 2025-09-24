@@ -15,6 +15,7 @@ import Recommendations from "@/pages/Recommendations";
 import LinkedInConnect from "@/pages/LinkedIn";
 import Dashboard from "@/pages/Dashboard";
 import Auth from "@/pages/Auth";
+import Premium from "@/pages/Premium";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -55,6 +56,7 @@ const App = () => (
               {/* Rutas públicas */}
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/premium" element={<Premium />} />
               <Route path="/linkedin" element={<LinkedInConnect />} />
               
               {/* Rutas protegidas */}

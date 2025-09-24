@@ -40,7 +40,7 @@ const Index = () => {
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-base px-8 py-6">
-              <Link to="/progreso">Ver funciones premium</Link>
+              <Link to="/premium">Ver funciones premium</Link>
             </Button>
           </div>
           
