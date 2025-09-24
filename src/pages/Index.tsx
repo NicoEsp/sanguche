@@ -27,7 +27,7 @@ const Index = () => {
           </div>
           
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-            Impulsa tu carrera como <span className="text-primary">Product Person</span>
+            Impulsa tu carrera como <span className="text-primary">Product Manager</span>
           </h1>
           
           <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">Evaluación integral que identifica tu nivel actual y áreas de crecimiento.</p>
