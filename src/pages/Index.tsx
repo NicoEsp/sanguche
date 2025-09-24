@@ -22,7 +22,7 @@ const Index = () => {
           <div className="flex items-center justify-center mb-6">
             <Badge variant="secondary" className="px-4 py-2 text-sm font-medium">
               <Zap className="h-4 w-4 mr-2" />
-              Evaluación específica para Product Managers
+              Evaluación específica para Product Managers (o roles similares)
             </Badge>
           </div>
           
