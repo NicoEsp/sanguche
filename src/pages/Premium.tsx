@@ -8,25 +8,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { Seo } from "@/components/Seo";
 import { PolarCheckout } from "@/components/PolarCheckout";
 import { FAQ } from "@/components/sections/FAQ";
-
 export default function Premium() {
-  const { user } = useAuth();
-
-  return (
-    <>
-      <Seo 
-        title="Funciones Premium - ProductPrepa" 
-        description="Descubre todas las funciones premium de ProductPrepa: mentoría personalizada, seguimiento de progreso, recursos curados y roadmap de carrera."
-      />
+  const {
+    user
+  } = useAuth();
+  return <>
+      <Seo title="Funciones Premium - ProductPrepa" description="Descubre todas las funciones premium de ProductPrepa: mentoría personalizada, seguimiento de progreso, recursos curados y roadmap de carrera." />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         {/* Hero Section */}
         <section className="pt-20 pb-16 px-4">
           <div className="max-w-6xl mx-auto text-center">
-            <Badge variant="secondary" className="mb-6">
-              <Star className="w-4 h-4 mr-2" />
-              Premium Features
-            </Badge>
+            
             
             <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               Destaca como Product Manager
@@ -182,20 +175,16 @@ export default function Premium() {
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              {user ? (
-                <Button asChild size="lg" className="w-full sm:w-auto">
+              {user ? <Button asChild size="lg" className="w-full sm:w-auto">
                   <Link to="/progreso">Ver mi progreso</Link>
-                </Button>
-              ) : (
-                <>
+                </Button> : <>
                   <Button asChild size="lg" className="w-full sm:w-auto">
                     <Link to="/auth">Comenzar ahora</Link>
                   </Button>
                   <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
-                    <Link to="/autoevaluacion">Probar gratis</Link>
+                    
                   </Button>
-                </>
-              )}
+                </>}
             </div>
           </div>
         </section>
@@ -230,6 +219,5 @@ export default function Premium() {
           </div>
         </section>
       </div>
-    </>
-  );
+    </>;
 }
