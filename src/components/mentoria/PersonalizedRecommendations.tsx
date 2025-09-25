@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CheckCircle2, Clock, Target, TrendingUp } from "lucide-react";
 import { NeutralArea } from "@/utils/scoring";
 
@@ -116,67 +117,73 @@ export function PersonalizedRecommendations({ neutralAreas }: PersonalizedRecomm
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-foreground mb-4">Recomendaciones personalizadas</h2>
       
-      <div className="grid gap-6">
+      <Accordion type="multiple" className="w-full space-y-4">
         {neutralAreas.map((area) => {
           const rec = areaRecommendations[area.key];
           if (!rec) return null;
           
           return (
-            <Card key={area.key} className="border-l-4 border-l-primary">
-              <CardHeader>
-                <CardTitle className="text-lg text-foreground">
-                  {rec.title}
-                </CardTitle>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="bg-primary/5">
-                    <Clock className="mr-1 h-3 w-3" />
-                    {rec.timeline}
-                  </Badge>
-                  <Badge variant="outline" className="bg-secondary/50">
-                    Nivel actual: {area.value}/5
-                  </Badge>
+            <AccordionItem key={area.key} value={area.key} className="border border-border rounded-lg">
+              <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                <div className="flex items-center justify-between w-full mr-4">
+                  <div className="text-left">
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {rec.title}
+                    </h3>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <Badge variant="outline" className="bg-primary/5">
+                        <Clock className="mr-1 h-3 w-3" />
+                        {rec.timeline}
+                      </Badge>
+                      <Badge variant="outline" className="bg-secondary/50">
+                        Nivel actual: {area.value}/5
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
-                    <Target className="h-4 w-4" />
-                    Objetivos específicos
-                  </h4>
-                  <ul className="space-y-1 text-sm text-muted-foreground">
-                    {rec.objectives.map((obj, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <span className="text-primary font-medium mt-0.5">•</span>
-                        <span>{obj}</span>
-                      </li>
-                    ))}
-                  </ul>
+              </AccordionTrigger>
+              <AccordionContent className="px-6 pb-6">
+                <div className="space-y-4 border-l-4 border-l-primary pl-4">
+                  <div>
+                    <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                      <Target className="h-4 w-4" />
+                      Objetivos específicos
+                    </h4>
+                    <ul className="space-y-1 text-sm text-muted-foreground">
+                      {rec.objectives.map((obj, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-primary font-medium mt-0.5">•</span>
+                          <span>{obj}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-muted/50 p-3 rounded-md">
+                    <p className="text-sm font-medium text-foreground mb-1">Conexión con tus fortalezas:</p>
+                    <p className="text-sm text-muted-foreground">{rec.prerequisites}</p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Criterios de éxito
+                    </h4>
+                    <ul className="space-y-1 text-sm text-muted-foreground">
+                      {rec.successCriteria.map((criteria, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <span className="text-success font-medium mt-0.5">✓</span>
+                          <span>{criteria}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                
-                <div className="bg-muted/50 p-3 rounded-md">
-                  <p className="text-sm font-medium text-foreground mb-1">Conexión con tus fortalezas:</p>
-                  <p className="text-sm text-muted-foreground">{rec.prerequisites}</p>
-                </div>
-                
-                <div>
-                  <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Criterios de éxito
-                  </h4>
-                  <ul className="space-y-1 text-sm text-muted-foreground">
-                    {rec.successCriteria.map((criteria, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <span className="text-success font-medium mt-0.5">✓</span>
-                        <span>{criteria}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+              </AccordionContent>
+            </AccordionItem>
           );
         })}
-      </div>
+      </Accordion>
     </div>
   );
 }
