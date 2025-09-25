@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ExternalLink, BookOpen, Wrench, Users, FileText } from "lucide-react";
 import { NeutralArea } from "@/utils/scoring";
 
@@ -115,97 +116,101 @@ export function DedicatedResources({ neutralAreas }: DedicatedResourcesProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-foreground mb-4">Recursos dedicados</h2>
-      
-      <div className="grid gap-6">
-        {neutralAreas.map((area) => {
-          const resources = areaResources[area.key];
-          if (!resources) return null;
-          
-          return (
-            <Card key={area.key}>
-              <CardHeader>
-                <CardTitle className="text-lg text-foreground">
-                  Recursos para {area.label}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Tools */}
-                <div>
-                  <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
-                    <Wrench className="h-4 w-4" />
-                    Herramientas recomendadas
-                  </h4>
-                  <div className="grid gap-3">
-                    {resources.tools.map((tool, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                        <div>
-                          <div className="font-medium text-foreground">{tool.name}</div>
-                          <div className="text-sm text-muted-foreground">{tool.description}</div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <BookOpen className="h-5 w-5 text-primary" />
+          Recursos dedicados
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Accordion type="single" collapsible className="w-full">
+          {neutralAreas.slice(0, 2).map((area) => {
+            const resources = areaResources[area.key];
+            if (!resources) return null;
+            
+            return (
+              <AccordionItem key={area.key} value={area.key}>
+                <AccordionTrigger className="text-left">
+                  <span className="text-lg font-medium">Recursos para {area.label}</span>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-6 pt-4">
+                  {/* Tools */}
+                  <div>
+                    <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
+                      <Wrench className="h-4 w-4" />
+                      Herramientas recomendadas
+                    </h4>
+                    <div className="grid gap-3">
+                      {resources.tools.map((tool, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                          <div>
+                            <div className="font-medium text-foreground">{tool.name}</div>
+                            <div className="text-sm text-muted-foreground">{tool.description}</div>
+                          </div>
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={tool.link} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          </Button>
                         </div>
-                        <Button size="sm" variant="outline" asChild>
-                          <a href={tool.link} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        </Button>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* Content */}
-                <div>
-                  <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Contenido curado
-                  </h4>
-                  <div className="grid gap-3">
-                    {resources.content.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Badge variant="secondary" className="text-xs">
-                            {item.type}
-                          </Badge>
-                          <div className="font-medium text-foreground">{item.title}</div>
+                  {/* Content */}
+                  <div>
+                    <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Contenido curado
+                    </h4>
+                    <div className="grid gap-3">
+                      {resources.content.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="secondary" className="text-xs">
+                              {item.type}
+                            </Badge>
+                            <div className="font-medium text-foreground">{item.title}</div>
+                          </div>
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={item.link} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          </Button>
                         </div>
-                        <Button size="sm" variant="outline" asChild>
-                          <a href={item.link} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        </Button>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* Communities */}
-                <div>
-                  <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Comunidades
-                  </h4>
-                  <div className="grid gap-3">
-                    {resources.communities.map((community, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                        <div>
-                          <div className="font-medium text-foreground">{community.name}</div>
-                          <div className="text-sm text-muted-foreground">{community.description}</div>
+                  {/* Communities */}
+                  <div>
+                    <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Comunidades
+                    </h4>
+                    <div className="grid gap-3">
+                      {resources.communities.map((community, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                          <div>
+                            <div className="font-medium text-foreground">{community.name}</div>
+                            <div className="text-sm text-muted-foreground">{community.description}</div>
+                          </div>
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={community.link} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          </Button>
                         </div>
-                        <Button size="sm" variant="outline" asChild>
-                          <a href={community.link} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        </Button>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-    </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+      </CardContent>
+    </Card>
   );
 }
