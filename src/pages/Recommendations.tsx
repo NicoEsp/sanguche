@@ -1,32 +1,24 @@
 import { Seo } from "@/components/Seo";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
 import { PaywallCard } from "@/components/PaywallCard";
 import { isFeatureAvailable, FEATURES } from "@/utils/features";
 import { useSubscription } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
-
-const recs = [
-  {
-    title: "Profundiza en Discovery",
-    steps: ["Realiza 5 entrevistas con usuarios", "Mapea oportunidades (Opportunity Solution Tree)", "Define hipótesis y experimentos"],
-  },
-  {
-    title: "Mejora tu Analítica",
-    steps: ["Aprende SQL básico", "Define métricas de producto", "Crea un dashboard de seguimiento"],
-  },
-  {
-    title: "Fortalece Roadmapping",
-    steps: ["Explora marcos (RICE/ICE)", "Planifica por outcomes", "Coordina con marketing y tech"],
-  },
-];
+import { useAssessmentData } from "@/hooks/useAssessmentData";
+import { MentoriaHero } from "@/components/mentoria/MentoriaHero";
+import { ProfileAnalysis } from "@/components/mentoria/ProfileAnalysis";
+import { PersonalizedRecommendations } from "@/components/mentoria/PersonalizedRecommendations";
+import { DedicatedResources } from "@/components/mentoria/DedicatedResources";
+import { ComingSoonExercises } from "@/components/mentoria/ComingSoonExercises";
+import { AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Recommendations() {
   const { hasActivePremium, loading } = useSubscription();
   const { toast } = useToast();
+  const { result: assessmentResult, loading: assessmentLoading, hasAssessment } = useAssessmentData();
 
   // Check for success payment
   useEffect(() => {
@@ -44,7 +36,7 @@ export default function Recommendations() {
   // Verificar si el usuario tiene acceso a recomendaciones
   const hasAccess = isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium);
 
-  if (loading) {
+  if (loading || assessmentLoading) {
     return (
       <>
         <Seo
@@ -85,38 +77,52 @@ export default function Recommendations() {
         description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
         canonical="/mentoria"
       />
-      <section className="container py-10">
-        <h1 className="text-3xl font-semibold mb-6">Mentoría personalizada</h1>
-        <div className="space-y-6">
-          {recs.map((rec, index) => (
-            <Card key={index}>
-              <CardHeader>
-                <CardTitle>{rec.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {rec.steps.map((step, stepIndex) => (
-                    <li key={stepIndex} className="flex items-start gap-2">
-                      <span className="text-primary font-medium">{stepIndex + 1}.</span>
-                      <span>{step}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ))}
+      <section className="container py-10 space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold text-foreground">Mentoría personalizada</h1>
+          <p className="text-lg text-muted-foreground">
+            Plan de crecimiento curado específicamente para tu perfil
+          </p>
         </div>
-        <div className="mt-8 flex gap-3">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button disabled>Compartir en LinkedIn</Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Próximamente</p>
-            </TooltipContent>
-          </Tooltip>
+
+        {/* Hero Section - Agendamiento */}
+        <MentoriaHero />
+
+        {/* Assessment Required Alert */}
+        {!hasAssessment && (
+          <Alert className="border-warning/50 bg-warning/5">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            <AlertDescription className="text-warning-foreground">
+              Para obtener recomendaciones personalizadas, primero necesitas completar tu{" "}
+              <Link to="/assessment" className="underline font-medium">
+                autoevaluación de Product Management
+              </Link>
+              .
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Personalized Content */}
+        {hasAssessment && assessmentResult && (
+          <div className="space-y-8">
+            {/* Profile Analysis */}
+            <ProfileAnalysis result={assessmentResult} />
+            
+            {/* Personalized Recommendations */}
+            <PersonalizedRecommendations neutralAreas={assessmentResult.neutralAreas} />
+            
+            {/* Dedicated Resources */}
+            <DedicatedResources neutralAreas={assessmentResult.neutralAreas} />
+          </div>
+        )}
+
+        {/* Coming Soon Exercises */}
+        <ComingSoonExercises />
+
+        {/* Navigation */}
+        <div className="flex justify-center">
           <Button asChild variant="outline">
-            <Link to="/mejoras">Atrás</Link>
+            <Link to="/mejoras">Volver a tu perfil</Link>
           </Button>
         </div>
       </section>
