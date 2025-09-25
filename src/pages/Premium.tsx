@@ -217,12 +217,12 @@ export default function Premium() {
                   <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <BookOpen className="h-8 w-8 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">Autoevaluación Gratuita</h3>
+                  <h3 className="text-xl font-semibold mb-2">A darle Métricas!</h3>
                   <p className="text-muted-foreground mb-4">
-                    Evalúa tus habilidades actuales como PM y recibe feedback personalizado
+                    Recurso complementario para ayudarte a tener una mirada más precisa sobre Métricas de Producto
                   </p>
-                  <Button asChild className="w-full">
-                    <Link to="/assessment">Probar gratis ahora</Link>
+                  <Button disabled className="w-full">
+                    Descargar recurso
                   </Button>
                 </div>
               </CardContent>
