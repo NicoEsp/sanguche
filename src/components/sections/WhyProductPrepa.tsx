@@ -1,4 +1,4 @@
-import { Shield, Zap, Users, BookOpen } from "lucide-react";
+import { MessageCircle, Zap, Users, BookOpen } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const features = [
@@ -21,10 +21,10 @@ const features = [
     highlight: true
   },
   {
-    icon: Shield,
-    title: "Privacidad y Seguridad",
-    description: "Tus datos están protegidos. Evaluación confidencial con opción de compartir solo lo que elijas.",
-    highlight: false
+    icon: MessageCircle,
+    title: "Acompañamiento personalizado",
+    description: "Recibe orientación directa de NicoProducto. Un Senior PM con experiencia en empresas tech que te guiará en tu desarrollo profesional.",
+    highlight: true
   }
 ];
 
