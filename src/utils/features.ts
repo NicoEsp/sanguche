@@ -38,3 +38,17 @@ export function isFeatureAvailable(
 export function isPremiumFeature(feature: Feature): boolean {
   return PREMIUM_FEATURES.includes(feature);
 }
+
+export function isMentoriaContentAvailable(
+  hasSubscription: boolean = false, 
+  mentoriaCompleted: boolean = false,
+  isAdmin: boolean = false
+): boolean {
+  // Admins can always access for testing
+  if (isAdmin) {
+    return true;
+  }
+  
+  // Must have premium subscription AND have completed mentoria
+  return hasSubscription && mentoriaCompleted;
+}

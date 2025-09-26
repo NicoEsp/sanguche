@@ -2,9 +2,11 @@ import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { PaywallCard } from "@/components/PaywallCard";
-import { isFeatureAvailable, FEATURES } from "@/utils/features";
+import { isFeatureAvailable, FEATURES, isMentoriaContentAvailable } from "@/utils/features";
 import { useSubscription } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useEffect } from "react";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { MentoriaHero } from "@/components/mentoria/MentoriaHero";
@@ -19,6 +21,8 @@ export default function Recommendations() {
   const { hasActivePremium, loading } = useSubscription();
   const { toast } = useToast();
   const { result: assessmentResult, loading: assessmentLoading, hasAssessment } = useAssessmentData();
+  const { profile, loading: profileLoading } = useUserProfile();
+  const { isAdmin } = useAdminAuth();
 
   // Check for success payment
   useEffect(() => {
@@ -35,8 +39,15 @@ export default function Recommendations() {
   
   // Verificar si el usuario tiene acceso a recomendaciones
   const hasAccess = isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium);
+  
+  // Verificar si el usuario tiene acceso al contenido de mentoría
+  const hasMentoriaAccess = isMentoriaContentAvailable(
+    hasActivePremium, 
+    profile?.mentoria_completed || false, 
+    isAdmin
+  );
 
-  if (loading || assessmentLoading) {
+  if (loading || assessmentLoading || profileLoading) {
     return (
       <>
         <Seo
@@ -105,14 +116,28 @@ export default function Recommendations() {
         {/* Personalized Content */}
         {hasAssessment && assessmentResult && (
           <div className="space-y-8">
-            {/* Profile Analysis */}
+            {/* Profile Analysis - Always visible for premium users */}
             <ProfileAnalysis result={assessmentResult} />
             
-            {/* Personalized Recommendations */}
-            <PersonalizedRecommendations neutralAreas={assessmentResult.neutralAreas} />
-            
-            {/* Dedicated Resources */}
-            <DedicatedResources neutralAreas={assessmentResult.neutralAreas} />
+            {/* Mentoria Content - Only after completing mentoria */}
+            {hasMentoriaAccess ? (
+              <>
+                {/* Personalized Recommendations */}
+                <PersonalizedRecommendations neutralAreas={assessmentResult.neutralAreas} />
+                
+                {/* Dedicated Resources */}
+                <DedicatedResources neutralAreas={assessmentResult.neutralAreas} />
+              </>
+            ) : (
+              <Alert className="border-primary/50 bg-primary/5">
+                <AlertTriangle className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-primary-foreground">
+                  Las recomendaciones personalizadas y recursos estarán disponibles después de tu sesión de mentoría 1:1. 
+                  <br />
+                  <strong>¡Agenda tu sesión arriba para desbloquear todo el contenido premium!</strong>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         )}
 

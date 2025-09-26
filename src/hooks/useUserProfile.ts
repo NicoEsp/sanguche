@@ -6,6 +6,7 @@ interface UserProfile {
   id: string;
   name: string | null;
   user_id: string;
+  mentoria_completed: boolean;
 }
 
 export function useUserProfile() {
@@ -24,7 +25,7 @@ export function useUserProfile() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, name, user_id')
+          .select('id, name, user_id, mentoria_completed')
           .eq('user_id', user.id)
           .maybeSingle();
 

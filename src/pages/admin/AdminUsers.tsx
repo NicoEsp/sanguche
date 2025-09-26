@@ -13,6 +13,7 @@ interface UserProfile {
   name: string | null;
   user_id: string;
   created_at: string;
+  mentoria_completed: boolean;
   email?: string;
   subscription?: {
     plan: string;
@@ -45,6 +46,7 @@ export default function AdminUsers() {
           name,
           user_id,
           created_at,
+          mentoria_completed,
           user_subscriptions(plan, status),
           user_roles(role)
         `)
@@ -58,6 +60,7 @@ export default function AdminUsers() {
         name: profile.name,
         user_id: profile.user_id,
         created_at: profile.created_at,
+        mentoria_completed: profile.mentoria_completed,
         subscription: profile.user_subscriptions?.[0] || { plan: 'free', status: 'active' },
         role: profile.user_roles?.[0]?.role || 'user'
       })) || [];
@@ -101,6 +104,22 @@ export default function AdminUsers() {
     } catch (err) {
       console.error('Error toggling admin role:', err);
       setError('Error modificando rol de administrador');
+    }
+  }
+
+  async function toggleMentoriaStatus(userId: string, currentStatus: boolean) {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ mentoria_completed: !currentStatus })
+        .eq('id', userId);
+
+      if (error) throw error;
+      
+      await fetchUsers();
+    } catch (err) {
+      console.error('Error toggling mentoria status:', err);
+      setError('Error modificando estado de mentoría');
     }
   }
 
@@ -268,6 +287,7 @@ export default function AdminUsers() {
                 <TableHead>Usuario</TableHead>
                 <TableHead>Plan</TableHead>
                 <TableHead>Rol</TableHead>
+                <TableHead>Mentoría</TableHead>
                 <TableHead>Fecha Registro</TableHead>
                 <TableHead>Acciones</TableHead>
               </TableRow>
@@ -292,17 +312,36 @@ export default function AdminUsers() {
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    {user.subscription?.plan === 'premium' && (
+                      <Badge variant={user.mentoria_completed ? 'default' : 'secondary'}>
+                        {user.mentoria_completed ? '✓ Completada' : '⏳ Pendiente'}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     {new Date(user.created_at).toLocaleDateString('es-ES')}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleAdminRole(user.id, user.role || 'user')}
-                      className="text-xs"
-                    >
-                      {user.role === 'admin' ? 'Quitar Admin' : 'Hacer Admin'}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleAdminRole(user.id, user.role || 'user')}
+                        className="text-xs"
+                      >
+                        {user.role === 'admin' ? 'Quitar Admin' : 'Hacer Admin'}
+                      </Button>
+                      {user.subscription?.plan === 'premium' && (
+                        <Button
+                          variant={user.mentoria_completed ? 'outline' : 'default'}
+                          size="sm"
+                          onClick={() => toggleMentoriaStatus(user.id, user.mentoria_completed)}
+                          className="text-xs"
+                        >
+                          {user.mentoria_completed ? 'Marcar Pendiente' : 'Marcar Completada'}
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
