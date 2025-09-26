@@ -174,9 +174,7 @@ export default function Premium() {
         <section className="px-4 py-[25px]">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold mb-6">¿Listo para acelerar tu carrera?</h2>
-            <p className="text-xl text-muted-foreground mb-8">
-              Únete a ProductPrepa Premium y obtén las herramientas que necesitas para destacar como Product Manager.
-            </p>
+            <p className="text-xl text-muted-foreground mb-8">Únite a ProductPrepa Premium y obtené las herramientas que necesitas para subir tu nivel como Product Manager.</p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               {user ? <Button asChild size="lg" className="w-full sm:w-auto">
@@ -198,12 +196,8 @@ export default function Premium() {
         {/* Free Resource Section */}
         <section className="py-16 px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-6">
-              ¿No estás seguro? Accede a este recurso gratuito como ejemplo
-            </h2>
-            <p className="text-lg mb-8 text-muted-foreground max-w-2xl mx-auto">
-              Prueba nuestra autoevaluación gratuita y descubre qué puede ayudarte en el momento en el que estás
-            </p>
+            <h2 className="text-3xl font-bold mb-6">¿No estás seguro? Accede a este recurso gratuito</h2>
+            <p className="text-lg mb-8 text-muted-foreground max-w-2xl mx-auto">Prueba la autoevaluación gratuita y descubri como puede ayudarte en el momento en el que estás.</p>
             <Card className="max-w-md mx-auto bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
               <CardContent className="p-6">
                 <div className="text-center">
