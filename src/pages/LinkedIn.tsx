@@ -16,12 +16,18 @@ export default function LinkedInConnect() {
           Próximamente podrás compartir tus resultados y avances en tu perfil profesional.
         </p>
         <Button
-          onClick={() =>
-            toast({
-              title: "Próximamente",
-              description: "La función de compartir en LinkedIn estará disponible pronto.",
-            })
-          }
+          onClick={() => {
+            const linkedInMessage = `🚀 Estuve probando ProductPrepa de @Nicolás Espíndola y me ayudó a identificar mis brechas como Product Manager.
+
+Es una herramienta increíble que analiza tus habilidades y te da recomendaciones personalizadas para mejorar en el rol.
+
+Si estás en producto o querés crecer en el área, te la recomiendo 💯
+
+#ProductManagement #Desarrollo #ProductPrepa`;
+
+            const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(linkedInMessage)}`;
+            window.open(linkedInUrl, '_blank', 'width=600,height=600');
+          }}
         >
           Compartir en LinkedIn
         </Button>
