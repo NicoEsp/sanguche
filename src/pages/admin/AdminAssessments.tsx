@@ -42,7 +42,7 @@ export default function AdminAssessments() {
           assessment_values,
           assessment_result,
           user_id,
-          profiles!inner(name)
+          profiles!assessments_user_id_fkey(name)
         `)
         .order('created_at', { ascending: false });
 

@@ -34,9 +34,8 @@ export default function AdminDashboard() {
     }).format(amount);
   };
 
-  // Calculate financial metrics
-  const mrr = analytics.premiumUsers * 9.99; // Monthly Recurring Revenue
-  const arr = mrr * 12; // Annual Recurring Revenue
+  // Use real financial metrics from analytics
+  const { mrr, arr, arpu } = analytics;
 
   return (
     <div className="space-y-6">
@@ -130,7 +129,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
-              {analytics.premiumUsers > 0 ? formatCurrency(mrr / analytics.premiumUsers) : '$0.00'}
+              {formatCurrency(arpu)}
             </div>
             <p className="text-xs text-muted-foreground">Ingreso promedio por usuario</p>
           </CardContent>
@@ -167,7 +166,7 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-center">
               <span className="text-sm">ARPU (Avg Revenue Per User)</span>
               <Badge variant="secondary">
-                {analytics.premiumUsers > 0 ? formatCurrency(mrr / analytics.premiumUsers) : '$0.00'}
+                {formatCurrency(arpu)}
               </Badge>
             </div>
             <div className="flex justify-between items-center">
@@ -218,26 +217,67 @@ export default function AdminDashboard() {
               <Target className="h-5 w-5" />
               Distribución de Brechas de Habilidades
             </CardTitle>
-            <CardDescription>Áreas más problemáticas identificadas</CardDescription>
+            <CardDescription>Áreas más problemáticas basadas en evaluaciones reales</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {analytics.skillGapDistribution.map((skill, index) => (
-                <div key={skill.skill} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <span className="text-sm font-medium">{skill.skill}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 bg-muted rounded-full h-2">
-                      <div 
-                        className="bg-primary h-2 rounded-full" 
-                        style={{ 
-                          width: `${(skill.count / Math.max(...analytics.skillGapDistribution.map(s => s.count))) * 100}%` 
-                        }}
-                      />
+            {analytics.skillGapDistribution.length > 0 ? (
+              <div className="space-y-3">
+                {analytics.skillGapDistribution.map((skill, index) => (
+                  <div key={skill.skill} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm font-medium">{skill.skill}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-24 bg-muted rounded-full h-2">
+                        <div 
+                          className="bg-primary h-2 rounded-full" 
+                          style={{ 
+                            width: `${(skill.count / Math.max(...analytics.skillGapDistribution.map(s => s.count))) * 100}%` 
+                          }}
+                        />
+                      </div>
+                      <span className="text-sm font-bold min-w-[2rem]">{skill.count}</span>
                     </div>
-                    <span className="text-sm font-bold min-w-[2rem]">{skill.count}</span>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No hay datos de brechas de habilidades disponibles aún.</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Las brechas se mostrarán cuando los usuarios completen evaluaciones.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5" />
+              Métricas de Evaluación
+            </CardTitle>
+            <CardDescription>Calidad y engagement de evaluaciones</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
+                <span className="text-sm font-medium">Promedio de puntuación</span>
+                <span className="text-2xl font-bold text-primary">
+                  {analytics.averageAssessmentScore > 0 ? analytics.averageAssessmentScore.toFixed(1) : 'N/A'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
+                <span className="text-sm font-medium">Evaluaciones por usuario activo</span>
+                <span className="text-lg font-semibold">
+                  {analytics.activeUsers > 0 ? (analytics.totalAssessments / analytics.activeUsers).toFixed(1) : '0'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
+                <span className="text-sm font-medium">Tasa de finalización</span>
+                <span className="text-lg font-semibold">
+                  {analytics.totalUsers > 0 ? ((analytics.totalAssessments / analytics.totalUsers) * 100).toFixed(1) : '0'}%
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -257,7 +297,7 @@ export default function AdminDashboard() {
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
               <div className="text-2xl font-bold text-primary">{analytics.activeUsers}</div>
-              <p className="text-sm text-muted-foreground">Usuarios activos</p>
+              <p className="text-sm text-muted-foreground">Usuarios activos ({analytics.recentActivePeriod})</p>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
               <div className="text-2xl font-bold text-primary">{analytics.conversionRate.toFixed(1)}%</div>
