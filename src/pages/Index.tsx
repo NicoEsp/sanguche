@@ -63,7 +63,7 @@ const Index = () => {
         <HowItWorks />
         
         {/* CTA after HowItWorks */}
-        <section className="py-16 text-center">
+        <section className="text-center mx-0 my-0 px-[2px] py-[20px]">
           <div className="container mx-auto px-4">
             <Button size="lg" asChild className="bg-primary hover:bg-primary/90">
               <Link to="/auth">
