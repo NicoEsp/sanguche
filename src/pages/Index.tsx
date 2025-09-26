@@ -89,7 +89,7 @@ const Index = () => {
           
           <div className="grid gap-6 md:grid-cols-2 md:gap-8 max-w-4xl mx-auto">
             {/* Plan Gratuito */}
-            <Card>
+            <Card className="flex flex-col h-full">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">Gratis</CardTitle>
@@ -97,8 +97,8 @@ const Index = () => {
                 </div>
                 <p className="text-muted-foreground">Perfecto para comenzar tu autoevaluación</p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
+              <CardContent className="flex-1 flex flex-col">
+                <div className="space-y-3 flex-1">
                   <div className="flex items-start gap-3">
                     <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <span className="text-sm">Autoevaluación completa de habilidades PM</span>
@@ -116,7 +116,7 @@ const Index = () => {
                     <span className="text-sm">Recursos gratuitos para ayudarte</span>
                   </div>
                 </div>
-                <Button asChild className="w-full">
+                <Button asChild className="w-full mt-6">
                   <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
                     {isAuthenticated ? "Ir a evaluación" : "Comenzar gratis"}
                   </Link>
@@ -125,7 +125,7 @@ const Index = () => {
             </Card>
 
             {/* Plan Premium */}
-            <Card className="border-primary relative">
+            <Card className="border-primary relative flex flex-col h-full">
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground">
                   <Star className="h-3 w-3 mr-1" />
@@ -142,8 +142,8 @@ const Index = () => {
                 </div>
                 <p className="text-muted-foreground">Todo lo gratuito, más funciones avanzadas</p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
+              <CardContent className="flex-1 flex flex-col">
+                <div className="space-y-3 flex-1">
                   <div className="flex items-start gap-3">
                     <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <span className="text-sm">Mentoría personalizada</span>
@@ -161,7 +161,7 @@ const Index = () => {
                     <span className="text-sm">Roadmap de carrera personalizado</span>
                   </div>
                 </div>
-                <Button asChild className="w-full">
+                <Button asChild className="w-full mt-6">
                   <Link to="/mentoria">Suscribirse a Premium</Link>
                 </Button>
               </CardContent>
