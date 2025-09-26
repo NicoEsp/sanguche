@@ -111,6 +111,10 @@ const Index = () => {
                     <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                     <span className="text-sm">Estimación de nivel de seniority</span>
                   </div>
+                  <div className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">Recursos gratuitos para ayudarte</span>
+                  </div>
                 </div>
                 <Button asChild className="w-full">
                   <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
