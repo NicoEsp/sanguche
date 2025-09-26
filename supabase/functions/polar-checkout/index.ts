@@ -30,10 +30,21 @@ serve(async (req) => {
       );
     }
 
-    // Get user profile from Supabase
+    // Get user profile and email from Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get user email from auth.users table
+    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
+    
+    if (authError || !authUser?.user?.email) {
+      console.error('Error fetching user email:', authError);
+      return new Response(
+        JSON.stringify({ error: 'User email not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -48,11 +59,14 @@ serve(async (req) => {
       );
     }
 
-    // Create Polar checkout session
+    // Create Polar checkout session with correct structure
     const checkoutData = {
-      product_id: '0e76f08a-fe1e-4533-a173-fbfc3da81c49',
+      products: [{
+        product_id: '0e76f08a-fe1e-4533-a173-fbfc3da81c49',
+        quantity: 1
+      }],
       success_url: `${req.headers.get('origin')}/recomendaciones?success=true`,
-      customer_email: profile.user_id, // We'll use user_id as identifier
+      customer_email: authUser.user.email,
       metadata: {
         profile_id: profile.id,
         user_id: userId
