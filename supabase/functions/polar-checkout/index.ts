@@ -91,7 +91,7 @@ serve(async (req) => {
     // Create Polar checkout session with product_price_id
     const checkoutData = {
       product_price_id: priceId,
-      success_url: `${req.headers.get('origin')}/recomendaciones?success=true`,
+      success_url: `${req.headers.get('origin')}/mentoria?success=true`,
       customer_email: authUser.user.email,
       metadata: {
         profile_id: profile.id,

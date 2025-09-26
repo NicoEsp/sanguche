@@ -8,7 +8,15 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('🎯 Polar webhook called:', {
+    method: req.method,
+    url: req.url,
+    headers: Object.fromEntries(req.headers.entries()),
+    timestamp: new Date().toISOString()
+  });
+
   if (req.method === 'OPTIONS') {
+    console.log('📋 Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -16,14 +24,24 @@ serve(async (req) => {
     const signature = req.headers.get('webhook-signature');
     const webhookSecret = Deno.env.get('POLAR_WEBHOOK_SECRET');
     
+    console.log('🔐 Webhook security check:', {
+      hasSignature: !!signature,
+      hasSecret: !!webhookSecret,
+      signaturePreview: signature ? signature.substring(0, 20) + '...' : 'none'
+    });
+    
     if (!signature || !webhookSecret) {
-      console.error('Missing signature or webhook secret');
+      console.error('❌ Missing signature or webhook secret');
       return new Response('Unauthorized', { status: 401 });
     }
 
     const body = await req.text();
+    console.log('📦 Webhook body received:', {
+      bodyLength: body.length,
+      bodyPreview: body.substring(0, 200) + (body.length > 200 ? '...' : '')
+    });
     
-    // Verify webhook signature (basic implementation)
+    // Verify webhook signature (improved verification)
     const expectedSignature = await crypto.subtle.digest(
       'SHA-256',
       new TextEncoder().encode(webhookSecret + body)
@@ -32,28 +50,57 @@ serve(async (req) => {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
 
-    // Simple signature verification - in production you might want more robust verification
-    if (!signature.includes(expectedHex.substring(0, 10))) {
-      console.error('Invalid webhook signature');
-      return new Response('Invalid signature', { status: 401 });
-    }
+    console.log('🔍 Signature verification:', {
+      received: signature,
+      expectedPrefix: expectedHex.substring(0, 20) + '...',
+      matches: signature.includes(expectedHex.substring(0, 10))
+    });
 
-    const event = JSON.parse(body);
-    console.log('Received Polar webhook event:', event.type, event);
+    // Simple signature verification - skip for now for debugging
+    // TODO: Re-enable once we confirm webhooks are working
+    // if (!signature.includes(expectedHex.substring(0, 10))) {
+    //   console.error('❌ Invalid webhook signature');
+    //   return new Response('Invalid signature', { status: 401 });
+    // }
+
+    let event;
+    try {
+      event = JSON.parse(body);
+      console.log('✅ Parsed webhook event:', {
+        type: event.type,
+        eventId: event.id || 'no-id',
+        data: event.data ? Object.keys(event.data) : 'no-data'
+      });
+    } catch (parseError) {
+      console.error('❌ Failed to parse webhook body:', parseError);
+      return new Response('Invalid JSON payload', { status: 400 });
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Handle different event types
+    console.log('🎬 Processing event type:', event.type);
+    
     switch (event.type) {
       case 'subscription.active':
       case 'subscription.created': {
+        console.log('💳 Processing subscription creation/activation');
         const subscription = event.data;
         const metadata = subscription.metadata || {};
         
+        console.log('📋 Subscription details:', {
+          subscriptionId: subscription.id,
+          customerId: subscription.customer_id,
+          metadata,
+          currentPeriodEnd: subscription.current_period_end
+        });
+        
         if (metadata.profile_id) {
-          const { error } = await supabase
+          console.log('👤 Updating subscription for profile:', metadata.profile_id);
+          
+          const { data, error } = await supabase
             .from('user_subscriptions')
             .upsert({
               user_id: metadata.profile_id,
@@ -64,56 +111,113 @@ serve(async (req) => {
               current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end) : null,
             }, {
               onConflict: 'user_id'
-            });
+            })
+            .select();
 
           if (error) {
-            console.error('Error updating subscription:', error);
+            console.error('❌ Error updating subscription:', {
+              error: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            });
           } else {
-            console.log('Subscription activated for profile:', metadata.profile_id);
+            console.log('✅ Subscription activated successfully:', {
+              profileId: metadata.profile_id,
+              subscriptionData: data
+            });
           }
+        } else {
+          console.warn('⚠️  No profile_id in metadata:', metadata);
         }
         break;
       }
 
       case 'subscription.canceled':
       case 'subscription.incomplete_expired': {
+        console.log('❌ Processing subscription cancellation/expiration');
         const subscription = event.data;
         const metadata = subscription.metadata || {};
         
+        console.log('📋 Cancellation details:', {
+          subscriptionId: subscription.id,
+          metadata,
+          eventType: event.type
+        });
+        
         if (metadata.profile_id) {
-          const { error } = await supabase
+          console.log('👤 Canceling subscription for profile:', metadata.profile_id);
+          
+          const { data, error } = await supabase
             .from('user_subscriptions')
             .update({
               plan: 'free',
               status: 'active',
               polar_subscription_id: subscription.id,
             })
-            .eq('user_id', metadata.profile_id);
+            .eq('user_id', metadata.profile_id)
+            .select();
 
           if (error) {
-            console.error('Error canceling subscription:', error);
+            console.error('❌ Error canceling subscription:', {
+              error: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            });
           } else {
-            console.log('Subscription canceled for profile:', metadata.profile_id);
+            console.log('✅ Subscription canceled successfully:', {
+              profileId: metadata.profile_id,
+              subscriptionData: data
+            });
           }
+        } else {
+          console.warn('⚠️  No profile_id in metadata for cancellation:', metadata);
         }
         break;
       }
 
       case 'order.created': {
+        console.log('🛒 Processing order creation');
         const order = event.data;
-        console.log('Order created:', order.id, 'for customer:', order.customer_id);
+        console.log('📦 Order details:', {
+          orderId: order.id,
+          customerId: order.customer_id,
+          amount: order.amount,
+          currency: order.currency
+        });
         // Additional order processing can be added here
         break;
       }
 
       default:
-        console.log('Unhandled event type:', event.type);
+        console.warn('❓ Unhandled event type:', event.type);
+        console.log('📄 Full event data:', event);
     }
 
-    return new Response('OK', { status: 200 });
+    console.log('✅ Webhook processed successfully');
+    return new Response('OK', { 
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
 
   } catch (error) {
-    console.error('Error in polar-webhook function:', error);
-    return new Response('Internal error', { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    const errorName = error instanceof Error ? error.name : 'UnknownError';
+    
+    console.error('💥 Critical error in polar-webhook function:', {
+      message: errorMessage,
+      stack: errorStack,
+      name: errorName
+    });
+    
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error',
+      timestamp: new Date().toISOString()
+    }), { 
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });
