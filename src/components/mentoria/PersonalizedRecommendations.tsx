@@ -6,6 +6,7 @@ import { NeutralArea } from "@/utils/scoring";
 
 interface PersonalizedRecommendationsProps {
   neutralAreas: NeutralArea[];
+  locked?: boolean;
 }
 
 const areaRecommendations: Record<string, {
@@ -92,7 +93,7 @@ const areaRecommendations: Record<string, {
   }
 };
 
-export function PersonalizedRecommendations({ neutralAreas }: PersonalizedRecommendationsProps) {
+export function PersonalizedRecommendations({ neutralAreas, locked = false }: PersonalizedRecommendationsProps) {
   if (neutralAreas.length === 0) {
     return (
       <Card>
@@ -124,7 +125,7 @@ export function PersonalizedRecommendations({ neutralAreas }: PersonalizedRecomm
           
           return (
             <AccordionItem key={area.key} value={area.key} className="border border-border rounded-lg">
-              <AccordionTrigger className="px-6 py-4 hover:no-underline">
+              <AccordionTrigger disabled={locked} className="px-6 py-4 hover:no-underline">
                 <div className="flex items-center justify-between w-full mr-4">
                   <div className="text-left">
                     <h3 className="text-lg font-semibold text-foreground">

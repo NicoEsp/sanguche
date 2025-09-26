@@ -7,6 +7,7 @@ import { NeutralArea } from "@/utils/scoring";
 
 interface DedicatedResourcesProps {
   neutralAreas: NeutralArea[];
+  locked?: boolean;
 }
 
 const areaResources: Record<string, {
@@ -96,7 +97,7 @@ const areaResources: Record<string, {
   }
 };
 
-export function DedicatedResources({ neutralAreas }: DedicatedResourcesProps) {
+export function DedicatedResources({ neutralAreas, locked = false }: DedicatedResourcesProps) {
   if (neutralAreas.length === 0) {
     return (
       <Card>
@@ -131,7 +132,7 @@ export function DedicatedResources({ neutralAreas }: DedicatedResourcesProps) {
             
             return (
               <AccordionItem key={area.key} value={area.key}>
-                <AccordionTrigger className="text-left">
+                <AccordionTrigger disabled={locked} className="text-left">
                   <span className="text-lg font-medium">Recursos para {area.label}</span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-6 pt-4">

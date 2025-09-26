@@ -31,7 +31,7 @@ export function LockedResources({ neutralAreas }: LockedResourcesProps) {
       <CardContent className="space-y-4">
         {/* Preview del área principal */}
         {previewArea && (
-          <div className="border rounded-lg p-4 bg-muted/50 relative">
+          <div className="border rounded-lg p-4 bg-muted/50 relative" role="region" aria-disabled="true">
             <h4 className="font-medium text-foreground capitalize mb-4">
               Recursos para {previewArea.label}
             </h4>
@@ -45,7 +45,7 @@ export function LockedResources({ neutralAreas }: LockedResourcesProps) {
                 </div>
                 
                 {/* Overlay de contenido bloqueado */}
-                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center cursor-not-allowed">
                   <div className="text-center">
                     <Lock className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
                     <p className="text-xs text-muted-foreground">3+ herramientas</p>
@@ -60,7 +60,7 @@ export function LockedResources({ neutralAreas }: LockedResourcesProps) {
                 </div>
                 
                 {/* Overlay de contenido bloqueado */}
-                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center cursor-not-allowed">
                   <div className="text-center">
                     <Lock className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
                     <p className="text-xs text-muted-foreground">5+ recursos</p>
@@ -75,7 +75,7 @@ export function LockedResources({ neutralAreas }: LockedResourcesProps) {
                 </div>
                 
                 {/* Overlay de contenido bloqueado */}
-                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center cursor-not-allowed">
                   <div className="text-center">
                     <Lock className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
                     <p className="text-xs text-muted-foreground">2+ comunidades</p>

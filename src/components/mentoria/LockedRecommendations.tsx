@@ -51,6 +51,8 @@ export function LockedRecommendations({ neutralAreas }: LockedRecommendationsPro
               <div 
                 key={area.key} 
                 className="border rounded-lg p-4 bg-muted/50 relative"
+                role="region"
+                aria-disabled="true"
               >
                 <div className="flex items-center gap-3 mb-2">
                   <Icon className="h-4 w-4 text-muted-foreground" />
@@ -63,7 +65,7 @@ export function LockedRecommendations({ neutralAreas }: LockedRecommendationsPro
                 </div>
                 
                 {/* Overlay de contenido bloqueado */}
-                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center cursor-not-allowed">
                   <div className="text-center space-y-2">
                     <Lock className="h-6 w-6 text-muted-foreground mx-auto" />
                     <p className="text-sm text-muted-foreground font-medium">
