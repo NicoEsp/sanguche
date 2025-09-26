@@ -5,7 +5,7 @@ import { CheckCircle2, Clock, Target, TrendingUp } from "lucide-react";
 import { NeutralArea } from "@/utils/scoring";
 
 interface PersonalizedRecommendationsProps {
-  neutralAreas: NeutralArea[];
+  neutralAreas?: NeutralArea[];
   locked?: boolean;
 }
 
@@ -94,7 +94,7 @@ const areaRecommendations: Record<string, {
 };
 
 export function PersonalizedRecommendations({ neutralAreas, locked = false }: PersonalizedRecommendationsProps) {
-  if (neutralAreas.length === 0) {
+  if (!neutralAreas || neutralAreas.length === 0) {
     return (
       <Card>
         <CardHeader>

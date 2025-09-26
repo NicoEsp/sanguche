@@ -6,7 +6,7 @@ import { ExternalLink, BookOpen, Wrench, Users, FileText } from "lucide-react";
 import { NeutralArea } from "@/utils/scoring";
 
 interface DedicatedResourcesProps {
-  neutralAreas: NeutralArea[];
+  neutralAreas?: NeutralArea[];
   locked?: boolean;
 }
 
@@ -98,7 +98,7 @@ const areaResources: Record<string, {
 };
 
 export function DedicatedResources({ neutralAreas, locked = false }: DedicatedResourcesProps) {
-  if (neutralAreas.length === 0) {
+  if (!neutralAreas || neutralAreas.length === 0) {
     return (
       <Card>
         <CardHeader>

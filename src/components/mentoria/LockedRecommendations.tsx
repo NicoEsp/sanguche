@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import type { NeutralArea } from "@/utils/scoring";
 
 interface LockedRecommendationsProps {
-  neutralAreas: NeutralArea[];
+  neutralAreas?: NeutralArea[];
 }
 
 const areaIcons = {
@@ -25,7 +25,7 @@ const areaIcons = {
 
 export function LockedRecommendations({ neutralAreas }: LockedRecommendationsProps) {
   // Mostrar solo las primeras 2 áreas como preview
-  const previewAreas = neutralAreas.slice(0, 2);
+  const previewAreas = neutralAreas?.slice(0, 2) || [];
 
   return (
     <Card className="relative">
@@ -115,7 +115,7 @@ export function LockedRecommendations({ neutralAreas }: LockedRecommendationsPro
         </div>
 
         {/* Contador de áreas adicionales */}
-        {neutralAreas.length > 2 && (
+        {neutralAreas && neutralAreas.length > 2 && (
           <div className="text-center text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
             <Lock className="h-4 w-4 inline mr-1" />
             +{neutralAreas.length - 2} áreas de mejora adicionales disponibles

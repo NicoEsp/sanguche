@@ -6,12 +6,12 @@ import { Link } from "react-router-dom";
 import type { NeutralArea } from "@/utils/scoring";
 
 interface LockedResourcesProps {
-  neutralAreas: NeutralArea[];
+  neutralAreas?: NeutralArea[];
 }
 
 export function LockedResources({ neutralAreas }: LockedResourcesProps) {
   // Mostrar solo la primera área como preview
-  const previewArea = neutralAreas[0];
+  const previewArea = neutralAreas?.[0];
 
   return (
     <Card className="relative">
@@ -123,7 +123,7 @@ export function LockedResources({ neutralAreas }: LockedResourcesProps) {
         </div>
 
         {/* Contador de áreas adicionales */}
-        {neutralAreas.length > 1 && (
+        {neutralAreas && neutralAreas.length > 1 && (
           <div className="text-center text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
             <Lock className="h-4 w-4 inline mr-1" />
             Recursos para {neutralAreas.length - 1} áreas adicionales disponibles
