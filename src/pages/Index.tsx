@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Star, ArrowRight, Zap } from "lucide-react";
 import { HowItWorks } from "@/components/sections/HowItWorks";
-import { Testimonials } from "@/components/sections/Testimonials";
+
 import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
 import { useAuth } from '@/contexts/AuthContext';
 const Index = () => {
