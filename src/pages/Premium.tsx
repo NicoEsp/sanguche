@@ -180,7 +180,7 @@ export default function Premium() {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               {user ? <Button asChild size="lg" className="w-full sm:w-auto">
-                  <Link to="/progreso">Ver mi progreso</Link>
+                  <Link to="/progreso">Suscribirte a Premium</Link>
                 </Button> : <>
                   <Button asChild size="lg" className="w-full sm:w-auto">
                     <Link to="/auth">Comenzar ahora</Link>
