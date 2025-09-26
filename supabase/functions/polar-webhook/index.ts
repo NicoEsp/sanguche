@@ -194,7 +194,68 @@ serve(async (req) => {
           amount: order.amount,
           currency: order.currency
         });
-        // Additional order processing can be added here
+        // Order created but not yet paid - no action needed here
+        break;
+      }
+
+      case 'order.paid': {
+        console.log('💰 Processing successful order payment');
+        const order = event.data;
+        const metadata = order.metadata || {};
+        
+        console.log('📦 Paid order details:', {
+          orderId: order.id,
+          customerId: order.customer_id,
+          amount: order.amount,
+          currency: order.currency,
+          status: order.status,
+          metadata,
+          productId: order.product_id
+        });
+        
+        // Verify the order is actually paid
+        if (order.status !== 'paid') {
+          console.warn('⚠️  Order status is not "paid":', order.status);
+          break;
+        }
+        
+        if (metadata.profile_id) {
+          console.log('👤 Activating premium for profile:', metadata.profile_id);
+          
+          // Calculate subscription period end (default to 1 month from now)
+          const currentPeriodEnd = new Date();
+          currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+          
+          const { data, error } = await supabase
+            .from('user_subscriptions')
+            .upsert({
+              user_id: metadata.profile_id,
+              plan: 'premium',
+              status: 'active',
+              polar_customer_id: order.customer_id,
+              current_period_end: currentPeriodEnd,
+            }, {
+              onConflict: 'user_id'
+            })
+            .select();
+
+          if (error) {
+            console.error('❌ Error activating premium after order payment:', {
+              error: error.message,
+              details: error.details,
+              hint: error.hint,
+              code: error.code
+            });
+          } else {
+            console.log('✅ Premium activated successfully after order payment:', {
+              profileId: metadata.profile_id,
+              orderId: order.id,
+              subscriptionData: data
+            });
+          }
+        } else {
+          console.warn('⚠️  No profile_id in order metadata:', metadata);
+        }
         break;
       }
 
