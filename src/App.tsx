@@ -12,7 +12,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Assessment from "@/pages/Assessment";
 import SkillGaps from "@/pages/SkillGaps";
 import Recommendations from "@/pages/Recommendations";
-import LinkedInConnect from "@/pages/LinkedIn";
+
 import Dashboard from "@/pages/Dashboard";
 import Auth from "@/pages/Auth";
 import Premium from "@/pages/Premium";
@@ -57,7 +57,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/premium" element={<Premium />} />
-              <Route path="/linkedin" element={<LinkedInConnect />} />
+              
               
               {/* Rutas protegidas */}
               <Route path="/autoevaluacion" element={

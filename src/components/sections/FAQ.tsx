@@ -23,10 +23,6 @@ const faqs = [
     answer: "Sí, puedes cancelar en cualquier momento desde tu panel de usuario. No hay compromisos a largo plazo ni penalizaciones por cancelación."
   },
   {
-    question: "¿Cómo funciona la integración con LinkedIn?",
-    answer: "Puedes compartir tu badge de nivel de seniority en LinkedIn de forma opcional. Es una excelente manera de mostrar tu compromiso con el desarrollo profesional continuo."
-  },
-  {
     question: "¿Qué tan precisa es la evaluación?",
     answer: "Nuestra evaluación está basada en frameworks validados por la industria y ha sido revisada por Senior PMs de empresas tech líderes. Se actualiza regularmente para reflejar las tendencias actuales."
   }
