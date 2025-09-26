@@ -55,6 +55,7 @@ double_confirm_changes = true
 enable_confirmations = false
 secure_email_change_enabled = true
 enable_reauthentication = true
+enable_password_protection = true
 
 [auth.sms]
 enable_signup = false
