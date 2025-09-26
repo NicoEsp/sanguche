@@ -25,20 +25,46 @@ export function WhyProductPrepa() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
-        {features.map((feature, index) => <Card key={index} className={`${feature.highlight ? 'border-primary/20 bg-primary/5' : 'border-border'} transition-all hover:border-primary/30`}>
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${feature.highlight ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
-                  <feature.icon className="h-5 w-5" />
+      <div className="max-w-4xl mx-auto">
+        {/* Top row with 2 cards */}
+        <div className="grid gap-6 md:grid-cols-2 mb-6">
+          {features.slice(0, 2).map((feature, index) => (
+            <Card key={index} className={`${feature.highlight ? 'border-primary/20 bg-primary/5' : 'border-border'} transition-all hover:border-primary/30`}>
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${feature.highlight ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
+                    <feature.icon className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold mb-2">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>)}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        {/* Bottom row with centered card */}
+        <div className="flex justify-center">
+          <div className="w-full max-w-md">
+            {features.slice(2).map((feature, index) => (
+              <Card key={index + 2} className={`${feature.highlight ? 'border-primary/20 bg-primary/5' : 'border-border'} transition-all hover:border-primary/30`}>
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${feature.highlight ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
+                      <feature.icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold mb-2">{feature.title}</h3>
+                      <p className="text-sm text-muted-foreground">{feature.description}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
     </section>;
 }
