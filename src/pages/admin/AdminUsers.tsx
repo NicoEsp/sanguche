@@ -158,7 +158,8 @@ export default function AdminUsers() {
     }
   }
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = (users || []).filter(user => {
+    if (!user) return false;
     const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
     const matchesPlan = planFilter === 'all' || user.subscription?.plan === planFilter;
     return matchesSearch && matchesPlan;

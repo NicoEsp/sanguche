@@ -61,23 +61,24 @@ export function useAdminAnalytics() {
         const totalAssessments = assessmentsData?.length || 0;
         
         const assessmentsToday = assessmentsData?.filter(a => 
-          new Date(a.created_at) >= today
+          a?.created_at && new Date(a.created_at) >= today
         ).length || 0;
 
         const assessmentsThisWeek = assessmentsData?.filter(a => 
-          new Date(a.created_at) >= weekAgo
+          a?.created_at && new Date(a.created_at) >= weekAgo
         ).length || 0;
 
         // Active users (users who completed assessment in last 30 days)
         const activeUserIds = new Set(
-          assessmentsData?.filter(a => new Date(a.created_at) >= monthAgo)
-            .map(a => a.user_id) || []
+          assessmentsData?.filter(a => a?.created_at && new Date(a.created_at) >= monthAgo)
+            .map(a => a.user_id)
+            .filter(Boolean) || []
         );
         const activeUsers = activeUserIds.size;
 
         // Premium subscription metrics
         const premiumSubscriptions = subscriptionsData?.filter(s => 
-          s.plan === 'premium' && s.status === 'active'
+          s?.plan === 'premium' && s?.status === 'active'
         ) || [];
         const premiumUsers = premiumSubscriptions.length;
 
@@ -93,7 +94,7 @@ export function useAdminAnalytics() {
           const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
           const dateStr = date.toISOString().split('T')[0];
           const count = usersData?.filter(u => 
-            new Date(u.created_at).toDateString() === date.toDateString()
+            u?.created_at && new Date(u.created_at).toDateString() === date.toDateString()
           ).length || 0;
           userGrowth.push({ date: dateStr, count });
         }
@@ -107,11 +108,11 @@ export function useAdminAnalytics() {
           try {
             const result = assessment.assessment_result as any;
             
-            // Handle gaps - check if it exists and is an array
-            if (result && Array.isArray(result.gaps)) {
+            // Safe access to gaps array
+            if (result?.gaps && Array.isArray(result.gaps)) {
               result.gaps.forEach((gap: any) => {
-                const domainKey = gap.domain || gap.skill || gap.area || gap.key;
-                if (domainKey) {
+                const domainKey = gap?.domain || gap?.skill || gap?.area || gap?.key;
+                if (domainKey && typeof domainKey === 'string') {
                   skillGapCounts.set(domainKey, (skillGapCounts.get(domainKey) || 0) + 1);
                 }
               });

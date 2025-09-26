@@ -23,16 +23,18 @@ import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminAssessments from "@/pages/admin/AdminAssessments";
 import AdminRecommendations from "@/pages/admin/AdminRecommendations";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
           <Routes>
             {/* Rutas de Admin */}
             <Route path="/admin/*" element={
@@ -87,10 +89,11 @@ const App = () => (
               </AppLayout>
             } />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

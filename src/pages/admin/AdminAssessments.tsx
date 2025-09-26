@@ -49,14 +49,14 @@ export default function AdminAssessments() {
       if (assessmentsError) throw assessmentsError;
 
       const transformedData = assessments?.map(assessment => ({
-        id: assessment.id,
-        created_at: assessment.created_at,
-        assessment_values: assessment.assessment_values,
-        assessment_result: assessment.assessment_result,
+        id: assessment?.id || '',
+        created_at: assessment?.created_at || '',
+        assessment_values: assessment?.assessment_values || {},
+        assessment_result: assessment?.assessment_result || {},
         user: {
-          name: (assessment.profiles as any)?.name || null
+          name: (assessment?.profiles as any)?.name || null
         }
-      })) || [];
+      })).filter(Boolean) || [];
 
       setAssessments(transformedData);
     } catch (err) {
@@ -67,8 +67,8 @@ export default function AdminAssessments() {
     }
   }
 
-  const filteredAssessments = assessments.filter(assessment => 
-    assessment.user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false
+  const filteredAssessments = (assessments || []).filter(assessment => 
+    assessment?.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false
   );
 
   function exportAssessments() {
