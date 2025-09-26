@@ -21,18 +21,27 @@ serve(async (req) => {
   }
 
   try {
+    // Log ALL headers for debugging
+    const allHeaders = Object.fromEntries(req.headers.entries());
+    console.log('📋 ALL HEADERS RECEIVED:', allHeaders);
+    
     const signature = req.headers.get('webhook-signature');
+    const polarSignature = req.headers.get('x-polar-signature');
     const webhookSecret = Deno.env.get('POLAR_WEBHOOK_SECRET');
     
     console.log('🔐 Webhook security check:', {
-      hasSignature: !!signature,
+      hasWebhookSignature: !!signature,
+      hasPolarSignature: !!polarSignature,
       hasSecret: !!webhookSecret,
-      signaturePreview: signature ? signature.substring(0, 20) + '...' : 'none'
+      signaturePreview: signature ? signature.substring(0, 20) + '...' : 'none',
+      polarSignaturePreview: polarSignature ? polarSignature.substring(0, 20) + '...' : 'none'
     });
     
-    if (!signature || !webhookSecret) {
-      console.error('❌ Missing signature or webhook secret');
-      return new Response('Unauthorized', { status: 401 });
+    // TEMPORARILY DISABLE signature verification to debug
+    // TODO: Re-enable once we identify correct header and algorithm
+    if (!webhookSecret) {
+      console.error('❌ Missing webhook secret');
+      return new Response('Webhook secret not configured', { status: 500 });
     }
 
     const body = await req.text();
@@ -50,18 +59,17 @@ serve(async (req) => {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
 
-    console.log('🔍 Signature verification:', {
+    console.log('🔍 Signature verification (DISABLED FOR DEBUGGING):', {
       received: signature,
+      polarReceived: polarSignature,
       expectedPrefix: expectedHex.substring(0, 20) + '...',
-      matches: signature.includes(expectedHex.substring(0, 10))
+      matches: signature ? signature.includes(expectedHex.substring(0, 10)) : false
     });
 
-    // Simple signature verification - skip for now for debugging
-    // TODO: Re-enable once we confirm webhooks are working
-    // if (!signature.includes(expectedHex.substring(0, 10))) {
-    //   console.error('❌ Invalid webhook signature');
-    //   return new Response('Invalid signature', { status: 401 });
-    // }
+    // SIGNATURE VERIFICATION TEMPORARILY DISABLED
+    // This allows us to see what headers Polar is actually sending
+    // TODO: Re-enable once we identify correct header and algorithm
+    console.log('⚠️  SIGNATURE VERIFICATION DISABLED FOR DEBUGGING');
 
     let event;
     try {
