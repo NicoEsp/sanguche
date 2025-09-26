@@ -13,6 +13,8 @@ import { MentoriaHero } from "@/components/mentoria/MentoriaHero";
 import { ProfileAnalysis } from "@/components/mentoria/ProfileAnalysis";
 import { PersonalizedRecommendations } from "@/components/mentoria/PersonalizedRecommendations";
 import { DedicatedResources } from "@/components/mentoria/DedicatedResources";
+import { LockedRecommendations } from "@/components/mentoria/LockedRecommendations";
+import { LockedResources } from "@/components/mentoria/LockedResources";
 import { ComingSoonExercises } from "@/components/mentoria/ComingSoonExercises";
 import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -129,14 +131,32 @@ export default function Recommendations() {
                 <DedicatedResources neutralAreas={assessmentResult.neutralAreas} />
               </>
             ) : (
-              <Alert className="border-primary/50 bg-primary/5">
-                <AlertTriangle className="h-4 w-4 text-primary" />
-                <AlertDescription className="text-primary-foreground">
-                  Las recomendaciones personalizadas y recursos estarán disponibles después de tu sesión de mentoría 1:1. 
-                  <br />
-                  <strong>¡Agenda tu sesión arriba para desbloquear todo el contenido premium!</strong>
-                </AlertDescription>
-              </Alert>
+              <div className="space-y-6">
+                {/* Locked Recommendations Preview */}
+                <LockedRecommendations neutralAreas={assessmentResult.neutralAreas} />
+                
+                {/* Locked Resources Preview */}
+                <LockedResources neutralAreas={assessmentResult.neutralAreas} />
+                
+                {/* Progress Alert */}
+                <Alert className="border-primary/50 bg-primary/5">
+                  <AlertTriangle className="h-4 w-4 text-primary" />
+                  <AlertDescription className="text-primary-foreground">
+                    <div className="space-y-2">
+                      <p><strong>¡Estás a un paso de desbloquear todo el contenido premium!</strong></p>
+                      <div className="text-sm">
+                        <p>✅ Suscripción Premium activa</p>
+                        <p>⏳ Agenda tu mentoría 1:1 para desbloquear:</p>
+                        <ul className="ml-4 mt-1 space-y-1">
+                          <li>• Recomendaciones personalizadas detalladas</li>
+                          <li>• Recursos curados específicos</li>
+                          <li>• Plan de desarrollo completo</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              </div>
             )}
           </div>
         )}

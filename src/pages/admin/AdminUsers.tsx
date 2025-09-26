@@ -447,8 +447,12 @@ export default function AdminUsers() {
                           size="sm"
                           onClick={() => toggleMentoriaStatus(user.id, user.mentoria_completed)}
                           className="text-xs"
+                          title={user.mentoria_completed ? 
+                            'Bloquear recomendaciones y recursos personalizados' : 
+                            'Desbloquear recomendaciones y recursos personalizados'
+                          }
                         >
-                          {user.mentoria_completed ? 'Marcar Pendiente' : 'Marcar Completada'}
+                          {user.mentoria_completed ? '🔒 Bloquear Contenido' : '🔓 Desbloquear Contenido'}
                         </Button>
                       )}
                     </div>
