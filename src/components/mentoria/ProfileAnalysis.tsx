@@ -48,13 +48,13 @@ export function ProfileAnalysis({ result }: ProfileAnalysisProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {result.neutralAreas.length > 0 ? (
+          {result.neutralAreas && result.neutralAreas.length > 0 ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground mb-4">
                 Estas áreas tienen potencial de crecimiento para llevarte al siguiente nivel:
               </p>
               <div className="grid gap-3">
-                {result.neutralAreas.map((area, index) => (
+                {result.neutralAreas?.map((area, index) => (
                   <div key={area.key} className="flex items-center justify-between p-3 bg-warning/5 border border-warning/20 rounded-lg">
                     <div className="flex-1">
                       <div className="font-medium text-foreground">{area.label}</div>
