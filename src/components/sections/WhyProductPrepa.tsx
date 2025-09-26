@@ -1,36 +1,28 @@
 import { MessageCircle, Zap, Users, BookOpen } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-
-const features = [
-  {
-    icon: Zap,
-    title: "Evaluación Específica para PMs",
-    description: "No es un test genérico. Diseñado específicamente para evaluar las 11 competencias core de Product Management.",
-    highlight: true
-  },
-  {
-    icon: Users,
-    title: "Basado en Estándares de la Industria",
-    description: "Nuestro framework está validado por Senior PMs de empresas tech líderes en el mercado.",
-    highlight: false
-  },
-  {
-    icon: BookOpen,
-    title: "Recursos Curados por Expertos",
-    description: "Accede a contenido seleccionado por profesionales experimentados, no contenido automático.",
-    highlight: true
-  },
-  {
-    icon: MessageCircle,
-    title: "Acompañamiento personalizado",
-    description: "Recibe orientación directa de NicoProducto. Un Senior PM con experiencia en empresas tech que te guiará en tu desarrollo profesional.",
-    highlight: true
-  }
-];
-
+const features = [{
+  icon: Zap,
+  title: "Evaluación Específica para PMs",
+  description: "No es un test genérico. Diseñado específicamente para evaluar las 11 competencias core de Product Management.",
+  highlight: true
+}, {
+  icon: Users,
+  title: "Basado en Estándares de la Industria",
+  description: "Nuestro framework está validado por Senior PMs de empresas tech líderes en el mercado.",
+  highlight: false
+}, {
+  icon: BookOpen,
+  title: "Recursos Curados por Expertos",
+  description: "Accede a contenido seleccionado por profesionales experimentados, no contenido automático.",
+  highlight: true
+}, {
+  icon: MessageCircle,
+  title: "Acompañamiento personalizado",
+  description: "Recibe orientación directa de NicoProducto. Un Senior PM con experiencia en empresas tech que te guiará en tu desarrollo profesional.",
+  highlight: true
+}];
 export function WhyProductPrepa() {
-  return (
-    <section className="container py-12 sm:py-16 px-4 sm:px-6 bg-secondary/10">
+  return <section className="container sm:py-16 px-4 sm:px-6 bg-secondary/10 py-[25px]">
       <div className="text-center mb-8 sm:mb-12">
         <h2 className="text-2xl sm:text-3xl font-bold mb-4">¿Por qué elegir ProductPrepa?</h2>
         <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -39,22 +31,10 @@ export function WhyProductPrepa() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
-        {features.map((feature, index) => (
-          <Card 
-            key={index} 
-            className={`${
-              feature.highlight 
-                ? 'border-primary/20 bg-primary/5' 
-                : 'border-border'
-            } transition-all hover:border-primary/30`}
-          >
+        {features.map((feature, index) => <Card key={index} className={`${feature.highlight ? 'border-primary/20 bg-primary/5' : 'border-border'} transition-all hover:border-primary/30`}>
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                  feature.highlight 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-secondary text-secondary-foreground'
-                }`}>
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${feature.highlight ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}>
                   <feature.icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1">
@@ -63,9 +43,7 @@ export function WhyProductPrepa() {
                 </div>
               </div>
             </CardContent>
-          </Card>
-        ))}
+          </Card>)}
       </div>
-    </section>
-  );
+    </section>;
 }
