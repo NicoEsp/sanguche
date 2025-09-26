@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, UserPlus, Crown, User, Shield, Download } from 'lucide-react';
+import { Loader2, Search, UserPlus, Crown, User, Shield, Download, RefreshCw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
 interface UserProfile {
   id: string;
@@ -25,52 +26,135 @@ interface UserProfile {
 export default function AdminUsers() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [planFilter, setPlanFilter] = useState<string>('all');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
+    
+    // Set up real-time subscriptions
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'profiles' },
+        (payload) => {
+          console.log('Profiles change detected:', payload);
+          fetchUsers();
+        }
+      )
+      .subscribe();
+
+    const subscriptionsChannel = supabase
+      .channel('subscriptions-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'user_subscriptions' },
+        (payload) => {
+          console.log('Subscriptions change detected:', payload);
+          fetchUsers();
+        }
+      )
+      .subscribe();
+
+    const rolesChannel = supabase
+      .channel('roles-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'user_roles' },
+        (payload) => {
+          console.log('Roles change detected:', payload);
+          fetchUsers();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(subscriptionsChannel);
+      supabase.removeChannel(rolesChannel);
+    };
   }, []);
 
   async function fetchUsers() {
     try {
-      setLoading(true);
+      const isRefresh = !loading;
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
       setError(null);
 
-      // Fetch profiles with subscriptions and roles
+      console.log('Fetching users data...');
+
+      // Fetch all profiles first
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          name,
-          user_id,
-          created_at,
-          mentoria_completed,
-          user_subscriptions(plan, status),
-          user_roles(role)
-        `)
+        .select('id, name, user_id, created_at, mentoria_completed')
         .order('created_at', { ascending: false });
 
       if (profilesError) throw profilesError;
 
-      // Transform data
-      const usersData = profiles?.map(profile => ({
-        id: profile.id,
-        name: profile.name,
-        user_id: profile.user_id,
-        created_at: profile.created_at,
-        mentoria_completed: profile.mentoria_completed,
-        subscription: profile.user_subscriptions?.[0] || { plan: 'free', status: 'active' },
-        role: profile.user_roles?.[0]?.role || 'user'
-      })) || [];
+      if (!profiles?.length) {
+        console.log('No profiles found');
+        setUsers([]);
+        return;
+      }
 
+      console.log('Profiles fetched:', profiles.length);
+
+      // Get profile IDs for subsequent queries
+      const profileIds = profiles.map(p => p.id);
+
+      // Fetch subscriptions
+      const { data: subscriptions, error: subscriptionsError } = await supabase
+        .from('user_subscriptions')
+        .select('user_id, plan, status')
+        .in('user_id', profileIds);
+
+      if (subscriptionsError) {
+        console.error('Error fetching subscriptions:', subscriptionsError);
+      }
+
+      // Fetch roles
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('user_id', profileIds);
+
+      if (rolesError) {
+        console.error('Error fetching roles:', rolesError);
+      }
+
+      console.log('Subscriptions fetched:', subscriptions?.length || 0);
+      console.log('Roles fetched:', roles?.length || 0);
+
+      // Transform data by combining all sources
+      const usersData = profiles.map(profile => {
+        const subscription = subscriptions?.find(s => s.user_id === profile.id);
+        const userRole = roles?.find(r => r.user_id === profile.id);
+        
+        return {
+          id: profile.id,
+          name: profile.name,
+          user_id: profile.user_id,
+          created_at: profile.created_at,
+          mentoria_completed: profile.mentoria_completed,
+          subscription: subscription || { plan: 'free', status: 'active' },
+          role: userRole?.role || 'user'
+        };
+      });
+
+      console.log('Final users data:', usersData);
       setUsers(usersData);
+      
+      if (isRefresh) {
+        toast.success('Datos actualizados correctamente');
+      }
     } catch (err) {
       console.error('Error fetching users:', err);
       setError('Error cargando usuarios');
+      toast.error('Error cargando usuarios');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }
 
@@ -82,6 +166,8 @@ export default function AdminUsers() {
 
   async function toggleAdminRole(userId: string, currentRole: string) {
     try {
+      console.log('Toggling admin role for user:', userId, 'current role:', currentRole);
+      
       if (currentRole === 'admin') {
         // Remove admin role
         const { error } = await supabase
@@ -91,24 +177,33 @@ export default function AdminUsers() {
           .eq('role', 'admin');
         
         if (error) throw error;
+        toast.success('Rol de administrador removido');
       } else {
         // Add admin role
+        const userAuthId = users.find(u => u.id === userId)?.user_id;
+        console.log('Adding admin role for auth user:', userAuthId);
+        
         const { error } = await supabase.rpc('create_admin_user', {
-          admin_user_id: users.find(u => u.id === userId)?.user_id
+          admin_user_id: userAuthId
         });
         
         if (error) throw error;
+        toast.success('Rol de administrador asignado');
       }
       
-      await fetchUsers();
+      // Real-time updates will handle the refresh
     } catch (err) {
       console.error('Error toggling admin role:', err);
-      setError('Error modificando rol de administrador');
+      const errorMsg = 'Error modificando rol de administrador';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   }
 
   async function toggleMentoriaStatus(userId: string, currentStatus: boolean) {
     try {
+      console.log('Toggling mentoria status for user:', userId, 'current status:', currentStatus);
+      
       const { error } = await supabase
         .from('profiles')
         .update({ mentoria_completed: !currentStatus })
@@ -116,10 +211,14 @@ export default function AdminUsers() {
 
       if (error) throw error;
       
-      await fetchUsers();
+      toast.success(`Mentoría marcada como ${!currentStatus ? 'completada' : 'pendiente'}`);
+      
+      // Real-time updates will handle the refresh
     } catch (err) {
       console.error('Error toggling mentoria status:', err);
-      setError('Error modificando estado de mentoría');
+      const errorMsg = 'Error modificando estado de mentoría';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   }
 
@@ -166,10 +265,21 @@ export default function AdminUsers() {
             Administra usuarios, suscripciones y permisos del sistema
           </p>
         </div>
-        <Button onClick={exportUsers} variant="outline">
-          <Download className="h-4 w-4 mr-2" />
-          Exportar CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => fetchUsers()} 
+            variant="outline" 
+            disabled={refreshing}
+            size="sm"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Actualizando...' : 'Actualizar'}
+          </Button>
+          <Button onClick={exportUsers} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Exportar CSV
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
