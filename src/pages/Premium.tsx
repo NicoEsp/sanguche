@@ -58,6 +58,10 @@ export default function Premium() {
                       <Check className="w-5 h-5 text-green-500" />
                       <span>Recursos básicos</span>
                     </li>
+                    <li className="flex items-center gap-3">
+                      <Check className="w-5 h-5 text-green-500" />
+                      <span>Recursos gratuitos para ayudarte</span>
+                    </li>
                   </ul>
                 </CardContent>
               </Card>
