@@ -59,12 +59,38 @@ serve(async (req) => {
       );
     }
 
-    // Create Polar checkout session with correct structure
+    // First, get the product details to find the correct price_id
+    const productResponse = await fetch('https://api.polar.sh/v1/products/0e76f08a-fe1e-4533-a173-fbfc3da81c49', {
+      headers: {
+        'Authorization': `Bearer ${polarAccessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!productResponse.ok) {
+      console.error('Failed to fetch product details:', productResponse.status, await productResponse.text());
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch product details' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const productData = await productResponse.json();
+    console.log('Product data:', productData);
+
+    // Extract the price_id from the product
+    const priceId = productData.prices?.[0]?.id;
+    if (!priceId) {
+      console.error('No price found for product');
+      return new Response(
+        JSON.stringify({ error: 'No price found for product' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create Polar checkout session with product_price_id
     const checkoutData = {
-      products: [{
-        product_id: '0e76f08a-fe1e-4533-a173-fbfc3da81c49',
-        quantity: 1
-      }],
+      product_price_id: priceId,
       success_url: `${req.headers.get('origin')}/recomendaciones?success=true`,
       customer_email: authUser.user.email,
       metadata: {
