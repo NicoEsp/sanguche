@@ -10,12 +10,6 @@ export function ComingSoonProgress() {
   const {
     toast
   } = useToast();
-  const handlePremiumUserClick = () => {
-    toast({
-      title: "¡Pronto estará disponible!",
-      description: "Estamos trabajando en esta funcionalidad. Te notificaremos cuando esté lista."
-    });
-  };
   return <div className="container py-10">
       <Card className="max-w-2xl mx-auto">
         <CardHeader className="text-center">
@@ -46,11 +40,11 @@ export function ComingSoonProgress() {
             
           </div>
 
-          <div className="pt-4">
-            {hasActivePremium ? <Button size="lg" className="w-full min-h-[44px]" onClick={handlePremiumUserClick}>
-                Ya tengo cuenta
-              </Button> : <PolarCheckout />}
-          </div>
+          {!hasActivePremium && (
+            <div className="pt-4">
+              <PolarCheckout />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>;

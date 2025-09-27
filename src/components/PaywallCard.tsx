@@ -57,11 +57,8 @@ export function PaywallCard({
             </p>
           </div>
           
-          <div className="flex flex-col gap-3 pt-2">
+          <div className="pt-2">
             <PolarCheckout />
-            <Button variant="outline" size="lg" className="w-full min-h-[44px]">
-              Ya tengo cuenta
-            </Button>
           </div>
         </CardContent>
       </Card>
