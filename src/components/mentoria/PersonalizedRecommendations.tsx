@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CheckCircle2, Clock, Target, TrendingUp } from "lucide-react";
 import { NeutralArea } from "@/utils/scoring";
+import { LeadershipRecommendations } from "./LeadershipRecommendations";
 
 interface PersonalizedRecommendationsProps {
   neutralAreas?: NeutralArea[];
@@ -95,23 +96,7 @@ const areaRecommendations: Record<string, {
 
 export function PersonalizedRecommendations({ neutralAreas, locked = false }: PersonalizedRecommendationsProps) {
   if (!neutralAreas || neutralAreas.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-success" />
-            Recomendaciones personalizadas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-center py-8">
-          <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-4" />
-          <h3 className="font-medium text-foreground mb-2">¡Perfil excepcional!</h3>
-          <p className="text-sm text-muted-foreground">
-            Tu perfil está muy equilibrado. En la mentoría nos enfocaremos en estrategias de liderazgo avanzado.
-          </p>
-        </CardContent>
-      </Card>
-    );
+    return <LeadershipRecommendations locked={locked} />;
   }
 
   return (

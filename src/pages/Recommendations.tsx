@@ -2,7 +2,7 @@ import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { PaywallCard } from "@/components/PaywallCard";
-import { isFeatureAvailable, FEATURES, isMentoriaContentAvailable } from "@/utils/features";
+import { isFeatureAvailable, FEATURES, isMentoriaContentAvailable, isMentoriaAdvancedContentAvailable } from "@/utils/features";
 import { useSubscription } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -42,8 +42,15 @@ export default function Recommendations() {
   // Verificar si el usuario tiene acceso a recomendaciones
   const hasAccess = isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium);
   
-  // Verificar si el usuario tiene acceso al contenido de mentoría
+  // Verificar si el usuario tiene acceso al contenido básico de mentoría
   const hasMentoriaAccess = isMentoriaContentAvailable(
+    hasActivePremium, 
+    profile?.mentoria_completed || false, 
+    isAdmin
+  );
+
+  // Verificar si el usuario tiene acceso al contenido avanzado (post-mentoría)
+  const hasAdvancedAccess = isMentoriaAdvancedContentAvailable(
     hasActivePremium, 
     profile?.mentoria_completed || false, 
     isAdmin
@@ -121,14 +128,39 @@ export default function Recommendations() {
             {/* Profile Analysis - Always visible for premium users */}
             <ProfileAnalysis result={assessmentResult} />
             
-            {/* Mentoria Content - Only after completing mentoria */}
+            {/* Mentoria Content - Available for premium users */}
             {hasMentoriaAccess ? (
               <>
-                {/* Personalized Recommendations */}
+                {/* Personalized Recommendations - Always available for premium */}
                 <PersonalizedRecommendations neutralAreas={assessmentResult.neutralAreas} />
                 
-                {/* Dedicated Resources */}
-                <DedicatedResources neutralAreas={assessmentResult.neutralAreas} />
+                {/* Advanced Resources - Only after mentoria */}
+                {hasAdvancedAccess ? (
+                  <DedicatedResources neutralAreas={assessmentResult.neutralAreas} />
+                ) : (
+                  <>
+                    <LockedResources neutralAreas={assessmentResult.neutralAreas} />
+                    
+                    {/* Advanced Content Alert */}
+                    <Alert className="border-primary/50 bg-primary/5">
+                      <AlertTriangle className="h-4 w-4 text-primary" />
+                      <AlertDescription className="text-primary-foreground">
+                        <div className="space-y-2">
+                          <p><strong>Desbloquea recursos adicionales con tu mentoría 1:1</strong></p>
+                          <div className="text-sm">
+                            <p>✅ Recomendaciones personalizadas disponibles</p>
+                            <p>⏳ Agenda tu mentoría para acceder a:</p>
+                            <ul className="ml-4 mt-1 space-y-1">
+                              <li>• Recursos curados específicos</li>
+                              <li>• Plan de desarrollo avanzado</li>
+                              <li>• Material exclusivo post-mentoría</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  </>
+                )}
               </>
             ) : (
               <div className="space-y-6">
@@ -143,14 +175,13 @@ export default function Recommendations() {
                   <AlertTriangle className="h-4 w-4 text-primary" />
                   <AlertDescription className="text-primary-foreground">
                     <div className="space-y-2">
-                      <p><strong>¡Estás a un paso de desbloquear todo el contenido premium!</strong></p>
+                      <p><strong>¡Obtén acceso completo con Premium!</strong></p>
                       <div className="text-sm">
-                        <p>✅ Suscripción Premium activa</p>
-                        <p>⏳ Agenda tu mentoría 1:1 para desbloquear:</p>
+                        <p>⏳ Suscríbete a Premium para desbloquear:</p>
                         <ul className="ml-4 mt-1 space-y-1">
-                          <li>• Recomendaciones personalizadas detalladas</li>
+                          <li>• Recomendaciones personalizadas</li>
+                          <li>• Acceso a mentoría 1:1</li>
                           <li>• Recursos curados específicos</li>
-                          <li>• Plan de desarrollo completo</li>
                         </ul>
                       </div>
                     </div>

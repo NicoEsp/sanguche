@@ -49,6 +49,21 @@ export function isMentoriaContentAvailable(
     return true;
   }
   
-  // Must have premium subscription AND have completed mentoria
+  // Premium users get immediate access to basic personalized content
+  // Mentoria completion unlocks additional advanced resources
+  return hasSubscription;
+}
+
+export function isMentoriaAdvancedContentAvailable(
+  hasSubscription: boolean = false, 
+  mentoriaCompleted: boolean = false,
+  isAdmin: boolean = false
+): boolean {
+  // Admins can always access for testing
+  if (isAdmin) {
+    return true;
+  }
+  
+  // Advanced content (additional resources) requires mentoria completion
   return hasSubscription && mentoriaCompleted;
 }
