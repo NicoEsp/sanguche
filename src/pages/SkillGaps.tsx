@@ -16,7 +16,7 @@ export default function SkillGaps() {
   const neutralAreas = record?.result.neutralAreas ?? [];
   const canAccessRecommendations = isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium);
   return <>
-      <Seo title="Resultados de tu evaluación — ProductPrepa" description="Revisa tu desempeño completo: fortalezas y áreas de mejora identificadas." canonical="/brechas" />
+      <Seo title="Resultados de tu evaluación — ProductPrepa" description="Revisa tu desempeño completo: fortalezas y áreas de mejora identificadas." canonical="/mejoras" />
       <section className="container py-6 sm:py-10 px-4 sm:px-6">
         <h1 className="text-2xl sm:text-3xl font-semibold mb-3">Resultados de tu evaluación</h1>
         {!record ? <Alert className="mb-6">

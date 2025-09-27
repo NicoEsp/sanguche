@@ -114,7 +114,7 @@ export default function Recommendations() {
             <AlertTriangle className="h-4 w-4 text-warning" />
             <AlertDescription className="text-warning-foreground">
               Para obtener recomendaciones personalizadas, primero necesitas completar tu{" "}
-              <Link to="/assessment" className="underline font-medium">
+              <Link to="/autoevaluacion" className="underline font-medium">
                 autoevaluación de Product Management
               </Link>
               .

@@ -106,7 +106,7 @@ export function LockedRecommendations({ neutralAreas }: LockedRecommendationsPro
 
           <div className="pt-2">
             <Button asChild className="w-full">
-              <Link to="#hero">
+              <Link to="/premium">
                 <Target className="h-4 w-4 mr-2" />
                 Agendar Mentoría 1:1 para Desbloquear
               </Link>

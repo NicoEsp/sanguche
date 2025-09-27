@@ -114,7 +114,7 @@ export function LockedResources({ neutralAreas }: LockedResourcesProps) {
 
           <div className="pt-2">
             <Button asChild className="w-full">
-              <Link to="#hero">
+              <Link to="/premium">
                 <ArrowRight className="h-4 w-4 mr-2" />
                 Agendar Mentoría para Acceder a Recursos
               </Link>
