@@ -129,15 +129,127 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Critical vs informative event classification
+    const criticalEvents = ['subscription.created', 'subscription.active', 'subscription.canceled', 'subscription.updated', 'order.paid'];
+    const isCritical = criticalEvents.includes(event.type);
+    
+    console.log(`${isCritical ? '🔥 CRITICAL' : '📊 INFO'} Event:`, event.type);
     
     switch (event.type) {
-      case 'subscription.active':
-      case 'subscription.created': {
+      case 'checkout.created': {
+        console.log('🛒 INFO: Checkout created', { checkout_id: event.data.id });
+        // Informative only - no database changes needed
+        break;
+      }
+
+      case 'checkout.updated': {
+        console.log('🛒 INFO: Checkout updated', { 
+          checkout_id: event.data.id, 
+          status: event.data.status 
+        });
+        // Informative only - no database changes needed
+        break;
+      }
+
+      case 'order.created': {
+        console.log('📦 INFO: Order created', { 
+          order_id: event.data.id, 
+          status: event.data.status 
+        });
+        // Informative only - no database changes needed
+        break;
+      }
+
+      case 'order.updated': {
+        const order = event.data;
+        console.log('📦 INFO: Order updated', { 
+          order_id: order.id, 
+          status: order.status 
+        });
+        
+        // If order status changed to paid, activate premium
+        if (order.status === 'paid') {
+          const metadata = order.metadata || {};
+          
+          if (metadata.profile_id) {
+            console.log('🔥 CRITICAL: Order updated to paid - activating premium');
+            
+            const currentPeriodEnd = new Date();
+            currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+            
+            const { data, error } = await supabase
+              .from('user_subscriptions')
+              .upsert({
+                user_id: metadata.profile_id,
+                plan: 'premium',
+                status: 'active',
+                polar_customer_id: order.customer_id,
+                current_period_end: currentPeriodEnd,
+              }, {
+                onConflict: 'user_id'
+              })
+              .select();
+
+            if (error) {
+              console.error('❌ Premium activation failed (order.updated):', error.message);
+            } else {
+              console.log('✅ Premium activated via order.updated');
+            }
+          } else {
+            console.warn('⚠️ No profile_id in order.updated metadata');
+          }
+        }
+        break;
+      }
+
+      case 'order.paid': {
+        const order = event.data;
+        const metadata = order.metadata || {};
+        
+        console.log('🔥 CRITICAL: Order paid event received');
+        
+        if (order.status !== 'paid') {
+          console.warn('⚠️ Order not paid:', order.status);
+          break;
+        }
+        
+        if (metadata.profile_id) {
+          // Calculate subscription period end (default to 1 month from now)
+          const currentPeriodEnd = new Date();
+          currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+          
+          const { data, error } = await supabase
+            .from('user_subscriptions')
+            .upsert({
+              user_id: metadata.profile_id,
+              plan: 'premium',
+              status: 'active',
+              polar_customer_id: order.customer_id,
+              current_period_end: currentPeriodEnd,
+            }, {
+              onConflict: 'user_id'
+            })
+            .select();
+
+          if (error) {
+            console.error('❌ Premium activation failed:', error.message);
+          } else {
+            console.log('✅ Premium activated after payment');
+          }
+        } else {
+          console.warn('⚠️ No profile_id in order metadata');
+        }
+        break;
+      }
+
+      case 'subscription.created':
+      case 'subscription.active': {
         const subscription = event.data;
         const metadata = subscription.metadata || {};
         
+        console.log('🔥 CRITICAL: Subscription activation event');
+        
         if (metadata.profile_id) {
-          
           const { data, error } = await supabase
             .from('user_subscriptions')
             .upsert({
@@ -163,13 +275,61 @@ serve(async (req) => {
         break;
       }
 
+      case 'subscription.updated': {
+        const subscription = event.data;
+        const metadata = subscription.metadata || {};
+        
+        console.log('🔥 CRITICAL: Subscription updated', {
+          subscription_id: subscription.id,
+          status: subscription.status
+        });
+        
+        if (metadata.profile_id) {
+          // Update subscription data to keep in sync
+          const updateData: any = {
+            polar_subscription_id: subscription.id,
+            polar_customer_id: subscription.customer_id,
+          };
+
+          // Update status based on subscription status
+          if (subscription.status === 'active') {
+            updateData.plan = 'premium';
+            updateData.status = 'active';
+          } else if (subscription.status === 'canceled' || subscription.status === 'incomplete_expired') {
+            updateData.plan = 'free';
+            updateData.status = 'active';
+          }
+
+          // Update period end if provided
+          if (subscription.current_period_end) {
+            updateData.current_period_end = new Date(subscription.current_period_end);
+          }
+
+          const { data, error } = await supabase
+            .from('user_subscriptions')
+            .update(updateData)
+            .eq('user_id', metadata.profile_id)
+            .select();
+
+          if (error) {
+            console.error('❌ Subscription update failed:', error.message);
+          } else {
+            console.log('✅ Subscription data synchronized');
+          }
+        } else {
+          console.warn('⚠️ No profile_id in subscription.updated metadata');
+        }
+        break;
+      }
+
       case 'subscription.canceled':
       case 'subscription.incomplete_expired': {
         const subscription = event.data;
         const metadata = subscription.metadata || {};
         
+        console.log('🔥 CRITICAL: Subscription cancellation event');
+        
         if (metadata.profile_id) {
-          
           const { data, error } = await supabase
             .from('user_subscriptions')
             .update({
@@ -187,50 +347,6 @@ serve(async (req) => {
           }
         } else {
           console.warn('⚠️ No profile_id in cancellation metadata');
-        }
-        break;
-      }
-
-      case 'order.created': {
-        // Order created but not yet paid - no action needed
-        break;
-      }
-
-      case 'order.paid': {
-        const order = event.data;
-        const metadata = order.metadata || {};
-        
-        if (order.status !== 'paid') {
-          console.warn('⚠️ Order not paid:', order.status);
-          break;
-        }
-        
-        if (metadata.profile_id) {
-          
-          // Calculate subscription period end (default to 1 month from now)
-          const currentPeriodEnd = new Date();
-          currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
-          
-          const { data, error } = await supabase
-            .from('user_subscriptions')
-            .upsert({
-              user_id: metadata.profile_id,
-              plan: 'premium',
-              status: 'active',
-              polar_customer_id: order.customer_id,
-              current_period_end: currentPeriodEnd,
-            }, {
-              onConflict: 'user_id'
-            })
-            .select();
-
-          if (error) {
-            console.error('❌ Premium activation failed:', error.message);
-          } else {
-            console.log('✅ Premium activated after payment');
-          }
-        } else {
-          console.warn('⚠️ No profile_id in order metadata');
         }
         break;
       }
