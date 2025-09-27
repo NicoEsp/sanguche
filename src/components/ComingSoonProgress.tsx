@@ -3,20 +3,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PolarCheckout } from "@/components/PolarCheckout";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/useAuth";
-
 export function ComingSoonProgress() {
-  const { hasActivePremium } = useSubscription();
-  const { toast } = useToast();
-
+  const {
+    hasActivePremium
+  } = useSubscription();
+  const {
+    toast
+  } = useToast();
   const handlePremiumUserClick = () => {
     toast({
       title: "¡Pronto estará disponible!",
-      description: "Estamos trabajando en esta funcionalidad. Te notificaremos cuando esté lista.",
+      description: "Estamos trabajando en esta funcionalidad. Te notificaremos cuando esté lista."
     });
   };
-
-  return (
-    <div className="container py-10">
+  return <div className="container py-10">
       <Card className="max-w-2xl mx-auto">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-semibold mb-4">
@@ -43,26 +43,15 @@ export function ComingSoonProgress() {
               Todo en un solo lugar, para que veas con claridad cómo vas creciendo en tu carrera como PM!
             </p>
 
-            <p className="font-medium text-primary">
-              ¡Muy pronto estará disponible!
-            </p>
+            
           </div>
 
           <div className="pt-4">
-            {hasActivePremium ? (
-              <Button 
-                size="lg" 
-                className="w-full min-h-[44px]"
-                onClick={handlePremiumUserClick}
-              >
+            {hasActivePremium ? <Button size="lg" className="w-full min-h-[44px]" onClick={handlePremiumUserClick}>
                 Ya tengo cuenta
-              </Button>
-            ) : (
-              <PolarCheckout />
-            )}
+              </Button> : <PolarCheckout />}
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 }
