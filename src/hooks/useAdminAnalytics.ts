@@ -29,34 +29,29 @@ export function useAdminAnalytics() {
         setLoading(true);
         setError(null);
 
-        // Fetch users data
         const { data: usersData, error: usersError } = await supabase
           .from('profiles')
           .select('id, created_at, user_id');
 
         if (usersError) throw usersError;
 
-        // Fetch assessments data with full assessment_result
         const { data: assessmentsData, error: assessmentsError } = await supabase
           .from('assessments')
           .select('id, created_at, assessment_result, user_id');
 
         if (assessmentsError) throw assessmentsError;
 
-        // Fetch subscriptions data with created dates
         const { data: subscriptionsData, error: subscriptionsError } = await supabase
           .from('user_subscriptions')
           .select('plan, status, user_id, created_at, polar_subscription_id');
 
         if (subscriptionsError) throw subscriptionsError;
 
-        // Calculate time ranges
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
         const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-        // Basic metrics
         const totalUsers = usersData?.length || 0;
         const totalAssessments = assessmentsData?.length || 0;
         
@@ -68,7 +63,6 @@ export function useAdminAnalytics() {
           a?.created_at && new Date(a.created_at) >= weekAgo
         ).length || 0;
 
-        // Active users (users who completed assessment in last 30 days)
         const activeUserIds = new Set(
           assessmentsData?.filter(a => a?.created_at && new Date(a.created_at) >= monthAgo)
             .map(a => a.user_id)
@@ -76,19 +70,16 @@ export function useAdminAnalytics() {
         );
         const activeUsers = activeUserIds.size;
 
-        // Premium subscription metrics
-        const premiumSubscriptions = subscriptionsData?.filter(s => 
+        const premiumSubscriptions = subscriptionsData?.filter(s =>
           s?.plan === 'premium' && s?.status === 'active'
         ) || [];
         const premiumUsers = premiumSubscriptions.length;
 
-        // Revenue calculations (using Polar's pricing: $9.99/month)
         const polarMonthlyPrice = 9.99;
         const mrr = premiumUsers * polarMonthlyPrice;
         const arr = mrr * 12;
         const arpu = totalUsers > 0 ? mrr / totalUsers : 0;
 
-        // Calculate user growth (last 30 days)
         const userGrowth = [];
         for (let i = 29; i >= 0; i--) {
           const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
@@ -99,7 +90,6 @@ export function useAdminAnalytics() {
           userGrowth.push({ date: dateStr, count });
         }
 
-        // Analyze real skill gaps from assessment results
         const skillGapCounts = new Map<string, number>();
         let totalScores = 0;
         let totalScoreCount = 0;
@@ -108,7 +98,6 @@ export function useAdminAnalytics() {
           try {
             const result = assessment.assessment_result as any;
             
-            // Safe access to gaps array
             if (result?.gaps && Array.isArray(result.gaps)) {
               result.gaps.forEach((gap: any) => {
                 const domainKey = gap?.domain || gap?.skill || gap?.area || gap?.key;
@@ -117,25 +106,20 @@ export function useAdminAnalytics() {
                 }
               });
             }
-            
-            // Calculate average scores for overall assessment quality
             if (result && typeof result.globalAverage === 'number') {
               totalScores += result.globalAverage;
               totalScoreCount++;
             }
           } catch (e) {
-            // Skip malformed assessment results
-            console.warn('Skipping malformed assessment result', assessment.id);
+            // Skip invalid assessments
           }
         });
 
-        // Convert skill gaps to array and sort by frequency
         const skillGapDistribution = Array.from(skillGapCounts.entries())
           .map(([skill, count]) => ({ skill, count }))
           .sort((a, b) => b.count - a.count)
-          .slice(0, 8); // Top 8 skill gaps
+          .slice(0, 8);
 
-        // If no real data, use domain mappings as fallback
         if (skillGapDistribution.length === 0 && totalAssessments > 0) {
           skillGapDistribution.push(
             { skill: 'Estrategia de producto', count: Math.floor(totalAssessments * 0.3) },

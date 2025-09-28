@@ -26,7 +26,6 @@ export function WhyProductPrepa() {
       </div>
 
       <div className="max-w-4xl mx-auto">
-        {/* Top row with 2 cards */}
         <div className="grid gap-6 md:grid-cols-2 mb-6">
           {features.slice(0, 2).map((feature, index) => (
             <Card key={index} className={`${feature.highlight ? 'border-primary/20 bg-primary/5' : 'border-border'} transition-all hover:border-primary/30`}>
@@ -44,8 +43,6 @@ export function WhyProductPrepa() {
             </Card>
           ))}
         </div>
-        
-        {/* Bottom row with centered card */}
         <div className="flex justify-center">
           <div className="w-full max-w-md">
             {features.slice(2).map((feature, index) => (

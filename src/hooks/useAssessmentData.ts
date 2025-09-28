@@ -22,7 +22,6 @@ export function useAssessmentData(): AssessmentData {
     async function fetchAssessmentData() {
       setData(prev => ({ ...prev, loading: true }));
 
-      // First, try to get from Supabase if user is authenticated
       if (user) {
         try {
           const { data: profile } = await supabase
@@ -54,7 +53,6 @@ export function useAssessmentData(): AssessmentData {
         }
       }
 
-      // Fallback to localStorage
       const localAssessment = getAssessment();
       setData({
         result: localAssessment?.result || null,

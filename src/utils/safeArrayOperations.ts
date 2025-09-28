@@ -1,7 +1,3 @@
-/**
- * Utilidades para operaciones seguras con arrays y objetos
- * Previene errores comunes como undefined/null access
- */
 
 export function safeMap<T, R>(
   array: T[] | null | undefined,

@@ -4,7 +4,6 @@ import { Calendar, Clock, Target } from "lucide-react";
 
 export function MentoriaHero() {
   const handleScheduleClick = () => {
-    // Replace with your actual Notion Calendar customized URL
     window.open('https://calendar.notion.so/meet/nicoproducto/poai3w8g', '_blank');
   };
 

@@ -19,14 +19,12 @@ export async function saveAssessment(
     createdAt: new Date().toISOString(),
   };
   
-  // Save to localStorage for backward compatibility
   try {
     localStorage.setItem(KEY, JSON.stringify(record));
   } catch (e) {
-    // noop
+    // Silent fail
   }
 
-  // Also save to Supabase if client is provided and user is authenticated
   if (supabaseClient) {
     try {
       const { data: { user } } = await supabaseClient.auth.getUser();
@@ -68,12 +66,10 @@ export function clearAssessment() {
   try {
     localStorage.removeItem(KEY);
   } catch (e) {
-    // noop
+    // Silent fail
   }
 }
 
-// LinkedIn sharing tracking - DESACTIVADO TEMPORALMENTE
-// Esta funcionalidad estará disponible próximamente
 /*
 const LINKEDIN_SHARE_KEY = "productprepa:linkedin_share";
 

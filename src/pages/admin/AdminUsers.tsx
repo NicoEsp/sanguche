@@ -34,15 +34,11 @@ export default function AdminUsers() {
   useEffect(() => {
     fetchUsers();
     
-    // Set up real-time subscriptions
     const profilesChannel = supabase
       .channel('profiles-changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'profiles' },
-        (payload) => {
-          console.log('Profiles change detected:', payload);
-          fetchUsers();
-        }
+        () => fetchUsers()
       )
       .subscribe();
 
@@ -50,10 +46,7 @@ export default function AdminUsers() {
       .channel('subscriptions-changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'user_subscriptions' },
-        (payload) => {
-          console.log('Subscriptions change detected:', payload);
-          fetchUsers();
-        }
+        () => fetchUsers()
       )
       .subscribe();
 
@@ -61,10 +54,7 @@ export default function AdminUsers() {
       .channel('roles-changes')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'user_roles' },
-        (payload) => {
-          console.log('Roles change detected:', payload);
-          fetchUsers();
-        }
+        () => fetchUsers()
       )
       .subscribe();
 
@@ -81,10 +71,6 @@ export default function AdminUsers() {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
-
-      console.log('Fetching users data...');
-
-      // Fetch all profiles first
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, name, user_id, created_at, mentoria_completed')
@@ -93,14 +79,9 @@ export default function AdminUsers() {
       if (profilesError) throw profilesError;
 
       if (!profiles?.length) {
-        console.log('No profiles found');
         setUsers([]);
         return;
       }
-
-      console.log('Profiles fetched:', profiles.length);
-
-      // Get profile IDs for subsequent queries
       const profileIds = profiles.map(p => p.id);
 
       // Fetch subscriptions
@@ -110,23 +91,18 @@ export default function AdminUsers() {
         .in('user_id', profileIds);
 
       if (subscriptionsError) {
-        console.error('Error fetching subscriptions:', subscriptionsError);
+        throw subscriptionsError;
       }
 
-      // Fetch roles
       const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id, role')
         .in('user_id', profileIds);
 
       if (rolesError) {
-        console.error('Error fetching roles:', rolesError);
+        throw rolesError;
       }
 
-      console.log('Subscriptions fetched:', subscriptions?.length || 0);
-      console.log('Roles fetched:', roles?.length || 0);
-
-      // Transform data by combining all sources
       const usersData = profiles.map(profile => {
         const subscription = subscriptions?.find(s => s.user_id === profile.id);
         const userRole = roles?.find(r => r.user_id === profile.id);
@@ -142,7 +118,6 @@ export default function AdminUsers() {
         };
       });
 
-      console.log('Final users data:', usersData);
       setUsers(usersData);
       
       if (isRefresh) {
@@ -167,10 +142,7 @@ export default function AdminUsers() {
 
   async function toggleAdminRole(userId: string, currentRole: string) {
     try {
-      console.log('Toggling admin role for user:', userId, 'current role:', currentRole);
-      
       if (currentRole === 'admin') {
-        // Remove admin role
         const { error } = await supabase
           .from('user_roles')
           .delete()
@@ -180,9 +152,7 @@ export default function AdminUsers() {
         if (error) throw error;
         toast.success('Rol de administrador removido');
       } else {
-        // Add admin role
         const userAuthId = users.find(u => u.id === userId)?.user_id;
-        console.log('Adding admin role for auth user:', userAuthId);
         
         const { error } = await supabase.rpc('create_admin_user', {
           admin_user_id: userAuthId
@@ -191,10 +161,7 @@ export default function AdminUsers() {
         if (error) throw error;
         toast.success('Rol de administrador asignado');
       }
-      
-      // Real-time updates will handle the refresh
     } catch (err) {
-      console.error('Error toggling admin role:', err);
       const errorMsg = 'Error modificando rol de administrador';
       setError(errorMsg);
       toast.error(errorMsg);
@@ -203,8 +170,6 @@ export default function AdminUsers() {
 
   async function toggleMentoriaStatus(userId: string, currentStatus: boolean) {
     try {
-      console.log('Toggling mentoria status for user:', userId, 'current status:', currentStatus);
-      
       const { error } = await supabase
         .from('profiles')
         .update({ mentoria_completed: !currentStatus })
@@ -213,10 +178,7 @@ export default function AdminUsers() {
       if (error) throw error;
       
       toast.success(`Mentoría marcada como ${!currentStatus ? 'completada' : 'pendiente'}`);
-      
-      // Real-time updates will handle the refresh
     } catch (err) {
-      console.error('Error toggling mentoria status:', err);
       const errorMsg = 'Error modificando estado de mentoría';
       setError(errorMsg);
       toast.error(errorMsg);
@@ -258,8 +220,7 @@ export default function AdminUsers() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
+        <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Gestión de Usuarios</h1>
           <p className="text-muted-foreground mt-2">
@@ -283,8 +244,7 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -345,8 +305,7 @@ export default function AdminUsers() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
+        <Card>
         <CardHeader>
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
@@ -377,8 +336,7 @@ export default function AdminUsers() {
         </CardContent>
       </Card>
 
-      {/* Users Table */}
-      <Card>
+        <Card>
         <CardHeader>
           <CardTitle>Lista de Usuarios ({filteredUsers.length})</CardTitle>
           <CardDescription>

@@ -1,4 +1,3 @@
-// Sistema de feature flags para funcionalidades freemium
 export const FEATURES = {
   ASSESSMENT: 'assessment',
   SKILL_GAPS: 'skill_gaps', 
@@ -8,13 +7,11 @@ export const FEATURES = {
 
 export type Feature = typeof FEATURES[keyof typeof FEATURES];
 
-// Features gratuitos - siempre disponibles
 const FREE_FEATURES: Feature[] = [
   FEATURES.ASSESSMENT,
   FEATURES.SKILL_GAPS,
 ];
 
-// Features premium - requieren suscripción
 const PREMIUM_FEATURES: Feature[] = [
   FEATURES.RECOMMENDATIONS,
   FEATURES.PROGRESS,
@@ -44,13 +41,10 @@ export function isMentoriaContentAvailable(
   mentoriaCompleted: boolean = false,
   isAdmin: boolean = false
 ): boolean {
-  // Admins can always access for testing
   if (isAdmin) {
     return true;
   }
   
-  // Premium users get immediate access to basic personalized content
-  // Mentoria completion unlocks additional advanced resources
   return hasSubscription;
 }
 
@@ -59,11 +53,9 @@ export function isMentoriaAdvancedContentAvailable(
   mentoriaCompleted: boolean = false,
   isAdmin: boolean = false
 ): boolean {
-  // Admins can always access for testing
   if (isAdmin) {
     return true;
   }
   
-  // Advanced content (additional resources) requires mentoria completion
   return hasSubscription && mentoriaCompleted;
 }

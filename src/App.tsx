@@ -36,7 +36,6 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
           <Routes>
-            {/* Rutas de Admin */}
             <Route path="/admin/*" element={
               <AdminProtectedRoute>
                 <AdminLayout>
@@ -50,18 +49,12 @@ const App = () => (
                 </AdminLayout>
               </AdminProtectedRoute>
             } />
-            
-            {/* Rutas principales con AppLayout */}
             <Route path="/*" element={
               <AppLayout>
-                <Routes>
-              {/* Rutas públicas */}
+                 <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/premium" element={<Premium />} />
-              
-              
-              {/* Rutas protegidas */}
               <Route path="/autoevaluacion" element={
                 <ProtectedRoute>
                   <Assessment />
@@ -82,8 +75,6 @@ const App = () => (
                   <Dashboard />
                 </ProtectedRoute>
               } />
-              
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </AppLayout>
