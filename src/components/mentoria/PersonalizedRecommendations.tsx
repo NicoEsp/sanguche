@@ -148,13 +148,13 @@ export function PersonalizedRecommendations({ neutralAreas, locked = false, ment
                   </div>
                   
                   {/* Overlay de contenido bloqueado */}
-                  <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center cursor-not-allowed">
-                    <div className="text-center space-y-2">
-                      <Lock className="h-6 w-6 text-muted-foreground mx-auto" />
-                      <p className="text-sm text-foreground font-medium">
+                  <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center cursor-not-allowed p-4">
+                    <div className="text-center space-y-2 max-w-full">
+                      <Lock className="h-5 w-5 text-muted-foreground mx-auto" />
+                      <p className="text-sm text-foreground font-medium break-words">
                         Conexión con tus fortalezas
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground break-words">
                         Objetivos y plan detallado
                       </p>
                     </div>
