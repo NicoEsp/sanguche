@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ExternalLink, BookOpen, Wrench, Users, FileText, Lock, Target } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { NeutralArea } from "@/utils/scoring";
 
 interface DedicatedResourcesProps {
@@ -100,6 +100,15 @@ const areaResources: Record<string, {
 };
 
 export function DedicatedResources({ neutralAreas, locked = false, mentoriaCompleted = false }: DedicatedResourcesProps) {
+  const navigate = useNavigate();
+
+  const handleScrollToMentoria = () => {
+    navigate('/mentoria');
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
+  };
+
   if (!neutralAreas || neutralAreas.length === 0) {
     return (
       <Card>
@@ -186,11 +195,9 @@ export function DedicatedResources({ neutralAreas, locked = false, mentoriaCompl
             </p>
 
             <div className="pt-2">
-              <Button asChild className="w-full">
-                <Link to="/mentoria">
-                  <Target className="h-4 w-4 mr-2" />
-                  Agendá tu mentoría para desbloquear tus recursos
-                </Link>
+              <Button onClick={handleScrollToMentoria} className="w-full">
+                <Target className="h-4 w-4 mr-2" />
+                Agendá tu mentoría para desbloquear tus recursos
               </Button>
             </div>
           </div>
