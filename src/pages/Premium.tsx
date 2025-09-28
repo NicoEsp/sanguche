@@ -5,13 +5,13 @@ import { Separator } from "@/components/ui/separator";
 import { Check, Star, TrendingUp, BookOpen, MapPin, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useAuth";
 import { Seo } from "@/components/Seo";
 import { PolarCheckout } from "@/components/PolarCheckout";
 import { FAQ } from "@/components/sections/FAQ";
 export default function Premium() {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
+  const { hasActivePremium } = useSubscription();
   return <>
       <Seo title="Funciones Premium - ProductPrepa" description="Descubre todas las funciones premium de ProductPrepa: mentoría personalizada, seguimiento de progreso, recursos curados y roadmap de carrera." />
       
@@ -105,7 +105,13 @@ export default function Premium() {
                   </ul>
                   
                   <div className="mt-6">
-                    <PolarCheckout />
+                    {hasActivePremium ? (
+                      <Button asChild size="lg" className="w-full min-h-[44px]">
+                        <Link to="/mentoria">Acceder a Premium</Link>
+                      </Button>
+                    ) : (
+                      <PolarCheckout />
+                    )}
                   </div>
                 </CardContent>
               </Card>
