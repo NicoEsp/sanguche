@@ -2,12 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ExternalLink, BookOpen, Wrench, Users, FileText } from "lucide-react";
+import { ExternalLink, BookOpen, Wrench, Users, FileText, Lock, Target } from "lucide-react";
+import { Link } from "react-router-dom";
 import { NeutralArea } from "@/utils/scoring";
 
 interface DedicatedResourcesProps {
   neutralAreas?: NeutralArea[];
   locked?: boolean;
+  mentoriaCompleted?: boolean;
 }
 
 const areaResources: Record<string, {
@@ -97,7 +99,7 @@ const areaResources: Record<string, {
   }
 };
 
-export function DedicatedResources({ neutralAreas, locked = false }: DedicatedResourcesProps) {
+export function DedicatedResources({ neutralAreas, locked = false, mentoriaCompleted = false }: DedicatedResourcesProps) {
   if (!neutralAreas || neutralAreas.length === 0) {
     return (
       <Card>
@@ -111,6 +113,95 @@ export function DedicatedResources({ neutralAreas, locked = false }: DedicatedRe
           <p className="text-muted-foreground">
             Como tu perfil está muy equilibrado, en la mentoría personalizaremos los recursos según tus objetivos específicos.
           </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Si no ha completado mentoría, mostrar contenido bloqueado
+  const shouldShowLockedContent = !mentoriaCompleted && !locked;
+
+  if (shouldShowLockedContent) {
+    const firstArea = neutralAreas[0];
+    
+    return (
+      <Card className="relative">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              Recursos dedicados
+            </CardTitle>
+            <Badge variant="outline" className="ml-auto">
+              <Lock className="h-3 w-3 mr-1" />
+              Bloqueado
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Preview del primer área */}
+          {firstArea && (
+            <div className="border rounded-lg p-4 bg-muted/50 relative">
+              <h4 className="font-medium text-foreground mb-3 capitalize">
+                Recursos para {firstArea.label}
+              </h4>
+              
+              {/* Secciones bloqueadas */}
+              <div className="space-y-3">
+                {['Herramientas Recomendadas', 'Contenido Curado', 'Comunidades'].map((sectionName, index) => (
+                  <div key={index} className="relative">
+                    <div className="flex items-center gap-2 mb-2">
+                      {index === 0 && <Wrench className="h-4 w-4 text-muted-foreground" />}
+                      {index === 1 && <FileText className="h-4 w-4 text-muted-foreground" />}
+                      {index === 2 && <Users className="h-4 w-4 text-muted-foreground" />}
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {sectionName}
+                      </span>
+                    </div>
+                    
+                    {/* Overlay de contenido bloqueado */}
+                    <div className="h-16 bg-background/80 backdrop-blur-sm rounded border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-not-allowed">
+                      <div className="text-center">
+                        <Lock className="h-4 w-4 text-muted-foreground mx-auto mb-1" />
+                        <p className="text-xs text-muted-foreground">
+                          Conexión con tus fortalezas
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Mensaje informativo */}
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-center space-y-3">
+            <div className="flex items-center justify-center gap-2 text-primary">
+              <BookOpen className="h-5 w-5" />
+              <span className="font-medium">Recursos curados para tu perfil</span>
+            </div>
+            
+            <p className="text-sm text-muted-foreground">
+              Este contenido se adapta 100% a vos. Lo desbloqueás después de tu sesión de mentoría personalizada.
+            </p>
+
+            <div className="pt-2">
+              <Button asChild className="w-full">
+                <Link to="/premium">
+                  <Target className="h-4 w-4 mr-2" />
+                  Agendá tu mentoría para desbloquear tus recursos
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          {/* Contador de áreas adicionales */}
+          {neutralAreas && neutralAreas.length > 1 && (
+            <div className="text-center text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+              <Lock className="h-4 w-4 inline mr-1" />
+              +{neutralAreas.length - 1} áreas de recursos adicionales disponibles
+            </div>
+          )}
         </CardContent>
       </Card>
     );

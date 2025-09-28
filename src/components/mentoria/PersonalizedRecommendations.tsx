@@ -1,13 +1,16 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle2, Clock, Target, TrendingUp } from "lucide-react";
+import { CheckCircle2, Clock, Target, TrendingUp, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
 import { NeutralArea } from "@/utils/scoring";
 import { LeadershipRecommendations } from "./LeadershipRecommendations";
 
 interface PersonalizedRecommendationsProps {
   neutralAreas?: NeutralArea[];
   locked?: boolean;
+  mentoriaCompleted?: boolean;
 }
 
 const areaRecommendations: Record<string, {
@@ -94,9 +97,104 @@ const areaRecommendations: Record<string, {
   }
 };
 
-export function PersonalizedRecommendations({ neutralAreas, locked = false }: PersonalizedRecommendationsProps) {
+export function PersonalizedRecommendations({ neutralAreas, locked = false, mentoriaCompleted = false }: PersonalizedRecommendationsProps) {
   if (!neutralAreas || neutralAreas.length === 0) {
     return <LeadershipRecommendations locked={locked} />;
+  }
+
+  // Si no ha completado mentoría, mostrar contenido bloqueado
+  const shouldShowLockedContent = !mentoriaCompleted && !locked;
+
+  if (shouldShowLockedContent) {
+    return (
+      <Card className="relative">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Recomendaciones personalizadas
+            </CardTitle>
+            <Badge variant="outline" className="ml-auto">
+              <Lock className="h-3 w-3 mr-1" />
+              Bloqueado
+            </Badge>
+          </div>
+          <CardDescription>
+            Plan de desarrollo personalizado basado en tu perfil y objetivos
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Preview de las recomendaciones */}
+          <div className="space-y-3">
+            {neutralAreas.slice(0, 2).map((area, index) => {
+              const rec = areaRecommendations[area.key];
+              if (!rec) return null;
+              
+              return (
+                <div 
+                  key={area.key} 
+                  className="border rounded-lg p-4 bg-muted/50 relative"
+                  role="region"
+                  aria-disabled="true"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <Target className="h-4 w-4 text-muted-foreground" />
+                    <h4 className="font-medium text-foreground">
+                      {rec.title}
+                    </h4>
+                    <Badge variant="outline" className="ml-auto text-xs">
+                      {area.value}/5 desarrollo
+                    </Badge>
+                  </div>
+                  
+                  {/* Overlay de contenido bloqueado */}
+                  <div className="absolute inset-0 z-10 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center cursor-not-allowed">
+                    <div className="text-center space-y-2">
+                      <Lock className="h-6 w-6 text-muted-foreground mx-auto" />
+                      <p className="text-sm text-foreground font-medium">
+                        Conexión con tus fortalezas
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Objetivos y plan detallado
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Mensaje informativo */}
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-center space-y-3">
+            <div className="flex items-center justify-center gap-2 text-primary">
+              <Target className="h-5 w-5" />
+              <span className="font-medium">Contenido adaptado 100% a vos</span>
+            </div>
+            
+            <p className="text-sm text-muted-foreground">
+              Este contenido se adapta 100% a vos. Lo desbloqueás después de tu sesión de mentoría personalizada.
+            </p>
+
+            <div className="pt-2">
+              <Button asChild className="w-full">
+                <Link to="/premium">
+                  <Target className="h-4 w-4 mr-2" />
+                  Agendá tu mentoría para desbloquear tus recursos
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          {/* Contador de áreas adicionales */}
+          {neutralAreas && neutralAreas.length > 2 && (
+            <div className="text-center text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+              <Lock className="h-4 w-4 inline mr-1" />
+              +{neutralAreas.length - 2} recomendaciones adicionales disponibles
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

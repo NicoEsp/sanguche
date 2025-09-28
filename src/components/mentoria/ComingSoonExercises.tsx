@@ -1,123 +1,143 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, Mail } from "lucide-react";
 import { useState } from "react";
-import { Sparkles, Users, CheckCircle2, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { z } from "zod";
+
+const emailSchema = z.object({
+  email: z.string().trim().email({ message: "Ingresa un email válido" }).max(255, { message: "Email muy largo" })
+});
 
 export function ComingSoonExercises() {
   const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handleEarlyAccess = () => {
-    if (!email) {
+  const handleExerciseRequest = async () => {
+    if (!user) {
       toast({
-        title: "Email requerido",
-        description: "Por favor ingresa tu email para acceso anticipado",
-        variant: "destructive"
+        title: "Error",
+        description: "Debes estar autenticado para solicitar ejercicios",
+        variant: "destructive",
       });
       return;
     }
 
-    // Here you would normally save the email to your database
-    console.log("Early access signup:", email);
-    setSubscribed(true);
-    toast({
-      title: "¡Registrado!",
-      description: "Te notificaremos cuando los ejercicios estén disponibles",
-    });
+    try {
+      // Validate email
+      const validation = emailSchema.safeParse({ email });
+      if (!validation.success) {
+        toast({
+          title: "Error",
+          description: validation.error.errors[0].message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setIsSubmitting(true);
+
+      // Get user profile to get the profile ID
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile) {
+        throw new Error('Profile not found');
+      }
+
+      // Insert exercise request
+      const { error } = await supabase
+        .from('exercise_requests')
+        .insert({
+          user_id: profile.id,
+          email: validation.data.email,
+          exercise_id: 'casos-reales'
+        });
+
+      if (error) throw error;
+
+      setSubmitted(true);
+      toast({
+        title: "¡Solicitud enviada!",
+        description: "Te enviaremos el ejercicio a tu email",
+      });
+    } catch (error) {
+      console.error('Error submitting exercise request:', error);
+      toast({
+        title: "Error",
+        description: "No pudimos procesar tu solicitud. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <Card className="bg-gradient-to-br from-accent/20 to-secondary/20 border-accent/30">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-accent-foreground" />
-          Ejercicios con casos reales
-          <span className="text-xs bg-accent text-accent-foreground px-2 py-1 rounded-full">
+    <Card className="relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+      <CardHeader className="relative">
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-xl">Ejercicios con casos reales</CardTitle>
+          <Badge variant="outline" className="bg-background">
             Próximamente
-          </span>
-        </CardTitle>
+          </Badge>
+        </div>
+        <CardDescription>
+          Practica con desafíos reales de empresas como Spotify, Airbnb y Netflix. 
+          Desarrolla habilidades clave aplicando frameworks de Product Management.
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-4">
-          <p className="text-foreground">
-            Pronto tendrás acceso a ejercicios prácticos basados en casos reales de empresas como:
-          </p>
+      <CardContent className="relative space-y-6">
+        {/* Call to action simplificado */}
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 space-y-4">
+          <div className="flex items-center gap-2 text-primary">
+            <Mail className="h-5 w-5" />
+            <span className="font-medium">Quiero recibir este ejercicio por mail</span>
+          </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div className="p-3 bg-background/60 rounded-lg">
-              <div className="font-medium text-sm">Spotify</div>
-              <div className="text-xs text-muted-foreground">Discovery</div>
+          {!submitted ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Te enviaremos ejercicios prácticos basados en casos reales para que puedas practicar y mejorar tus habilidades.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex-1"
+                  disabled={isSubmitting}
+                />
+                <Button 
+                  onClick={handleExerciseRequest} 
+                  size="sm"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Enviando..." : "Enviar"}
+                </Button>
+              </div>
             </div>
-            <div className="p-3 bg-background/60 rounded-lg">
-              <div className="font-medium text-sm">Airbnb</div>
-              <div className="text-xs text-muted-foreground">Roadmap</div>
+          ) : (
+            <div className="text-center space-y-2">
+              <CheckCircle2 className="h-6 w-6 text-primary mx-auto" />
+              <p className="text-sm font-medium text-primary">
+                ¡Perfecto! Te enviaremos los ejercicios a tu email
+              </p>
             </div>
-            <div className="p-3 bg-background/60 rounded-lg">
-              <div className="font-medium text-sm">Slack</div>
-              <div className="text-xs text-muted-foreground">Stakeholders</div>
-            </div>
-            <div className="p-3 bg-background/60 rounded-lg">
-              <div className="font-medium text-sm">Netflix</div>
-              <div className="text-xs text-muted-foreground">Analítica</div>
-            </div>
-          </div>
+          )}
         </div>
-
-        <div className="space-y-4">
-          <h4 className="font-medium text-foreground flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            ¿Qué incluirán los ejercicios?
-          </h4>
-          <ul className="space-y-2 text-sm">
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-success" />
-              <span>Casos reales con datos y contexto de empresas conocidas</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-success" />
-              <span>Ejercicios interactivos paso a paso</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-success" />
-              <span>Soluciones comentadas y alternativas</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-success" />
-              <span>Validación automática de tus respuestas</span>
-            </li>
-          </ul>
-        </div>
-
-        {!subscribed ? (
-          <div className="space-y-3">
-            <h4 className="font-medium text-foreground flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              Acceso anticipado exclusivo para usuarios premium
-            </h4>
-            <div className="flex gap-2">
-              <Input
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={handleEarlyAccess}>
-                Notificarme
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center p-4 bg-success/10 border border-success/20 rounded-lg">
-            <CheckCircle2 className="h-8 w-8 text-success mx-auto mb-2" />
-            <p className="text-success font-medium">¡Te notificaremos cuando esté listo!</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Serás de los primeros en acceder a los ejercicios prácticos
-            </p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

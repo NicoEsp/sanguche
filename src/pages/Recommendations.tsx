@@ -132,11 +132,17 @@ export default function Recommendations() {
             {hasMentoriaAccess ? (
               <>
                 {/* Personalized Recommendations - Always available for premium */}
-                <PersonalizedRecommendations neutralAreas={assessmentResult.neutralAreas} />
+                <PersonalizedRecommendations 
+                  neutralAreas={assessmentResult.neutralAreas} 
+                  mentoriaCompleted={profile?.mentoria_completed || false}
+                />
                 
                 {/* Advanced Resources - Only after mentoria */}
                 {hasAdvancedAccess ? (
-                  <DedicatedResources neutralAreas={assessmentResult.neutralAreas} />
+                  <DedicatedResources 
+                    neutralAreas={assessmentResult.neutralAreas} 
+                    mentoriaCompleted={profile?.mentoria_completed || false}
+                  />
                 ) : (
                   <>
                     <LockedResources neutralAreas={assessmentResult.neutralAreas} />
