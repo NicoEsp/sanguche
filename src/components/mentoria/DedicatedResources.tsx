@@ -187,7 +187,7 @@ export function DedicatedResources({ neutralAreas, locked = false, mentoriaCompl
 
             <div className="pt-2">
               <Button asChild className="w-full">
-                <Link to="/premium">
+                <Link to="/mentoria">
                   <Target className="h-4 w-4 mr-2" />
                   Agendá tu mentoría para desbloquear tus recursos
                 </Link>
