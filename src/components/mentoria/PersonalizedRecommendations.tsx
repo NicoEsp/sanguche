@@ -6,13 +6,11 @@ import { CheckCircle2, Clock, Target, TrendingUp, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { NeutralArea } from "@/utils/scoring";
 import { LeadershipRecommendations } from "./LeadershipRecommendations";
-
 interface PersonalizedRecommendationsProps {
   neutralAreas?: NeutralArea[];
   locked?: boolean;
   mentoriaCompleted?: boolean;
 }
-
 const areaRecommendations: Record<string, {
   title: string;
   objectives: string[];
@@ -22,92 +20,53 @@ const areaRecommendations: Record<string, {
 }> = {
   roadmap: {
     title: "Lleva tu roadmapping al siguiente nivel",
-    objectives: [
-      "Dominar frameworks avanzados de priorización (RICE, ICE, Kano)",
-      "Crear roadmaps estratégicos con dependencies claras",
-      "Implementar comunicación efectiva de cambios en el roadmap"
-    ],
+    objectives: ["Dominar frameworks avanzados de priorización (RICE, ICE, Kano)", "Crear roadmaps estratégicos con dependencies claras", "Implementar comunicación efectiva de cambios en el roadmap"],
     timeline: "6-8 semanas",
     prerequisites: "Tu base sólida en estrategia facilitará este desarrollo",
-    successCriteria: [
-      "Roadmap actualizado con criterios objetivos de priorización",
-      "Stakeholders alineados en las decisiones de roadmap",
-      "Proceso documentado para evaluar y comunicar cambios"
-    ]
+    successCriteria: ["Roadmap actualizado con criterios objetivos de priorización", "Stakeholders alineados en las decisiones de roadmap", "Proceso documentado para evaluar y comunicar cambios"]
   },
   analitica: {
     title: "Potencia tus decisiones con data",
-    objectives: [
-      "Definir KPIs avanzados y métricas leading/lagging",
-      "Crear dashboards automatizados para monitoring continuo",
-      "Desarrollar frameworks de experimentación y A/B testing"
-    ],
+    objectives: ["Definir KPIs avanzados y métricas leading/lagging", "Crear dashboards automatizados para monitoring continuo", "Desarrollar frameworks de experimentación y A/B testing"],
     timeline: "4-6 semanas",
     prerequisites: "Tu experiencia en discovery te ayudará con el diseño de experimentos",
-    successCriteria: [
-      "Dashboard funcional con métricas clave del producto",
-      "Al menos 2 experimentos ejecutados con conclusiones",
-      "Framework definido para toma de decisiones basada en datos"
-    ]
+    successCriteria: ["Dashboard funcional con métricas clave del producto", "Al menos 2 experimentos ejecutados con conclusiones", "Framework definido para toma de decisiones basada en datos"]
   },
   stakeholders: {
     title: "Amplifica tu influencia organizacional",
-    objectives: [
-      "Mapear stakeholders complejos y sus motivaciones",
-      "Desarrollar estrategias de comunicación diferenciadas",
-      "Implementar procesos de alineación y resolución de conflictos"
-    ],
+    objectives: ["Mapear stakeholders complejos y sus motivaciones", "Desarrollar estrategias de comunicación diferenciadas", "Implementar procesos de alineación y resolución de conflictos"],
     timeline: "4-5 semanas",
     prerequisites: "Tus fortalezas en comunicación serán clave para este crecimiento",
-    successCriteria: [
-      "Mapa actualizado de stakeholders con estrategias específicas",
-      "Procesos de alineación implementados y funcionando",
-      "Feedback positivo de stakeholders en influencia y gestión"
-    ]
+    successCriteria: ["Mapa actualizado de stakeholders con estrategias específicas", "Procesos de alineación implementados y funcionando", "Feedback positivo de stakeholders en influencia y gestión"]
   },
   tecnico: {
     title: "Fortalece tu credibilidad técnica",
-    objectives: [
-      "Comprender arquitecturas de software y trade-offs técnicos",
-      "Participar efectivamente en discusiones de feasibilidad",
-      "Evaluar deuda técnica y su impacto en el producto"
-    ],
+    objectives: ["Comprender arquitecturas de software y trade-offs técnicos", "Participar efectivamente en discusiones de feasibilidad", "Evaluar deuda técnica y su impacto en el producto"],
     timeline: "6-8 semanas",
     prerequisites: "Tu capacidad analítica facilitará el aprendizaje técnico",
-    successCriteria: [
-      "Participación activa y valorada en tech reviews",
-      "Evaluaciones precisas de complejidad técnica",
-      "Roadmap técnico balanceado con objetivos de producto"
-    ]
+    successCriteria: ["Participación activa y valorada en tech reviews", "Evaluaciones precisas de complejidad técnica", "Roadmap técnico balanceado con objetivos de producto"]
   },
   monetizacion: {
     title: "Conecta producto con business impact",
-    objectives: [
-      "Analizar modelos de monetización y pricing strategies",
-      "Conectar features con métricas de revenue",
-      "Desarrollar business cases sólidos para nuevas iniciativas"
-    ],
+    objectives: ["Analizar modelos de monetización y pricing strategies", "Conectar features con métricas de revenue", "Desarrollar business cases sólidos para nuevas iniciativas"],
     timeline: "5-6 semanas",
     prerequisites: "Tu perfil Senior te permite abordar estos conceptos avanzados",
-    successCriteria: [
-      "Business case documentado para al menos una iniciativa",
-      "Métricas de revenue conectadas con roadmap de producto",
-      "Propuesta de optimización de monetización evaluada"
-    ]
+    successCriteria: ["Business case documentado para al menos una iniciativa", "Métricas de revenue conectadas con roadmap de producto", "Propuesta de optimización de monetización evaluada"]
   }
 };
-
-export function PersonalizedRecommendations({ neutralAreas, locked = false, mentoriaCompleted = false }: PersonalizedRecommendationsProps) {
+export function PersonalizedRecommendations({
+  neutralAreas,
+  locked = false,
+  mentoriaCompleted = false
+}: PersonalizedRecommendationsProps) {
   if (!neutralAreas || neutralAreas.length === 0) {
     return <LeadershipRecommendations locked={locked} />;
   }
 
   // Si no ha completado mentoría, mostrar contenido bloqueado
   const shouldShowLockedContent = !mentoriaCompleted && !locked;
-
   if (shouldShowLockedContent) {
-    return (
-      <Card className="relative">
+    return <Card className="relative">
         <CardHeader>
           <div className="flex items-center gap-2">
             <CardTitle className="flex items-center gap-2">
@@ -127,16 +86,9 @@ export function PersonalizedRecommendations({ neutralAreas, locked = false, ment
           {/* Preview de las recomendaciones */}
           <div className="space-y-3">
             {neutralAreas.slice(0, 2).map((area, index) => {
-              const rec = areaRecommendations[area.key];
-              if (!rec) return null;
-              
-              return (
-                <div 
-                  key={area.key} 
-                  className="border rounded-lg p-4 bg-muted/50 relative"
-                  role="region"
-                  aria-disabled="true"
-                >
+            const rec = areaRecommendations[area.key];
+            if (!rec) return null;
+            return <div key={area.key} className="border rounded-lg p-4 bg-muted/50 relative" role="region" aria-disabled="true">
                   <div className="flex items-center gap-3 mb-2">
                     <Target className="h-4 w-4 text-muted-foreground" />
                     <h4 className="font-medium text-foreground">
@@ -154,14 +106,11 @@ export function PersonalizedRecommendations({ neutralAreas, locked = false, ment
                       <p className="text-sm text-foreground font-medium break-words">
                         Conexión con tus fortalezas
                       </p>
-                      <p className="text-xs text-muted-foreground break-words">
-                        Objetivos y plan detallado
-                      </p>
+                      
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                </div>;
+          })}
           </div>
 
           {/* Mensaje informativo */}
@@ -186,28 +135,21 @@ export function PersonalizedRecommendations({ neutralAreas, locked = false, ment
           </div>
 
           {/* Contador de áreas adicionales */}
-          {neutralAreas && neutralAreas.length > 2 && (
-            <div className="text-center text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+          {neutralAreas && neutralAreas.length > 2 && <div className="text-center text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
               <Lock className="h-4 w-4 inline mr-1" />
               +{neutralAreas.length - 2} recomendaciones adicionales disponibles
-            </div>
-          )}
+            </div>}
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <h2 className="text-xl font-semibold text-foreground mb-4">Recomendaciones personalizadas</h2>
       
       <Accordion type="multiple" className="w-full space-y-4">
-        {neutralAreas.map((area) => {
-          const rec = areaRecommendations[area.key];
-          if (!rec) return null;
-          
-          return (
-            <AccordionItem key={area.key} value={area.key} className="border border-border rounded-lg">
+        {neutralAreas.map(area => {
+        const rec = areaRecommendations[area.key];
+        if (!rec) return null;
+        return <AccordionItem key={area.key} value={area.key} className="border border-border rounded-lg">
               <AccordionTrigger disabled={locked} className="px-6 py-4 hover:no-underline">
                 <div className="flex items-center justify-between w-full mr-4">
                   <div className="text-left">
@@ -234,12 +176,10 @@ export function PersonalizedRecommendations({ neutralAreas, locked = false, ment
                       Objetivos específicos
                     </h4>
                     <ul className="space-y-1 text-sm text-muted-foreground">
-                      {rec.objectives.map((obj, index) => (
-                        <li key={index} className="flex items-start gap-2">
+                      {rec.objectives.map((obj, index) => <li key={index} className="flex items-start gap-2">
                           <span className="text-primary font-medium mt-0.5">•</span>
                           <span>{obj}</span>
-                        </li>
-                      ))}
+                        </li>)}
                     </ul>
                   </div>
                   
@@ -254,20 +194,16 @@ export function PersonalizedRecommendations({ neutralAreas, locked = false, ment
                       Criterios de éxito
                     </h4>
                     <ul className="space-y-1 text-sm text-muted-foreground">
-                      {rec.successCriteria.map((criteria, index) => (
-                        <li key={index} className="flex items-start gap-2">
+                      {rec.successCriteria.map((criteria, index) => <li key={index} className="flex items-start gap-2">
                           <span className="text-success font-medium mt-0.5">✓</span>
                           <span>{criteria}</span>
-                        </li>
-                      ))}
+                        </li>)}
                     </ul>
                   </div>
                 </div>
               </AccordionContent>
-            </AccordionItem>
-          );
-        })}
+            </AccordionItem>;
+      })}
       </Accordion>
-    </div>
-  );
+    </div>;
 }
