@@ -66,23 +66,26 @@ serve(async (req) => {
     const body = await req.text();
     console.log('📦 Webhook body length:', body.length);
     
-    // Parse the JSON event first
-    let event;
-    try {
-      event = JSON.parse(body);
-    } catch (parseError) {
-      console.error('❌ Invalid JSON payload');
-      return new Response('Invalid JSON payload', { status: 400 });
+    // 1) Verify signature on raw body (before JSON parsing)
+    const possibleSignatureHeaders = ['x-polar-signature', 'webhook-signature', 'polar-signature'];
+    let signature: string | null = null;
+    for (const h of possibleSignatureHeaders) {
+      const v = req.headers.get(h);
+      if (v) { signature = v; break; }
     }
-    
-    // Polar signature validation using HMAC-SHA256
-    const signature = req.headers.get('x-polar-signature');
     if (!signature) {
-      console.error('❌ Missing x-polar-signature header');
+      console.error('❌ Missing Polar signature header');
+      try {
+        const headerNames = Array.from(req.headers.keys());
+        console.log('🧾 Headers present (names only):', headerNames);
+      } catch (_) {}
       return new Response('Missing webhook signature', { status: 401 });
     }
 
-    // Compute HMAC-SHA256 signature using Deno's crypto API
+    // Normalize "sha256=..." or "hmac-sha256=..." formats
+    const cleanSignature = signature.replace(/^\s*(sha256=|hmac-sha256=)/i, '').trim().toLowerCase();
+
+    // Compute HMAC-SHA256 over the RAW body
     const key = await crypto.subtle.importKey(
       'raw',
       new TextEncoder().encode(webhookSecret),
@@ -90,23 +93,29 @@ serve(async (req) => {
       false,
       ['sign']
     );
-    const signatureBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(JSON.stringify(event)));
-    const computedSignature = Array.from(new Uint8Array(signatureBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+    const expectedBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
+    const expectedHex = Array.from(new Uint8Array(expectedBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // Timing-safe comparison to prevent timing attacks
-    if (!timingSafeEquals(signature, computedSignature)) {
+    if (!timingSafeEquals(cleanSignature, expectedHex)) {
       console.error('❌ Invalid webhook signature');
-      console.log('🔐 Signature verification:', { 
+      console.log('🔐 Signature check:', {
         valid: false,
-        received: signature.substring(0, 8) + '...',
-        computed: computedSignature.substring(0, 8) + '...'
+        received: cleanSignature.substring(0, 8) + '...',
+        computed: expectedHex.substring(0, 8) + '...'
       });
       return new Response('Invalid signature', { status: 401 });
     }
 
-    console.log('🔐 Signature verification:', { valid: true });
+    console.log('🔐 Signature verification: { valid: true }');
+
+    // 2) Parse JSON only after successful signature verification
+    let event;
+    try {
+      event = JSON.parse(body);
+    } catch {
+      console.error('❌ Invalid JSON payload');
+      return new Response('Invalid JSON payload', { status: 400 });
+    }
     console.log('✅ Event type:', event.type);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
