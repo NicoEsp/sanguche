@@ -56,8 +56,6 @@ serve(async (req) => {
 
   try {
     
-    const signature = req.headers.get('webhook-signature');
-    const polarSignature = req.headers.get('x-polar-signature');
     const webhookSecret = Deno.env.get('POLAR_WEBHOOK_SECRET');
     
     if (!webhookSecret) {
@@ -68,62 +66,48 @@ serve(async (req) => {
     const body = await req.text();
     console.log('📦 Webhook body length:', body.length);
     
-    // Enhanced signature verification with timing-safe comparison
-    const receivedSignature = signature || polarSignature;
-    if (!receivedSignature) {
-      console.error('❌ No signature header found');
-      return new Response('Missing webhook signature', { status: 401 });
-    }
-
-    // Support multiple signature formats and algorithms
-    let isValid = false;
-    try {
-      // Try SHA-256 with secret prefix (common format)
-      const expectedSig1 = await crypto.subtle.digest(
-        'SHA-256',
-        new TextEncoder().encode(webhookSecret + body)
-      );
-      const expectedHex1 = Array.from(new Uint8Array(expectedSig1))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-
-      // Try HMAC-SHA256 (more secure format)
-      const key = await crypto.subtle.importKey(
-        'raw',
-        new TextEncoder().encode(webhookSecret),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
-      const expectedSig2 = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
-      const expectedHex2 = Array.from(new Uint8Array(expectedSig2))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-
-      // Timing-safe comparison
-      const cleanSignature = receivedSignature.replace(/^sha256=|^hmac-sha256=/, '');
-      isValid = timingSafeEquals(cleanSignature, expectedHex1) || 
-                timingSafeEquals(cleanSignature, expectedHex2);
-      
-      console.log('🔐 Signature verification:', { valid: isValid });
-    } catch (error) {
-      console.error('❌ Signature verification failed:', error);
-      return new Response('Invalid signature', { status: 401 });
-    }
-
-    if (!isValid) {
-      console.error('❌ Invalid webhook signature');
-      return new Response('Invalid signature', { status: 401 });
-    }
-
+    // Parse the JSON event first
     let event;
     try {
       event = JSON.parse(body);
-      console.log('✅ Event type:', event.type);
     } catch (parseError) {
       console.error('❌ Invalid JSON payload');
       return new Response('Invalid JSON payload', { status: 400 });
     }
+    
+    // Polar signature validation using HMAC-SHA256
+    const signature = req.headers.get('x-polar-signature');
+    if (!signature) {
+      console.error('❌ Missing x-polar-signature header');
+      return new Response('Missing webhook signature', { status: 401 });
+    }
+
+    // Compute HMAC-SHA256 signature using Deno's crypto API
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(webhookSecret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const signatureBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(JSON.stringify(event)));
+    const computedSignature = Array.from(new Uint8Array(signatureBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    // Timing-safe comparison to prevent timing attacks
+    if (!timingSafeEquals(signature, computedSignature)) {
+      console.error('❌ Invalid webhook signature');
+      console.log('🔐 Signature verification:', { 
+        valid: false,
+        received: signature.substring(0, 8) + '...',
+        computed: computedSignature.substring(0, 8) + '...'
+      });
+      return new Response('Invalid signature', { status: 401 });
+    }
+
+    console.log('🔐 Signature verification:', { valid: true });
+    console.log('✅ Event type:', event.type);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
