@@ -1,20 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Mail } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { z } from "zod";
-
-const emailSchema = z.object({
-  email: z.string().trim().email({ message: "Ingresa un email válido" }).max(255, { message: "Email muy largo" })
-});
 
 export function ComingSoonExercises() {
-  const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const { toast } = useToast();
@@ -31,16 +24,6 @@ export function ComingSoonExercises() {
     }
 
     try {
-      const validation = emailSchema.safeParse({ email });
-      if (!validation.success) {
-        toast({
-          title: "Error",
-          description: validation.error.errors[0].message,
-          variant: "destructive",
-        });
-        return;
-      }
-
       setIsSubmitting(true);
 
       const { data: profile } = await supabase
@@ -57,7 +40,6 @@ export function ComingSoonExercises() {
         .from('exercise_requests')
         .insert({
           user_id: profile.id,
-          email: validation.data.email,
           exercise_id: 'casos-reales'
         });
 
@@ -102,28 +84,19 @@ export function ComingSoonExercises() {
             <span className="font-medium">Quiero recibir este ejercicio por mail</span>
           </div>
           
-          {!submitted ? (
+           {!submitted ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
                 Te enviaremos ejercicios prácticos basados en casos reales para que puedas practicar y mejorar tus habilidades.
               </p>
-              <div className="flex gap-2">
-                <Input
-                  type="email"
-                  placeholder="tu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1"
-                  disabled={isSubmitting}
-                />
-                <Button 
-                  onClick={handleExerciseRequest} 
-                  size="sm"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Enviando..." : "Enviar"}
-                </Button>
-              </div>
+              <Button 
+                onClick={handleExerciseRequest} 
+                size="sm"
+                disabled={isSubmitting}
+                className="w-full"
+              >
+                {isSubmitting ? "Enviando..." : "Solicitar ejercicios"}
+              </Button>
             </div>
           ) : (
             <div className="text-center space-y-2">

@@ -59,7 +59,6 @@ export type Database = {
       exercise_requests: {
         Row: {
           created_at: string
-          email: string
           exercise_id: string
           id: string
           updated_at: string
@@ -67,7 +66,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          email: string
           exercise_id?: string
           id?: string
           updated_at?: string
@@ -75,7 +73,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          email?: string
           exercise_id?: string
           id?: string
           updated_at?: string
