@@ -22,6 +22,44 @@ function timingSafeEquals(a: string, b: string): boolean {
   return result === 0;
 }
 
+// Function to normalize Polar signature formats
+function normalizePolarSignature(signature: string): string {
+  let normalized = signature.trim();
+  
+  // Remove common prefixes
+  normalized = normalized.replace(/^(sha256=|hmac-sha256=)/, '');
+  
+  // Handle Polar v1 formats: "v1,<signature>" or "v1=<signature>"
+  if (normalized.includes('v1=')) {
+    const v1Match = normalized.match(/v1=([a-zA-Z0-9+/=]+)/);
+    if (v1Match) normalized = v1Match[1];
+  } else if (normalized.includes('v1,')) {
+    const parts = normalized.split('v1,');
+    if (parts.length > 1) normalized = parts[1];
+  }
+  
+  // Handle "t=timestamp,v1=signature" format
+  if (normalized.includes('t=') && normalized.includes(',v1=')) {
+    const v1Match = normalized.match(/,v1=([a-zA-Z0-9+/=]+)/);
+    if (v1Match) normalized = v1Match[1];
+  }
+  
+  return normalized.trim();
+}
+
+// Convert ArrayBuffer to hex string
+function toHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// Convert ArrayBuffer to Base64 string
+function toBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  return btoa(String.fromCharCode(...bytes));
+}
+
 serve(async (req) => {
   const clientIP = req.headers.get('cf-connecting-ip') || 
                    req.headers.get('x-forwarded-for') || 
@@ -82,8 +120,8 @@ serve(async (req) => {
       return new Response('Missing webhook signature', { status: 401 });
     }
 
-    // Normalize "sha256=..." or "hmac-sha256=..." formats
-    const cleanSignature = signature.replace(/^\s*(sha256=|hmac-sha256=)/i, '').trim().toLowerCase();
+    // Normalize Polar signature (handles v1, prefixes, Base64/hex formats)
+    const normalizedSignature = normalizePolarSignature(signature);
 
     // Compute HMAC-SHA256 over the RAW body
     const key = await crypto.subtle.importKey(
@@ -94,19 +132,32 @@ serve(async (req) => {
       ['sign']
     );
     const expectedBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
-    const expectedHex = Array.from(new Uint8Array(expectedBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    const expectedHex = toHex(expectedBuffer);
+    const expectedBase64 = toBase64(expectedBuffer);
 
-    if (!timingSafeEquals(cleanSignature, expectedHex)) {
+    // Try both Base64 and hex comparison
+    const isValidBase64 = timingSafeEquals(normalizedSignature, expectedBase64);
+    const isValidHex = timingSafeEquals(normalizedSignature, expectedHex);
+    const isValid = isValidBase64 || isValidHex;
+
+    if (!isValid) {
       console.error('❌ Invalid webhook signature');
       console.log('🔐 Signature check:', {
         valid: false,
-        received: cleanSignature.substring(0, 8) + '...',
-        computed: expectedHex.substring(0, 8) + '...'
+        received: normalizedSignature.substring(0, 8) + '...',
+        receivedLength: normalizedSignature.length,
+        expectedBase64: expectedBase64.substring(0, 8) + '...',
+        expectedHex: expectedHex.substring(0, 8) + '...',
+        matchedFormat: 'none'
       });
       return new Response('Invalid signature', { status: 401 });
     }
 
-    console.log('🔐 Signature verification: { valid: true }');
+    console.log('🔐 Signature verification:', { 
+      valid: true, 
+      format: isValidBase64 ? 'base64' : 'hex',
+      signatureLength: normalizedSignature.length 
+    });
 
     // 2) Parse JSON only after successful signature verification
     let event;
