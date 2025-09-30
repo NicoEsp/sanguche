@@ -7,10 +7,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Rate limiting: Track requests per IP
+// Rate limiting: Track requests per IP with cleanup
 const requestCounts = new Map<string, { count: number; lastReset: number }>();
 const RATE_LIMIT = 10; // Max 10 requests per minute per IP
 const RATE_WINDOW = 60 * 1000; // 1 minute
+
+// Cleanup old rate limit entries every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, data] of requestCounts.entries()) {
+    if (now - data.lastReset > RATE_WINDOW * 10) {
+      requestCounts.delete(ip);
+    }
+  }
+}, RATE_WINDOW * 10);
+
+// Reusable TextEncoder instance
+const textEncoder = new TextEncoder();
 
 // Timing-safe string comparison to prevent timing attacks
 function timingSafeEquals(a: string, b: string): boolean {
@@ -60,6 +73,184 @@ function toBase64(buffer: ArrayBuffer): string {
   return btoa(String.fromCharCode(...bytes));
 }
 
+// Helper to create consistent responses with CORS
+function createResponse(body: string, status: number = 200, contentType: string = 'application/json') {
+  return new Response(body, {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': contentType }
+  });
+}
+
+// Optimized user lookup with single query
+async function findUserByEmail(email: string, supabase: any): Promise<string | null> {
+  try {
+    console.log('🔍 Searching user by email:', email);
+    
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    
+    if (authError || !authUsers?.users) {
+      console.error('❌ Error listing auth users:', authError);
+      return null;
+    }
+    
+    const authUser = authUsers.users.find((u: any) => u.email === email);
+    if (!authUser) {
+      console.warn('⚠️ Auth user not found for email:', email);
+      return null;
+    }
+    
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', authUser.id)
+      .maybeSingle();
+      
+    if (profileError) {
+      console.error('❌ Error fetching profile:', profileError);
+      return null;
+    }
+    
+    if (!profile) {
+      console.warn('⚠️ Profile not found for user_id:', authUser.id);
+      return null;
+    }
+    
+    console.log('✅ Found user profile:', { profile_id: profile.id, email });
+    return profile.id;
+  } catch (error) {
+    console.error('❌ Error in findUserByEmail:', error);
+    return null;
+  }
+}
+
+// Extract profile ID from event data with fallback to email lookup
+async function extractProfileId(eventData: any, supabase: any): Promise<string | null> {
+  const metadata = eventData.metadata || {};
+  let profileId = metadata.profile_id;
+  
+  if (!profileId) {
+    const customerEmail = eventData.customer_email || eventData.customer?.email;
+    if (customerEmail) {
+      profileId = await findUserByEmail(customerEmail, supabase);
+    }
+  }
+  
+  return profileId;
+}
+
+// Unified subscription activation handler
+async function handleSubscriptionActivation(profileId: string, eventData: any, source: string, supabase: any): Promise<boolean> {
+  try {
+    const currentPeriodEnd = new Date();
+    currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+    
+    const subscriptionData: any = {
+      user_id: profileId,
+      plan: 'premium',
+      status: 'active',
+      current_period_end: currentPeriodEnd,
+    };
+    
+    // Add Polar IDs if available
+    if (eventData.customer_id) {
+      subscriptionData.polar_customer_id = eventData.customer_id;
+    }
+    if (eventData.id && source.includes('subscription')) {
+      subscriptionData.polar_subscription_id = eventData.id;
+    }
+    
+    console.log('🔥 Activating premium subscription:', { profileId, source });
+    
+    const { error } = await supabase
+      .from('user_subscriptions')
+      .upsert(subscriptionData, { onConflict: 'user_id' });
+
+    if (error) {
+      console.error(`❌ Premium activation failed (${source}):`, error.message);
+      return false;
+    }
+    
+    console.log(`✅ Premium activated successfully via ${source}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error activating premium (${source}):`, error);
+    return false;
+  }
+}
+
+// Handle order events (paid/updated)
+async function handleOrderEvent(order: any, eventType: string, supabase: any): Promise<void> {
+  console.log(`📦 CRITICAL: ${eventType}`, {
+    order_id: order.id,
+    status: order.status,
+    customer_email: order.customer_email || order.customer?.email,
+    metadata_present: !!order.metadata?.profile_id
+  });
+  
+  if (order.status !== 'paid') {
+    if (eventType === 'order.paid') {
+      console.warn('⚠️ Order.paid event but status is not paid:', order.status);
+    }
+    return;
+  }
+  
+  const profileId = await extractProfileId(order, supabase);
+  
+  if (profileId) {
+    const success = await handleSubscriptionActivation(profileId, order, eventType, supabase);
+    if (!success) {
+      console.error(`❌ Failed to activate premium for ${eventType}`);
+    }
+  } else {
+    console.error(`❌ No profile_id found and no valid customer email for ${eventType}`);
+  }
+}
+
+// Handle subscription events
+async function handleSubscriptionEvent(subscription: any, eventType: string, supabase: any): Promise<void> {
+  console.log(`🔥 CRITICAL: ${eventType}`, {
+    subscription_id: subscription.id,
+    status: subscription.status,
+    customer_email: subscription.customer?.email,
+    metadata_present: !!subscription.metadata?.profile_id
+  });
+  
+  const profileId = await extractProfileId(subscription, supabase);
+  
+  if (!profileId) {
+    console.error(`❌ No profile_id found and no valid customer email for ${eventType}`);
+    return;
+  }
+
+  // Handle different subscription statuses
+  if (subscription.status === 'active' && (eventType === 'subscription.created' || eventType === 'subscription.active' || eventType === 'subscription.updated')) {
+    const success = await handleSubscriptionActivation(profileId, subscription, eventType, supabase);
+    if (!success) {
+      console.error(`❌ Failed to activate premium for ${eventType}`);
+    }
+  } else if (subscription.status === 'canceled' || subscription.status === 'incomplete_expired' || eventType.includes('canceled') || eventType.includes('incomplete_expired')) {
+    // Handle cancellation
+    const { error } = await supabase
+      .from('user_subscriptions')
+      .update({
+        plan: 'free',
+        status: 'active',
+        polar_subscription_id: subscription.id,
+      })
+      .eq('user_id', profileId);
+
+    if (error) {
+      console.error('❌ Subscription cancellation failed:', error.message);
+    } else {
+      console.log('✅ Subscription canceled and downgraded to free');
+    }
+  } else if (eventType === 'subscription.updated' && subscription.status !== 'active') {
+    console.log('⏳ Subscription status not final, ignoring:', subscription.status);
+  } else if (eventType === 'subscription.created' && subscription.status !== 'active') {
+    console.warn('⚠️ Subscription created but not active:', subscription.status);
+  }
+}
+
 serve(async (req) => {
   const clientIP = req.headers.get('cf-connecting-ip') || 
                    req.headers.get('x-forwarded-for') || 
@@ -79,7 +270,7 @@ serve(async (req) => {
   
   if (ipData.count > RATE_LIMIT) {
     console.warn('🚫 Rate limit exceeded for IP:', clientIP);
-    return new Response('Rate limit exceeded', { status: 429 });
+    return createResponse('Rate limit exceeded', 429);
   }
 
   console.log('🎯 Polar webhook called:', {
@@ -93,12 +284,11 @@ serve(async (req) => {
   }
 
   try {
-    
     const webhookSecret = Deno.env.get('POLAR_WEBHOOK_SECRET');
     
     if (!webhookSecret) {
       console.error('❌ Missing webhook secret');
-      return new Response('Webhook secret not configured', { status: 500 });
+      return createResponse('Webhook secret not configured', 500);
     }
 
     const body = await req.text();
@@ -113,11 +303,9 @@ serve(async (req) => {
     }
     if (!signature) {
       console.error('❌ Missing Polar signature header');
-      try {
-        const headerNames = Array.from(req.headers.keys());
-        console.log('🧾 Headers present (names only):', headerNames);
-      } catch (_) {}
-      return new Response('Missing webhook signature', { status: 401 });
+      const headerNames = Array.from(req.headers.keys());
+      console.log('🧾 Headers present (names only):', headerNames);
+      return createResponse('Missing webhook signature', 401);
     }
 
     // Normalize Polar signature (handles v1, prefixes, Base64/hex formats)
@@ -126,12 +314,12 @@ serve(async (req) => {
     // Compute HMAC-SHA256 over the RAW body
     const key = await crypto.subtle.importKey(
       'raw',
-      new TextEncoder().encode(webhookSecret),
+      textEncoder.encode(webhookSecret),
       { name: 'HMAC', hash: 'SHA-256' },
       false,
       ['sign']
     );
-    const expectedBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
+    const expectedBuffer = await crypto.subtle.sign('HMAC', key, textEncoder.encode(body));
     const expectedHex = toHex(expectedBuffer);
     const expectedBase64 = toBase64(expectedBuffer);
 
@@ -150,7 +338,7 @@ serve(async (req) => {
         expectedHex: expectedHex.substring(0, 8) + '...',
         matchedFormat: 'none'
       });
-      return new Response('Invalid signature', { status: 401 });
+      return createResponse('Invalid signature', 401);
     }
 
     console.log('🔐 Signature verification:', { 
@@ -165,7 +353,7 @@ serve(async (req) => {
       event = JSON.parse(body);
     } catch {
       console.error('❌ Invalid JSON payload');
-      return new Response('Invalid JSON payload', { status: 400 });
+      return createResponse('Invalid JSON payload', 400);
     }
     console.log('✅ Event type:', event.type);
 
@@ -173,376 +361,46 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Critical vs informative event classification
-    const criticalEvents = ['subscription.created', 'subscription.active', 'subscription.canceled', 'subscription.updated', 'order.paid'];
-    const isCritical = criticalEvents.includes(event.type);
-    
-    console.log(`${isCritical ? '🔥 CRITICAL' : '📊 INFO'} Event:`, event.type);
-    
-    // Helper function to find user by email when metadata.profile_id is missing
-    async function findUserByEmail(email: string) {
-      try {
-        console.log('🔍 Searching user by email:', email);
-        
-        // Get user from auth.users by email
-        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-        
-        if (authError || !authUsers?.users) {
-          console.error('❌ Error listing auth users:', authError);
-          return null;
-        }
-        
-        const authUser = authUsers.users.find(u => u.email === email);
-        if (!authUser) {
-          console.warn('⚠️ Auth user not found for email:', email);
-          return null;
-        }
-        
-        // Get profile by user_id
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, user_id')
-          .eq('user_id', authUser.id)
-          .maybeSingle();
-          
-        if (profileError) {
-          console.error('❌ Error fetching profile:', profileError);
-          return null;
-        }
-        
-        if (!profile) {
-          console.warn('⚠️ Profile not found for user_id:', authUser.id);
-          return null;
-        }
-        
-        console.log('✅ Found user profile:', { profile_id: profile.id, email });
-        return profile.id;
-      } catch (error) {
-        console.error('❌ Error in findUserByEmail:', error);
-        return null;
-      }
-    }
-
-    // Helper function to activate premium subscription
-    async function activatePremiumSubscription(profileId: string, eventData: any, source: string) {
-      try {
-        const currentPeriodEnd = new Date();
-        currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
-        
-        const subscriptionData: any = {
-          user_id: profileId,
-          plan: 'premium',
-          status: 'active',
-          current_period_end: currentPeriodEnd,
-        };
-        
-        // Add Polar IDs if available
-        if (eventData.customer_id) {
-          subscriptionData.polar_customer_id = eventData.customer_id;
-        }
-        if (eventData.id && source.includes('subscription')) {
-          subscriptionData.polar_subscription_id = eventData.id;
-        }
-        
-        console.log('🔥 Activating premium subscription:', { profileId, source, data: subscriptionData });
-        
-        const { data, error } = await supabase
-          .from('user_subscriptions')
-          .upsert(subscriptionData, {
-            onConflict: 'user_id'
-          })
-          .select();
-
-        if (error) {
-          console.error(`❌ Premium activation failed (${source}):`, error.message);
-          return false;
-        } else {
-          console.log(`✅ Premium activated successfully via ${source}`);
-          return true;
-        }
-      } catch (error) {
-        console.error(`❌ Error activating premium (${source}):`, error);
-        return false;
-      }
-    }
-
     switch (event.type) {
-      case 'checkout.created': {
+      case 'checkout.created':
         console.log('🛒 INFO: Checkout created', { checkout_id: event.data.id });
-        // Informative only - no database changes needed
         break;
-      }
 
-      case 'checkout.updated': {
+      case 'checkout.updated':
         console.log('🛒 INFO: Checkout updated', { 
           checkout_id: event.data.id, 
           status: event.data.status 
         });
-        // Informative only - no database changes needed
         break;
-      }
 
-      case 'order.created': {
+      case 'order.created':
         console.log('📦 INFO: Order created', { 
           order_id: event.data.id, 
           status: event.data.status 
         });
-        // Informative only - no database changes needed
         break;
-      }
 
-      case 'order.updated': {
-        const order = event.data;
-        console.log('📦 CRITICAL: Order updated', { 
-          order_id: order.id, 
-          status: order.status,
-          customer_email: order.customer_email || order.customer?.email,
-          metadata_present: !!order.metadata?.profile_id
-        });
-        
-        // Only process if order is actually paid
-        if (order.status === 'paid') {
-          const metadata = order.metadata || {};
-          let profileId = metadata.profile_id;
-          
-          // Fallback: find user by email if no profile_id in metadata
-          if (!profileId) {
-            const customerEmail = order.customer_email || order.customer?.email;
-            if (customerEmail) {
-              profileId = await findUserByEmail(customerEmail);
-            }
-          }
-          
-          if (profileId) {
-            const success = await activatePremiumSubscription(profileId, order, 'order.updated');
-            if (!success) {
-              console.error('❌ Failed to activate premium for order.updated');
-            }
-          } else {
-            console.error('❌ No profile_id found and no valid customer email for order.updated');
-          }
-        }
+      case 'order.updated':
+      case 'order.paid':
+        await handleOrderEvent(event.data, event.type, supabase);
         break;
-      }
 
-      case 'order.paid': {
-        const order = event.data;
-        console.log('🔥 CRITICAL: Order paid event received', {
-          order_id: order.id,
-          status: order.status,
-          customer_email: order.customer_email || order.customer?.email,
-          metadata_present: !!order.metadata?.profile_id
-        });
-        
-        // Double-check order is paid
-        if (order.status !== 'paid') {
-          console.warn('⚠️ Order.paid event but status is not paid:', order.status);
-          break;
-        }
-        
-        const metadata = order.metadata || {};
-        let profileId = metadata.profile_id;
-        
-        // Fallback: find user by email if no profile_id in metadata
-        if (!profileId) {
-          const customerEmail = order.customer_email || order.customer?.email;
-          if (customerEmail) {
-            profileId = await findUserByEmail(customerEmail);
-          }
-        }
-        
-        if (profileId) {
-          const success = await activatePremiumSubscription(profileId, order, 'order.paid');
-          if (!success) {
-            console.error('❌ Failed to activate premium for order.paid');
-          }
-        } else {
-          console.error('❌ No profile_id found and no valid customer email for order.paid');
-        }
-        break;
-      }
-
-      case 'subscription.created': {
-        const subscription = event.data;
-        console.log('🔥 CRITICAL: Subscription created', {
-          subscription_id: subscription.id,
-          status: subscription.status,
-          customer_email: subscription.customer?.email,
-          metadata_present: !!subscription.metadata?.profile_id
-        });
-        
-        // Only activate if subscription is actually active
-        if (subscription.status === 'active') {
-          const metadata = subscription.metadata || {};
-          let profileId = metadata.profile_id;
-          
-          // Fallback: find user by email if no profile_id in metadata
-          if (!profileId) {
-            const customerEmail = subscription.customer?.email;
-            if (customerEmail) {
-              profileId = await findUserByEmail(customerEmail);
-            }
-          }
-          
-          if (profileId) {
-            const success = await activatePremiumSubscription(profileId, subscription, 'subscription.created');
-            if (!success) {
-              console.error('❌ Failed to activate premium for subscription.created');
-            }
-          } else {
-            console.error('❌ No profile_id found and no valid customer email for subscription.created');
-          }
-        } else {
-          console.warn('⚠️ Subscription created but not active:', subscription.status);
-        }
-        break;
-      }
-
-      case 'subscription.active': {
-        const subscription = event.data;
-        console.log('🔥 CRITICAL: Subscription active event', {
-          subscription_id: subscription.id,
-          status: subscription.status,
-          customer_email: subscription.customer?.email,
-          metadata_present: !!subscription.metadata?.profile_id
-        });
-        
-        const metadata = subscription.metadata || {};
-        let profileId = metadata.profile_id;
-        
-        // Fallback: find user by email if no profile_id in metadata
-        if (!profileId) {
-          const customerEmail = subscription.customer?.email;
-          if (customerEmail) {
-            profileId = await findUserByEmail(customerEmail);
-          }
-        }
-        
-        if (profileId) {
-          const success = await activatePremiumSubscription(profileId, subscription, 'subscription.active');
-          if (!success) {
-            console.error('❌ Failed to activate premium for subscription.active');
-          }
-        } else {
-          console.error('❌ No profile_id found and no valid customer email for subscription.active');
-        }
-        break;
-      }
-
-      case 'subscription.updated': {
-        const subscription = event.data;
-        console.log('🔥 CRITICAL: Subscription updated', {
-          subscription_id: subscription.id,
-          status: subscription.status,
-          customer_email: subscription.customer?.email,
-          metadata_present: !!subscription.metadata?.profile_id
-        });
-        
-        const metadata = subscription.metadata || {};
-        let profileId = metadata.profile_id;
-        
-        // Fallback: find user by email if no profile_id in metadata
-        if (!profileId) {
-          const customerEmail = subscription.customer?.email;
-          if (customerEmail) {
-            profileId = await findUserByEmail(customerEmail);
-          }
-        }
-        
-        if (profileId) {
-          // Handle status changes
-          if (subscription.status === 'active') {
-            const success = await activatePremiumSubscription(profileId, subscription, 'subscription.updated');
-            if (!success) {
-              console.error('❌ Failed to activate premium for subscription.updated');
-            }
-          } else if (subscription.status === 'canceled' || subscription.status === 'incomplete_expired') {
-            // Downgrade to free
-            console.log('🔄 Downgrading subscription to free');
-            const { data, error } = await supabase
-              .from('user_subscriptions')
-              .update({
-                plan: 'free',
-                status: 'active',
-                polar_subscription_id: subscription.id,
-              })
-              .eq('user_id', profileId)
-              .select();
-
-            if (error) {
-              console.error('❌ Subscription downgrade failed:', error.message);
-            } else {
-              console.log('✅ Subscription downgraded to free');
-            }
-          } else {
-            console.log('⏳ Subscription status not final, ignoring:', subscription.status);
-          }
-        } else {
-          console.error('❌ No profile_id found and no valid customer email for subscription.updated');
-        }
-        break;
-      }
-
+      case 'subscription.created':
+      case 'subscription.active':
+      case 'subscription.updated':
       case 'subscription.canceled':
-      case 'subscription.incomplete_expired': {
-        const subscription = event.data;
-        console.log('🔥 CRITICAL: Subscription cancellation event', {
-          subscription_id: subscription.id,
-          event_type: event.type,
-          customer_email: subscription.customer?.email,
-          metadata_present: !!subscription.metadata?.profile_id
-        });
-        
-        const metadata = subscription.metadata || {};
-        let profileId = metadata.profile_id;
-        
-        // Fallback: find user by email if no profile_id in metadata
-        if (!profileId) {
-          const customerEmail = subscription.customer?.email;
-          if (customerEmail) {
-            profileId = await findUserByEmail(customerEmail);
-          }
-        }
-        
-        if (profileId) {
-          const { data, error } = await supabase
-            .from('user_subscriptions')
-            .update({
-              plan: 'free',
-              status: 'active',
-              polar_subscription_id: subscription.id,
-            })
-            .eq('user_id', profileId)
-            .select();
-
-          if (error) {
-            console.error('❌ Subscription cancellation failed:', error.message);
-          } else {
-            console.log('✅ Subscription canceled and downgraded to free');
-          }
-        } else {
-          console.error('❌ No profile_id found and no valid customer email for cancellation');
-        }
+      case 'subscription.incomplete_expired':
+        await handleSubscriptionEvent(event.data, event.type, supabase);
         break;
-      }
 
       default:
         console.warn('❓ Unhandled event type:', event.type);
     }
 
-    return new Response('OK', { 
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return createResponse('OK');
 
   } catch (error) {
     console.error('💥 Webhook error:', error instanceof Error ? error.message : 'Unknown error');
-    
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error'
-    }), { 
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return createResponse(JSON.stringify({ error: 'Internal server error' }), 500);
   }
 });
