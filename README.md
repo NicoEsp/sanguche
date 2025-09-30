@@ -11,6 +11,7 @@ Esta aplicación está construida con React + TypeScript + Tailwind, usando Supa
 # 🏗️ Estructura del proyecto
 
 ├── public/                — Archivos estáticos (imágenes, favicon, etc.)
+
 ├── src/                   — Código fuente frontend (React)
 │   ├── components/        — Componentes reutilizables (UI, inputs, cards, etc.)
 │   ├── pages/             — Páginas de la aplicación (landing, mentoria, etc.)
@@ -18,6 +19,7 @@ Esta aplicación está construida con React + TypeScript + Tailwind, usando Supa
 │   ├── services/           — Integraciones con backend / supabase / pagos
 │   ├── styles/             — Estilos globales / configuraciones Tailwind
 │   └── utils/              — Utilidades / helpers compartidos
+
 ├── supabase/               — Archivos o scripts relacionados a la configuración de Supabase
 ├── .env                    — Variables de entorno locales
 ├── tailwind.config.ts      — Configuración de Tailwind CSS
