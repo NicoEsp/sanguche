@@ -22,6 +22,7 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminAssessments from "@/pages/admin/AdminAssessments";
 import AdminRecommendations from "@/pages/admin/AdminRecommendations";
+import AdminResources from "@/pages/admin/AdminResources";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -44,6 +45,7 @@ const App = () => (
                     <Route path="/usuarios" element={<AdminUsers />} />
                     <Route path="/evaluaciones" element={<AdminAssessments />} />
                     <Route path="/mentoria" element={<AdminRecommendations />} />
+                    <Route path="/recursos" element={<AdminResources />} />
                     <Route path="/configuracion" element={<AdminSettings />} />
                   </Routes>
                 </AdminLayout>

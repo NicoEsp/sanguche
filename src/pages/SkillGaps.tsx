@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { getAssessment } from "@/utils/storage";
 import { isFeatureAvailable, FEATURES } from "@/utils/features";
 import { useSubscription } from "@/hooks/useAuth";
+import { ResourcesList } from "@/components/resources/ResourcesList";
 export default function SkillGaps() {
   const {
     hasActivePremium
@@ -106,6 +107,8 @@ export default function SkillGaps() {
             <Link to="/autoevaluacion">Atrás</Link>
           </Button>
         </div>
+
+        <ResourcesList assessmentResult={record?.result || null} />
       </section>
     </>;
 }

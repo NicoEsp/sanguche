@@ -115,6 +115,48 @@ export type Database = {
         }
         Relationships: []
       }
+      resources: {
+        Row: {
+          condition_domain: string | null
+          condition_max_level: number | null
+          condition_min_level: number | null
+          created_at: string
+          display_order: number
+          file_url: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          visibility_type: Database["public"]["Enums"]["resource_visibility"]
+        }
+        Insert: {
+          condition_domain?: string | null
+          condition_max_level?: number | null
+          condition_min_level?: number | null
+          created_at?: string
+          display_order?: number
+          file_url: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          visibility_type?: Database["public"]["Enums"]["resource_visibility"]
+        }
+        Update: {
+          condition_domain?: string | null
+          condition_max_level?: number | null
+          condition_min_level?: number | null
+          created_at?: string
+          display_order?: number
+          file_url?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          visibility_type?: Database["public"]["Enums"]["resource_visibility"]
+        }
+        Relationships: []
+      }
       security_audit: {
         Row: {
           action: string
@@ -263,6 +305,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      resource_visibility: "public" | "conditional"
       subscription_plan: "free" | "premium"
       subscription_status: "active" | "inactive" | "cancelled"
     }
@@ -393,6 +436,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      resource_visibility: ["public", "conditional"],
       subscription_plan: ["free", "premium"],
       subscription_status: ["active", "inactive", "cancelled"],
     },

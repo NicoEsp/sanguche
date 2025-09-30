@@ -18,7 +18,8 @@ import {
   Target,
   Settings,
   Home,
-  Shield
+  Shield,
+  FileText
 } from 'lucide-react';
 
 const adminNavItems = [
@@ -26,6 +27,7 @@ const adminNavItems = [
   { title: 'Usuarios', url: '/admin/usuarios', icon: Users },
   { title: 'Evaluaciones', url: '/admin/evaluaciones', icon: ClipboardList },
   { title: 'Recomendaciones', url: '/admin/mentoria', icon: Target },
+  { title: 'Recursos', url: '/admin/recursos', icon: FileText },
   { title: 'Configuración', url: '/admin/configuracion', icon: Settings },
 ];
 
