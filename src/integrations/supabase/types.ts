@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_actions_log: {
+        Row: {
+          action_type: string
+          admin_user_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          target_user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          admin_user_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          admin_user_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_log_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_actions_log_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessments: {
         Row: {
           assessment_result: Json
@@ -117,6 +159,8 @@ export type Database = {
       }
       resources: {
         Row: {
+          access_level: Database["public"]["Enums"]["resource_access_level"]
+          bucket_name: string
           condition_domain: string | null
           condition_max_level: number | null
           condition_min_level: number | null
@@ -130,6 +174,8 @@ export type Database = {
           visibility_type: Database["public"]["Enums"]["resource_visibility"]
         }
         Insert: {
+          access_level?: Database["public"]["Enums"]["resource_access_level"]
+          bucket_name?: string
           condition_domain?: string | null
           condition_max_level?: number | null
           condition_min_level?: number | null
@@ -143,6 +189,8 @@ export type Database = {
           visibility_type?: Database["public"]["Enums"]["resource_visibility"]
         }
         Update: {
+          access_level?: Database["public"]["Enums"]["resource_access_level"]
+          bucket_name?: string
           condition_domain?: string | null
           condition_max_level?: number | null
           condition_min_level?: number | null
@@ -291,6 +339,15 @@ export type Database = {
         Args: { check_user_id?: string }
         Returns: boolean
       }
+      log_admin_action: {
+        Args: {
+          p_action_type: string
+          p_admin_user_id: string
+          p_details?: Json
+          p_target_user_id: string
+        }
+        Returns: string
+      }
       log_security_event: {
         Args: {
           p_action: string
@@ -305,6 +362,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      resource_access_level: "public" | "authenticated" | "premium"
       resource_visibility: "public" | "conditional"
       subscription_plan: "free" | "premium"
       subscription_status: "active" | "inactive" | "cancelled"
@@ -436,6 +494,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      resource_access_level: ["public", "authenticated", "premium"],
       resource_visibility: ["public", "conditional"],
       subscription_plan: ["free", "premium"],
       subscription_status: ["active", "inactive", "cancelled"],

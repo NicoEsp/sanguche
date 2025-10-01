@@ -15,6 +15,8 @@ export interface Resource {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  access_level: 'public' | 'authenticated' | 'premium';
+  bucket_name: string;
 }
 
 export function useResources() {

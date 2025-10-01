@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, UserPlus, Crown, User, Shield, Download, RefreshCw } from 'lucide-react';
+import { Loader2, Search, UserPlus, Crown, User, Shield, Download, RefreshCw, ArrowUp } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { PlanUpgradeModal } from '@/components/admin/PlanUpgradeModal';
 
 interface UserProfile {
   id: string;
@@ -30,6 +31,12 @@ export default function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [planFilter, setPlanFilter] = useState<string>('all');
   const [error, setError] = useState<string | null>(null);
+  const [upgradeModalUser, setUpgradeModalUser] = useState<{
+    id: string;
+    name: string | null;
+    email: string | null;
+    currentPlan: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -84,6 +91,21 @@ export default function AdminUsers() {
       }
       const profileIds = profiles.map(p => p.id);
 
+      // Fetch emails from auth.users
+      const emailMap = new Map<string, string>();
+      try {
+        const { data } = await supabase.auth.admin.listUsers();
+        if (data?.users) {
+          data.users.forEach((user: any) => {
+            if (user.id && user.email) {
+              emailMap.set(user.id, user.email);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user emails:', error);
+      }
+
       // Fetch subscriptions
       const { data: subscriptions, error: subscriptionsError } = await supabase
         .from('user_subscriptions')
@@ -113,6 +135,7 @@ export default function AdminUsers() {
           user_id: profile.user_id,
           created_at: profile.created_at,
           mentoria_completed: profile.mentoria_completed,
+          email: emailMap.get(profile.user_id) || '',
           subscription: subscription || { plan: 'free', status: 'active' },
           role: userRole?.role || 'user'
         };
@@ -135,7 +158,10 @@ export default function AdminUsers() {
 
   const filteredUsers = (users || []).filter(user => {
     if (!user) return false;
-    const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+    const matchesSearch = 
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      false;
     const matchesPlan = planFilter === 'all' || user.subscription?.plan === planFilter;
     return matchesSearch && matchesPlan;
   });
@@ -315,7 +341,7 @@ export default function AdminUsers() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nombre..."
+                  placeholder="Buscar por nombre o email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -365,9 +391,14 @@ export default function AdminUsers() {
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{user.name || 'Sin nombre'}</span>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{user.name || 'Sin nombre'}</span>
+                      </div>
+                      {user.email && (
+                        <span className="text-xs text-muted-foreground ml-6">{user.email}</span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -391,7 +422,23 @@ export default function AdminUsers() {
                     {new Date(user.created_at).toLocaleDateString('es-ES')}
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                      {user.subscription?.plan === 'free' && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => setUpgradeModalUser({
+                            id: user.id,
+                            name: user.name,
+                            email: user.email,
+                            currentPlan: user.subscription?.plan || 'free'
+                          })}
+                          className="text-xs"
+                        >
+                          <ArrowUp className="w-3 h-3 mr-1" />
+                          Upgrade a Premium
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -428,6 +475,13 @@ export default function AdminUsers() {
           )}
         </CardContent>
       </Card>
+
+      <PlanUpgradeModal
+        isOpen={!!upgradeModalUser}
+        onClose={() => setUpgradeModalUser(null)}
+        targetUser={upgradeModalUser}
+        onSuccess={fetchUsers}
+      />
     </div>
   );
 }
