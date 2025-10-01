@@ -30,13 +30,15 @@ export function useUserProfile() {
           .maybeSingle();
 
         if (error) {
-          console.error('Error fetching profile:', error);
+          // SECURITY: Log error type only, not details
+          console.error('Failed to fetch user profile');
           setProfile(null);
         } else {
           setProfile(data);
         }
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        // SECURITY: Log error type only, not details
+        console.error('Failed to fetch user profile');
         setProfile(null);
       } finally {
         setLoading(false);

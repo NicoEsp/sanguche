@@ -107,7 +107,8 @@ export default function AdminUsers() {
           });
         }
       } catch (error) {
-        console.error('Error fetching user emails:', error);
+        // SECURITY: Log error type only
+        console.error('Failed to fetch user emails');
       }
 
       // Fetch subscriptions
@@ -151,7 +152,8 @@ export default function AdminUsers() {
         toast.success('Datos actualizados correctamente');
       }
     } catch (err) {
-      console.error('Error fetching users:', err);
+      // SECURITY: Log error type only
+      console.error('Failed to fetch users');
       setError('Error cargando usuarios');
       toast.error('Error cargando usuarios');
     } finally {

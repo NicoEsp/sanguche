@@ -15,9 +15,19 @@ serve(async (req) => {
   try {
     const { userId } = await req.json();
     
-    if (!userId) {
+    // SECURITY: Input validation
+    if (!userId || typeof userId !== 'string' || userId.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'User ID is required' }),
+        JSON.stringify({ error: 'Valid User ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // SECURITY: Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid User ID format' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -39,9 +49,9 @@ serve(async (req) => {
     const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
     
     if (authError || !authUser?.user?.email) {
-      console.error('Error fetching user email:', authError);
+      // SECURITY: Don't expose detailed error information
       return new Response(
-        JSON.stringify({ error: 'User email not found' }),
+        JSON.stringify({ error: 'User not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -68,7 +78,8 @@ serve(async (req) => {
     });
 
     if (!productResponse.ok) {
-      console.error('Failed to fetch product details:', productResponse.status, await productResponse.text());
+      // SECURITY: Log error without exposing response data
+      console.error('Failed to fetch product details:', productResponse.status);
       return new Response(
         JSON.stringify({ error: 'Failed to fetch product details' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -76,14 +87,12 @@ serve(async (req) => {
     }
 
     const productData = await productResponse.json();
-    console.log('Product data:', productData);
-
+    
     // Extract the price_id from the product
     const priceId = productData.prices?.[0]?.id;
     if (!priceId) {
-      console.error('No price found for product');
       return new Response(
-        JSON.stringify({ error: 'No price found for product' }),
+        JSON.stringify({ error: 'Product configuration error' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -99,7 +108,8 @@ serve(async (req) => {
       }
     };
 
-    console.log('Creating Polar checkout with data:', checkoutData);
+    // SECURITY: Log action without exposing sensitive data
+    console.log('Creating Polar checkout session for user');
 
     const response = await fetch('https://api.polar.sh/v1/checkouts/', {
       method: 'POST',
@@ -111,16 +121,16 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Polar API error:', response.status, errorText);
+      // SECURITY: Log error without exposing API response
+      console.error('Polar API error:', response.status);
       return new Response(
-        JSON.stringify({ error: 'Failed to create checkout session', details: errorText }),
+        JSON.stringify({ error: 'Failed to create checkout session' }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const checkoutSession = await response.json();
-    console.log('Polar checkout session created:', checkoutSession);
+    console.log('Polar checkout session created successfully');
 
     return new Response(
       JSON.stringify({ checkoutUrl: checkoutSession.url }),
@@ -128,9 +138,10 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in polar-checkout function:', error);
+    // SECURITY: Log error without exposing detailed information
+    console.error('Error in polar-checkout function:', error instanceof Error ? error.name : 'Unknown error');
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
