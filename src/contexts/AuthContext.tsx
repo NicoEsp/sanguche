@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useServerAdminValidation } from '@/hooks/useServerAdminValidation';
 
 interface AuthContextType {
   user: User | null;
@@ -22,17 +23,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
+
+  // SECURITY: Server-side admin validation - cannot be bypassed by localStorage manipulation
+  const { isAdmin, isValidating: isAdminValidating } = useServerAdminValidation(user);
 
   useEffect(() => {
     // Configurar listener de cambios de estado de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        // SECURITY: Read admin status from JWT metadata (signed by Supabase)
-        setIsAdmin(session?.user?.user_metadata?.role === 'admin');
+        // SECURITY: Admin status now validated server-side via useServerAdminValidation hook
+        // No longer reading from localStorage - prevents privilege escalation attacks
         setIsLoading(false);
 
         if (event === 'SIGNED_IN') {
@@ -53,8 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      // SECURITY: Read admin status from JWT metadata (signed by Supabase)
-      setIsAdmin(session?.user?.user_metadata?.role === 'admin');
+      // SECURITY: Admin status now validated server-side
       setIsLoading(false);
     });
 
@@ -202,9 +204,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = {
     user,
     session,
-    isLoading,
+    isLoading: isLoading || isAdminValidating,
     isAuthenticated: !!user,
-    isAdmin,
+    isAdmin, // SECURITY: Now validated server-side, immune to localStorage manipulation
     signUp,
     signIn,
     signOut,
