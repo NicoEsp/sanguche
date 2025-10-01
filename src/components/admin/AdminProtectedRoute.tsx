@@ -1,7 +1,7 @@
 import React, { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { useServerAdminValidation } from '@/hooks/useServerAdminValidation';
 import { Loader2, Shield } from 'lucide-react';
 
 interface AdminProtectedRouteProps {
@@ -10,16 +10,22 @@ interface AdminProtectedRouteProps {
 
 export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { isAdmin, loading: adminLoading } = useAdminAuth();
+  const { isAdmin, loading: adminLoading, isValidated } = useServerAdminValidation();
   const location = useLocation();
 
   // Mostrar loading mientras se verifica autenticación y permisos
-  if (authLoading || adminLoading) {
+  // SECURITY: Block access by default until validation completes
+  if (authLoading || adminLoading || !isValidated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Verificando permisos de administrador...</p>
+          <p className="text-muted-foreground">
+            Validando permisos de administrador con el servidor...
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Validación server-side en progreso
+          </p>
         </div>
       </div>
     );
@@ -30,7 +36,7 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // Mostrar error si no es admin
+  // SECURITY: Block access if not admin (server-side validated)
   if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">

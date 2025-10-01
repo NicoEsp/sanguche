@@ -9,6 +9,7 @@ import { Loader2, Search, UserPlus, Crown, User, Shield, Download, RefreshCw, Ar
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { PlanUpgradeModal } from '@/components/admin/PlanUpgradeModal';
+import { useServerAdminValidation } from '@/hooks/useServerAdminValidation';
 
 interface UserProfile {
   id: string;
@@ -37,6 +38,9 @@ export default function AdminUsers() {
     email: string | null;
     currentPlan: string;
   } | null>(null);
+  
+  // SECURITY: Server-side admin validation for critical actions
+  const { validateAction } = useServerAdminValidation();
 
   useEffect(() => {
     fetchUsers();
@@ -167,6 +171,13 @@ export default function AdminUsers() {
   });
 
   async function toggleAdminRole(userId: string, currentRole: string) {
+    // SECURITY: Validate admin permission server-side before action
+    const isValidated = await validateAction('toggle_admin_role');
+    if (!isValidated) {
+      toast.error('No tienes permisos para realizar esta acción');
+      return;
+    }
+
     try {
       if (currentRole === 'admin') {
         const { error } = await supabase
@@ -195,6 +206,13 @@ export default function AdminUsers() {
   }
 
   async function toggleMentoriaStatus(userId: string, currentStatus: boolean) {
+    // SECURITY: Validate admin permission server-side before action
+    const isValidated = await validateAction('toggle_mentoria_status');
+    if (!isValidated) {
+      toast.error('No tienes permisos para realizar esta acción');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('profiles')
