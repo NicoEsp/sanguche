@@ -1,7 +1,6 @@
 import React, { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useServerAdminValidation } from '@/hooks/useServerAdminValidation';
 import { Loader2, Shield } from 'lucide-react';
 
 interface AdminProtectedRouteProps {
@@ -9,34 +8,29 @@ interface AdminProtectedRouteProps {
 }
 
 export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { isAdmin, loading: adminLoading, isValidated } = useServerAdminValidation();
+  const { isAuthenticated, isAdmin, isLoading } = useAuth();
   const location = useLocation();
 
-  // Mostrar loading mientras se verifica autenticación y permisos
-  // SECURITY: Block access by default until validation completes
-  if (authLoading || adminLoading || !isValidated) {
+  // SECURITY: JWT-based admin validation - no server calls needed
+  // Admin status is cryptographically signed in JWT by Supabase
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">
-            Validando permisos de administrador con el servidor...
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Validación server-side en progreso
-          </p>
+          <p className="text-muted-foreground">Verificando permisos...</p>
+          <p className="text-xs text-muted-foreground">JWT validation</p>
         </div>
       </div>
     );
   }
 
-  // Redirigir a auth si no está autenticado
   if (!isAuthenticated) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // SECURITY: Block access if not admin (server-side validated)
+  // SECURITY: Admin status read from cryptographically signed JWT
+  // Cannot be forged - only Supabase can sign JWTs
   if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">

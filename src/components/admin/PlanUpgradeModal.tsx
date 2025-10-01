@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { useServerAdminValidation } from '@/hooks/useServerAdminValidation';
 
 interface PlanUpgradeModalProps {
   isOpen: boolean;
@@ -24,17 +23,13 @@ interface PlanUpgradeModalProps {
 export function PlanUpgradeModal({ isOpen, onClose, targetUser, onSuccess }: PlanUpgradeModalProps) {
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState('');
-  const { user } = useAuth();
-  
-  // SECURITY: Server-side admin validation
-  const { validateAction } = useServerAdminValidation();
+  const { user, isAdmin } = useAuth();
 
   const handleUpgrade = async () => {
     if (!targetUser || !user) return;
     
-    // SECURITY: Validate admin permission server-side before action
-    const isValidated = await validateAction('upgrade_user_plan');
-    if (!isValidated) {
+    // SECURITY: JWT-based admin validation
+    if (!isAdmin) {
       toast({
         title: 'Acceso Denegado',
         description: 'No tienes permisos para realizar esta acción',

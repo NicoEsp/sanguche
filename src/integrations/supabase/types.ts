@@ -359,6 +359,14 @@ export type Database = {
         }
         Returns: string
       }
+      remove_admin_role: {
+        Args: { target_email: string }
+        Returns: undefined
+      }
+      set_admin_role: {
+        Args: { target_email: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user"

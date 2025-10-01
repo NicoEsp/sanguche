@@ -8,7 +8,6 @@ import { isPremiumFeature, FEATURES } from "@/utils/features";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -20,9 +19,8 @@ import {
 export function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
-  const { user, isAuthenticated, signOut, isLoading } = useAuth();
+  const { user, isAuthenticated, isAdmin, signOut, isLoading } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
-  const { isAdmin } = useAdminAuth();
 
   const navItems = [
     { href: "/autoevaluacion", label: "Autoevaluación", premium: false },

@@ -6,7 +6,7 @@ import { isFeatureAvailable, FEATURES, isMentoriaContentAvailable, isMentoriaAdv
 import { useSubscription } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { MentoriaHero } from "@/components/mentoria/MentoriaHero";
@@ -24,7 +24,7 @@ export default function Recommendations() {
   const { toast } = useToast();
   const { result: assessmentResult, loading: assessmentLoading, hasAssessment } = useAssessmentData();
   const { profile, loading: profileLoading } = useUserProfile();
-  const { isAdmin } = useAdminAuth();
+  const { isAdmin } = useAuth();
 
   // Check for success payment
   useEffect(() => {

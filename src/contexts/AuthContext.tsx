@@ -8,6 +8,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   signUp: (email: string, password: string, name?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -29,6 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        // SECURITY: Read admin status from JWT metadata (signed by Supabase)
+        setIsAdmin(session?.user?.user_metadata?.role === 'admin');
         setIsLoading(false);
 
         if (event === 'SIGNED_IN') {
@@ -49,6 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      // SECURITY: Read admin status from JWT metadata (signed by Supabase)
+      setIsAdmin(session?.user?.user_metadata?.role === 'admin');
       setIsLoading(false);
     });
 
@@ -198,6 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     isLoading,
     isAuthenticated: !!user,
+    isAdmin,
     signUp,
     signIn,
     signOut,

@@ -65,8 +65,6 @@ template = "Your code is {{ .Code }}"
 [functions.polar-webhook]
 verify_jwt = false
 
-[functions.validate-admin-session]
-verify_jwt = true
 
 [functions.polar-checkout]
 verify_jwt = true
