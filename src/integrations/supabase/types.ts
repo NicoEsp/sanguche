@@ -335,7 +335,7 @@ export type Database = {
         Args: { admin_user_id: string }
         Returns: boolean
       }
-      is_admin: {
+      is_admin_jwt: {
         Args: { check_user_id?: string }
         Returns: boolean
       }

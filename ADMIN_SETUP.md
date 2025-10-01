@@ -75,8 +75,11 @@ WHERE raw_user_meta_data->>'role' = 'admin';
 1. **JWT firmado por Supabase**: Solo Supabase puede firmar JWTs válidos
 2. **Sin manipulación client-side**: El JWT es inmutable en el cliente
 3. **Sin endpoints expuestos**: No existe ninguna API para asignar roles
+   - ⚠️ **CRÍTICO**: Endpoint `/rpc/is_admin` devuelve 404 (función eliminada)
+   - ⚠️ **CRÍTICO**: Función `is_admin(uuid)` eliminada de la base de datos
 4. **Audit trail**: Todas las asignaciones quedan registradas en `security_audit`
 5. **Migración automática**: Los roles existentes en `user_roles` fueron migrados automáticamente
+6. **Validación JWT pura**: Todas las RLS policies usan `is_admin_jwt()` que lee del JWT metadata
 
 ### ¿Qué pasó con los endpoints anteriores?
 
@@ -84,6 +87,9 @@ WHERE raw_user_meta_data->>'role' = 'admin';
 - ✅ `useServerAdminValidation` hook → **ELIMINADO**
 - ✅ `useAdminAuth` hook → **ELIMINADO**
 - ✅ Validación server-side cada 90 segundos → **ELIMINADO**
+- ✅ Función `is_admin(uuid)` → **ELIMINADA** (endpoint RPC roto)
+- ✅ Tabla `user_roles` → **VACÍA Y DEPRECADA** (roles en JWT metadata)
+- ✅ Todas las RLS policies → **MIGRADAS A JWT** (usan `is_admin_jwt()`)
 
 Ahora la validación es instantánea y sin requests adicionales al servidor.
 
@@ -141,6 +147,25 @@ localStorage.setItem('isAdmin', 'true')
 ```
 
 El JWT está firmado criptográficamente por Supabase. Incluso si modificas el estado local, todas las operaciones de base de datos verifican el JWT real, y las RLS policies rechazan el acceso.
+
+### 🔍 Verificación del Endpoint Eliminado
+
+Puedes verificar que el endpoint RPC está realmente eliminado:
+
+```bash
+# Este request debe devolver 404
+curl https://lgscevufwnetegglgpnw.supabase.co/rest/v1/rpc/is_admin
+```
+
+**Respuesta esperada:** Error 404 - La función `is_admin` no existe
+
+**Métodos que NO funcionan para hacer bypass:**
+- ❌ Modificar `localStorage` manualmente
+- ❌ Editar el JWT en DevTools (rompe la firma)
+- ❌ Interceptar y modificar network requests
+- ❌ Llamar a `/rpc/is_admin` (devuelve 404 - función eliminada)
+- ❌ Manipular el código frontend (backend valida con `is_admin_jwt()`)
+- ❌ Insertar en tabla `user_roles` (vacía, deprecada, y no se usa)
 
 ---
 
