@@ -94,19 +94,20 @@ export default function AdminUsers() {
       }
       const profileIds = profiles.map(p => p.id);
 
-      // Fetch emails from auth.users
+      // SECURITY: Fetch emails using secure edge function instead of direct auth.admin call
       const emailMap = new Map<string, string>();
       try {
-        const { data } = await supabase.auth.admin.listUsers();
-        if (data?.users) {
-          data.users.forEach((user: any) => {
-            if (user.id && user.email) {
-              emailMap.set(user.id, user.email);
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('get-admin-users');
+        
+        if (!emailError && emailData?.users) {
+          emailData.users.forEach((user: any) => {
+            if (user.user_id && user.email) {
+              emailMap.set(user.user_id, user.email);
             }
           });
         }
       } catch (error) {
-        // Failed to fetch user emails
+        // Failed to fetch user emails from edge function
       }
 
       // Fetch subscriptions

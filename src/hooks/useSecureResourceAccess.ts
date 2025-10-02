@@ -39,7 +39,7 @@ export function useSecureResourceAccess(resource: Resource | null): SecureResour
         
         setSignedUrl(data.signedUrl);
       } catch (err) {
-        console.error('Error generating signed URL:', err);
+        if (import.meta.env.DEV) console.error('Error generating signed URL:', err);
         setError('No se pudo acceder al recurso');
         setSignedUrl(null);
       } finally {

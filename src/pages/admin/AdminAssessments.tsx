@@ -60,7 +60,7 @@ export default function AdminAssessments() {
 
       setAssessments(transformedData);
     } catch (err) {
-      console.error('Error fetching assessments:', err);
+      if (import.meta.env.DEV) console.error('Error fetching assessments:', err);
       setError('Error cargando evaluaciones');
     } finally {
       setLoading(false);

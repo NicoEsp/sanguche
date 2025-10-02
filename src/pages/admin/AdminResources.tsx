@@ -111,7 +111,7 @@ export default function AdminResources() {
 
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading file:', error);
+      if (import.meta.env.DEV) console.error('Error uploading file:', error);
       return null;
     }
   };
@@ -186,7 +186,7 @@ export default function AdminResources() {
       form.reset();
       refetch();
     } catch (error) {
-      console.error('Error saving resource:', error);
+      if (import.meta.env.DEV) console.error('Error saving resource:', error);
       toast({
         title: 'Error',
         description: 'Error al guardar el recurso',
@@ -228,7 +228,7 @@ export default function AdminResources() {
       });
       refetch();
     } catch (error) {
-      console.error('Error deleting resource:', error);
+      if (import.meta.env.DEV) console.error('Error deleting resource:', error);
       toast({
         title: 'Error',
         description: 'Error al eliminar el recurso',

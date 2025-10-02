@@ -51,7 +51,7 @@ export function ComingSoonExercises() {
         description: "Te enviaremos el ejercicio a tu email",
       });
     } catch (error) {
-      console.error('Error submitting exercise request:', error);
+      if (import.meta.env.DEV) console.error('Error submitting exercise request:', error);
       toast({
         title: "Error",
         description: "No pudimos procesar tu solicitud. Inténtalo de nuevo.",

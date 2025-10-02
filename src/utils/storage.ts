@@ -47,7 +47,7 @@ export async function saveAssessment(
         }
       }
     } catch (error) {
-      console.error('Failed to save assessment to Supabase:', error);
+      if (import.meta.env.DEV) console.error('Failed to save assessment to Supabase:', error);
     }
   }
 }

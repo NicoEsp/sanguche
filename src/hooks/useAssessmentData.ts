@@ -49,7 +49,7 @@ export function useAssessmentData(): AssessmentData {
             }
           }
         } catch (error) {
-          console.error('Error fetching assessment from Supabase:', error);
+          if (import.meta.env.DEV) console.error('Error fetching assessment from Supabase:', error);
         }
       }
 

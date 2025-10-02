@@ -36,7 +36,7 @@ export function useResources() {
       setResources(data || []);
       setError(null);
     } catch (err) {
-      console.error('Error fetching resources:', err);
+      if (import.meta.env.DEV) console.error('Error fetching resources:', err);
       setError('Error al cargar recursos');
     } finally {
       setLoading(false);

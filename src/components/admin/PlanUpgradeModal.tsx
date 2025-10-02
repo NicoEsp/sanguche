@@ -76,7 +76,7 @@ export function PlanUpgradeModal({ isOpen, onClose, targetUser, onSuccess }: Pla
       });
 
       if (logError) {
-        console.error('Error logging action:', logError);
+        if (import.meta.env.DEV) console.error('Error logging action:', logError);
         // Don't fail the whole operation if logging fails
       }
 
@@ -89,7 +89,7 @@ export function PlanUpgradeModal({ isOpen, onClose, targetUser, onSuccess }: Pla
       onClose();
       setNotes('');
     } catch (error) {
-      console.error('Error upgrading user:', error);
+      if (import.meta.env.DEV) console.error('Error upgrading user:', error);
       toast({
         title: 'Error',
         description: 'No se pudo actualizar el plan del usuario',
