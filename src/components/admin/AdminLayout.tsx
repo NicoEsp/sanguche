@@ -1,14 +1,11 @@
-import React, { ReactNode } from 'react';
+import React from 'react';
+import { Outlet } from 'react-router-dom';
 import { AdminSidebar } from './AdminSidebar';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { UserCircle } from 'lucide-react';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
-interface AdminLayoutProps {
-  children: ReactNode;
-}
-
-export function AdminLayout({ children }: AdminLayoutProps) {
+export function AdminLayout() {
   const { profile } = useUserProfile();
 
   return (
@@ -35,7 +32,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Contenido principal */}
           <main className="flex-1 p-6 overflow-auto">
-            {children}
+            <Outlet />
           </main>
         </div>
       </div>

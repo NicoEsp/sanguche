@@ -327,12 +327,39 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_toggle_user_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_target_profile_id: string
+        }
+        Returns: Json
+      }
+      admin_update_mentoria_status: {
+        Args: { p_new_status: boolean; p_target_profile_id: string }
+        Returns: Json
+      }
+      admin_update_subscription: {
+        Args: {
+          p_new_plan: Database["public"]["Enums"]["subscription_plan"]
+          p_notes?: string
+          p_target_profile_id: string
+        }
+        Returns: Json
+      }
       bootstrap_first_admin: {
         Args: { admin_user_id: string }
         Returns: boolean
       }
       create_admin_user: {
         Args: { admin_user_id: string }
+        Returns: boolean
+      }
+      has_active_premium: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       is_admin_jwt: {
@@ -358,14 +385,6 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
-      }
-      remove_admin_role: {
-        Args: { target_email: string }
-        Returns: undefined
-      }
-      set_admin_role: {
-        Args: { target_email: string }
-        Returns: undefined
       }
     }
     Enums: {
