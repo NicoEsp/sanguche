@@ -23,22 +23,61 @@ interface PlanUpgradeModalProps {
 export function PlanUpgradeModal({ isOpen, onClose, targetUser, onSuccess }: PlanUpgradeModalProps) {
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState('');
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   const handleUpgrade = async () => {
     if (!targetUser || !user) return;
+    
+    // SECURITY: JWT-based admin validation
+    if (!isAdmin) {
+      toast({
+        title: 'Acceso Denegado',
+        description: 'No tienes permisos para realizar esta acción',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setLoading(true);
     try {
-      // SECURITY: Use secure RPC that validates admin on server-side
-      const { data, error } = await supabase.rpc('admin_update_subscription', {
-        p_target_profile_id: targetUser.id,
-        p_new_plan: 'premium',
-        p_notes: notes || null
+      // Get current admin profile
+      const { data: adminProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!adminProfile) {
+        throw new Error('Admin profile not found');
+      }
+
+      // Update user subscription to premium
+      const { error: updateError } = await supabase
+        .from('user_subscriptions')
+        .update({
+          plan: 'premium',
+          status: 'active',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', targetUser.id);
+
+      if (updateError) throw updateError;
+
+      // Log the action
+      const { error: logError } = await supabase.rpc('log_admin_action', {
+        p_admin_user_id: adminProfile.id,
+        p_target_user_id: targetUser.id,
+        p_action_type: 'plan_upgrade',
+        p_details: {
+          old_plan: targetUser.currentPlan,
+          new_plan: 'premium',
+          notes: notes || null,
+        },
       });
 
-      if (error) {
-        throw error;
+      if (logError) {
+        console.error('Error logging action:', logError);
+        // Don't fail the whole operation if logging fails
       }
 
       toast({
@@ -49,11 +88,11 @@ export function PlanUpgradeModal({ isOpen, onClose, targetUser, onSuccess }: Pla
       onSuccess();
       onClose();
       setNotes('');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error upgrading user:', error);
       toast({
         title: 'Error',
-        description: error.message || 'No se pudo actualizar el plan del usuario',
+        description: 'No se pudo actualizar el plan del usuario',
         variant: 'destructive',
       });
     } finally {

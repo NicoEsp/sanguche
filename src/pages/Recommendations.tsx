@@ -7,7 +7,7 @@ import { useSubscription } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { MentoriaHero } from "@/components/mentoria/MentoriaHero";
 import { ProfileAnalysis } from "@/components/mentoria/ProfileAnalysis";
@@ -18,7 +18,6 @@ import { LockedResources } from "@/components/mentoria/LockedResources";
 import { ComingSoonExercises } from "@/components/mentoria/ComingSoonExercises";
 import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function Recommendations() {
   const { hasActivePremium, loading } = useSubscription();
@@ -26,32 +25,6 @@ export default function Recommendations() {
   const { result: assessmentResult, loading: assessmentLoading, hasAssessment } = useAssessmentData();
   const { profile, loading: profileLoading } = useUserProfile();
   const { isAdmin } = useAuth();
-  const [serverValidatedPremium, setServerValidatedPremium] = useState<boolean | null>(null);
-
-  // SECURITY: Server-side premium validation
-  useEffect(() => {
-    const validatePremium = async () => {
-      try {
-        const { data, error } = await supabase.rpc('has_active_premium');
-        if (error) {
-          console.error('Error validating premium:', error);
-          setServerValidatedPremium(false);
-        } else {
-          setServerValidatedPremium(data || false);
-        }
-      } catch (error) {
-        console.error('Error validating premium:', error);
-        setServerValidatedPremium(false);
-      }
-    };
-
-    if (!isAdmin) {
-      validatePremium();
-    } else {
-      // Admins always have access
-      setServerValidatedPremium(true);
-    }
-  }, [isAdmin]);
 
   // Check for success payment
   useEffect(() => {
@@ -66,27 +39,24 @@ export default function Recommendations() {
     }
   }, [toast]);
   
-  // SECURITY: Use server-validated premium status
-  const effectivePremium = isAdmin ? true : (serverValidatedPremium || false);
-  
   // Verificar si el usuario tiene acceso a recomendaciones
-  const hasAccess = isFeatureAvailable(FEATURES.RECOMMENDATIONS, effectivePremium);
+  const hasAccess = isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium);
   
   // Verificar si el usuario tiene acceso al contenido básico de mentoría
   const hasMentoriaAccess = isMentoriaContentAvailable(
-    effectivePremium, 
+    hasActivePremium, 
     profile?.mentoria_completed || false, 
     isAdmin
   );
 
   // Verificar si el usuario tiene acceso al contenido avanzado (post-mentoría)
   const hasAdvancedAccess = isMentoriaAdvancedContentAvailable(
-    effectivePremium, 
+    hasActivePremium, 
     profile?.mentoria_completed || false, 
     isAdmin
   );
 
-  if (loading || assessmentLoading || profileLoading || serverValidatedPremium === null) {
+  if (loading || assessmentLoading || profileLoading) {
     return (
       <>
         <Seo
