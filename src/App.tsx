@@ -37,20 +37,21 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
           <Routes>
-            <Route path="/admin/*" element={
-              <AdminProtectedRoute>
-                <AdminLayout>
-                  <Routes>
-                    <Route path="/" element={<AdminDashboard />} />
-                    <Route path="/usuarios" element={<AdminUsers />} />
-                    <Route path="/evaluaciones" element={<AdminAssessments />} />
-                    <Route path="/mentoria" element={<AdminRecommendations />} />
-                    <Route path="/recursos" element={<AdminResources />} />
-                    <Route path="/configuracion" element={<AdminSettings />} />
-                  </Routes>
-                </AdminLayout>
-              </AdminProtectedRoute>
-            } />
+            <Route
+              path="/admin"
+              element={
+                <AdminProtectedRoute>
+                  <AdminLayout />
+                </AdminProtectedRoute>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="usuarios" element={<AdminUsers />} />
+              <Route path="evaluaciones" element={<AdminAssessments />} />
+              <Route path="mentoria" element={<AdminRecommendations />} />
+              <Route path="recursos" element={<AdminResources />} />
+              <Route path="configuracion" element={<AdminSettings />} />
+            </Route>
             <Route path="/*" element={
               <AppLayout>
                  <Routes>
