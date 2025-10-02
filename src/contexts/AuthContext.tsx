@@ -29,13 +29,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { isAdmin, isValidating: isAdminValidating } = useServerAdminValidation(user);
 
   useEffect(() => {
-    // Configurar listener de cambios de estado de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        // SECURITY: Admin status now validated server-side via useServerAdminValidation hook
-        // No longer reading from localStorage - prevents privilege escalation attacks
         setIsLoading(false);
 
         if (event === 'SIGNED_IN') {
@@ -52,11 +49,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // Verificar sesión existente
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      // SECURITY: Admin status now validated server-side
       setIsLoading(false);
     });
 
@@ -187,7 +182,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Función para traducir mensajes de error comunes
   const getErrorMessage = (message: string): string => {
     const errorMessages: Record<string, string> = {
       'Invalid login credentials': 'Credenciales incorrectas. Verifica tu email y contraseña.',

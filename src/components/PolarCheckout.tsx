@@ -43,7 +43,6 @@ export function PolarCheckout({ onSuccess, onError }: PolarCheckoutProps) {
       }
 
     } catch (error) {
-      console.error('Checkout error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error al crear el checkout';
       
       toast({

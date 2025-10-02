@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,7 +39,6 @@ export default function AdminUsers() {
     currentPlan: string;
   } | null>(null);
   
-  // SECURITY: JWT-based admin validation
   const { isAdmin } = useAuth();
 
   useEffect(() => {
@@ -107,8 +106,7 @@ export default function AdminUsers() {
           });
         }
       } catch (error) {
-        // SECURITY: Log error type only
-        console.error('Failed to fetch user emails');
+        // Failed to fetch user emails
       }
 
       // Fetch subscriptions
@@ -152,8 +150,6 @@ export default function AdminUsers() {
         toast.success('Datos actualizados correctamente');
       }
     } catch (err) {
-      // SECURITY: Log error type only
-      console.error('Failed to fetch users');
       setError('Error cargando usuarios');
       toast.error('Error cargando usuarios');
     } finally {
@@ -173,7 +169,6 @@ export default function AdminUsers() {
   });
 
   async function toggleAdminRole(userId: string, currentRole: string) {
-    // SECURITY: JWT-based admin validation
     if (!isAdmin) {
       toast.error('No tienes permisos para realizar esta acción');
       return;
@@ -207,7 +202,6 @@ export default function AdminUsers() {
   }
 
   async function toggleMentoriaStatus(userId: string, currentStatus: boolean) {
-    // SECURITY: JWT-based admin validation
     if (!isAdmin) {
       toast.error('No tienes permisos para realizar esta acción');
       return;

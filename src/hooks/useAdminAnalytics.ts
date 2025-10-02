@@ -152,7 +152,6 @@ export function useAdminAnalytics() {
 
         setAnalytics(analyticsData);
       } catch (err) {
-        console.error('Error fetching admin analytics:', err);
         setError('Error cargando analíticas');
       } finally {
         setLoading(false);
@@ -162,5 +161,5 @@ export function useAdminAnalytics() {
     fetchAnalytics();
   }, []);
 
-  return { analytics, loading, error, refetch: () => window.location.reload() };
+  return { analytics, loading, error };
 }
