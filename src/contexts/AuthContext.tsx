@@ -2,14 +2,11 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useServerAdminValidation } from '@/hooks/useServerAdminValidation';
-
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  isAdmin: boolean;
   signUp: (email: string, password: string, name?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
@@ -24,9 +21,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-
-  // SECURITY: Server-side admin validation - cannot be bypassed by localStorage manipulation
-  const { isAdmin, isValidating: isAdminValidating } = useServerAdminValidation(user);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -198,9 +192,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = {
     user,
     session,
-    isLoading: isLoading || isAdminValidating,
+    isLoading,
     isAuthenticated: !!user,
-    isAdmin, // SECURITY: Now validated server-side, immune to localStorage manipulation
     signUp,
     signIn,
     signOut,
