@@ -362,10 +362,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      is_admin_jwt: {
-        Args: { check_user_id?: string }
-        Returns: boolean
-      }
       log_admin_action: {
         Args: {
           p_action_type: string
@@ -385,14 +381,6 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
-      }
-      remove_admin_role: {
-        Args: { target_email: string }
-        Returns: undefined
-      }
-      set_admin_role: {
-        Args: { target_email: string }
-        Returns: undefined
       }
     }
     Enums: {

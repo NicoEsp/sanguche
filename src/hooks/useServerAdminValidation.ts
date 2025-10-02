@@ -10,7 +10,7 @@ interface AdminValidationResult {
 
 /**
  * SECURITY: Server-side admin validation hook
- * Uses is_admin_jwt() RPC function which validates against JWT metadata
+ * Uses is_admin() RPC function which validates against user_roles table
  * Cannot be bypassed by localStorage manipulation
  */
 export function useServerAdminValidation(user: User | null): AdminValidationResult {
@@ -27,11 +27,9 @@ export function useServerAdminValidation(user: User | null): AdminValidationResu
     setIsValidating(true);
     
     try {
-      // SECURITY: Call server-side function that reads from JWT metadata
+      // SECURITY: Call server-side function that validates from user_roles table
       // This cannot be manipulated by the client
-      const { data, error } = await supabase.rpc('is_admin_jwt', {
-        check_user_id: user.id
-      });
+      const { data, error } = await supabase.rpc('is_admin');
 
       if (error) {
         console.error('Admin validation failed');
