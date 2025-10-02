@@ -25,6 +25,7 @@ export default function Recommendations() {
   const { toast } = useToast();
   const { result: assessmentResult, loading: assessmentLoading, hasAssessment } = useAssessmentData();
   const { profile, loading: profileLoading } = useUserProfile();
+  const { isAdmin } = useAuth();
   const [serverValidatedPremium, setServerValidatedPremium] = useState<boolean | null>(null);
 
   // SECURITY: Server-side premium validation
@@ -44,8 +45,13 @@ export default function Recommendations() {
       }
     };
 
-    validatePremium();
-  }, []);
+    if (!isAdmin) {
+      validatePremium();
+    } else {
+      // Admins always have access
+      setServerValidatedPremium(true);
+    }
+  }, [isAdmin]);
 
   // Check for success payment
   useEffect(() => {
@@ -61,7 +67,7 @@ export default function Recommendations() {
   }, [toast]);
   
   // SECURITY: Use server-validated premium status
-  const effectivePremium = serverValidatedPremium || false;
+  const effectivePremium = isAdmin ? true : (serverValidatedPremium || false);
   
   // Verificar si el usuario tiene acceso a recomendaciones
   const hasAccess = isFeatureAvailable(FEATURES.RECOMMENDATIONS, effectivePremium);
@@ -69,13 +75,15 @@ export default function Recommendations() {
   // Verificar si el usuario tiene acceso al contenido básico de mentoría
   const hasMentoriaAccess = isMentoriaContentAvailable(
     effectivePremium, 
-    profile?.mentoria_completed || false
+    profile?.mentoria_completed || false, 
+    isAdmin
   );
 
   // Verificar si el usuario tiene acceso al contenido avanzado (post-mentoría)
   const hasAdvancedAccess = isMentoriaAdvancedContentAvailable(
     effectivePremium, 
-    profile?.mentoria_completed || false
+    profile?.mentoria_completed || false, 
+    isAdmin
   );
 
   if (loading || assessmentLoading || profileLoading || serverValidatedPremium === null) {

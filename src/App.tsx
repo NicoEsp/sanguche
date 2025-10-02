@@ -16,6 +16,14 @@ import Recommendations from "@/pages/Recommendations";
 import Dashboard from "@/pages/Dashboard";
 import Auth from "@/pages/Auth";
 import Premium from "@/pages/Premium";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminUsers from "@/pages/admin/AdminUsers";
+import AdminAssessments from "@/pages/admin/AdminAssessments";
+import AdminRecommendations from "@/pages/admin/AdminRecommendations";
+import AdminResources from "@/pages/admin/AdminResources";
+import AdminSettings from "@/pages/admin/AdminSettings";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient();
@@ -29,6 +37,20 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
           <Routes>
+            <Route path="/admin/*" element={
+              <AdminProtectedRoute>
+                <AdminLayout>
+                  <Routes>
+                    <Route path="/" element={<AdminDashboard />} />
+                    <Route path="/usuarios" element={<AdminUsers />} />
+                    <Route path="/evaluaciones" element={<AdminAssessments />} />
+                    <Route path="/mentoria" element={<AdminRecommendations />} />
+                    <Route path="/recursos" element={<AdminResources />} />
+                    <Route path="/configuracion" element={<AdminSettings />} />
+                  </Routes>
+                </AdminLayout>
+              </AdminProtectedRoute>
+            } />
             <Route path="/*" element={
               <AppLayout>
                  <Routes>

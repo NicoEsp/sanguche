@@ -38,14 +38,24 @@ export function isPremiumFeature(feature: Feature): boolean {
 
 export function isMentoriaContentAvailable(
   hasSubscription: boolean = false, 
-  mentoriaCompleted: boolean = false
+  mentoriaCompleted: boolean = false,
+  isAdmin: boolean = false
 ): boolean {
+  if (isAdmin) {
+    return true;
+  }
+  
   return hasSubscription;
 }
 
 export function isMentoriaAdvancedContentAvailable(
   hasSubscription: boolean = false, 
-  mentoriaCompleted: boolean = false
+  mentoriaCompleted: boolean = false,
+  isAdmin: boolean = false
 ): boolean {
+  if (isAdmin) {
+    return true;
+  }
+  
   return hasSubscription && mentoriaCompleted;
 }

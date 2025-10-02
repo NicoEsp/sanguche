@@ -3,7 +3,7 @@ import { ReactNode, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, User, LogOut, CheckSquare, Target, BookOpen, TrendingUp, Twitter, Linkedin } from "lucide-react";
+import { Menu, User, LogOut, Shield, CheckSquare, Target, BookOpen, TrendingUp, Twitter, Linkedin } from "lucide-react";
 import { isPremiumFeature, FEATURES } from "@/utils/features";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +19,7 @@ import {
 export function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
-  const { user, isAuthenticated, signOut, isLoading } = useAuth();
+  const { user, isAuthenticated, isAdmin, signOut, isLoading } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
 
   const navItems = [
@@ -106,6 +106,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
                       <User className="h-4 w-4 mr-2" />
                       Mi Perfil
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => window.location.href = '/admin'}>
+                          <Shield className="h-4 w-4 mr-2" />
+                          Panel de Admin
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => signOut()}
@@ -180,7 +189,21 @@ export function AppLayout({ children }: { children: ReactNode }) {
                             Mi Perfil
                           </Button>
                           
-                          <Button
+                          {isAdmin && (
+                            <Button 
+                              variant="ghost" 
+                              onClick={() => {
+                                window.location.href = '/admin';
+                                setIsOpen(false);
+                              }}
+                              className="w-full justify-start"
+                            >
+                              <Shield className="h-4 w-4 mr-2" />
+                              Panel de Admin
+                            </Button>
+                          )}
+                          
+                          <Button 
                             variant="ghost" 
                             className="w-full justify-start" 
                             onClick={() => {
