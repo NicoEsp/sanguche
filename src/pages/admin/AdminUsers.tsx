@@ -38,8 +38,6 @@ export default function AdminUsers() {
     email: string | null;
     currentPlan: string;
   } | null>(null);
-  
-  const { isAdmin } = useAuth();
 
   useEffect(() => {
     fetchUsers();
@@ -169,55 +167,41 @@ export default function AdminUsers() {
   });
 
   async function toggleAdminRole(userId: string, currentRole: string) {
-    if (!isAdmin) {
-      toast.error('No tienes permisos para realizar esta acción');
-      return;
-    }
-
     try {
-      if (currentRole === 'admin') {
-        const { error } = await supabase
-          .from('user_roles')
-          .delete()
-          .eq('user_id', userId)
-          .eq('role', 'admin');
-        
-        if (error) throw error;
+      // SECURITY: Use secure RPC that validates admin on server-side
+      const { data, error } = await supabase.rpc('admin_toggle_user_role', {
+        p_target_profile_id: userId,
+        p_role: 'admin'
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; action: string; role: string };
+      if (result.action === 'removed') {
         toast.success('Rol de administrador removido');
       } else {
-        const userAuthId = users.find(u => u.id === userId)?.user_id;
-        
-        const { error } = await supabase.rpc('create_admin_user', {
-          admin_user_id: userAuthId
-        });
-        
-        if (error) throw error;
         toast.success('Rol de administrador asignado');
       }
-    } catch (err) {
-      const errorMsg = 'Error modificando rol de administrador';
+    } catch (err: any) {
+      const errorMsg = err.message || 'Error modificando rol de administrador';
       setError(errorMsg);
       toast.error(errorMsg);
     }
   }
 
   async function toggleMentoriaStatus(userId: string, currentStatus: boolean) {
-    if (!isAdmin) {
-      toast.error('No tienes permisos para realizar esta acción');
-      return;
-    }
-
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ mentoria_completed: !currentStatus })
-        .eq('id', userId);
+      // SECURITY: Use secure RPC that validates admin on server-side
+      const { data, error } = await supabase.rpc('admin_update_mentoria_status', {
+        p_target_profile_id: userId,
+        p_new_status: !currentStatus
+      });
 
       if (error) throw error;
       
       toast.success(`Mentoría marcada como ${!currentStatus ? 'completada' : 'pendiente'}`);
-    } catch (err) {
-      const errorMsg = 'Error modificando estado de mentoría';
+    } catch (err: any) {
+      const errorMsg = err.message || 'Error modificando estado de mentoría';
       setError(errorMsg);
       toast.error(errorMsg);
     }
