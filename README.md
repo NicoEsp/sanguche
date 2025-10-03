@@ -36,12 +36,14 @@ Una plataforma para Product Managers que permite:
 - Webhooks para sincronización de suscripciones
 - Gestión automática de estados de suscripción
 
-## 🧩 Funcionalidades principales
+## 🧩 Funcionalidades premium principales
 
-### Mentoría
+### /mentoria
 - Recomendaciones personalizadas
 - Recursos especializados
 - Ejercicios prácticos
+
+### / progreso
 - Sistema de progreso
 
 ### Sistema de bloqueo
@@ -49,12 +51,6 @@ Una plataforma para Product Managers que permite:
 - Desbloqueo desde panel de administración
 - Acceso gradual a funcionalidades premium
 
-## 🚀 Desarrollo
-
-```bash
-npm install
-npm run dev
-```
 
 ## 📦 Tecnologías
 
