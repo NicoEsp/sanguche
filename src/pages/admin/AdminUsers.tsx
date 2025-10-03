@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { PlanUpgradeModal } from '@/components/admin/PlanUpgradeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { exportToCSV } from '@/utils/csvExport';
+import { getUsersThisMonth } from '@/utils/dateHelpers';
 
 interface UserProfile {
   id: string;
@@ -263,25 +265,16 @@ export default function AdminUsers() {
   }
 
   function exportUsers() {
-    const csvContent = [
-      ['Nombre', 'Plan', 'Rol', 'Fecha de Registro'].join(','),
-      ...filteredUsers.map(user => [
-        user.name || '',
-        user.subscription?.plan || '',
-        user.role || '',
-        new Date(user.created_at).toLocaleDateString('es-ES')
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `usuarios_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    exportToCSV(
+      filteredUsers,
+      [
+        { key: 'name', header: 'Nombre', format: (v) => v || 'Sin nombre' },
+        { key: 'subscription.plan', header: 'Plan', format: (v) => v || 'free' },
+        { key: 'role', header: 'Rol', format: (v) => v || 'user' },
+        { key: 'created_at', header: 'Fecha de Registro', format: (v) => new Date(v).toLocaleDateString('es-ES') }
+      ],
+      `usuarios_${new Date().toISOString().split('T')[0]}.csv`
+    );
   }
 
   if (loading) {
@@ -369,12 +362,7 @@ export default function AdminUsers() {
               <div>
                 <p className="text-sm font-medium">Este Mes</p>
                 <p className="text-2xl font-bold">
-                  {users.filter(u => {
-                    const userDate = new Date(u.created_at);
-                    const now = new Date();
-                    return userDate.getMonth() === now.getMonth() && 
-                           userDate.getFullYear() === now.getFullYear();
-                  }).length}
+                  {getUsersThisMonth(users)}
                 </p>
               </div>
             </div>

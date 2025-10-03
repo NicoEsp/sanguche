@@ -5,7 +5,7 @@ import { CheckCircle2, Mail } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function ComingSoonExercises() {
   const [isSubmitting, setIsSubmitting] = useState(false);

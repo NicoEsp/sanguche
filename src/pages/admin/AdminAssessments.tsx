@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, ClipboardList, Download, Eye, BarChart3 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { exportToCSV } from '@/utils/csvExport';
 
 interface Assessment {
   id: string;
@@ -72,25 +73,20 @@ export default function AdminAssessments() {
   );
 
   function exportAssessments() {
-    const csvContent = [
-      ['Usuario', 'Fecha', 'Nivel General', 'Áreas Evaluadas'].join(','),
-      ...filteredAssessments.map(assessment => [
-        assessment.user.name || 'Sin nombre',
-        new Date(assessment.created_at).toLocaleDateString('es-ES'),
-        assessment.assessment_result?.overallLevel || 'N/A',
-        Object.keys(assessment.assessment_result?.skillLevels || {}).join('; ')
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `evaluaciones_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    exportToCSV(
+      filteredAssessments,
+      [
+        { key: 'user.name', header: 'Usuario', format: (v) => v || 'Sin nombre' },
+        { key: 'created_at', header: 'Fecha', format: (v) => new Date(v).toLocaleDateString('es-ES') },
+        { key: 'assessment_result.overallLevel', header: 'Nivel General', format: (v) => v || 'N/A' },
+        { 
+          key: 'assessment_result.skillLevels', 
+          header: 'Áreas Evaluadas', 
+          format: (v) => Object.keys(v || {}).join('; ') 
+        }
+      ],
+      `evaluaciones_${new Date().toISOString().split('T')[0]}.csv`
+    );
   }
 
   function getLevelBadgeVariant(level: string) {

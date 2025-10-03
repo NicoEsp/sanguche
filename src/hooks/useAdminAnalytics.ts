@@ -120,16 +120,6 @@ export function useAdminAnalytics() {
           .sort((a, b) => b.count - a.count)
           .slice(0, 8);
 
-        if (skillGapDistribution.length === 0 && totalAssessments > 0) {
-          skillGapDistribution.push(
-            { skill: 'Estrategia de producto', count: Math.floor(totalAssessments * 0.3) },
-            { skill: 'Analítica y métricas', count: Math.floor(totalAssessments * 0.25) },
-            { skill: 'UX e investigación', count: Math.floor(totalAssessments * 0.2) },
-            { skill: 'Discovery de usuarios', count: Math.floor(totalAssessments * 0.15) },
-            { skill: 'Roadmap y priorización', count: Math.floor(totalAssessments * 0.1) },
-          );
-        }
-
         const conversionRate = totalUsers > 0 ? (premiumUsers / totalUsers) * 100 : 0;
         const averageAssessmentScore = totalScoreCount > 0 ? totalScores / totalScoreCount : 0;
 

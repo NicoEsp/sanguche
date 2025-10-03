@@ -1,16 +1,19 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PolarCheckout } from "@/components/PolarCheckout";
-import { useToast } from "@/hooks/use-toast";
-import { useSubscription } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Seo } from "@/components/Seo";
+
 export function ComingSoonProgress() {
-  const {
-    hasActivePremium
-  } = useSubscription();
-  const {
-    toast
-  } = useToast();
-  return <div className="container py-10">
+  const { hasActivePremium } = useSubscription();
+  
+  return (
+    <>
+      <Seo
+        title="Panel de progreso — ProductPrepa"
+        description="Monitorea tu avance en habilidades clave de producto."
+        canonical="/progreso"
+      />
+      <div className="container py-10">
       <Card className="max-w-2xl mx-auto">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-semibold mb-4">
@@ -47,5 +50,7 @@ export function ComingSoonProgress() {
           )}
         </CardContent>
       </Card>
-    </div>;
+    </div>
+    </>
+  );
 }

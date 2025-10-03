@@ -12,8 +12,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Assessment from "@/pages/Assessment";
 import SkillGaps from "@/pages/SkillGaps";
 import Recommendations from "@/pages/Recommendations";
-
-import Dashboard from "@/pages/Dashboard";
+import { ComingSoonProgress } from "@/components/ComingSoonProgress";
 import Auth from "@/pages/Auth";
 import Premium from "@/pages/Premium";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -76,7 +75,7 @@ const App = () => (
               } />
               <Route path="/progreso" element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <ComingSoonProgress />
                 </ProtectedRoute>
               } />
                   <Route path="*" element={<NotFound />} />
