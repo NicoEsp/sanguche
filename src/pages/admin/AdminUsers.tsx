@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, UserPlus, Crown, User, Shield, Download, RefreshCw, ArrowUp } from 'lucide-react';
+import { Loader2, Search, UserPlus, Crown, User, Shield, Download, RefreshCw, ArrowUp, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { PlanUpgradeModal } from '@/components/admin/PlanUpgradeModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface UserProfile {
   id: string;
@@ -38,6 +39,12 @@ export default function AdminUsers() {
     email: string | null;
     currentPlan: string;
   } | null>(null);
+  const [deleteDialogUser, setDeleteDialogUser] = useState<{
+    id: string;
+    name: string | null;
+    email: string | null;
+  } | null>(null);
+  const [deleting, setDeleting] = useState(false);
   
   const { isAdmin } = useAuth();
 
@@ -221,6 +228,37 @@ export default function AdminUsers() {
       const errorMsg = 'Error modificando estado de mentoría';
       setError(errorMsg);
       toast.error(errorMsg);
+    }
+  }
+
+  async function deleteUser() {
+    if (!deleteDialogUser || !isAdmin) {
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { profileId: deleteDialogUser.id }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.success) {
+        toast.success(`Usuario "${deleteDialogUser.name || deleteDialogUser.email}" eliminado correctamente`);
+        setDeleteDialogUser(null);
+        await fetchUsers();
+      } else {
+        throw new Error(data.error || 'Error desconocido al eliminar usuario');
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Error eliminando usuario';
+      toast.error(errorMsg);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -474,6 +512,20 @@ export default function AdminUsers() {
                           {user.mentoria_completed ? '🔒 Bloquear Contenido' : '🔓 Desbloquear Contenido'}
                         </Button>
                       )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setDeleteDialogUser({
+                          id: user.id,
+                          name: user.name,
+                          email: user.email
+                        })}
+                        className="text-xs"
+                        title="Eliminar usuario permanentemente"
+                      >
+                        <Trash2 className="w-3 h-3 mr-1" />
+                        Eliminar
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -495,6 +547,42 @@ export default function AdminUsers() {
         targetUser={upgradeModalUser}
         onSuccess={fetchUsers}
       />
+
+      <AlertDialog open={!!deleteDialogUser} onOpenChange={(open) => !open && setDeleteDialogUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar usuario permanentemente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Estás a punto de eliminar al usuario <strong>{deleteDialogUser?.name || deleteDialogUser?.email}</strong>.
+              <br/><br/>
+              Esta acción es <strong>irreversible</strong> y eliminará:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Perfil del usuario</li>
+                <li>Información de suscripción</li>
+                <li>Evaluaciones completadas</li>
+                <li>Todos los datos asociados</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteUser}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                'Eliminar Usuario'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
