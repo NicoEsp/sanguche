@@ -40,17 +40,6 @@ export function PlanUpgradeModal({ isOpen, onClose, targetUser, onSuccess }: Pla
 
     setLoading(true);
     try {
-      // Get current admin profile
-      const { data: adminProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!adminProfile) {
-        throw new Error('Admin profile not found');
-      }
-
       // Update user subscription to premium
       const { error: updateError } = await supabase
         .from('user_subscriptions')
@@ -65,7 +54,7 @@ export function PlanUpgradeModal({ isOpen, onClose, targetUser, onSuccess }: Pla
 
       // Log the action
       const { error: logError } = await supabase.rpc('log_admin_action', {
-        p_admin_user_id: adminProfile.id,
+        p_admin_user_id: user.id,
         p_target_user_id: targetUser.id,
         p_action_type: 'plan_upgrade',
         p_details: {
