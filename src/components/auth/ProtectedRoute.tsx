@@ -10,9 +10,10 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+  const isDemoMode = import.meta.env.DEV && new URLSearchParams(location.search).has("demo");
 
   // Mostrar loading mientras se verifica autenticación
-  if (isLoading) {
+  if (isLoading && !isDemoMode) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -21,6 +22,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         </div>
       </div>
     );
+  }
+
+  if (isDemoMode) {
+    return <>{children}</>;
   }
 
   // Redirigir a auth si no está autenticado
