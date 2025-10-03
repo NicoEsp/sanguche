@@ -195,17 +195,22 @@ export default function AdminUsers() {
         if (error) throw error;
         toast.success('Rol de administrador removido');
       } else {
-        const userAuthId = users.find(u => u.id === userId)?.user_id;
+        // SECURITY FIX: Validate user exists and has auth ID before making admin
+        const user = users.find(u => u.id === userId);
+        
+        if (!user || !user.user_id) {
+          throw new Error('No se pudo encontrar el usuario o falta información de autenticación');
+        }
         
         const { error } = await supabase.rpc('create_admin_user', {
-          admin_user_id: userAuthId
+          admin_user_id: user.user_id
         });
         
         if (error) throw error;
         toast.success('Rol de administrador asignado');
       }
     } catch (err) {
-      const errorMsg = 'Error modificando rol de administrador';
+      const errorMsg = err instanceof Error ? err.message : 'Error modificando rol de administrador';
       setError(errorMsg);
       toast.error(errorMsg);
     }
