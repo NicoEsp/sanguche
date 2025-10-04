@@ -33,7 +33,7 @@ export function PremiumUserSelector({ value, onChange }: PremiumUserSelectorProp
     <div className="space-y-4">
       <div>
         <h3 className="text-sm font-medium mb-2">Seleccionar Usuario Premium</h3>
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={setOpen} modal>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
@@ -56,7 +56,7 @@ export function PremiumUserSelector({ value, onChange }: PremiumUserSelectorProp
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-full p-0">
+          <PopoverContent className="w-full p-0 bg-popover pointer-events-auto z-[9999]">
             <Command>
               <CommandInput placeholder="Buscar usuario..." />
               <CommandList>
@@ -66,6 +66,11 @@ export function PremiumUserSelector({ value, onChange }: PremiumUserSelectorProp
                     <CommandItem
                       key={user.id}
                       value={`${user.name || "Usuario sin nombre"} ${user.user_id}`}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        onChange(value === user.id ? "" : user.id);
+                        setOpen(false);
+                      }}
                       onSelect={() => {
                         onChange(value === user.id ? "" : user.id);
                         setOpen(false);
