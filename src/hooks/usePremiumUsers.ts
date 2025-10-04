@@ -35,10 +35,17 @@ export function usePremiumUsers() {
         .order('name');
       
       if (error) throw error;
-      return data?.map(user => ({
-        ...user,
-        user_subscriptions: user.user_subscriptions[0]
-      })) as PremiumUser[];
+      
+      return data?.map(user => {
+        const subscription = Array.isArray(user.user_subscriptions)
+          ? user.user_subscriptions[0]
+          : user.user_subscriptions;
+        
+        return {
+          ...user,
+          user_subscriptions: subscription
+        };
+      }).filter(user => user.user_subscriptions) as PremiumUser[];
     }
   });
 }
