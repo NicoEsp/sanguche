@@ -37,10 +37,13 @@ export function ComingSoonExercises() {
       }
 
       const { error } = await supabase
-        .from('exercise_requests')
+        .from('user_exercises')
         .insert({
           user_id: profile.id,
-          exercise_id: 'casos-reales'
+          exercise_title: 'Solicitud de ejercicio',
+          exercise_type: 'case_study',
+          delivery_method: 'in_app',
+          status: 'assigned'
         });
 
       if (error) throw error;

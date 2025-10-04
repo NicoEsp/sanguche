@@ -1,79 +1,81 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Target, Settings, BookOpen, Users } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PremiumUserSelector } from "@/components/admin/PremiumUserSelector";
+import AdminMentoriaExercises from "./AdminMentoriaExercises";
+import { useSearchParams } from "react-router-dom";
 
 export default function AdminRecommendations() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedUserId = searchParams.get('userId');
+
+  const handleUserChange = (userId: string) => {
+    if (userId) {
+      setSearchParams({ userId });
+    } else {
+      setSearchParams({});
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Gestión de Recomendaciones</h1>
-        <p className="text-muted-foreground mt-2">
-          Configura y personaliza las recomendaciones del sistema
-        </p>
-      </div>
+    <div className="container mx-auto py-8">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Gestión de Mentorías</h1>
+          <p className="text-muted-foreground">
+            Configura ejercicios, recomendaciones y recursos para tus usuarios Premium
+          </p>
+        </div>
 
-      {/* Coming Soon Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Plantillas de Recomendaciones
-            </CardTitle>
-            <CardDescription>
-              Crea y edita plantillas de recomendaciones por área de habilidad
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Próximamente disponible</p>
-          </CardContent>
-        </Card>
+        <PremiumUserSelector 
+          value={selectedUserId} 
+          onChange={handleUserChange} 
+        />
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Configuración por Nivel
-            </CardTitle>
-            <CardDescription>
-              Personaliza recomendaciones según el nivel de habilidad
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Próximamente disponible</p>
-          </CardContent>
-        </Card>
+        {selectedUserId && (
+          <Tabs defaultValue="ejercicios">
+            <TabsList>
+              <TabsTrigger value="ejercicios">🎯 Ejercicios</TabsTrigger>
+              <TabsTrigger value="oportunidades" disabled>
+                📊 Áreas de Oportunidad
+              </TabsTrigger>
+              <TabsTrigger value="recomendaciones" disabled>
+                💡 Recomendaciones
+              </TabsTrigger>
+              <TabsTrigger value="recursos" disabled>
+                📚 Recursos
+              </TabsTrigger>
+            </TabsList>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              Recursos de Aprendizaje
-            </CardTitle>
-            <CardDescription>
-              Gestiona cursos, libros y recursos recomendados
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Próximamente disponible</p>
-          </CardContent>
-        </Card>
+            <TabsContent value="ejercicios" className="mt-6">
+              <AdminMentoriaExercises userId={selectedUserId} />
+            </TabsContent>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Seguimiento de Efectividad
-            </CardTitle>
-            <CardDescription>
-              Analiza qué recomendaciones son más efectivas
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Próximamente disponible</p>
-          </CardContent>
-        </Card>
+            <TabsContent value="oportunidades">
+              <div className="text-center py-12 text-muted-foreground">
+                Próximamente: Gestión de áreas de oportunidad
+              </div>
+            </TabsContent>
+
+            <TabsContent value="recomendaciones">
+              <div className="text-center py-12 text-muted-foreground">
+                Próximamente: Gestión de recomendaciones personalizadas
+              </div>
+            </TabsContent>
+
+            <TabsContent value="recursos">
+              <div className="text-center py-12 text-muted-foreground">
+                Próximamente: Gestión de recursos dedicados
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {!selectedUserId && (
+          <div className="text-center py-12 border-2 border-dashed rounded-lg">
+            <p className="text-muted-foreground">
+              Selecciona un usuario premium para comenzar a gestionar su mentoría
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

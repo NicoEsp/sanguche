@@ -98,38 +98,6 @@ export type Database = {
           },
         ]
       }
-      exercise_requests: {
-        Row: {
-          created_at: string
-          exercise_id: string
-          id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          exercise_id?: string
-          id?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          exercise_id?: string
-          id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "exercise_requests_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           created_at: string
@@ -239,6 +207,246 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "security_audit_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_dedicated_resources: {
+        Row: {
+          bucket_name: string | null
+          created_at: string | null
+          created_by_admin: string | null
+          description: string | null
+          external_url: string | null
+          file_url: string | null
+          id: string
+          resource_name: string
+          resource_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bucket_name?: string | null
+          created_at?: string | null
+          created_by_admin?: string | null
+          description?: string | null
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          resource_name: string
+          resource_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bucket_name?: string | null
+          created_at?: string | null
+          created_by_admin?: string | null
+          description?: string | null
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          resource_name?: string
+          resource_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_dedicated_resources_created_by_admin_fkey"
+            columns: ["created_by_admin"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_dedicated_resources_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_exercises: {
+        Row: {
+          admin_feedback: string | null
+          assigned_by_admin: string | null
+          attachment_url: string | null
+          created_at: string
+          delivery_method: string | null
+          due_date: string | null
+          exercise_description: string | null
+          exercise_title: string
+          exercise_type: string | null
+          id: string
+          status: string | null
+          submission_date: string | null
+          submission_text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_feedback?: string | null
+          assigned_by_admin?: string | null
+          attachment_url?: string | null
+          created_at?: string
+          delivery_method?: string | null
+          due_date?: string | null
+          exercise_description?: string | null
+          exercise_title?: string
+          exercise_type?: string | null
+          id?: string
+          status?: string | null
+          submission_date?: string | null
+          submission_text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_feedback?: string | null
+          assigned_by_admin?: string | null
+          attachment_url?: string | null
+          created_at?: string
+          delivery_method?: string | null
+          due_date?: string | null
+          exercise_description?: string | null
+          exercise_title?: string
+          exercise_type?: string | null
+          id?: string
+          status?: string | null
+          submission_date?: string | null
+          submission_text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercise_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_exercises_assigned_by_admin_fkey"
+            columns: ["assigned_by_admin"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_mentoria_opportunities: {
+        Row: {
+          created_at: string | null
+          created_by_admin: string | null
+          current_level: number | null
+          display_order: number | null
+          id: string
+          notes: string | null
+          opportunity_key: string
+          opportunity_label: string
+          target_level: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_admin?: string | null
+          current_level?: number | null
+          display_order?: number | null
+          id?: string
+          notes?: string | null
+          opportunity_key: string
+          opportunity_label: string
+          target_level?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by_admin?: string | null
+          current_level?: number | null
+          display_order?: number | null
+          id?: string
+          notes?: string | null
+          opportunity_key?: string
+          opportunity_label?: string
+          target_level?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_mentoria_opportunities_created_by_admin_fkey"
+            columns: ["created_by_admin"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_mentoria_opportunities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_mentoria_recommendations: {
+        Row: {
+          created_at: string | null
+          created_by_admin: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          priority: string | null
+          skill_name: string
+          skill_type: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_admin?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          priority?: string | null
+          skill_name: string
+          skill_type: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by_admin?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          priority?: string | null
+          skill_name?: string
+          skill_type?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_mentoria_recommendations_created_by_admin_fkey"
+            columns: ["created_by_admin"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_mentoria_recommendations_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
