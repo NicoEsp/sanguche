@@ -7,6 +7,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -58,44 +59,41 @@ export function PremiumUserSelector({ value, onChange }: PremiumUserSelectorProp
           <PopoverContent className="w-full p-0">
             <Command>
               <CommandInput placeholder="Buscar usuario..." />
-              <CommandEmpty>No se encontraron usuarios premium.</CommandEmpty>
-              <CommandGroup>
-                {users?.map((user) => (
-                  <CommandItem
-                    key={user.id}
-                    value={user.name || user.user_id}
-                    onSelect={(currentValue) => {
-                      const selectedUser = users?.find(
-                        u => (u.name || u.user_id).toLowerCase() === currentValue.toLowerCase()
-                      );
-                      if (selectedUser) {
-                        onChange(selectedUser.id === value ? "" : selectedUser.id);
-                      }
-                      setOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === user.id ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <div className="flex flex-col flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{user.name || "Usuario sin nombre"}</span>
-                        {user.mentoria_completed && (
-                          <Badge variant="outline" className="text-xs">
-                            Mentoría completada
-                          </Badge>
+              <CommandList>
+                <CommandEmpty>No se encontraron usuarios premium.</CommandEmpty>
+                <CommandGroup>
+                  {users?.map((user) => (
+                    <CommandItem
+                      key={user.id}
+                      value={user.id}
+                      onSelect={(currentValue) => {
+                        onChange(currentValue === value ? "" : currentValue);
+                        setOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          value === user.id ? "opacity-100" : "opacity-0"
                         )}
+                      />
+                      <div className="flex flex-col flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{user.name || "Usuario sin nombre"}</span>
+                          {user.mentoria_completed && (
+                            <Badge variant="outline" className="text-xs">
+                              Mentoría completada
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {user.user_id.slice(0, 16)}...
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {user.user_id.slice(0, 16)}...
-                      </span>
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>
