@@ -65,9 +65,13 @@ export function PremiumUserSelector({ value, onChange }: PremiumUserSelectorProp
                   {users?.map((user) => (
                     <CommandItem
                       key={user.id}
-                      value={user.id}
-                      onSelect={(currentValue) => {
-                        onChange(currentValue === value ? "" : currentValue);
+                      value={`${user.name || "Usuario sin nombre"} ${user.user_id}`}
+                      onSelect={() => {
+                        onChange(value === user.id ? "" : user.id);
+                        setOpen(false);
+                      }}
+                      onClick={() => {
+                        onChange(value === user.id ? "" : user.id);
                         setOpen(false);
                       }}
                     >
