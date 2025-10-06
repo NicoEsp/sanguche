@@ -40,33 +40,17 @@ export function PlanUpgradeModal({ isOpen, onClose, targetUser, onSuccess }: Pla
 
     setLoading(true);
     try {
-      // Update user subscription to premium
-      const { error: updateError } = await supabase
-        .from('user_subscriptions')
-        .update({
-          plan: 'premium',
-          status: 'active',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', targetUser.id);
+      // Use secure RPC function that handles RLS and logging
+      const { data, error: updateError } = await supabase.rpc('admin_update_subscription', {
+        p_target_profile_id: targetUser.id,
+        p_new_plan: 'premium',
+        p_notes: notes || null
+      });
 
       if (updateError) throw updateError;
 
-      // Log the action
-      const { error: logError } = await supabase.rpc('log_admin_action', {
-        p_admin_user_id: user.id,
-        p_target_user_id: targetUser.id,
-        p_action_type: 'plan_upgrade',
-        p_details: {
-          old_plan: targetUser.currentPlan,
-          new_plan: 'premium',
-          notes: notes || null,
-        },
-      });
-
-      if (logError) {
-        if (import.meta.env.DEV) console.error('Error logging action:', logError);
-        // Don't fail the whole operation if logging fails
+      if (import.meta.env.DEV) {
+        console.log('Subscription updated via RPC:', data);
       }
 
       toast({

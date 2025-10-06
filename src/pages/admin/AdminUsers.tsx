@@ -185,34 +185,29 @@ export default function AdminUsers() {
     }
 
     try {
-      if (currentRole === 'admin') {
-        const { error } = await supabase
-          .from('user_roles')
-          .delete()
-          .eq('user_id', userId)
-          .eq('role', 'admin');
-        
-        if (error) throw error;
-        toast.success('Rol de administrador removido');
-      } else {
-        // SECURITY FIX: Validate user exists and has auth ID before making admin
-        const user = users.find(u => u.id === userId);
-        
-        if (!user || !user.user_id) {
-          throw new Error('No se pudo encontrar el usuario o falta información de autenticación');
+      // Use secure RPC function that handles both adding and removing roles
+      const { data, error } = await supabase.rpc('admin_toggle_user_role', {
+        p_target_profile_id: userId,
+        p_role: 'admin'
+      });
+
+      if (error) throw error;
+
+      if (data && typeof data === 'object' && 'action' in data) {
+        const actionMsg = data.action === 'added' 
+          ? 'Rol de administrador asignado'
+          : 'Rol de administrador removido';
+        toast.success(actionMsg);
+
+        if (import.meta.env.DEV) {
+          console.log('Admin role toggled:', data);
         }
-        
-        const { error } = await supabase.rpc('create_admin_user', {
-          admin_user_id: user.user_id
-        });
-        
-        if (error) throw error;
-        toast.success('Rol de administrador asignado');
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error modificando rol de administrador';
       setError(errorMsg);
       toast.error(errorMsg);
+      if (import.meta.env.DEV) console.error('Error toggling admin role:', err);
     }
   }
 
@@ -223,18 +218,26 @@ export default function AdminUsers() {
     }
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ mentoria_completed: !currentStatus })
-        .eq('id', userId);
+      // Use secure RPC function that handles RLS and logging
+      const { data, error } = await supabase.rpc('admin_update_mentoria_status', {
+        p_target_profile_id: userId,
+        p_new_status: !currentStatus
+      });
 
       if (error) throw error;
-      
-      toast.success(`Mentoría marcada como ${!currentStatus ? 'completada' : 'pendiente'}`);
+
+      if (data && typeof data === 'object' && 'new_status' in data) {
+        toast.success(`Mentoría marcada como ${data.new_status ? 'completada' : 'pendiente'}`);
+        
+        if (import.meta.env.DEV) {
+          console.log('Mentoria status updated:', data);
+        }
+      }
     } catch (err) {
       const errorMsg = 'Error modificando estado de mentoría';
       setError(errorMsg);
       toast.error(errorMsg);
+      if (import.meta.env.DEV) console.error('Error updating mentoria status:', err);
     }
   }
 

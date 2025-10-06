@@ -21,6 +21,7 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminAssessments from "@/pages/admin/AdminAssessments";
 import AdminRecommendations from "@/pages/admin/AdminRecommendations";
+import AdminMentoriaDetail from "@/pages/admin/AdminMentoriaDetail";
 import AdminResources from "@/pages/admin/AdminResources";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminProgress from "@/pages/admin/AdminProgress";

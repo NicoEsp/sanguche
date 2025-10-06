@@ -1,77 +1,113 @@
-import React from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Target, Settings, BookOpen, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Loader2, Search, Crown } from 'lucide-react';
+import { usePremiumUsers } from '@/hooks/usePremiumUsers';
+import { useNavigate } from 'react-router-dom';
 
 export default function AdminRecommendations() {
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Gestión de Recomendaciones</h1>
-        <p className="text-muted-foreground mt-2">
-          Configura y personaliza las recomendaciones del sistema
-        </p>
+  const [searchTerm, setSearchTerm] = useState('');
+  const { data: premiumUsers, isLoading } = usePremiumUsers();
+  const navigate = useNavigate();
+
+  const filteredUsers = (premiumUsers || []).filter(user => {
+    const matchesSearch = 
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      user.user_id?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Cargando usuarios premium...</p>
+        </div>
       </div>
+    );
+  }
 
-      {/* Coming Soon Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Plantillas de Recomendaciones
-            </CardTitle>
-            <CardDescription>
-              Crea y edita plantillas de recomendaciones por área de habilidad
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Próximamente disponible</p>
-          </CardContent>
-        </Card>
+  return (
+    <div className="container mx-auto py-8">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Gestión de Mentorías</h1>
+          <p className="text-muted-foreground">
+            Configura ejercicios, recomendaciones y recursos para tus usuarios Premium
+          </p>
+        </div>
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Configuración por Nivel
-            </CardTitle>
+            <CardTitle>Buscar Usuario Premium</CardTitle>
             <CardDescription>
-              Personaliza recomendaciones según el nivel de habilidad
+              Busca y selecciona un usuario para gestionar su mentoría
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">Próximamente disponible</p>
-          </CardContent>
-        </Card>
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              Recursos de Aprendizaje
-            </CardTitle>
-            <CardDescription>
-              Gestiona cursos, libros y recursos recomendados
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Próximamente disponible</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Seguimiento de Efectividad
-            </CardTitle>
-            <CardDescription>
-              Analiza qué recomendaciones son más efectivas
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Próximamente disponible</p>
+            {filteredUsers.length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                <p className="text-muted-foreground">
+                  {searchTerm ? 'No se encontraron usuarios premium' : 'No hay usuarios premium registrados'}
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Usuario</TableHead>
+                    <TableHead>Plan</TableHead>
+                    <TableHead>Fecha Premium</TableHead>
+                    <TableHead>Mentoría</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow 
+                      key={user.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/admin/mentoria/${user.id}`)}
+                    >
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <Crown className="h-4 w-4 text-primary" />
+                            <span className="font-medium">{user.name || 'Usuario sin nombre'}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground ml-6">
+                            {user.user_id.slice(0, 8)}...
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="default">Premium</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(user.user_subscriptions.created_at).toLocaleDateString('es-ES')}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.mentoria_completed ? 'default' : 'secondary'}>
+                          {user.mentoria_completed ? '✓ Completada' : '⏳ Pendiente'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

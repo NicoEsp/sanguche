@@ -15,7 +15,7 @@ import { PersonalizedRecommendations } from "@/components/mentoria/PersonalizedR
 import { DedicatedResources } from "@/components/mentoria/DedicatedResources";
 import { LockedRecommendations } from "@/components/mentoria/LockedRecommendations";
 import { LockedResources } from "@/components/mentoria/LockedResources";
-import { ComingSoonExercises } from "@/components/mentoria/ComingSoonExercises";
+import { UserExercises } from "@/components/mentoria/UserExercises";
 import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -198,8 +198,10 @@ export default function Recommendations() {
           </div>
         )}
 
-        {/* Coming Soon Exercises */}
-        <ComingSoonExercises />
+        {/* Ejercicios prácticos - Solo con mentoría completada */}
+        {hasAdvancedAccess && profile?.mentoria_completed && (
+          <UserExercises />
+        )}
 
         {/* Navigation */}
         <div className="flex justify-center">
