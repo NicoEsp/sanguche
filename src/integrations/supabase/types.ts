@@ -700,12 +700,18 @@ export type Database = {
         Returns: boolean
       }
       log_admin_action: {
-        Args: {
-          p_action_type: string
-          p_admin_user_id: string
-          p_details?: Json
-          p_target_user_id: string
-        }
+        Args:
+          | {
+              p_action_type: string
+              p_admin_user_id: string
+              p_details?: Json
+              p_target_user_id: string
+            }
+          | {
+              p_action_type: string
+              p_details?: Json
+              p_target_user_id: string
+            }
         Returns: string
       }
       log_security_event: {
