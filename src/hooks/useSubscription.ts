@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export function useSubscription() {
+interface UseSubscriptionOptions {
+  skip?: boolean;
+}
+
+export function useSubscription(options?: UseSubscriptionOptions) {
   const [subscription, setSubscription] = useState<{
     plan: 'free' | 'premium';
     status: 'active' | 'inactive' | 'cancelled';
@@ -13,6 +17,16 @@ export function useSubscription() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (options?.skip) {
+      setSubscription({
+        plan: 'premium',
+        status: 'active',
+        trialEnd: null,
+      });
+      setLoading(false);
+      return;
+    }
+
     async function fetchSubscription() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -81,7 +95,7 @@ export function useSubscription() {
     }
 
     fetchSubscription();
-  }, []);
+  }, [options?.skip]);
 
   return {
     subscription,
