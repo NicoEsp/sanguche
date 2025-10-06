@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+import { Progress as ProgressBar } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -355,7 +355,7 @@ export default function Progress() {
                     <span>Avance total</span>
                     <span className="font-medium">{completionRate}%</span>
                   </div>
-                  <Progress value={completionRate} className="h-2" />
+                  <ProgressBar value={completionRate} className="h-2" />
                 </div>
               </div>
             </div>
