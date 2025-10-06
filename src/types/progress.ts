@@ -1,4 +1,4 @@
-export type ObjectiveSource = "suggested" | "mentor" | "custom";
+export type ObjectiveSource = "mentor" | "custom";
 
 export interface ObjectiveLevel {
   current: number;

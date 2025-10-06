@@ -25,6 +25,7 @@ import AdminMentoriaDetail from "@/pages/admin/AdminMentoriaDetail";
 import AdminResources from "@/pages/admin/AdminResources";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminProgress from "@/pages/admin/AdminProgress";
+import AdminProgressObjectives from "@/pages/admin/AdminProgressObjectives";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient();
@@ -51,7 +52,9 @@ const App = () => (
               <Route path="usuarios" element={<AdminUsers />} />
               <Route path="evaluaciones" element={<AdminAssessments />} />
               <Route path="mentoria" element={<AdminRecommendations />} />
+              <Route path="mentoria/:userId" element={<AdminMentoriaDetail />} />
               <Route path="progreso" element={<AdminProgress />} />
+              <Route path="objetivos" element={<AdminProgressObjectives />} />
               <Route path="recursos" element={<AdminResources />} />
               <Route path="configuracion" element={<AdminSettings />} />
             </Route>

@@ -78,7 +78,7 @@ const buildInitialObjectives = (): ProgressObjective[] => [{
   title: "Discovery continuo",
   summary: "Establece un sistema recurrente de investigación con usuarios finales.",
   type: "Proceso",
-  source: "suggested",
+  source: "custom",
   steps: [{
     id: "s-1-1",
     title: "Revisar framework de product discovery",
@@ -105,7 +105,7 @@ const buildInitialObjectives = (): ProgressObjective[] => [{
   title: "Profundizar en métricas North Star",
   summary: "Define una métrica guía compartida con el equipo de producto y negocio.",
   type: "Estrategia",
-  source: "suggested",
+  source: "custom",
   steps: [{
     id: "s-2-1",
     title: "Mapear métricas actuales",
@@ -538,7 +538,7 @@ export default function Progress() {
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              <ObjectiveColumn title="Sugeridos por ProductPrepa" description="Tomamos tus áreas de mejora para proponerte objetivos concretos." objectives={objectives.filter(objective => objective.source === "suggested")} onDragStart={handleDragStart} onDragEnd={handleDragEnd} draggingId={draggingId} />
+              <ObjectiveColumn title="Sugeridos por ProductPrepa" description="Tomamos tus áreas de mejora para proponerte objetivos concretos." objectives={[]} onDragStart={handleDragStart} onDragEnd={handleDragEnd} draggingId={draggingId} />
               <ObjectiveColumn title="Derivados de mentorías" description="Objetivos acordados junto a tu mentor. Se mantienen bloqueados." objectives={objectives.filter(objective => objective.source === "mentor")} onDragStart={handleDragStart} onDragEnd={handleDragEnd} draggingId={draggingId} locked />
               <ObjectiveColumn title="Personalizados" description="Define metas propias. Puedes crear hasta tres objetivos adicionales." objectives={objectives.filter(objective => objective.source === "custom")} onDragStart={handleDragStart} onDragEnd={handleDragEnd} draggingId={draggingId} onDelete={deleteCustomObjective} />
             </div>
