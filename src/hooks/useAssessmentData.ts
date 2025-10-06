@@ -2,19 +2,23 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAssessment } from '@/utils/storage';
-import { AssessmentResult, Gap, NeutralArea, Strength } from '@/utils/scoring';
+import { AssessmentResult, AssessmentValues, Gap, NeutralArea, Strength } from '@/utils/scoring';
 
 interface AssessmentData {
   result: AssessmentResult | null;
+  values: AssessmentValues | null;
   loading: boolean;
   hasAssessment: boolean;
+  updatedAt: string | null;
 }
 
 export function useAssessmentData(): AssessmentData {
   const [data, setData] = useState<AssessmentData>({
     result: null,
+    values: null,
     loading: true,
-    hasAssessment: false
+    hasAssessment: false,
+    updatedAt: null
   });
   const { user } = useAuth();
 
@@ -33,7 +37,7 @@ export function useAssessmentData(): AssessmentData {
           if (profile) {
             const { data: assessment } = await supabase
               .from('assessments')
-              .select('assessment_result')
+              .select('assessment_result, assessment_values, created_at')
               .eq('user_id', profile.id)
               .order('created_at', { ascending: false })
               .limit(1)
@@ -42,8 +46,10 @@ export function useAssessmentData(): AssessmentData {
             if (assessment && assessment.assessment_result) {
               setData({
                 result: assessment.assessment_result as AssessmentResult,
+                values: assessment.assessment_values as AssessmentValues,
                 loading: false,
-                hasAssessment: true
+                hasAssessment: true,
+                updatedAt: assessment.created_at ?? null
               });
               return;
             }
@@ -56,8 +62,10 @@ export function useAssessmentData(): AssessmentData {
       const localAssessment = getAssessment();
       setData({
         result: localAssessment?.result || null,
+        values: localAssessment?.values || null,
         loading: false,
-        hasAssessment: !!localAssessment
+        hasAssessment: !!localAssessment,
+        updatedAt: localAssessment?.createdAt ?? null
       });
     }
 

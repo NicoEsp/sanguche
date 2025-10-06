@@ -3,42 +3,58 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Link } from "react-router-dom";
-import { getAssessment } from "@/utils/storage";
 import { isFeatureAvailable, FEATURES } from "@/utils/features";
 import { useSubscription } from "@/hooks/useAuth";
 import { ResourcesList } from "@/components/resources/ResourcesList";
+import { useAssessmentData } from "@/hooks/useAssessmentData";
+import { Skeleton } from "@/components/ui/skeleton";
 export default function SkillGaps() {
   const {
     hasActivePremium
   } = useSubscription();
-  const record = getAssessment();
-  const gaps = record?.result.gaps ?? [];
-  const strengths = record?.result.strengths ?? [];
-  const neutralAreas = record?.result.neutralAreas ?? [];
+  const {
+    result,
+    loading,
+    hasAssessment,
+    updatedAt,
+  } = useAssessmentData();
+  const gaps = result?.gaps ?? [];
+  const strengths = result?.strengths ?? [];
+  const neutralAreas = result?.neutralAreas ?? [];
   const canAccessRecommendations = isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium);
+  const formattedUpdatedAt = updatedAt ? new Intl.DateTimeFormat("es-AR", {
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(new Date(updatedAt)) : null;
   return <>
       <Seo title="Resultados de tu evaluación — ProductPrepa" description="Revisa tu desempeño completo: fortalezas y áreas de mejora identificadas." canonical="/mejoras" />
       <section className="container py-6 sm:py-10 px-4 sm:px-6">
         <h1 className="text-2xl sm:text-3xl font-semibold mb-3">Resultados de tu evaluación</h1>
-        {!record ? <Alert className="mb-6">
+        {loading && <div className="space-y-4 mb-6">
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>}
+        {!loading && !hasAssessment ? <Alert className="mb-6">
             <AlertTitle>No hay resultados aún</AlertTitle>
             <AlertDescription>
               Realiza primero la <Link to="/autoevaluacion" className="underline">autoevaluación</Link> para ver tus brechas priorizadas.
             </AlertDescription>
-          </Alert> : <div className="mb-6 space-y-3">
+          </Alert> : null}
+        {!loading && hasAssessment && result && <div className="mb-6 space-y-3">
             <p className="text-muted-foreground">
-              Nivel estimado: <strong>{record.result.nivel}</strong> (promedio {record.result.promedioGlobal}).
+              Nivel estimado: <strong>{result.nivel}</strong> (promedio {result.promedioGlobal}).
             </p>
             <div className="p-4 rounded-lg bg-muted/50 border">
               <h3 className="font-medium mb-2">🎯 Tu perfil profesional</h3>
-              <p className="text-sm text-muted-foreground">{record.result.profileEstimate}</p>
+              <p className="text-sm text-muted-foreground">{result.profileEstimate}</p>
               <p className="text-xs text-muted-foreground mt-2">
-                Especialización: <strong>{record.result.specialization}</strong>
+                Especialización: <strong>{result.specialization}</strong>
               </p>
+              {formattedUpdatedAt && <p className="text-xs text-muted-foreground mt-2">Actualizado el {formattedUpdatedAt}</p>}
             </div>
           </div>}
 
-        {record && <div className="space-y-8">
+        {hasAssessment && result && !loading && <div className="space-y-8">
             {/* Fortalezas */}
             {strengths.length > 0 && <div>
                 <h2 className="text-xl font-semibold mb-4">🎯 Tus fortalezas</h2>
@@ -98,9 +114,9 @@ export default function SkillGaps() {
 
 
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
-          {canAccessRecommendations ? <Button asChild disabled={!record} className="w-full sm:w-auto">
+          {canAccessRecommendations ? <Button asChild disabled={!hasAssessment || !result} className="w-full sm:w-auto">
               <Link to="/mentoria">Ver mentoría personalizada</Link>
-            </Button> : <Button asChild disabled={!record} variant="outline" className="w-full sm:w-auto">
+            </Button> : <Button asChild disabled={!hasAssessment || !result} variant="outline" className="w-full sm:w-auto">
               <Link to="/premium">Acceder a mentoría personalizada (Premium)</Link>
             </Button>}
           <Button asChild variant="outline" className="w-full sm:w-auto">
@@ -108,7 +124,7 @@ export default function SkillGaps() {
           </Button>
         </div>
 
-        <ResourcesList assessmentResult={record?.result || null} />
+        <ResourcesList assessmentResult={result || null} />
       </section>
     </>;
 }
