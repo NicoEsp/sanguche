@@ -375,7 +375,7 @@ export default function Progress() {
                       </div>
 
                       <ScrollArea className="h-full pr-2">
-                        <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4 auto-rows-fr">
                         {canvas[stage.key].length === 0 && <div className="border border-dashed rounded-xl p-6 text-center text-muted-foreground text-sm">
                             Arrastrá objetivos aquí para planificar tu camino.
                           </div>}
@@ -384,7 +384,7 @@ export default function Progress() {
                       const objective = objectiveById(id);
                       if (!objective) return null;
                       const complete = isCompleted(objective);
-                      return <div key={id} className={cn("relative rounded-2xl border bg-background/80 backdrop-blur p-3 md:p-5 shadow-sm", "transition-all duration-200", complete && "border-emerald-400/60 shadow-[0_0_0_1px_rgba(16,185,129,0.25)]")}>
+                      return <div key={id} className={cn("relative rounded-2xl border bg-background/80 backdrop-blur p-3 md:p-5 shadow-sm", "transition-all duration-200", "h-full flex flex-col", complete && "border-emerald-400/60 shadow-[0_0_0_1px_rgba(16,185,129,0.25)]")}>
                               <div className="flex flex-wrap items-center gap-2 mb-2">
                                 <Badge variant="outline" className="bg-primary/10 border-primary/30 text-primary text-xs">
                                   {objective.type}
@@ -418,26 +418,28 @@ export default function Progress() {
                                   </Button>}
                               </div>
 
-                              {objective.level && <div className="mt-4 bg-muted/60 rounded-lg px-4 py-2 text-xs flex items-center justify-between text-muted-foreground">
-                                  <span>{objective.level.label ?? "Nivel"}</span>
-                                  <span>
-                                    {objective.level.current} → {objective.level.target}
-                                  </span>
-                                </div>}
+                              <div className="flex-1 flex flex-col justify-end">
+                                {objective.level && <div className="mt-4 bg-muted/60 rounded-lg px-4 py-2 text-xs flex items-center justify-between text-muted-foreground">
+                                    <span>{objective.level.label ?? "Nivel"}</span>
+                                    <span>
+                                      {objective.level.current} → {objective.level.target}
+                                    </span>
+                                  </div>}
 
-                              {objective.mentorNotes && <div className="mt-4 border-l-2 border-primary/40 pl-4 text-xs text-muted-foreground italic">
-                                  {objective.mentorNotes}
-                                </div>}
+                                {objective.mentorNotes && <div className="mt-4 border-l-2 border-primary/40 pl-4 text-xs text-muted-foreground italic">
+                                    {objective.mentorNotes}
+                                  </div>}
 
-                              {objective.steps.length > 0 && <div className="mt-5 space-y-3">
-                                  <p className="text-sm font-medium">Checklist de avance</p>
-                                  <div className="space-y-2">
-                                    {objective.steps.map(step => <label key={step.id} className={cn("flex items-start gap-3 rounded-lg border px-3 py-2 text-sm", "transition-colors", step.completed ? "bg-emerald-500/10 border-emerald-400/50" : "hover:bg-muted/60", objective.source === "mentor" && "cursor-default")}>
-                                        <Checkbox checked={step.completed} onCheckedChange={() => toggleStep(objective.id, step.id)} disabled={objective.source === "mentor" && step.completed} className="mt-0.5" />
-                                        <span className={cn(step.completed && "line-through text-muted-foreground")}>{step.title}</span>
-                                      </label>)}
-                                  </div>
-                                </div>}
+                                {objective.steps.length > 0 && <div className="mt-5 space-y-3">
+                                    <p className="text-sm font-medium">Checklist de avance</p>
+                                    <div className="space-y-2">
+                                      {objective.steps.map(step => <label key={step.id} className={cn("flex items-start gap-3 rounded-lg border px-3 py-2 text-sm", "transition-colors", step.completed ? "bg-emerald-500/10 border-emerald-400/50" : "hover:bg-muted/60", objective.source === "mentor" && "cursor-default")}>
+                                          <Checkbox checked={step.completed} onCheckedChange={() => toggleStep(objective.id, step.id)} disabled={objective.source === "mentor" && step.completed} className="mt-0.5" />
+                                          <span className={cn(step.completed && "line-through text-muted-foreground")}>{step.title}</span>
+                                        </label>)}
+                                    </div>
+                                  </div>}
+                              </div>
 
                               {index < canvas[stage.key].length - 1 && <div className="absolute left-1/2 bottom-0 translate-y-1/2 -translate-x-1/2 w-px h-8 bg-gradient-to-b from-transparent via-primary/20 to-transparent" />}
                             </div>;
