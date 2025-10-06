@@ -4,6 +4,24 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
 export type ResourceType = 'article' | 'podcast' | 'video' | 'course' | 'tool' | 'community' | 'other';
+type DbResourceType = 'link' | 'video' | 'other' | 'document';
+
+// Map frontend types to database types
+const mapToDbType = (frontendType: ResourceType): DbResourceType => {
+  switch (frontendType) {
+    case 'video':
+      return 'video';
+    case 'other':
+      return 'other';
+    case 'article':
+    case 'podcast':
+    case 'course':
+    case 'tool':
+    case 'community':
+    default:
+      return 'link';
+  }
+};
 
 export interface DedicatedResource {
   id: string;
@@ -75,7 +93,7 @@ export function useCreateDedicatedResource() {
         .insert({
           user_id: data.user_id,
           resource_name: data.resource_name,
-          resource_type: data.resource_type,
+          resource_type: mapToDbType(data.resource_type),
           external_url: data.external_url,
           description: data.description,
           created_by_admin: data.created_by_admin
@@ -109,10 +127,15 @@ export function useUpdateDedicatedResource() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<DedicatedResource> & { id: string }) => {
+    mutationFn: async ({ id, resource_type, ...updates }: Partial<DedicatedResource> & { id: string }) => {
+      const updateData = {
+        ...updates,
+        ...(resource_type && { resource_type: mapToDbType(resource_type as ResourceType) })
+      };
+      
       const { data, error } = await supabase
         .from('user_dedicated_resources')
-        .update(updates)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
