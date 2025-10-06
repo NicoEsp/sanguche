@@ -30,7 +30,7 @@ const STAGES: StageConfig[] = [{
   gradient: "from-primary/20 via-primary/5 to-transparent"
 }, {
   key: "soon",
-  label: "Próximo paso",
+  label: "Próximos pasos",
   description: "Metas para los próximos 60-90 días",
   gradient: "from-amber-200/40 via-amber-100/40 to-transparent"
 }, {
