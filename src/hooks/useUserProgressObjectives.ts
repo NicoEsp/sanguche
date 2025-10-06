@@ -209,3 +209,58 @@ export function useDeleteUserObjective() {
     },
   });
 }
+
+// Create custom user objective
+export function useCreateUserObjective() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      title,
+      summary,
+      type,
+      timeframe,
+      steps,
+      dueDate,
+    }: {
+      userId: string;
+      title: string;
+      summary: string;
+      type: string;
+      timeframe: 'now' | 'soon' | 'later';
+      steps: Array<{ id: string; title: string; completed: boolean }>;
+      dueDate?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('user_progress_objectives')
+        .insert({
+          user_id: userId,
+          objective_id: null, // Custom objectives don't reference global catalog
+          title,
+          summary,
+          type,
+          steps,
+          timeframe,
+          source: 'custom',
+          status: 'not-started',
+          due_date: dueDate || null,
+          mentor_notes: null,
+          assigned_by_admin: null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['user-progress-objectives', variables.userId] });
+      toast.success('Objetivo personalizado creado');
+    },
+    onError: (error: Error) => {
+      console.error('Error creating custom objective:', error);
+      toast.error('Error al crear objetivo');
+    },
+  });
+}
