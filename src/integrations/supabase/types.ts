@@ -695,6 +695,10 @@ export type Database = {
         Args: { check_user_id?: string }
         Returns: boolean
       }
+      is_assessment_owner: {
+        Args: { assessment_user_id: string }
+        Returns: boolean
+      }
       log_admin_action: {
         Args: {
           p_action_type: string
