@@ -125,6 +125,48 @@ export type Database = {
         }
         Relationships: []
       }
+      progress_objectives: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          level: Json | null
+          steps: Json
+          summary: string
+          timeframe: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          level?: Json | null
+          steps?: Json
+          summary: string
+          timeframe: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          level?: Json | null
+          steps?: Json
+          summary?: string
+          timeframe?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       resources: {
         Row: {
           access_level: Database["public"]["Enums"]["resource_access_level"]
@@ -447,6 +489,85 @@ export type Database = {
           },
           {
             foreignKeyName: "user_mentoria_recommendations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_progress_objectives: {
+        Row: {
+          assigned_by_admin: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          level: Json | null
+          mentor_notes: string | null
+          objective_id: string | null
+          source: string
+          status: string
+          steps: Json
+          summary: string
+          timeframe: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by_admin?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          level?: Json | null
+          mentor_notes?: string | null
+          objective_id?: string | null
+          source: string
+          status?: string
+          steps?: Json
+          summary: string
+          timeframe: string
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_by_admin?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          level?: Json | null
+          mentor_notes?: string | null
+          objective_id?: string | null
+          source?: string
+          status?: string
+          steps?: Json
+          summary?: string
+          timeframe?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_progress_objectives_assigned_by_admin_fkey"
+            columns: ["assigned_by_admin"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_progress_objectives_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "progress_objectives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_progress_objectives_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
