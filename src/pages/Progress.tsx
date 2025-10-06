@@ -307,41 +307,50 @@ export default function Progress() {
       <Seo title="Progreso — ProductPrepa" description="Construí y visualizá tu Career Path personalizado con tus objetivos prioritarios." canonical="/progreso" />
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40">
         <div className="container py-10 space-y-8">
-          <header className="space-y-3 text-center md:text-left">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <header className="space-y-4">
+            <div className="flex flex-col gap-4">
               <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="w-fit text-primary border-primary/40 bg-primary/5">
-                Premium exclusivo
-              </Badge>
-              <Badge variant="outline" className="w-fit text-cyan-600 border-cyan-500/40 bg-cyan-500/10">
-                Beta
-              </Badge>
-            </div>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="w-fit text-primary border-primary/40 bg-primary/5">
+                    Premium exclusivo
+                  </Badge>
+                  <Badge variant="outline" className="w-fit text-cyan-600 border-cyan-500/40 bg-cyan-500/10">
+                    Beta
+                  </Badge>
+                </div>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight">
                   Tu mapa de progreso profesional
                 </h1>
-                <p className="text-muted-foreground max-w-2xl">Arrastra objetivos sugeridos por ProductPrepa o creados en mentorías con NicoProducto para dar forma a tu Career Path. Agrúpalos por horizonte temporal y hacé seguimiento del avance paso a paso.</p>
               </div>
-              <div className="bg-card border shadow-sm rounded-xl px-6 py-4 flex flex-col gap-3 min-w-[260px]">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                    <span className="text-sm text-muted-foreground">Objetivos completados</span>
+
+              <div className="bg-card border shadow-sm rounded-xl px-4 py-3 md:px-6 md:py-4">
+                <div className="flex items-center justify-between gap-6">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Completados</p>
+                      <p className="text-2xl md:text-3xl font-semibold">
+                        {completedObjectives.length}
+                        <span className="text-base text-muted-foreground">
+                          /{objectivesInCanvas.length}
+                        </span>
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-3xl font-semibold">
-                    {completedObjectives.length}
-                    <span className="text-base text-muted-foreground">/{objectivesInCanvas.length}</span>
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Avance total</span>
-                    <span className="font-medium">{completionRate}%</span>
+                  
+                  <div className="flex-1 max-w-[200px]">
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span>Avance</span>
+                      <span className="font-medium">{completionRate}%</span>
+                    </div>
+                    <ProgressBar value={completionRate} className="h-2" />
                   </div>
-                  <ProgressBar value={completionRate} className="h-2" />
                 </div>
               </div>
+
+              <p className="text-sm md:text-base text-muted-foreground">
+                Arrastra objetivos sugeridos por ProductPrepa o creados en mentorías con NicoProducto para dar forma a tu Career Path. Agrúpalos por horizonte temporal y hacé seguimiento del avance paso a paso.
+              </p>
             </div>
           </header>
 
@@ -349,9 +358,9 @@ export default function Progress() {
             <div className="relative">
               <div className="absolute inset-x-10 -top-10 h-40 bg-primary/10 blur-3xl rounded-full pointer-events-none" />
               <div className="relative rounded-3xl border bg-card/70 backdrop-blur-sm shadow-xl overflow-hidden">
-                <div className="grid md:grid-cols-3">
-                  {STAGES.map(stage => <div key={stage.key} onDragOver={allowDrop} onDrop={handleDrop(stage.key)} className={cn("relative p-6 md:p-8 border-t md:border-t-0 md:border-l", "transition-colors duration-200", draggingId && "border-primary/60 bg-primary/5", stage.key === "now" && "md:border-l-0 border-t-0", `bg-gradient-to-b ${stage.gradient}`)}>
-                      <div className="flex items-start justify-between gap-4">
+                <div className="grid md:grid-cols-3 gap-0 md:gap-0">
+                  {STAGES.map(stage => <div key={stage.key} onDragOver={allowDrop} onDrop={handleDrop(stage.key)} className={cn("relative p-4 md:p-6 lg:p-8", "min-h-[400px] md:min-h-[500px]", "grid grid-rows-[auto_1fr]", "border-t md:border-t-0 md:border-l", "transition-colors duration-200", draggingId && "border-primary/60 bg-primary/5", stage.key === "now" && "md:border-l-0 border-t-0", `bg-gradient-to-b ${stage.gradient}`)}>
+                      <div className="flex items-start justify-between gap-4 mb-6">
                         <div>
                           <h2 className="text-xl font-semibold flex items-center gap-2">
                             {stage.label}
@@ -361,11 +370,12 @@ export default function Progress() {
                           </p>
                         </div>
                         <Badge variant="secondary" className="bg-background/70 backdrop-blur border">
-                          {canvas[stage.key].length} objetivos
+                          {canvas[stage.key].length}
                         </Badge>
                       </div>
 
-                      <div className="mt-6 space-y-6">
+                      <ScrollArea className="h-full pr-2">
+                        <div className="space-y-4">
                         {canvas[stage.key].length === 0 && <div className="border border-dashed rounded-xl p-6 text-center text-muted-foreground text-sm">
                             Arrastrá objetivos aquí para planificar tu camino.
                           </div>}
@@ -374,38 +384,38 @@ export default function Progress() {
                       const objective = objectiveById(id);
                       if (!objective) return null;
                       const complete = isCompleted(objective);
-                      return <div key={id} className={cn("relative rounded-2xl border bg-background/80 backdrop-blur p-5 shadow-sm", "transition-all duration-200", complete && "border-emerald-400/60 shadow-[0_0_0_1px_rgba(16,185,129,0.25)]")}>
-                              <div className="flex items-start justify-between gap-4">
-                                <div>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <Badge variant="outline" className="bg-primary/10 border-primary/30 text-primary text-xs">
-                                      {objective.type}
-                                    </Badge>
-                                    {objective.source === "mentor" ? <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                                        <Lock className="h-3 w-3" /> Mentoría
-                                      </Badge> : <Badge variant="secondary" className="text-xs">{objective.source === "custom" ? "Personal" : "Sugerido"}</Badge>}
-                                  </div>
-                                  <h3 className="font-semibold text-lg leading-tight">{objective.title}</h3>
-                                  <p className="text-sm text-muted-foreground leading-relaxed">
-                                    {objective.summary}
-                                  </p>
-                                </div>
-                                <div className="flex flex-col items-end gap-2">
-                                  {complete ? <Badge className="bg-emerald-500/90 text-white">
-                                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Completado
-                                    </Badge> : <Badge variant="outline" className="text-xs">
-                                      {objective.steps.filter(step => step.completed).length}/{objective.steps.length} pasos
-                                    </Badge>}
+                      return <div key={id} className={cn("relative rounded-2xl border bg-background/80 backdrop-blur p-3 md:p-5 shadow-sm", "transition-all duration-200", complete && "border-emerald-400/60 shadow-[0_0_0_1px_rgba(16,185,129,0.25)]")}>
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <Badge variant="outline" className="bg-primary/10 border-primary/30 text-primary text-xs">
+                                  {objective.type}
+                                </Badge>
+                                {objective.source === "mentor" ? <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                    <Lock className="h-3 w-3" /> Mentoría
+                                  </Badge> : <Badge variant="secondary" className="text-xs">{objective.source === "custom" ? "Personal" : "Sugerido"}</Badge>}
+                                {complete ? <Badge className="bg-emerald-500/90 text-white text-xs ml-auto">
+                                    <CheckCircle2 className="h-3 w-3 mr-1" /> Completado
+                                  </Badge> : <Badge variant="outline" className="text-xs ml-auto">
+                                    {objective.steps.filter(step => step.completed).length}/{objective.steps.length}
+                                  </Badge>}
+                              </div>
 
-                                  {objective.dueDate && <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                                      <Calendar className="h-3.5 w-3.5" />
-                                      {formatDueDate(objective.dueDate)}
-                                    </div>}
+                              <div className="space-y-1 mb-3">
+                                <h3 className="font-semibold text-base md:text-lg leading-tight">
+                                  {objective.title}
+                                </h3>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
+                                  {objective.summary}
+                                </p>
+                              </div>
 
-                                  {objective.source !== "mentor" && <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => removeFromCanvas(stage.key, id)} title="Quitar del canvas">
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>}
-                                </div>
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                {objective.dueDate && <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                    <Calendar className="h-3.5 w-3.5" />
+                                    {formatDueDate(objective.dueDate)}
+                                  </div>}
+                                {objective.source !== "mentor" && <Button size="icon" variant="ghost" className="h-7 w-7 md:h-8 md:w-8 text-muted-foreground ml-auto" onClick={() => removeFromCanvas(stage.key, id)} title="Quitar del canvas">
+                                    <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                                  </Button>}
                               </div>
 
                               {objective.level && <div className="mt-4 bg-muted/60 rounded-lg px-4 py-2 text-xs flex items-center justify-between text-muted-foreground">
@@ -432,7 +442,8 @@ export default function Progress() {
                               {index < canvas[stage.key].length - 1 && <div className="absolute left-1/2 bottom-0 translate-y-1/2 -translate-x-1/2 w-px h-8 bg-gradient-to-b from-transparent via-primary/20 to-transparent" />}
                             </div>;
                     })}
-                      </div>
+                        </div>
+                      </ScrollArea>
                     </div>)}
                 </div>
               </div>
@@ -440,16 +451,20 @@ export default function Progress() {
           </section>
 
           <section className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex flex-col gap-4">
               <div>
-                <h2 className="text-2xl font-semibold">Objetivos disponibles</h2>
+                <h2 className="text-xl md:text-2xl font-semibold">Objetivos disponibles</h2>
                 <p className="text-sm text-muted-foreground">
                   Arrastrá cualquier objetivo hacia el canvas para integrarlo a tu camino profesional.
                 </p>
               </div>
+              
               <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
                 <DialogTrigger asChild>
-                  <Button disabled={availableCustomCount >= MAX_CUSTOM_OBJECTIVES}>
+                  <Button 
+                    disabled={availableCustomCount >= MAX_CUSTOM_OBJECTIVES}
+                    className="w-full sm:w-auto sm:self-end"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Objetivo personalizado
                   </Button>
@@ -520,7 +535,7 @@ export default function Progress() {
               </Dialog>
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               <ObjectiveColumn title="Sugeridos por ProductPrepa" description="Tomamos tus áreas de mejora para proponerte objetivos concretos." objectives={objectives.filter(objective => objective.source === "suggested")} onDragStart={handleDragStart} onDragEnd={handleDragEnd} draggingId={draggingId} />
               <ObjectiveColumn title="Derivados de mentorías" description="Objetivos acordados junto a tu mentor. Se mantienen bloqueados." objectives={objectives.filter(objective => objective.source === "mentor")} onDragStart={handleDragStart} onDragEnd={handleDragEnd} draggingId={draggingId} locked />
               <ObjectiveColumn title="Personalizados" description="Define metas propias. Puedes crear hasta tres objetivos adicionales." objectives={objectives.filter(objective => objective.source === "custom")} onDragStart={handleDragStart} onDragEnd={handleDragEnd} draggingId={draggingId} onDelete={deleteCustomObjective} />
@@ -559,7 +574,7 @@ function ObjectiveColumn({
         <p className="text-sm text-muted-foreground">{description}</p>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[360px] pr-4">
+        <ScrollArea className="h-[280px] md:h-[360px] lg:h-[400px] pr-4">
           <div className="space-y-4">
             {objectives.map(objective => <div key={objective.id} draggable onDragStart={onDragStart(objective.id)} onDragEnd={onDragEnd} className={cn("group border rounded-xl p-4 bg-background/80 hover:border-primary/50 transition-colors shadow-sm", draggingId === objective.id && "border-primary bg-primary/10")}>
                 <div className="flex items-start justify-between gap-3">
