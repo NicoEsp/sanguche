@@ -11,6 +11,7 @@ import { useUserProgressObjectives, useDeleteUserObjective } from "@/hooks/useUs
 import { AssignObjectiveDialog } from "@/components/admin/AssignObjectiveDialog";
 import { EditUserObjectiveDialog } from "@/components/admin/EditUserObjectiveDialog";
 import { ObjectiveColumn } from "@/components/admin/ObjectiveColumn";
+import { AdminDedicatedResources } from "@/components/admin/AdminDedicatedResources";
 import type { UserProgressObjective } from "@/hooks/useUserProgressObjectives";
 
 export default function AdminMentoriaDetail() {
@@ -124,7 +125,7 @@ export default function AdminMentoriaDetail() {
             <TabsTrigger value="recomendaciones">
               💡 Recomendaciones
             </TabsTrigger>
-            <TabsTrigger value="recursos" disabled>
+            <TabsTrigger value="recursos">
               📚 Recursos
             </TabsTrigger>
           </TabsList>
@@ -227,10 +228,8 @@ export default function AdminMentoriaDetail() {
             </AlertDialog>
           </TabsContent>
 
-          <TabsContent value="recursos">
-            <div className="text-center py-12 text-muted-foreground">
-              Próximamente: Gestión de recursos dedicados
-            </div>
+          <TabsContent value="recursos" className="mt-6">
+            <AdminDedicatedResources userId={selectedUser.id} />
           </TabsContent>
         </Tabs>
       </div>

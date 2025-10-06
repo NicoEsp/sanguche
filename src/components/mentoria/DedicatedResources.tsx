@@ -2,9 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ExternalLink, BookOpen, Wrench, Users, FileText, Lock, Target } from "lucide-react";
+import { ExternalLink, BookOpen, Wrench, Users, FileText, Lock, Target, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NeutralArea } from "@/utils/scoring";
+import { useUserDedicatedResources, ResourceType } from "@/hooks/useUserDedicatedResources";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DedicatedResourcesProps {
   neutralAreas?: NeutralArea[];
@@ -99,8 +101,32 @@ const areaResources: Record<string, {
   }
 };
 
+const RESOURCE_TYPE_ICONS: Record<ResourceType, string> = {
+  article: '📄',
+  podcast: '🎙️',
+  video: '🎥',
+  course: '📚',
+  tool: '🛠️',
+  community: '👥',
+  other: '🔗'
+};
+
+const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
+  article: 'Artículo',
+  podcast: 'Podcast',
+  video: 'Video',
+  course: 'Curso',
+  tool: 'Herramienta',
+  community: 'Comunidad',
+  other: 'Recurso'
+};
+
 export function DedicatedResources({ neutralAreas, locked = false, mentoriaCompleted = false }: DedicatedResourcesProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { resources: dedicatedResources, loading: loadingDedicated } = useUserDedicatedResources(
+    user ? (user as any).profile_id : undefined
+  );
 
   const handleScrollToMentoria = () => {
     navigate('/mentoria');
@@ -109,21 +135,77 @@ export function DedicatedResources({ neutralAreas, locked = false, mentoriaCompl
     }, 100);
   };
 
-  if (!neutralAreas || neutralAreas.length === 0) {
+  // Render personalized resources section
+  const renderPersonalizedResources = () => {
+    if (loadingDedicated || !dedicatedResources || dedicatedResources.length === 0) {
+      return null;
+    }
+
     return (
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-primary" />
-            Recursos dedicados
+            <Sparkles className="h-5 w-5 text-primary" />
+            Recursos personalizados de tu mentor
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-center py-8">
-          <p className="text-muted-foreground">
-            Como tu perfil está muy equilibrado, en la mentoría personalizaremos los recursos según tus objetivos específicos.
-          </p>
+        <CardContent className="space-y-3">
+          {dedicatedResources.map((resource) => (
+            <div 
+              key={resource.id}
+              className="flex items-start justify-between p-4 bg-muted/30 rounded-lg border hover:border-primary/50 transition-colors"
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">
+                    {RESOURCE_TYPE_ICONS[resource.resource_type as ResourceType]}
+                  </span>
+                  <Badge variant="secondary" className="text-xs">
+                    {RESOURCE_TYPE_LABELS[resource.resource_type as ResourceType]}
+                  </Badge>
+                </div>
+                <h4 className="font-medium text-foreground mb-1">
+                  {resource.resource_name}
+                </h4>
+                {resource.description && (
+                  <p className="text-sm text-muted-foreground">
+                    {resource.description}
+                  </p>
+                )}
+              </div>
+              {resource.external_url && (
+                <Button size="sm" variant="outline" asChild>
+                  <a href={resource.external_url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-3 w-3 mr-2" />
+                    Ver
+                  </a>
+                </Button>
+              )}
+            </div>
+          ))}
         </CardContent>
       </Card>
+    );
+  };
+
+  if (!neutralAreas || neutralAreas.length === 0) {
+    return (
+      <>
+        {renderPersonalizedResources()}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              Recursos dedicados
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center py-8">
+            <p className="text-muted-foreground">
+              Como tu perfil está muy equilibrado, en la mentoría personalizaremos los recursos según tus objetivos específicos.
+            </p>
+          </CardContent>
+        </Card>
+      </>
     );
   }
 
@@ -134,7 +216,9 @@ export function DedicatedResources({ neutralAreas, locked = false, mentoriaCompl
     const firstArea = neutralAreas[0];
     
     return (
-      <Card className="relative">
+      <>
+        {renderPersonalizedResources()}
+        <Card className="relative">
         <CardHeader>
           <div className="flex items-center gap-2">
             <CardTitle className="flex items-center gap-2">
@@ -211,11 +295,14 @@ export function DedicatedResources({ neutralAreas, locked = false, mentoriaCompl
           )}
         </CardContent>
       </Card>
+      </>
     );
   }
 
   return (
-    <Card>
+    <>
+      {renderPersonalizedResources()}
+      <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-primary" />
@@ -311,5 +398,6 @@ export function DedicatedResources({ neutralAreas, locked = false, mentoriaCompl
         </Accordion>
       </CardContent>
     </Card>
+    </>
   );
 }
