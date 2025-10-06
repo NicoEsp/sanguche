@@ -310,9 +310,14 @@ export default function Progress() {
           <header className="space-y-3 text-center md:text-left">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-2">
-                <Badge variant="outline" className="w-fit text-primary border-primary/40 bg-primary/5">
-                  Premium exclusivo
-                </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="w-fit text-primary border-primary/40 bg-primary/5">
+                Premium exclusivo
+              </Badge>
+              <Badge variant="outline" className="w-fit text-cyan-600 border-cyan-500/40 bg-cyan-500/10">
+                Beta
+              </Badge>
+            </div>
                 <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
                   Tu mapa de progreso profesional
                 </h1>
