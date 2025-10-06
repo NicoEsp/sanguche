@@ -35,12 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setIsLoading(false);
 
-        if (event === 'SIGNED_IN') {
-          toast({
-            title: "¡Bienvenido!",
-            description: "Has iniciado sesión correctamente.",
-          });
-        } else if (event === 'SIGNED_OUT') {
+        if (event === 'SIGNED_OUT') {
           toast({
             title: "Sesión cerrada",
             description: "Has cerrado sesión correctamente.",
@@ -104,6 +99,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           title: "Error al iniciar sesión",
           description: getErrorMessage(error.message),
           variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "¡Bienvenido!",
+          description: "Has iniciado sesión correctamente.",
         });
       }
 
