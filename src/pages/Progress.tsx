@@ -114,6 +114,14 @@ export default function Progress() {
   const mentorObjectives = userObjectives.filter(obj => obj.source === 'mentor');
   const customObjectives = userObjectives.filter(obj => obj.source === 'custom');
   const availableCustomCount = customObjectives.length;
+  
+  // Filtrar objetivos sugeridos que ya están en el canvas
+  const availableSuggestedObjectives = useMemo(() => {
+    return suggestedObjectives.filter(suggested => 
+      !userObjectives.some(user => user.objective_id === suggested.id)
+    );
+  }, [suggestedObjectives, userObjectives]);
+  
   // Canvas objectives (mentor + custom)
   const canvasObjectives = useMemo(() => [...mentorObjectives, ...customObjectives], [mentorObjectives, customObjectives]);
   const completedObjectives = canvasObjectives.filter(obj => isCompleted(obj));
@@ -383,7 +391,7 @@ export default function Progress() {
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              <ObjectiveAvailableColumn title="💡 Sugeridos por ProductPrepa" description="Tomamos tus áreas de mejora para proponerte objetivos concretos." objectives={suggestedObjectives} draggingId={draggingId} />
+              <ObjectiveAvailableColumn title="💡 Sugeridos por ProductPrepa" description="Tomamos tus áreas de mejora para proponerte objetivos concretos." objectives={availableSuggestedObjectives} draggingId={draggingId} />
               <ObjectiveAvailableColumn title="👨‍🏫 Derivados de mentorías" description="Objetivos acordados junto a tu mentor." objectives={mentorObjectives} draggingId={draggingId} locked />
               <ObjectiveAvailableColumn title="✍️ Personalizados" description="Define metas propias. Puedes crear hasta tres objetivos adicionales." objectives={customObjectives} draggingId={draggingId} onDelete={handleDeleteCustom} />
             </div>
