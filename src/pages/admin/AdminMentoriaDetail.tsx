@@ -12,6 +12,7 @@ import { AssignObjectiveDialog } from "@/components/admin/AssignObjectiveDialog"
 import { EditUserObjectiveDialog } from "@/components/admin/EditUserObjectiveDialog";
 import { ObjectiveColumn } from "@/components/admin/ObjectiveColumn";
 import { AdminDedicatedResources } from "@/components/admin/AdminDedicatedResources";
+import { AdminMentoriaProgress } from "@/components/admin/AdminMentoriaProgress";
 import type { UserProgressObjective } from "@/hooks/useUserProgressObjectives";
 
 export default function AdminMentoriaDetail() {
@@ -117,21 +118,26 @@ export default function AdminMentoriaDetail() {
 
         {/* Tabs de contenido */}
         <Tabs defaultValue="ejercicios" className="w-full">
-          <TabsList>
-            <TabsTrigger value="ejercicios">🎯 Ejercicios</TabsTrigger>
-            <TabsTrigger value="oportunidades" disabled>
-              📊 Áreas de Oportunidad
-            </TabsTrigger>
-            <TabsTrigger value="recomendaciones">
-              💡 Recomendaciones
-            </TabsTrigger>
-            <TabsTrigger value="recursos">
-              📚 Recursos
-            </TabsTrigger>
-          </TabsList>
+            <TabsList>
+              <TabsTrigger value="ejercicios">🎯 Ejercicios</TabsTrigger>
+              <TabsTrigger value="progreso">📈 Progreso</TabsTrigger>
+              <TabsTrigger value="oportunidades" disabled>
+                📊 Áreas de Oportunidad
+              </TabsTrigger>
+              <TabsTrigger value="recomendaciones">
+                💡 Recomendaciones
+              </TabsTrigger>
+              <TabsTrigger value="recursos">
+                📚 Recursos
+              </TabsTrigger>
+            </TabsList>
 
           <TabsContent value="ejercicios" className="mt-6">
             <AdminMentoriaExercises userId={selectedUser.id} />
+          </TabsContent>
+
+          <TabsContent value="progreso" className="mt-6">
+            <AdminMentoriaProgress userId={selectedUser.id} />
           </TabsContent>
 
           <TabsContent value="oportunidades">

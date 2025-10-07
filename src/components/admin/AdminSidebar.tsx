@@ -29,7 +29,6 @@ const adminNavItems = [
   { title: 'Usuarios', url: '/admin/usuarios', icon: Users },
   { title: 'Evaluaciones', url: '/admin/evaluaciones', icon: ClipboardList },
   { title: 'Gestión Mentorías', url: '/admin/mentoria', icon: Target },
-  { title: 'Progreso', url: '/admin/progreso', icon: LineChart },
   { title: 'Objetivos', url: '/admin/objetivos', icon: Flag },
   { title: 'Recursos', url: '/admin/recursos', icon: FileText },
   { title: 'Configuración', url: '/admin/configuracion', icon: Settings },
