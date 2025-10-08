@@ -43,15 +43,23 @@ function toBase64(buffer: ArrayBuffer): string {
   return btoa(String.fromCharCode(...bytes));
 }
 
+interface SignatureVerificationErrorOptions {
+  status?: number;
+  responseMessage?: string;
+  details?: Record<string, unknown>;
+}
+
 export class SignatureVerificationError extends Error {
   status: number;
+  responseMessage: string;
   details?: Record<string, unknown>;
 
-  constructor(message: string, status = 401, details?: Record<string, unknown>) {
+  constructor(message: string, options: SignatureVerificationErrorOptions = {}) {
     super(message);
     this.name = 'SignatureVerificationError';
-    this.status = status;
-    this.details = details;
+    this.status = options.status ?? 401;
+    this.responseMessage = options.responseMessage ?? message;
+    this.details = options.details;
   }
 }
 
@@ -78,7 +86,11 @@ export async function verifyPolarSignature({ body, headers, webhookSecret }: Ver
 
   if (!signature) {
     const headerNames = Array.from(headers.keys());
-    throw new SignatureVerificationError('Missing webhook signature', 401, { headerNames });
+    throw new SignatureVerificationError('Missing Polar signature header', {
+      status: 401,
+      responseMessage: 'Missing webhook signature',
+      details: { headerNames },
+    });
   }
 
   const normalizedSignature = normalizePolarSignature(signature);
@@ -99,13 +111,17 @@ export async function verifyPolarSignature({ body, headers, webhookSecret }: Ver
   const isValidHex = timingSafeEquals(normalizedSignature, expectedHex);
 
   if (!isValidBase64 && !isValidHex) {
-    throw new SignatureVerificationError('Invalid signature', 401, {
-      valid: false,
-      received: normalizedSignature.substring(0, 8) + '...',
-      receivedLength: normalizedSignature.length,
-      expectedBase64: expectedBase64.substring(0, 8) + '...',
-      expectedHex: expectedHex.substring(0, 8) + '...',
-      matchedFormat: 'none'
+    throw new SignatureVerificationError('Invalid webhook signature', {
+      status: 401,
+      responseMessage: 'Invalid signature',
+      details: {
+        valid: false,
+        received: normalizedSignature.substring(0, 8) + '...',
+        receivedLength: normalizedSignature.length,
+        expectedBase64: expectedBase64.substring(0, 8) + '...',
+        expectedHex: expectedHex.substring(0, 8) + '...',
+        matchedFormat: 'none'
+      }
     });
   }
 

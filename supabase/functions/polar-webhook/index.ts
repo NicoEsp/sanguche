@@ -95,7 +95,7 @@ serve(async (req) => {
             console.log('🔐 Signature check:', details);
           }
         }
-        return createResponse(error.message, error.status);
+        return createResponse(error.responseMessage, error.status);
       }
       throw error;
     }
