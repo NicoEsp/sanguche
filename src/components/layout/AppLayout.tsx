@@ -32,7 +32,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
-        <nav className="container h-14 flex items-center justify-start">
+        <nav className={`container h-14 flex items-center gap-3 ${isMobile ? 'justify-end' : 'justify-start'}`}>
           <Link to="/" className="font-semibold flex items-center gap-2">
             <img 
               src="/assets/sanguche.png" 
