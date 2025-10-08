@@ -66,7 +66,7 @@ const Index = () => {
         <section className="text-center mx-0 my-0 px-[2px] py-[20px]">
           <div className="container mx-auto px-4">
             <Button size="lg" asChild className="bg-primary hover:bg-primary/90">
-              <Link to="/auth">
+              <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
                 Evalúate ahora
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
