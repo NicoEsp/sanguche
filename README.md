@@ -8,21 +8,29 @@ Una plataforma para Product Managers que permite:
 
 ## 🏗️ Estructura del proyecto
 
-```
-├── public/                — Archivos estáticos (imágenes, favicon, etc.)
-├── src/                   — Código fuente frontend (React)
-│   ├── components/        — Componentes reutilizables (UI, inputs, cards, etc.)
-│   ├── pages/             — Páginas de la aplicación (landing, mentoria, etc.)
-│   ├── hooks/             — Hooks personalizados (uso de auth, fetch, etc.)
-│   ├── contexts/          — Contextos de React (Auth, etc.)
-│   ├── integrations/      — Integraciones con servicios externos
-│   └── utils/             — Utilidades / helpers compartidos
-├── supabase/              — Configuración y funciones de Supabase
-├── tailwind.config.ts     — Configuración de Tailwind CSS
-├── tsconfig.json          — Configuración de TypeScript
-├── vite.config.ts         — Configuración del bundler (Vite)
-└── README.md              — Este archivo
-```
+### User
+src/pages/
+├── Index.tsx              → Landing page (página de inicio pública)
+├── Auth.tsx               → Autenticación (login/registro)
+├── Assessment.tsx         → Autoevaluación en 11 dominios
+├── SkillGaps.tsx          → Áreas de mejora personalizadas
+├── Recommendations.tsx    → Mentoría personalizada (premium)
+├── Progress.tsx           → Sistema de seguimiento de progreso (premium)
+├── Premium.tsx            → Página de planes y checkout con Polar
+├── Profile.tsx            → ✨ NUEVO: Mi Perfil (estadísticas y configuración)
+└── NotFound.tsx           → Página 404
+
+### Admin
+src/pages/admin/
+├── AdminDashboard.tsx           → Panel principal con métricas
+├── AdminUsers.tsx               → Gestión de usuarios
+├── AdminAssessments.tsx         → Ver evaluaciones de usuarios
+├── AdminRecommendations.tsx     → Gestionar recomendaciones
+├── AdminResources.tsx           → CRUD de recursos educativos
+├── AdminMentoriaExercises.tsx   → CRUD de ejercicios prácticos
+├── AdminMentoriaDetail.tsx      → Detalle de mentoría por usuario
+├── AdminProgressObjectives.tsx  → Gestión de objetivos de progreso
+└── AdminSettings.tsx            → Configuración del sistema
 
 ## 🔐 Autenticación
 
