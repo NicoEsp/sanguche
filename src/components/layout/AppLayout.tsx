@@ -102,9 +102,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
                       );
                     })}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem disabled>
-                      <User className="h-4 w-4 mr-2" />
-                      Mi Perfil
+                    <DropdownMenuItem asChild>
+                      <Link to="/perfil" className="cursor-pointer">
+                        <User className="h-4 w-4 mr-2" />
+                        Mi Perfil
+                      </Link>
                     </DropdownMenuItem>
                     {isAdmin && (
                       <>
@@ -184,9 +186,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
                         </div>
 
                         <div className="pt-3 border-t space-y-1">
-                          <Button variant="ghost" disabled className="w-full justify-start">
-                            <User className="h-4 w-4 mr-2" />
-                            Mi Perfil
+                          <Button variant="ghost" asChild className="w-full justify-start">
+                            <Link to="/perfil" onClick={() => setIsOpen(false)}>
+                              <User className="h-4 w-4 mr-2" />
+                              Mi Perfil
+                            </Link>
                           </Button>
                           
                           {isAdmin && (

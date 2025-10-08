@@ -15,6 +15,7 @@ import Recommendations from "@/pages/Recommendations";
 import Progress from "@/pages/Progress";
 import Auth from "@/pages/Auth";
 import Premium from "@/pages/Premium";
+import Profile from "@/pages/Profile";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -62,6 +63,11 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/premium" element={<Premium />} />
+              <Route path="/perfil" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
               <Route path="/autoevaluacion" element={
                 <ProtectedRoute>
                   <Assessment />
