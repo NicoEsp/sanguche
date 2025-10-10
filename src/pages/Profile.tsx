@@ -25,11 +25,8 @@ import {
   Edit2,
   LogOut,
   Crown,
-  CheckCircle,
-  ArrowRight
+  CheckCircle
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { SubscriptionManager } from '@/components/SubscriptionManager';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -41,7 +38,6 @@ export default function Profile() {
   const { data: objectives, isLoading: objectivesLoading } = useUserProgressObjectives(profile?.id || null);
   const { data: exercises, isLoading: exercisesLoading } = useMyExercises();
   const [editNameOpen, setEditNameOpen] = useState(false);
-  const [manageSubscriptionOpen, setManageSubscriptionOpen] = useState(false);
   const [refetchKey, setRefetchKey] = useState(0);
 
   const loading = profileLoading || subscriptionLoading;
@@ -124,49 +120,49 @@ export default function Profile() {
         </Card>
 
         {/* Sección 2: Plan y Suscripción */}
-        <Card className="animate-fade-in hover:shadow-lg transition-shadow">
+        <Card>
           <CardHeader>
             <CardTitle>Plan y Suscripción</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {/* Línea 1: Plan + Badge de estado */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-base font-medium">
-                Plan actual: {subscription?.plan === 'premium' ? 'Premium' : 'Free'}
-              </span>
-              {subscription?.status === 'active' && subscription?.plan === 'premium' && (
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <Badge 
+                variant={subscription?.plan === 'premium' ? 'default' : 'secondary'}
+                className="text-base px-3 py-1"
+              >
+                {subscription?.plan === 'premium' ? (
+                  <>
+                    <Crown className="h-4 w-4 mr-1" />
+                    Premium
+                  </>
+                ) : (
+                  'Free'
+                )}
+              </Badge>
+              
+              {subscription?.status === 'active' && (
                 <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400">
                   <CheckCircle className="h-3 w-3 mr-1" />
                   Activo
                 </Badge>
               )}
-            </div>
 
-            {/* Línea 2: Info de cobro + Botón gestionar */}
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              {/* Izquierda: Próximo cobro */}
-              {subscription?.plan === 'premium' && subscription?.current_period_end && (
-                <p className="text-sm text-muted-foreground">
-                  {formatNextBillingDate()}
-                </p>
-              )}
-              
-              {/* Derecha: Botón gestionar */}
-              {subscription?.plan === 'premium' && (
-                <Button 
-                  variant="ghost" 
-                  className="hover-scale group cursor-pointer ml-auto"
-                  onClick={() => setManageSubscriptionOpen(true)}
-                >
-                  Gestionar Suscripción
-                  <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
+              {profile?.mentoria_completed && (
+                <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-400">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Mentoría completada
+                </Badge>
               )}
             </div>
 
-            {/* Botón upgrade si es Free */}
+            {subscription?.plan === 'premium' && subscription?.status === 'active' && subscription?.current_period_end && (
+              <p className="text-sm text-muted-foreground">
+                {formatNextBillingDate()}
+              </p>
+            )}
+
             {subscription?.plan === 'free' && (
-              <Button asChild className="w-full">
+              <Button asChild>
                 <Link to="/premium">
                   <Crown className="h-4 w-4 mr-2" />
                   Actualizar a Premium
@@ -319,16 +315,6 @@ export default function Profile() {
           window.location.reload();
         }}
       />
-
-      {/* Dialog de gestión de suscripción */}
-      <Dialog open={manageSubscriptionOpen} onOpenChange={setManageSubscriptionOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Gestión de Suscripción</DialogTitle>
-          </DialogHeader>
-          <SubscriptionManager />
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
