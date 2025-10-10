@@ -109,8 +109,8 @@ export default function SkillGaps() {
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
           {canAccessRecommendations ? <Button asChild disabled={!hasAssessment || !result} className="w-full sm:w-auto">
               <Link to="/mentoria">Ver mentoría personalizada</Link>
-            </Button> : <Button asChild disabled={!hasAssessment || !result} variant="outline" className="w-full sm:w-auto">
-              <Link to="/premium">Acceder a mentoría personalizada (Premium)</Link>
+            </Button> : <Button asChild disabled={!hasAssessment || !result} className="w-full sm:w-auto">
+              <Link to="/premium">Acceder a mentoría personalizada</Link>
             </Button>}
           <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link to="/autoevaluacion">Atrás</Link>
