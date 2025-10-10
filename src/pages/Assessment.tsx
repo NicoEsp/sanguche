@@ -209,7 +209,7 @@ export default function Assessment() {
                   <Button 
                     asChild 
                     size="lg"
-                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold shadow-lg hover:shadow-xl animate-pulse transform hover:scale-105 transition-all duration-300"
+                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
                   >
                     <Link to="/mejoras" className="flex items-center gap-2">
                       <span>Ver áreas de mejora</span>
