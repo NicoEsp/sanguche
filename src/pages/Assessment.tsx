@@ -12,7 +12,7 @@ import { toast } from "@/components/ui/use-toast";
 import { saveAssessment } from "@/utils/storage";
 import { supabase } from "@/integrations/supabase/client";
 import { DomainInfoPopup } from "@/components/DomainInfoPopup";
-import { Info, Star, Trophy, Target, Calendar } from "lucide-react";
+import { Info, Star, Trophy, Target, Calendar, ArrowRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertDialog,
@@ -173,33 +173,50 @@ export default function Assessment() {
 
               <Separator className="my-4" />
 
-              {/* Información detallada con iconos */}
-              <div className="space-y-3">
-                {/* Nivel estimado */}
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-muted-foreground">Nivel estimado:</span>
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                    {savedResult.nivel}
-                  </Badge>
-                </div>
-
-                {/* Especialización */}
-                <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-muted-foreground">Especialización:</span>
-                  <Badge variant="secondary">
-                    {savedResult.specialization}
-                  </Badge>
-                </div>
-
-                {/* Fecha de actualización */}
-                {formattedUpdatedAt && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>Actualizada el {formattedUpdatedAt}</span>
+              {/* Información detallada con iconos + CTA */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                {/* Columna izquierda: Info existente */}
+                <div className="space-y-3">
+                  {/* Nivel estimado */}
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-4 w-4 text-primary" />
+                    <span className="text-sm text-muted-foreground">Nivel estimado:</span>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                      {savedResult.nivel}
+                    </Badge>
                   </div>
-                )}
+
+                  {/* Especialización */}
+                  <div className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary" />
+                    <span className="text-sm text-muted-foreground">Especialización:</span>
+                    <Badge variant="secondary">
+                      {savedResult.specialization}
+                    </Badge>
+                  </div>
+
+                  {/* Fecha de actualización */}
+                  {formattedUpdatedAt && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      <span>Actualizada el {formattedUpdatedAt}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Columna derecha: CTA agresivo */}
+                <div className="flex justify-center md:justify-end">
+                  <Button 
+                    asChild 
+                    size="lg"
+                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold shadow-lg hover:shadow-xl animate-pulse transform hover:scale-105 transition-all duration-300"
+                  >
+                    <Link to="/mejoras" className="flex items-center gap-2">
+                      <span>Ver áreas de mejora</span>
+                      <ArrowRight className="h-5 w-5" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </div>
 
