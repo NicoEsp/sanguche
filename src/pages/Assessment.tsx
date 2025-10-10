@@ -143,7 +143,11 @@ export default function Assessment() {
             </AlertDialog>
           )}
         </div>
-        <p className="text-muted-foreground mb-4">Responde del 1 al 5 según tu dominio en cada área.</p>
+        <p className="text-muted-foreground mb-4">
+          {hasAssessment && !isReevaluating 
+            ? "Estos son tus resultados" 
+            : "Responde del 1 al 5 según tu dominio en cada área."}
+        </p>
 
         {assessmentLoading && (
           <div className="space-y-4">
