@@ -8,7 +8,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Seo } from "@/components/Seo";
 import { PolarCheckout } from "@/components/PolarCheckout";
-import { FAQ } from "@/components/sections/FAQ";
 export default function Premium() {
   const { user } = useAuth();
   const { hasActivePremium } = useSubscription();
