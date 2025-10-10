@@ -183,6 +183,7 @@ export type AssessmentResult = {
   profileEstimate: string;
   standardDeviation: number;
   specialization: string;
+  ctaInfo: { text: string; route: string };
 };
 
 export function computeSeniorityScore(values: AssessmentValues): AssessmentResult {
@@ -248,6 +249,16 @@ export function computeSeniorityScore(values: AssessmentValues): AssessmentResul
     gaps.filter(g => g.prioridad === "Alta").length
   );
 
+  // Generar CTA dinámico
+  const ctaInfo = generateProfileCTA(
+    nivel,
+    promedioGlobal,
+    standardDeviation,
+    specialization,
+    strengths.length,
+    gaps.filter(g => g.prioridad === "Alta").length
+  );
+
   return { 
     promedioGlobal, 
     nivel, 
@@ -256,7 +267,8 @@ export function computeSeniorityScore(values: AssessmentValues): AssessmentResul
     neutralAreas,
     profileEstimate,
     standardDeviation,
-    specialization
+    specialization,
+    ctaInfo
   };
 }
 
@@ -271,29 +283,102 @@ function generateProfileEstimate(
   const isBalanced = desviacion < 0.8;
   const hasSpecialization = desviacion > 1.2;
 
+  // 3+ brechas críticas
   if (brechasCriticas >= 3) {
-    return `Perfil en desarrollo con potencial ${nivel}. Se recomienda enfocarse en las áreas críticas antes de avanzar.`;
+    return `Tu perfil está en desarrollo, con alto potencial como PM ${nivel}. Hoy es clave enfocarte en tus áreas críticas antes de dar nuevos pasos. Te conviene construir una base más sólida.`;
   }
 
+  // Equilibrado + 3+ fortalezas
   if (isBalanced && fortalezas >= 3) {
-    return `Perfil equilibrado de PM ${nivel} con competencias sólidas en todas las áreas. Listo para el siguiente nivel.`;
+    return `Perfil equilibrado de PM ${nivel}, con bases sólidas y consistentes. Estás bien preparado para asumir desafíos de mayor nivel o responsabilidad. Es un gran momento para avanzar.`;
   }
 
+  // Especializado + Senior/Lead/Head
   if (hasSpecialization) {
     if (nivel === "Senior" || nivel === "Lead" || nivel === "Head") {
-      return `Perfil especializado de PM ${nivel} con dominio destacado en ${especializacion}. Considera desarrollar áreas complementarias.`;
+      return `PM ${nivel} con especialización marcada en ${especializacion}. Dominás con fuerza tu área, lo que te da un diferencial claro. El próximo salto puede estar en ampliar tu rango de impacto.`;
     } else {
-      return `Perfil con especialización temprana en ${especializacion}. Desarrolla competencias generales para un perfil más balanceado de PM ${nivel}.`;
+      // Especializado + Junior/Mid
+      return `Especialización temprana en ${especializacion}, dentro de un perfil PM ${nivel}. Tenés una fortaleza clara, pero desarrollar una visión más integral va a potenciar mucho tu carrera.`;
     }
   }
 
+  // Promedio ≥ 4.0
   if (promedio >= 4.0) {
-    return `Perfil sólido de PM ${nivel} con consistencia en la mayoría de áreas. Excelente base para roles de mayor responsabilidad.`;
+    return `Perfil sólido de PM ${nivel}, con muy buena consistencia. Tenés una excelente base para aspirar a más impacto o seniority. Usá esto como trampolín hacia tu próximo rol.`;
   }
 
+  // Promedio ≥ 3.5
   if (promedio >= 3.5) {
-    return `Perfil competente de PM ${nivel} con buen potencial de crecimiento. Algunas áreas clave necesitan desarrollo adicional.`;
+    return `PM ${nivel} con buen potencial de crecimiento. Tu perfil tiene varias competencias bien encaminadas. Si enfocás tus esfuerzos en las áreas clave, vas a poder crecer rápido.`;
   }
 
-  return `Perfil emergente de PM ${nivel}. Enfócate en desarrollar las competencias fundamentales para consolidar tu nivel actual.`;
+  // Resto (< 3.5)
+  return `Perfil emergente de PM ${nivel}. Este es un buen momento para enfocarte en fortalecer tus fundamentos. Consolidar las bases te va a abrir muchas más puertas.`;
+}
+
+function generateProfileCTA(
+  nivel: SeniorityLevel,
+  promedio: number,
+  desviacion: number,
+  especializacion: string,
+  fortalezas: number,
+  brechasCriticas: number
+): { text: string; route: string } {
+  const isBalanced = desviacion < 0.8;
+  const hasSpecialization = desviacion > 1.2;
+
+  // 3+ brechas críticas
+  if (brechasCriticas >= 3) {
+    return {
+      text: "Podés avanzar más rápido con acompañamiento personalizado.",
+      route: "/premium"
+    };
+  }
+
+  // Equilibrado + 3+ fortalezas
+  if (isBalanced && fortalezas >= 3) {
+    return {
+      text: "La mentoría puede ayudarte a definir cuál debería ser ese \"siguiente paso\".",
+      route: "/premium"
+    };
+  }
+
+  // Especializado + Senior/Lead/Head
+  if (hasSpecialization) {
+    if (nivel === "Senior" || nivel === "Lead" || nivel === "Head") {
+      return {
+        text: "El plan Premium te permite trabajar sobre esas áreas complementarias de forma concreta y enfocada.",
+        route: "/premium"
+      };
+    } else {
+      // Especializado + Junior/Mid
+      return {
+        text: "El plan Premium te puede ayudar a construir ese perfil más balanceado, paso a paso.",
+        route: "/premium"
+      };
+    }
+  }
+
+  // Promedio ≥ 4.0
+  if (promedio >= 4.0) {
+    return {
+      text: "La mentoría puede ayudarte a convertir esa base en un diferencial estratégico.",
+      route: "/premium"
+    };
+  }
+
+  // Promedio ≥ 3.5
+  if (promedio >= 3.5) {
+    return {
+      text: "Con el plan Premium podés acelerar ese proceso con foco y acompañamiento.",
+      route: "/premium"
+    };
+  }
+
+  // Resto (< 3.5)
+  return {
+    text: "La mentoría puede ayudarte a ordenar ese camino y avanzar con claridad.",
+    route: "/premium"
+  };
 }

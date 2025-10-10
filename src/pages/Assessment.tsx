@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DomainInfoPopup } from "@/components/DomainInfoPopup";
 import { Info, Star, Trophy, Target, Calendar, ArrowRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useSubscription } from "@/hooks/useSubscription";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +46,8 @@ export default function Assessment() {
     loading: assessmentLoading,
     updatedAt,
   } = useAssessmentData();
+
+  const { hasActivePremium } = useSubscription();
 
   const form = useForm<AssessmentValues>({
     resolver: zodResolver(assessmentSchema),
@@ -165,9 +168,17 @@ export default function Assessment() {
                 
                 {/* Profile estimate */}
                 {savedResult.profileEstimate && (
-                  <p className="text-sm text-center text-muted-foreground max-w-md mt-2">
-                    {savedResult.profileEstimate}
-                  </p>
+                  <div className="text-sm text-center text-muted-foreground max-w-md mt-2">
+                    <p className="mb-2">{savedResult.profileEstimate}</p>
+                    {savedResult.ctaInfo && (
+                      <Link 
+                        to={hasActivePremium ? '/mentoria' : '/premium'}
+                        className="text-primary hover:text-primary/80 font-medium underline transition-colors"
+                      >
+                        {savedResult.ctaInfo.text}
+                      </Link>
+                    )}
+                  </div>
                 )}
               </div>
 
