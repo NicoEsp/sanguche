@@ -12,7 +12,7 @@ import { toast } from "@/components/ui/use-toast";
 import { saveAssessment } from "@/utils/storage";
 import { supabase } from "@/integrations/supabase/client";
 import { DomainInfoPopup } from "@/components/DomainInfoPopup";
-import { Info } from "lucide-react";
+import { Info, Star, Trophy, Target, Calendar } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertDialog,
@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 export default function Assessment() {
   const navigate = useNavigate();
@@ -144,18 +146,61 @@ export default function Assessment() {
 
         {!assessmentLoading && hasAssessment && !isReevaluating && savedResult && (
           <div className="space-y-6">
-            <div className="p-4 rounded-lg border bg-card">
-              <h2 className="text-lg font-semibold mb-2">Tu última autoevaluación</h2>
-              <p className="text-sm text-muted-foreground">
-                Nivel estimado: <strong>{savedResult.nivel}</strong> (promedio {savedResult.promedioGlobal}).
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">{savedResult.profileEstimate}</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Especialización: <strong>{savedResult.specialization}</strong>
-              </p>
-              {formattedUpdatedAt && (
-                <p className="text-xs text-muted-foreground mt-3">Actualizada el {formattedUpdatedAt}</p>
-              )}
+            <div className="p-6 rounded-lg border bg-card animate-fade-in hover:shadow-lg transition-all">
+              <h2 className="text-lg font-semibold mb-4">Tu última autoevaluación</h2>
+              
+              {/* Promedio destacado en círculo */}
+              <div className="flex flex-col items-center justify-center py-6 space-y-2">
+                <div className="relative">
+                  <div className="w-28 h-28 rounded-full border-4 border-primary/20 bg-primary/5 flex flex-col items-center justify-center animate-scale-in">
+                    <Star className="h-6 w-6 text-primary mb-1" />
+                    <span className="text-4xl font-bold text-primary">
+                      {savedResult.promedioGlobal}
+                    </span>
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider">
+                      Promedio
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Profile estimate */}
+                {savedResult.profileEstimate && (
+                  <p className="text-sm text-center text-muted-foreground max-w-md mt-2">
+                    {savedResult.profileEstimate}
+                  </p>
+                )}
+              </div>
+
+              <Separator className="my-4" />
+
+              {/* Información detallada con iconos */}
+              <div className="space-y-3">
+                {/* Nivel estimado */}
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">Nivel estimado:</span>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                    {savedResult.nivel}
+                  </Badge>
+                </div>
+
+                {/* Especialización */}
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">Especialización:</span>
+                  <Badge variant="secondary">
+                    {savedResult.specialization}
+                  </Badge>
+                </div>
+
+                {/* Fecha de actualización */}
+                {formattedUpdatedAt && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>Actualizada el {formattedUpdatedAt}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {savedValues && (
