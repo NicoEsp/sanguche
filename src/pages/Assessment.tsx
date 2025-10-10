@@ -152,7 +152,7 @@ export default function Assessment() {
               {/* Promedio destacado en círculo */}
               <div className="flex flex-col items-center justify-center py-6 space-y-2">
                 <div className="relative">
-                  <div className="w-28 h-28 rounded-full border-4 border-primary/20 bg-primary/5 flex flex-col items-center justify-center animate-scale-in">
+                  <div className="w-36 h-36 rounded-full border-4 border-primary/20 bg-primary/5 flex flex-col items-center justify-center animate-scale-in">
                     <Star className="h-6 w-6 text-primary mb-1" />
                     <span className="text-4xl font-bold text-primary">
                       {savedResult.promedioGlobal}
