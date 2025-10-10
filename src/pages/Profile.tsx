@@ -89,6 +89,7 @@ export default function Profile() {
       <Seo 
         title="Mi Perfil - ProductPrepa"
         description="Gestiona tu perfil, revisa tu progreso y mantén el control de tu plan de suscripción"
+        canonical="/perfil"
       />
       
       <div className="container py-8 space-y-6">

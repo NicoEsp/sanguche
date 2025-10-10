@@ -13,7 +13,11 @@ const Index = () => {
     isAuthenticated
   } = useAuth();
   return <>
-      <Seo title="ProductPrepa — Autoevaluación PM" description="Evalúa tu seniority en Product Management y descubre tus brechas de habilidades." canonical="/" />
+      <Seo 
+        title="ProductPrepa — Autoevaluación PM" 
+        description="Evalúa tu seniority en Product Management y descubre tus brechas de habilidades." 
+        canonical="/" 
+      />
       <main className="min-h-screen bg-background">
         {/* Enhanced Hero Section */}
         <section className="container text-center py-16 sm:py-24 px-4 sm:px-6 relative overflow-hidden">

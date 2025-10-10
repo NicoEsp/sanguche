@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 
+const SITE_URL = 'https://productprepa.com';
+
 export type SeoProps = {
   title: string;
   description?: string;
@@ -10,6 +12,7 @@ export type SeoProps = {
   siteName?: string;
   twitterSite?: string;
   twitterCreator?: string;
+  robots?: string;
 };
 
 export function Seo({ 
@@ -21,7 +24,8 @@ export function Seo({
   url, 
   siteName = "ProductPrepa",
   twitterSite = "@nicoproducto",
-  twitterCreator = "@nicoproducto"
+  twitterCreator = "@nicoproducto",
+  robots
 }: SeoProps) {
   useEffect(() => {
     if (title) document.title = title;
@@ -43,8 +47,22 @@ export function Seo({
         link.setAttribute('rel', 'canonical');
         document.head.appendChild(link);
       }
-      link.setAttribute('href', canonical);
+      // Si empieza con /, agregar el dominio completo
+      const fullCanonical = canonical.startsWith('http') 
+        ? canonical 
+        : `${SITE_URL}${canonical}`;
+      link.setAttribute('href', fullCanonical);
     }
+
+    // Robots meta tag
+    const robotsContent = robots || 'index, follow';
+    let robotsMeta = document.querySelector('meta[name="robots"]');
+    if (!robotsMeta) {
+      robotsMeta = document.createElement('meta');
+      robotsMeta.setAttribute('name', 'robots');
+      document.head.appendChild(robotsMeta);
+    }
+    robotsMeta.setAttribute('content', robotsContent);
 
     // OpenGraph meta tags
     const ogTitle = ensureMeta('property', 'og:title');
@@ -75,7 +93,7 @@ export function Seo({
     if (twitterImageAlt && imageAlt) twitterImageAlt.setAttribute('content', imageAlt);
     if (twitterSiteTag && twitterSite) twitterSiteTag.setAttribute('content', twitterSite);
     if (twitterCreatorTag && twitterCreator) twitterCreatorTag.setAttribute('content', twitterCreator);
-  }, [title, description, canonical, image, imageAlt, url, siteName, twitterSite, twitterCreator]);
+  }, [title, description, canonical, image, imageAlt, url, siteName, twitterSite, twitterCreator, robots]);
 
   return null;
 }

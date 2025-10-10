@@ -145,7 +145,7 @@ export default function Auth() {
           'Verifica tu Email'
         } — ProductPrepa`}
         description="Accede a tu cuenta de ProductPrepa para continuar con tu evaluación y recomendaciones personalizadas."
-        canonical="/auth"
+        canonical="/login"
       />
       
       <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">

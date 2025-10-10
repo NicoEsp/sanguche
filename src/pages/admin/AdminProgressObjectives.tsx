@@ -99,6 +99,8 @@ export default function AdminProgressObjectives() {
       <Seo
         title="Gestión de Objetivos | Admin ProductPrepa"
         description="Panel de administración para gestionar el catálogo global de objetivos de carrera"
+        canonical="/admin/objetivos-progreso"
+        robots="noindex, nofollow"
       />
 
       <div className="p-8">

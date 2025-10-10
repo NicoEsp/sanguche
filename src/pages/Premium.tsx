@@ -12,7 +12,11 @@ export default function Premium() {
   const { user } = useAuth();
   const { hasActivePremium } = useSubscription();
   return <>
-      <Seo title="Funciones Premium - ProductPrepa" description="Descubre todas las funciones premium de ProductPrepa: mentoría personalizada, seguimiento de progreso, recursos curados y roadmap de carrera." />
+      <Seo 
+        title="Funciones Premium - ProductPrepa" 
+        description="Descubre todas las funciones premium de ProductPrepa: mentoría personalizada, seguimiento de progreso, recursos curados y roadmap de carrera." 
+        canonical="/premium"
+      />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         {/* Hero Section */}
