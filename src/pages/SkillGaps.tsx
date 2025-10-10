@@ -16,7 +16,7 @@ export default function SkillGaps() {
     result,
     loading,
     hasAssessment,
-    updatedAt,
+    updatedAt
   } = useAssessmentData();
   const gaps = result?.gaps ?? [];
   const strengths = result?.strengths ?? [];
@@ -24,7 +24,7 @@ export default function SkillGaps() {
   const canAccessRecommendations = isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium);
   const formattedUpdatedAt = updatedAt ? new Intl.DateTimeFormat("es-AR", {
     dateStyle: "long",
-    timeStyle: "short",
+    timeStyle: "short"
   }).format(new Date(updatedAt)) : null;
   return <>
       <Seo title="Resultados de tu evaluación — ProductPrepa" description="Revisa tu desempeño completo: fortalezas y áreas de mejora identificadas." canonical="/mejoras" />
@@ -44,14 +44,7 @@ export default function SkillGaps() {
             <p className="text-muted-foreground">
               Nivel estimado: <strong>{result.nivel}</strong> (promedio {result.promedioGlobal}).
             </p>
-            <div className="p-4 rounded-lg bg-muted/50 border">
-              <h3 className="font-medium mb-2">🎯 Tu perfil profesional</h3>
-              <p className="text-sm text-muted-foreground">{result.profileEstimate}</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Especialización: <strong>{result.specialization}</strong>
-              </p>
-              {formattedUpdatedAt && <p className="text-xs text-muted-foreground mt-2">Actualizado el {formattedUpdatedAt}</p>}
-            </div>
+            
           </div>}
 
         {hasAssessment && result && !loading && <div className="space-y-8">
