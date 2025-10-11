@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -195,7 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return errorMessages[message] || 'Ha ocurrido un error. Inténtalo de nuevo.';
   };
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     session,
     isLoading: isLoading || isAdminValidating,
@@ -206,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     resetPassword,
     resendConfirmation,
-  };
+  }), [user, session, isLoading, isAdminValidating, isAdmin]);
 
   return (
     <AuthContext.Provider value={value}>

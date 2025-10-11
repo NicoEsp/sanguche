@@ -6,6 +6,8 @@ import { CheckCircle2, Clock, Target, TrendingUp, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NeutralArea } from "@/utils/scoring";
 import { LeadershipRecommendations } from "./LeadershipRecommendations";
+import { memo } from "react";
+
 interface PersonalizedRecommendationsProps {
   neutralAreas?: NeutralArea[];
   locked?: boolean;
@@ -54,7 +56,7 @@ const areaRecommendations: Record<string, {
     successCriteria: ["Business case documentado para al menos una iniciativa", "Métricas de revenue conectadas con roadmap de producto", "Propuesta de optimización de monetización evaluada"]
   }
 };
-export function PersonalizedRecommendations({
+export const PersonalizedRecommendations = memo(function PersonalizedRecommendations({
   neutralAreas,
   locked = false,
   mentoriaCompleted = false
@@ -213,4 +215,4 @@ export function PersonalizedRecommendations({
       })}
       </Accordion>
     </div>;
-}
+});

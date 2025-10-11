@@ -20,7 +20,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const { user, isAuthenticated, isAdmin, signOut, isLoading } = useAuth();
-  const { profile, loading: profileLoading } = useUserProfile();
+  const shouldLoadProfile = isAuthenticated && !isLoading;
+  const { profile, loading: profileLoading } = useUserProfile({ skip: !shouldLoadProfile });
 
   const navItems = [
     { href: "/autoevaluacion", label: "Autoevaluación", premium: false },

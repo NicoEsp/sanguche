@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAssessment } from '@/utils/storage';
@@ -13,66 +13,76 @@ interface AssessmentData {
 }
 
 export function useAssessmentData(): AssessmentData {
-  const [data, setData] = useState<AssessmentData>({
-    result: null,
-    values: null,
-    loading: true,
-    hasAssessment: false,
-    updatedAt: null
-  });
   const { user } = useAuth();
 
-  useEffect(() => {
-    async function fetchAssessmentData() {
-      setData(prev => ({ ...prev, loading: true }));
+  // First fetch profile
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
 
-      if (user) {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('user_id', user.id)
-            .single();
+  // Then fetch assessment only if profile exists
+  const { data: assessmentData, isLoading } = useQuery({
+    queryKey: ['assessment-data', profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return null;
 
-          if (profile) {
-            const { data: assessment } = await supabase
-              .from('assessments')
-              .select('assessment_result, assessment_values, created_at')
-              .eq('user_id', profile.id)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle();
+      const { data } = await supabase
+        .from('assessments')
+        .select('assessment_result, assessment_values, created_at')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-            if (assessment && assessment.assessment_result) {
-              setData({
-                result: assessment.assessment_result as AssessmentResult,
-                values: assessment.assessment_values as AssessmentValues,
-                loading: false,
-                hasAssessment: true,
-                updatedAt: assessment.created_at ?? null
-              });
-              return;
-            }
-          }
-        } catch (error) {
-          if (import.meta.env.DEV) console.error('Error fetching assessment from Supabase:', error);
-        }
+      if (data && data.assessment_result) {
+        return {
+          result: data.assessment_result as AssessmentResult,
+          values: data.assessment_values as AssessmentValues,
+          hasAssessment: true,
+          updatedAt: data.created_at ?? null
+        };
       }
 
-      const localAssessment = getAssessment();
-      setData({
-        result: localAssessment?.result || null,
-        values: localAssessment?.values || null,
+      return null;
+    },
+    enabled: !!profile?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fallback to local storage if no assessment in database
+  if (!isLoading && !assessmentData && user) {
+    const localAssessment = getAssessment();
+    if (localAssessment) {
+      return {
+        result: localAssessment.result || null,
+        values: localAssessment.values || null,
         loading: false,
         hasAssessment: !!localAssessment,
-        updatedAt: localAssessment?.createdAt ?? null
-      });
+        updatedAt: localAssessment.createdAt ?? null
+      };
     }
+  }
 
-    fetchAssessmentData();
-  }, [user]);
-
-  return data;
+  return {
+    result: assessmentData?.result || null,
+    values: assessmentData?.values || null,
+    loading: isLoading,
+    hasAssessment: assessmentData?.hasAssessment || false,
+    updatedAt: assessmentData?.updatedAt || null
+  };
 }
 
 export type { Gap, NeutralArea, Strength };

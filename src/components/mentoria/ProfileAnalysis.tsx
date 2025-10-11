@@ -2,12 +2,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Target, BarChart3 } from "lucide-react";
 import { AssessmentResult } from "@/utils/scoring";
+import { memo } from "react";
 
 interface ProfileAnalysisProps {
   result: AssessmentResult;
 }
 
-export function ProfileAnalysis({ result }: ProfileAnalysisProps) {
+export const ProfileAnalysis = memo(function ProfileAnalysis({ result }: ProfileAnalysisProps) {
   return (
     <div className="space-y-6">
       {/* Tu perfil de PM */}
@@ -82,4 +83,4 @@ export function ProfileAnalysis({ result }: ProfileAnalysisProps) {
       </Card>
     </div>
   );
-}
+});

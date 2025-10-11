@@ -9,14 +9,19 @@ interface UserProfile {
   mentoria_completed: boolean;
 }
 
-export function useUserProfile() {
+interface UseUserProfileOptions {
+  skip?: boolean;
+}
+
+export function useUserProfile(options: UseUserProfileOptions = {}) {
+  const { skip = false } = options;
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
     async function fetchProfile() {
-      if (!user) {
+      if (!user || skip) {
         setProfile(null);
         setLoading(false);
         return;
@@ -42,7 +47,7 @@ export function useUserProfile() {
     }
 
     fetchProfile();
-  }, [user]);
+  }, [user, skip]);
 
   return { profile, loading };
 }

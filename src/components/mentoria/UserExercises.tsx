@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useMyExercises, useUpdateExercise } from "@/hooks/useUserExercises";
-import { useState } from "react";
+import { useState, memo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { FileText, Calendar, Link as LinkIcon, Send, Save, CheckCircle2 } from "lucide-react";
@@ -24,7 +24,7 @@ const typeLabels = {
   theoretical: "Teórico"
 };
 
-export function UserExercises() {
+export const UserExercises = memo(function UserExercises() {
   const { data: exercises, isLoading } = useMyExercises();
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [submissionText, setSubmissionText] = useState("");
@@ -285,4 +285,4 @@ export function UserExercises() {
       </CardContent>
     </Card>
   );
-}
+});

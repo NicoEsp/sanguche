@@ -33,7 +33,7 @@ export function useProgressObjectives() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('progress_objectives')
-        .select('*')
+        .select('id, title, summary, type, timeframe, steps, level, display_order, is_active, created_at, updated_at')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 

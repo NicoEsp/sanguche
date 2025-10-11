@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AssessmentResult } from '@/utils/scoring';
 import { shouldShowResource } from '@/utils/resourceFilters';
+import { useMemo, useEffect } from 'react';
 
 export interface Resource {
   id: string;
@@ -20,52 +21,38 @@ export interface Resource {
 }
 
 export function useResources() {
-  const [resources, setResources] = useState<Resource[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchResources = async () => {
-    try {
-      setLoading(true);
+  const { data: resources = [], isLoading: loading, error, refetch } = useQuery({
+    queryKey: ['resources'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('resources')
-        .select('*')
+        .select('id, name, file_url, visibility_type, condition_domain, condition_min_level, condition_max_level, display_order, is_active, access_level, bucket_name, created_at, updated_at')
         .order('display_order', { ascending: true });
 
       if (error) throw error;
-      setResources(data || []);
-      setError(null);
-    } catch (err) {
-      if (import.meta.env.DEV) console.error('Error fetching resources:', err);
-      setError('Error al cargar recursos');
-    } finally {
-      setLoading(false);
-    }
+      return (data || []) as Resource[];
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  return { 
+    resources, 
+    loading, 
+    error: error ? 'Error al cargar recursos' : null, 
+    refetch 
   };
-
-  useEffect(() => {
-    fetchResources();
-  }, []);
-
-  return { resources, loading, error, refetch: fetchResources };
 }
 
 export function useAvailableResources(assessmentResult: AssessmentResult | null) {
   const { resources, loading, error } = useResources();
-  const [availableResources, setAvailableResources] = useState<Resource[]>([]);
 
-  useEffect(() => {
-    if (!resources.length) {
-      setAvailableResources([]);
-      return;
-    }
+  const availableResources = useMemo(() => {
+    if (!resources.length) return [];
 
-    const filtered = resources.filter(resource => {
+    return resources.filter(resource => {
       if (!resource.is_active) return false;
       return shouldShowResource(resource, assessmentResult);
     });
-
-    setAvailableResources(filtered);
   }, [resources, assessmentResult]);
 
   return { resources: availableResources, loading, error };
