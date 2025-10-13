@@ -103,7 +103,7 @@ export default function Premium() {
                     </li>
                     <li className="flex items-center gap-3">
                       <Check className="w-5 h-5 text-primary" />
-                      <span>Actualizaciones mensuales de contenido y recursos</span>
+                      <span>Actualizaciones mensuales de contenido y recursos específicos</span>
                     </li>
                   </ul>
                   
