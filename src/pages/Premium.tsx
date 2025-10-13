@@ -22,7 +22,7 @@ export default function Premium() {
         {/* Hero Section */}
         <section className="pt-12 pb-8 px-4">
           <div className="max-w-6xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent md:text-4xl">
               Crece como Product Manager, con foco y acompañamiento real
             </h1>
             
