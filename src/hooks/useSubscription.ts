@@ -10,8 +10,6 @@ export function useSubscription(options?: UseSubscriptionOptions) {
     plan: 'free' | 'premium';
     status: 'active' | 'inactive' | 'cancelled';
     trialEnd: Date | null;
-    polar_subscription_id?: string | null;
-    polar_customer_id?: string | null;
     current_period_end?: Date | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +58,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
         // Get subscription data
         const { data: subData } = await supabase
           .from('user_subscriptions')
-          .select('plan, status, trial_end, polar_subscription_id, polar_customer_id, current_period_end')
+          .select('plan, status, trial_end, current_period_end')
           .eq('user_id', profile.id)
           .single();
 
@@ -69,8 +67,6 @@ export function useSubscription(options?: UseSubscriptionOptions) {
             plan: subData.plan,
             status: subData.status,
             trialEnd: subData.trial_end ? new Date(subData.trial_end) : null,
-            polar_subscription_id: subData.polar_subscription_id,
-            polar_customer_id: subData.polar_customer_id,
             current_period_end: subData.current_period_end ? new Date(subData.current_period_end) : null,
           });
         } else {

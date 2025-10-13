@@ -12,7 +12,7 @@ export function SubscriptionManager() {
   const { toast } = useToast();
 
   const handleCancelSubscription = async () => {
-    if (!subscription?.polar_subscription_id) {
+    if (!subscription || subscription.plan !== 'premium') {
       toast({
         variant: "destructive",
         title: "Error",
@@ -23,13 +23,17 @@ export function SubscriptionManager() {
 
     setCanceling(true);
     try {
-      // Here you would typically call the Polar API to cancel the subscription
-      // For now, we'll show a toast indicating the action
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { error } = await supabase.functions.invoke('cancel-subscription');
+
+      if (error) throw error;
+
       toast({
         title: "Suscripción cancelada",
         description: "Tu suscripción se ha cancelado correctamente. Mantendrás acceso hasta el final del período actual."
       });
     } catch (error) {
+      console.error('Error canceling subscription:', error);
       toast({
         variant: "destructive",
         title: "Error",
