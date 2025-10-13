@@ -18,6 +18,7 @@ import { LockedResources } from "@/components/mentoria/LockedResources";
 import { UserExercises } from "@/components/mentoria/UserExercises";
 import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 
 export default function Recommendations() {
   const { hasActivePremium, loading } = useSubscription();
@@ -25,6 +26,7 @@ export default function Recommendations() {
   const { result: assessmentResult, loading: assessmentLoading, hasAssessment } = useAssessmentData();
   const { profile, loading: profileLoading } = useUserProfile();
   const { isAdmin } = useAuth();
+  const { trackEvent } = useMixpanelTracking();
 
   // Check for success payment
   useEffect(() => {
@@ -55,6 +57,17 @@ export default function Recommendations() {
     profile?.mentoria_completed || false, 
     isAdmin
   );
+
+  // Track recommendations page view
+  useEffect(() => {
+    if (!loading && !assessmentLoading && !profileLoading) {
+      trackEvent('recommendations_viewed', {
+        has_premium: hasActivePremium,
+        has_assessment: hasAssessment,
+        mentoria_completed: profile?.mentoria_completed || false
+      });
+    }
+  }, [loading, assessmentLoading, profileLoading, hasActivePremium, hasAssessment, profile, trackEvent]);
 
   if (loading || assessmentLoading || profileLoading) {
     return (

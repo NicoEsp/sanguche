@@ -8,6 +8,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Seo } from "@/components/Seo";
 import { PolarCheckout } from "@/components/PolarCheckout";
+import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
+import { useEffect } from "react";
+
 export default function Premium() {
   const {
     user
@@ -15,6 +18,14 @@ export default function Premium() {
   const {
     hasActivePremium
   } = useSubscription();
+  const { trackEvent } = useMixpanelTracking();
+
+  // Track premium page view
+  useEffect(() => {
+    trackEvent('premium_page_viewed', {
+      has_premium: hasActivePremium
+    });
+  }, [hasActivePremium, trackEvent]);
   return <>
       <Seo title="Premium: Crece como Product Manager con mentoría personalizada | ProductPrepa" description="Evaluá tus habilidades, trabajá en tus áreas de mejora y recibí mentoría mensual con NicoProducto. Desde $9.99/mes. Cancelá cuando quieras." canonical="/premium" />
       

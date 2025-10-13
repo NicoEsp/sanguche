@@ -30,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 
 export default function Assessment() {
   const navigate = useNavigate();
@@ -38,6 +39,9 @@ export default function Assessment() {
   const [diagnosticAnswers, setDiagnosticAnswers] = useState<Record<DomainKey, boolean>>({} as Record<DomainKey, boolean>);
   const [isReevaluating, setIsReevaluating] = useState(false);
   const [showReevaluationDialog, setShowReevaluationDialog] = useState(false);
+  const [assessmentStartTime] = useState(Date.now());
+  
+  const { trackEvent, setUserProperties } = useMixpanelTracking();
 
   const {
     result: savedResult,
@@ -58,8 +62,11 @@ export default function Assessment() {
   useEffect(() => {
     if (!assessmentLoading) {
       setIsReevaluating(!hasAssessment);
+      if (!hasAssessment) {
+        trackEvent('assessment_started');
+      }
     }
-  }, [assessmentLoading, hasAssessment]);
+  }, [assessmentLoading, hasAssessment, trackEvent]);
 
   useEffect(() => {
     if (isReevaluating) {
@@ -94,7 +101,26 @@ export default function Assessment() {
 
   async function onSubmit(data: AssessmentValues) {
     const result = computeSeniorityScore(data);
+    const timeSpent = Math.round((Date.now() - assessmentStartTime) / 1000); // segundos
+    
     await saveAssessment(data, result, supabase);
+    
+    // Track assessment completion
+    trackEvent('assessment_completed', {
+      total_score: result.promedioGlobal,
+      estimated_level: result.nivel,
+      time_spent_seconds: timeSpent,
+      gaps_count: result.gaps?.length || 0,
+      strengths_count: result.strengths?.length || 0
+    });
+    
+    // Actualizar propiedades del usuario
+    setUserProperties({
+      assessment_completed: true,
+      estimated_level: result.nivel,
+      last_assessment_date: new Date().toISOString()
+    });
+    
     toast({ title: "Autoevaluación guardada", description: `Nivel estimado: ${result.nivel} (promedio ${result.promedioGlobal})` });
     
     // Resetear estado de re-evaluación para mostrar los resultados

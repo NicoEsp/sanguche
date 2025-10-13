@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Eye, EyeOff, Mail, ArrowLeft, RefreshCw } from 'lucide-react';
+import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 
 const loginSchema = z.object({
   email: z.string().email('Por favor ingresa un email válido'),
@@ -51,6 +52,7 @@ export default function Auth() {
   const { signIn, signUp, resetPassword, resendConfirmation, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { trackEvent } = useMixpanelTracking();
 
   // Redirigir usuarios autenticados
   useEffect(() => {
@@ -66,6 +68,11 @@ export default function Auth() {
       setMode('reset');
     }
   }, [searchParams]);
+
+  // Track auth page view
+  useEffect(() => {
+    trackEvent('auth_page_view', { mode });
+  }, [mode, trackEvent]);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -93,18 +100,26 @@ export default function Auth() {
   });
 
   const onLoginSubmit = async (data: LoginFormData) => {
+    trackEvent('login_started', { email: data.email });
     const { error } = await signIn(data.email, data.password);
     if (!error) {
+      trackEvent('login_completed', { email: data.email });
       navigate('/', { replace: true });
+    } else {
+      trackEvent('login_failed', { email: data.email, error: error.message });
     }
   };
 
   const onSignUpSubmit = async (data: SignUpFormData) => {
+    trackEvent('signup_started', { email: data.email });
     const { error } = await signUp(data.email, data.password, data.name);
     if (!error) {
+      trackEvent('signup_completed', { email: data.email, name: data.name });
       setVerificationEmail(data.email);
       setMode('email-verification');
       signUpForm.reset();
+    } else {
+      trackEvent('signup_failed', { email: data.email, error: error.message });
     }
   };
 

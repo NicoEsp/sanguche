@@ -8,6 +8,9 @@ import { useSubscription } from "@/hooks/useAuth";
 import { ResourcesList } from "@/components/resources/ResourcesList";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
+import { useEffect } from "react";
+
 export default function SkillGaps() {
   const {
     hasActivePremium
@@ -18,6 +21,7 @@ export default function SkillGaps() {
     hasAssessment,
     updatedAt
   } = useAssessmentData();
+  const { trackEvent } = useMixpanelTracking();
   const gaps = result?.gaps ?? [];
   const strengths = result?.strengths ?? [];
   const neutralAreas = result?.neutralAreas ?? [];
@@ -26,6 +30,18 @@ export default function SkillGaps() {
     dateStyle: "long",
     timeStyle: "short"
   }).format(new Date(updatedAt)) : null;
+
+  // Track skill gaps view
+  useEffect(() => {
+    if (!loading && result) {
+      trackEvent('skill_gaps_viewed', {
+        gaps_count: gaps?.length || 0,
+        strengths_count: strengths?.length || 0,
+        neutral_count: neutralAreas?.length || 0,
+        estimated_level: result.nivel
+      });
+    }
+  }, [loading, result, gaps, strengths, neutralAreas, trackEvent]);
   return <>
       <Seo title="Resultados de tu evaluación — ProductPrepa" description="Revisa tu desempeño completo: fortalezas y áreas de mejora identificadas." canonical="/mejoras" />
       <section className="container py-6 sm:py-10 px-4 sm:px-6">

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 
 interface PolarCheckoutProps {
   onSuccess?: () => void;
@@ -13,6 +14,7 @@ export function PolarCheckout({ onSuccess, onError }: PolarCheckoutProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { trackEvent, setUserProperties } = useMixpanelTracking();
 
   const handleCheckout = async () => {
     if (!user) {
@@ -25,6 +27,7 @@ export function PolarCheckout({ onSuccess, onError }: PolarCheckoutProps) {
     }
 
     setLoading(true);
+    trackEvent('checkout_started', { plan: 'premium', price: 9.99 });
     
     try {
       const { data, error } = await supabase.functions.invoke('polar-checkout', {
@@ -37,6 +40,7 @@ export function PolarCheckout({ onSuccess, onError }: PolarCheckoutProps) {
 
       if (data?.checkoutUrl) {
         // Redirect to Polar checkout
+        trackEvent('checkout_redirect', { checkout_url: data.checkoutUrl });
         window.location.href = data.checkoutUrl;
       } else {
         throw new Error('No checkout URL received');
@@ -44,6 +48,8 @@ export function PolarCheckout({ onSuccess, onError }: PolarCheckoutProps) {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al crear el checkout';
+      
+      trackEvent('checkout_failed', { error: errorMessage });
       
       toast({
         variant: "destructive",

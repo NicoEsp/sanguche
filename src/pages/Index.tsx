@@ -8,10 +8,13 @@ import { HowItWorks } from "@/components/sections/HowItWorks";
 
 import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
 import { useAuth } from '@/contexts/AuthContext';
+import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
+
 const Index = () => {
   const {
     isAuthenticated
   } = useAuth();
+  const { trackEvent } = useMixpanelTracking();
   return <>
       <Seo 
         title="ProductPrepa — Autoevaluación PM" 
@@ -37,13 +40,13 @@ const Index = () => {
           <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">Evaluación integral que identifica tu nivel actual y áreas de crecimiento para trabajar de la mano de recursos especificos y acompañamiento de <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a>.</p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-            <Button asChild size="lg" className="w-full sm:w-auto text-base px-8 py-6 font-semibold">
+            <Button asChild size="lg" className="w-full sm:w-auto text-base px-8 py-6 font-semibold" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'hero', cta_text: isAuthenticated ? 'Continuar evaluación' : 'Comenzar evaluación gratis' })}>
               <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
                 {isAuthenticated ? "Continuar evaluación" : "Comenzar evaluación gratis"}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-base px-8 py-6">
+            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-base px-8 py-6" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'hero_premium' })}>
               <Link to="/premium">Ver funciones premium</Link>
             </Button>
           </div>
@@ -69,7 +72,7 @@ const Index = () => {
         {/* CTA after HowItWorks */}
         <section className="text-center mx-0 my-0 px-[2px] py-[20px]">
           <div className="container mx-auto px-4">
-            <Button size="lg" asChild className="bg-primary hover:bg-primary/90">
+            <Button size="lg" asChild className="bg-primary hover:bg-primary/90" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'after_how_it_works' })}>
               <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
                 Evalúate ahora
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -120,7 +123,7 @@ const Index = () => {
                     <span className="text-sm">Recursos gratuitos para ayudarte</span>
                   </div>
                 </div>
-                <Button asChild className="w-full mt-6">
+                <Button asChild className="w-full mt-6" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'pricing_free' })}>
                   <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
                     {isAuthenticated ? "Ir a evaluación" : "Comenzar gratis"}
                   </Link>
@@ -165,7 +168,7 @@ const Index = () => {
                     <span className="text-sm">Roadmap de carrera personalizado</span>
                   </div>
                 </div>
-                <Button asChild className="w-full mt-6">
+                <Button asChild className="w-full mt-6" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'pricing_premium' })}>
                   <Link to="/mentoria">Suscribirse a Premium</Link>
                 </Button>
               </CardContent>
