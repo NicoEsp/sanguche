@@ -505,7 +505,9 @@ export type Database = {
           created_at: string
           due_date: string | null
           id: string
+          is_locked: boolean | null
           level: Json | null
+          locked_at: string | null
           mentor_notes: string | null
           objective_id: string | null
           source: string
@@ -523,7 +525,9 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          is_locked?: boolean | null
           level?: Json | null
+          locked_at?: string | null
           mentor_notes?: string | null
           objective_id?: string | null
           source: string
@@ -541,7 +545,9 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          is_locked?: boolean | null
           level?: Json | null
+          locked_at?: string | null
           mentor_notes?: string | null
           objective_id?: string | null
           source?: string

@@ -15,14 +15,19 @@ import { cn } from "@/lib/utils";
 import { useSubscription } from "@/hooks/useSubscription";
 import { PaywallCard } from "@/components/PaywallCard";
 import { Seo } from "@/components/Seo";
-import { Calendar, CheckCircle2, GripVertical, Lock, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Calendar, CheckCircle2, FileText, Lock, Plus, Save, Sparkles, Trash2 } from "lucide-react";
 import { CanvasStage, ProgressObjective } from "@/types/progress";
 import { useProgressObjectives } from "@/hooks/useProgressObjectives";
 import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjective, useDeleteUserObjective } from "@/hooks/useUserProgressObjectives";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { DndContext, DragEndEvent, DragStartEvent, useDraggable, useDroppable, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
 import type { UserProgressObjective } from "@/hooks/useUserProgressObjectives";
 import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 interface StageConfig {
   key: CanvasStage;
   label: string;
@@ -86,6 +91,7 @@ export default function Progress() {
   const isDemoMode = import.meta.env.DEV && new URLSearchParams(location.search).has("demo");
   const { hasActivePremium, loading } = useSubscription({ skip: isDemoMode });
   const { profile } = useUserProfile();
+  const queryClient = useQueryClient();
   
   // Fetch data from DB
   const { data: suggestedObjectives = [], isLoading: loadingSuggested } = useProgressObjectives();
@@ -100,6 +106,10 @@ export default function Progress() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [customState, setCustomState] = useState<AddCustomObjectiveState>(initialCustomState);
+  const [isLockDialogOpen, setIsLockDialogOpen] = useState(false);
+  
+  // Check if map is locked
+  const isMapLocked = userObjectives.length > 0 && userObjectives.every(obj => obj.is_locked);
   
   // DnD sensors
   const sensors = useSensors(
@@ -135,7 +145,7 @@ export default function Progress() {
     const { active, over } = event;
     setDraggingId(null);
 
-    if (!over || !profile?.id) return;
+    if (!over || !profile?.id || isMapLocked) return;
 
     const draggedId = active.id as string;
     const targetTimeframe = over.id as CanvasStage;
@@ -177,7 +187,7 @@ export default function Progress() {
     // Mentor objectives cannot be dragged (handled by disabled prop)
   };
   const toggleStep = (objective: UserProgressObjective, stepId: string) => {
-    if (!profile?.id) return;
+    if (!profile?.id || isMapLocked) return;
 
     const updatedSteps = objective.steps.map(step =>
       step.id === stepId ? { ...step, completed: !step.completed } : step
@@ -195,8 +205,38 @@ export default function Progress() {
   };
 
   const handleDeleteCustom = (id: string) => {
-    if (!profile?.id) return;
+    if (!profile?.id || isMapLocked) return;
     deleteUserObjective.mutate({ id, userId: profile.id });
+  };
+  
+  // Lock all user objectives
+  const lockUserObjectives = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase
+        .from('user_progress_objectives')
+        .update({ 
+          is_locked: true, 
+          locked_at: new Date().toISOString() 
+        })
+        .eq('user_id', userId)
+        .eq('is_locked', false);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-progress-objectives', profile?.id] });
+      toast.success('Tu Career Path ha sido guardado exitosamente');
+    },
+    onError: (error: Error) => {
+      console.error('Error locking objectives:', error);
+      toast.error('Error al guardar tu Career Path');
+    }
+  });
+  
+  const handleLockCareerPath = () => {
+    if (!profile?.id) return;
+    lockUserObjectives.mutate(profile.id);
+    setIsLockDialogOpen(false);
   };
   const handleDialogChange = (open: boolean) => {
     setIsDialogOpen(open);
@@ -205,7 +245,7 @@ export default function Progress() {
     }
   };
   const addCustomObjective = () => {
-    if (availableCustomCount >= MAX_CUSTOM_OBJECTIVES || !customState.title.trim() || !profile?.id) {
+    if (availableCustomCount >= MAX_CUSTOM_OBJECTIVES || !customState.title.trim() || !profile?.id || isMapLocked) {
       return;
     }
 
@@ -261,9 +301,51 @@ export default function Progress() {
                     Beta
                   </Badge>
                 </div>
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight">
-                  Tu mapa de progreso profesional
-                </h1>
+                
+                <div className="flex items-center justify-between gap-4">
+                  <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight">
+                    Tu Career Path
+                  </h1>
+                  
+                  <div className="flex items-center gap-3">
+                    {/* Botón Guardar - Solo visible si NO está locked */}
+                    {!isMapLocked && canvasObjectives.length > 0 && (
+                      <Button 
+                        onClick={() => setIsLockDialogOpen(true)}
+                        className="gap-2"
+                      >
+                        <Save className="h-4 w-4" />
+                        Guardar Career Path
+                      </Button>
+                    )}
+                    
+                    {/* Botón Exportar PDF - Siempre visible pero disabled si no locked */}
+                    {canvasObjectives.length > 0 && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button 
+                                disabled={!isMapLocked}
+                                variant="outline"
+                                className="gap-2"
+                                onClick={() => toast.info('Funcionalidad próximamente disponible')}
+                              >
+                                <FileText className="h-4 w-4" />
+                                Exportar PDF
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {isMapLocked 
+                              ? "Descarga tu Career Path en PDF" 
+                              : "Primero debes guardar tu Career Path para exportarlo"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="bg-card border shadow-sm rounded-xl px-4 py-3 md:px-6 md:py-4">
@@ -297,13 +379,24 @@ export default function Progress() {
             </div>
           </header>
 
+          {/* Locked banner */}
+          {isMapLocked && (
+            <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+              <Lock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <AlertTitle>Career Path Guardado</AlertTitle>
+              <AlertDescription>
+                Tu mapa ha sido guardado. Para realizar modificaciones, por favor contáctanos.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <section>
               <div className="relative">
                 <div className="absolute inset-x-10 -top-10 h-40 bg-primary/10 blur-3xl rounded-full pointer-events-none" />
                 <div className="relative rounded-3xl border bg-card/70 backdrop-blur-sm shadow-xl overflow-hidden">
                   <div className="grid md:grid-cols-3 gap-0 md:gap-0">
-                    {STAGES.map(stage => <CanvasStageColumn key={stage.key} stage={stage} objectives={canvasObjectives.filter(obj => obj.timeframe === stage.key)} draggingId={draggingId} toggleStep={toggleStep} onDeleteCustom={handleDeleteCustom} />)}
+                    {STAGES.map(stage => <CanvasStageColumn key={stage.key} stage={stage} objectives={canvasObjectives.filter(obj => obj.timeframe === stage.key)} draggingId={draggingId} toggleStep={toggleStep} onDeleteCustom={handleDeleteCustom} isMapLocked={isMapLocked} />)}
                   </div>
                 </div>
               </div>
@@ -318,16 +411,17 @@ export default function Progress() {
                 </p>
               </div>
               
-              <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
-                <DialogTrigger asChild>
-                  <Button 
-                    disabled={availableCustomCount >= MAX_CUSTOM_OBJECTIVES}
-                    className="w-full sm:w-auto sm:self-end"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Objetivo personalizado
-                  </Button>
-                </DialogTrigger>
+              {!isMapLocked && (
+                <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      disabled={availableCustomCount >= MAX_CUSTOM_OBJECTIVES}
+                      className="w-full sm:w-auto sm:self-end"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Objetivo personalizado
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent className="max-w-xl">
                   <DialogHeader>
                     <DialogTitle>Crea un objetivo personalizado</DialogTitle>
@@ -392,6 +486,7 @@ export default function Progress() {
                   </div>
                 </DialogContent>
               </Dialog>
+              )}
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -403,6 +498,25 @@ export default function Progress() {
         </DndContext>
         </div>
       </div>
+      
+      {/* Lock confirmation dialog */}
+      <AlertDialog open={isLockDialogOpen} onOpenChange={setIsLockDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás listo para guardar tu Career Path?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Una vez guardado, tu mapa quedará finalizado.</p>
+              <p className="font-medium">Si deseas editarlo nuevamente, deberás contactarte con nosotros.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLockCareerPath}>
+              Sí, guardar mi Career Path
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>;
 }
 
@@ -413,9 +527,10 @@ interface CanvasStageColumnProps {
   draggingId: string | null;
   toggleStep: (obj: UserProgressObjective, stepId: string) => void;
   onDeleteCustom: (id: string) => void;
+  isMapLocked: boolean;
 }
 
-function CanvasStageColumn({ stage, objectives, draggingId, toggleStep, onDeleteCustom }: CanvasStageColumnProps) {
+function CanvasStageColumn({ stage, objectives, draggingId, toggleStep, onDeleteCustom, isMapLocked }: CanvasStageColumnProps) {
   const { setNodeRef } = useDroppable({ id: stage.key });
 
   return (
@@ -460,6 +575,7 @@ function CanvasStageColumn({ stage, objectives, draggingId, toggleStep, onDelete
               objective={objective}
               toggleStep={toggleStep}
               onDeleteCustom={onDeleteCustom}
+              isMapLocked={isMapLocked}
             />
           ))}
         </div>
@@ -473,15 +589,16 @@ interface CanvasObjectiveCardProps {
   objective: UserProgressObjective;
   toggleStep: (obj: UserProgressObjective, stepId: string) => void;
   onDeleteCustom: (id: string) => void;
+  isMapLocked: boolean;
 }
 
-function CanvasObjectiveCard({ objective, toggleStep, onDeleteCustom }: CanvasObjectiveCardProps) {
+function CanvasObjectiveCard({ objective, toggleStep, onDeleteCustom, isMapLocked }: CanvasObjectiveCardProps) {
   const isMentor = objective.source === 'mentor';
   const complete = isCompleted(objective);
   
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: objective.id,
-    disabled: isMentor,
+    disabled: isMentor || isMapLocked,
   });
 
   const style = transform ? {
@@ -500,7 +617,7 @@ function CanvasObjectiveCard({ objective, toggleStep, onDeleteCustom }: CanvasOb
         "h-full flex flex-col",
         complete && "border-emerald-400/60 shadow-[0_0_0_1px_rgba(16,185,129,0.25)]",
         isDragging && "opacity-50",
-        !isMentor && "cursor-grab active:cursor-grabbing"
+        !isMentor && !isMapLocked && "cursor-grab active:cursor-grabbing"
       )}
     >
       <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -541,7 +658,7 @@ function CanvasObjectiveCard({ objective, toggleStep, onDeleteCustom }: CanvasOb
             {formatDueDate(objective.due_date)}
           </div>
         )}
-        {!isMentor && (
+        {!isMentor && !isMapLocked && (
           <Button
             size="icon"
             variant="ghost"
@@ -588,6 +705,7 @@ function CanvasObjectiveCard({ objective, toggleStep, onDeleteCustom }: CanvasOb
                     checked={step.completed}
                     onCheckedChange={() => toggleStep(objective, step.id)}
                     className="mt-0.5"
+                    disabled={isMapLocked}
                   />
                   <span className={cn(step.completed && "line-through text-muted-foreground")}>
                     {step.title}

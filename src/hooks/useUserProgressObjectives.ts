@@ -13,6 +13,8 @@ export interface UserProgressObjective extends Omit<ProgressObjective, 'mentorNo
   mentor_notes: string | null;
   created_at: string;
   updated_at: string;
+  is_locked: boolean;
+  locked_at: string | null;
 }
 
 // Fetch user's progress objectives
@@ -26,7 +28,7 @@ export function useUserProgressObjectives(userId: string | undefined) {
 
       const { data, error } = await supabase
         .from('user_progress_objectives')
-        .select('id, user_id, objective_id, title, summary, type, timeframe, steps, status, due_date, mentor_notes, assigned_by_admin, created_at, updated_at')
+        .select('id, user_id, objective_id, title, summary, type, timeframe, steps, status, due_date, mentor_notes, assigned_by_admin, created_at, updated_at, is_locked, locked_at')
         .eq('user_id', userId)
         .order('timeframe', { ascending: true })
         .order('created_at', { ascending: false });
