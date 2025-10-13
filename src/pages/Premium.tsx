@@ -9,18 +9,18 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { Seo } from "@/components/Seo";
 import { PolarCheckout } from "@/components/PolarCheckout";
 export default function Premium() {
-  const { user } = useAuth();
-  const { hasActivePremium } = useSubscription();
+  const {
+    user
+  } = useAuth();
+  const {
+    hasActivePremium
+  } = useSubscription();
   return <>
-      <Seo 
-        title="Funciones Premium - ProductPrepa" 
-        description="Descubre todas las funciones premium de ProductPrepa: mentoría personalizada, seguimiento de progreso, recursos curados y roadmap de carrera." 
-        canonical="/premium"
-      />
+      <Seo title="Funciones Premium - ProductPrepa" description="Descubre todas las funciones premium de ProductPrepa: mentoría personalizada, seguimiento de progreso, recursos curados y roadmap de carrera." canonical="/premium" />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         {/* Hero Section */}
-        <section className="pt-20 pb-16 px-4">
+        <section className="pt-20 pb-16 px-4 py-[40px]">
           <div className="max-w-6xl mx-auto text-center">
             
             
@@ -35,7 +35,7 @@ export default function Premium() {
         </section>
 
         {/* Feature Comparison */}
-        <section className="py-16 px-4">
+        <section className="px-4 py-[30px]">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">¿Qué incluye Premium?</h2>
             
@@ -108,13 +108,9 @@ export default function Premium() {
                   </ul>
                   
                   <div className="mt-6">
-                    {hasActivePremium ? (
-                      <Button asChild size="lg" className="w-full min-h-[44px]">
+                    {hasActivePremium ? <Button asChild size="lg" className="w-full min-h-[44px]">
                         <Link to="/mentoria">Acceder a Premium</Link>
-                      </Button>
-                    ) : (
-                      <PolarCheckout />
-                    )}
+                      </Button> : <PolarCheckout />}
                   </div>
                 </CardContent>
               </Card>
