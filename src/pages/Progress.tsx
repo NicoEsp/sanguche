@@ -187,7 +187,7 @@ export default function Progress() {
     // Mentor objectives cannot be dragged (handled by disabled prop)
   };
   const toggleStep = (objective: UserProgressObjective, stepId: string) => {
-    if (!profile?.id || isMapLocked) return;
+    if (!profile?.id) return;
 
     const updatedSteps = objective.steps.map(step =>
       step.id === stepId ? { ...step, completed: !step.completed } : step
@@ -324,12 +324,12 @@ export default function Progress() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span>
+                             <span>
                               <Button 
                                 disabled={!isMapLocked}
                                 variant="outline"
-                                className="gap-2"
-                                onClick={() => toast.info('Funcionalidad próximamente disponible')}
+                                className={cn("gap-2", !isMapLocked && "cursor-not-allowed")}
+                                onClick={isMapLocked ? () => toast.info('Funcionalidad próximamente disponible') : undefined}
                               >
                                 <FileText className="h-4 w-4" />
                                 Exportar PDF
@@ -385,7 +385,7 @@ export default function Progress() {
               <Lock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               <AlertTitle>Career Path Guardado</AlertTitle>
               <AlertDescription>
-                Tu mapa ha sido guardado. Para realizar modificaciones, por favor contáctanos.
+                Tu mapa ha sido guardado. Podés seguir completando los pasos de tus objetivos. Para agregar o mover objetivos, contactanos.
               </AlertDescription>
             </Alert>
           )}
@@ -402,16 +402,16 @@ export default function Progress() {
               </div>
             </section>
 
-          <section className="space-y-6">
-            <div className="flex flex-col gap-4">
-              <div>
-                <h2 className="text-xl md:text-2xl font-semibold">Objetivos disponibles</h2>
-                <p className="text-sm text-muted-foreground">
-                  Arrastrá cualquier objetivo hacia el canvas para integrarlo a tu camino profesional.
-                </p>
-              </div>
-              
-              {!isMapLocked && (
+          {!isMapLocked && (
+            <section className="space-y-6">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-semibold">Objetivos disponibles</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Arrastrá cualquier objetivo hacia el canvas para integrarlo a tu camino profesional.
+                  </p>
+                </div>
+                
                 <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
                   <DialogTrigger asChild>
                     <Button 
@@ -486,7 +486,6 @@ export default function Progress() {
                   </div>
                 </DialogContent>
               </Dialog>
-              )}
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -495,6 +494,7 @@ export default function Progress() {
               <ObjectiveAvailableColumn title="✍️ Personalizados" description="Define metas propias. Puedes crear hasta tres objetivos adicionales." objectives={customObjectives} draggingId={draggingId} onDelete={handleDeleteCustom} />
             </div>
           </section>
+          )}
         </DndContext>
         </div>
       </div>
@@ -705,7 +705,6 @@ function CanvasObjectiveCard({ objective, toggleStep, onDeleteCustom, isMapLocke
                     checked={step.completed}
                     onCheckedChange={() => toggleStep(objective, step.id)}
                     className="mt-0.5"
-                    disabled={isMapLocked}
                   />
                   <span className={cn(step.completed && "line-through text-muted-foreground")}>
                     {step.title}
