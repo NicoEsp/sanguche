@@ -106,8 +106,8 @@ export function useAdminAnalytics() {
                 }
               });
             }
-            if (result && typeof result.globalAverage === 'number') {
-              totalScores += result.globalAverage;
+            if (result && typeof result.promedioGlobal === 'number') {
+              totalScores += result.promedioGlobal;
               totalScoreCount++;
             }
           } catch (e) {
