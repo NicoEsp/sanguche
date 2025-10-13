@@ -32,6 +32,13 @@ export default function Recommendations() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('success') === 'true') {
+      // Track successful checkout completion
+      trackEvent('checkout_completed', {
+        plan: 'premium',
+        price: 9.99,
+        payment_method: 'polar'
+      });
+      
       toast({
         title: "¡Suscripción exitosa!",
         description: "Bienvenido a ProductPrepa Premium. Ya tienes acceso a todas las funcionalidades."
@@ -39,7 +46,7 @@ export default function Recommendations() {
       // Clean URL
       window.history.replaceState({}, '', '/mentoria');
     }
-  }, [toast]);
+  }, [toast, trackEvent]);
   
   // Memoized access calculations
   const hasAccess = useMemo(
