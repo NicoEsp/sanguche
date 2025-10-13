@@ -130,6 +130,7 @@ export type Database = {
       }
       progress_objectives: {
         Row: {
+          access_level: Database["public"]["Enums"]["progress_objective_access_level"]
           created_at: string
           display_order: number
           id: string
@@ -143,6 +144,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_level?: Database["public"]["Enums"]["progress_objective_access_level"]
           created_at?: string
           display_order?: number
           id?: string
@@ -156,6 +158,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_level?: Database["public"]["Enums"]["progress_objective_access_level"]
           created_at?: string
           display_order?: number
           id?: string
@@ -737,6 +740,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      progress_objective_access_level: "free" | "premium"
       resource_access_level: "public" | "authenticated" | "premium"
       resource_visibility: "public" | "conditional"
       subscription_plan: "free" | "premium"
@@ -869,6 +873,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      progress_objective_access_level: ["free", "premium"],
       resource_access_level: ["public", "authenticated", "premium"],
       resource_visibility: ["public", "conditional"],
       subscription_plan: ["free", "premium"],

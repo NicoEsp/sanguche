@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, GripVertical } from 'lucide-react';
+import { Edit, Trash2, GripVertical, Crown } from 'lucide-react';
 import { ProgressObjective } from '@/hooks/useProgressObjectives';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -44,7 +44,15 @@ export function ProgressObjectiveCard({ objective, onEdit, onDelete }: ProgressO
       <CardHeader className="pl-10">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
-            <CardTitle className="text-lg">{objective.title}</CardTitle>
+            <div className="flex items-center gap-2 flex-wrap">
+              <CardTitle className="text-lg">{objective.title}</CardTitle>
+              {objective.access_level === 'premium' && (
+                <Badge variant="default" className="gap-1">
+                  <Crown className="h-3 w-3" />
+                  Premium
+                </Badge>
+              )}
+            </div>
             <CardDescription className="mt-1">{objective.summary}</CardDescription>
           </div>
           <div className="flex gap-1">

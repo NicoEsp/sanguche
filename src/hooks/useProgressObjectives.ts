@@ -9,6 +9,7 @@ export interface ProgressObjective {
   summary: string;
   type: string;
   timeframe: 'now' | 'soon' | 'later';
+  access_level?: 'free' | 'premium';
   steps: Array<{
     id: string;
     title: string;
@@ -33,7 +34,7 @@ export function useProgressObjectives() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('progress_objectives')
-        .select('id, title, summary, type, timeframe, steps, level, display_order, is_active, created_at, updated_at')
+        .select('id, title, summary, type, timeframe, access_level, steps, level, display_order, is_active, created_at, updated_at')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
@@ -86,6 +87,7 @@ export function useCreateProgressObjective() {
           summary: objective.summary,
           type: objective.type,
           timeframe: objective.timeframe,
+          access_level: objective.access_level || 'free',
           steps: objective.steps,
           level: objective.level,
           display_order: objective.display_order,

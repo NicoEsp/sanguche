@@ -39,6 +39,7 @@ export function CreateProgressObjectiveDialog({
     summary: '',
     type: '',
     timeframe: timeframe as 'now' | 'soon' | 'later',
+    access_level: 'free' as 'free' | 'premium',
     steps: [] as Array<{ id: string; title: string; completed: boolean; description?: string }>,
     level: null as { current: number; target: number; label?: string } | null,
   });
@@ -52,6 +53,7 @@ export function CreateProgressObjectiveDialog({
         summary: objective.summary,
         type: objective.type,
         timeframe: objective.timeframe,
+        access_level: objective.access_level || 'free',
         steps: objective.steps || [],
         level: objective.level || null,
       });
@@ -61,6 +63,7 @@ export function CreateProgressObjectiveDialog({
         summary: '',
         type: '',
         timeframe,
+        access_level: 'free',
         steps: [],
         level: null,
       });
@@ -188,6 +191,22 @@ export function CreateProgressObjectiveDialog({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="access_level">Nivel de Acceso *</Label>
+            <Select value={formData.access_level} onValueChange={(value: any) => setFormData({ ...formData, access_level: value })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="free">📦 Gratis</SelectItem>
+                <SelectItem value="premium">👑 Premium</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Los objetivos premium solo serán visibles para usuarios con suscripción activa
+            </p>
           </div>
 
           <div className="space-y-2">
