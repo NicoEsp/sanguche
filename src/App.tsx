@@ -23,6 +23,11 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+// Skeleton components for better perceived performance
+const SkeletonProgress = lazy(() => import("./components/skeletons/SkeletonProgress"));
+const SkeletonAssessment = lazy(() => import("./components/skeletons/SkeletonAssessment"));
+const SkeletonMentoria = lazy(() => import("./components/skeletons/SkeletonMentoria"));
+
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
@@ -33,12 +38,12 @@ const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
 const AdminProgressObjectives = lazy(() => import("./pages/admin/AdminProgressObjectives"));
 const AdminMentoriaDetail = lazy(() => import("./pages/admin/AdminMentoriaDetail"));
 
-// Optimized QueryClient configuration
+// Optimized QueryClient configuration - More aggressive caching
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes - data considered fresh
-      gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache (formerly cacheTime)
+      staleTime: 10 * 60 * 1000, // 10 minutes - data considered fresh
+      gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache (formerly cacheTime)
       refetchOnWindowFocus: false, // Avoid refetch on tab change
       refetchOnMount: false, // Don't refetch if data in cache
       retry: 1, // Only one retry on error
@@ -87,7 +92,9 @@ const App = () => (
                       } />
                       <Route path="/autoevaluacion" element={
                         <ProtectedRoute>
-                          <Assessment />
+                          <Suspense fallback={<SkeletonAssessment />}>
+                            <Assessment />
+                          </Suspense>
                         </ProtectedRoute>
                       } />
                       <Route path="/mejoras" element={
@@ -97,12 +104,16 @@ const App = () => (
                       } />
                       <Route path="/mentoria" element={
                         <ProtectedRoute>
-                          <Recommendations />
+                          <Suspense fallback={<SkeletonMentoria />}>
+                            <Recommendations />
+                          </Suspense>
                         </ProtectedRoute>
                       } />
                       <Route path="/progreso" element={
                         <ProtectedRoute>
-                          <Progress />
+                          <Suspense fallback={<SkeletonProgress />}>
+                            <Progress />
+                          </Suspense>
                         </ProtectedRoute>
                       } />
                       <Route path="*" element={<NotFound />} />

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useServerAdminValidation } from '@/hooks/useServerAdminValidation';
 import { Mixpanel } from '@/lib/mixpanel';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthContextType {
   user: User | null;
@@ -25,9 +26,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // SECURITY: Server-side admin validation - cannot be bypassed by localStorage manipulation
   const { isAdmin, isValidating: isAdminValidating } = useServerAdminValidation(user);
+
+  // Prefetch critical data when user authenticates
+  useEffect(() => {
+    if (user && !isLoading) {
+      // Prefetch user profile
+      queryClient.prefetchQuery({
+        queryKey: ['user-profile', user.id],
+        queryFn: async () => {
+          const { data } = await supabase
+            .from('profiles')
+            .select('id, name, user_id, mentoria_completed')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          return data;
+        },
+      });
+
+      // Prefetch subscription status
+      queryClient.prefetchQuery({
+        queryKey: ['subscription', user.id],
+        queryFn: async () => {
+          const { data } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (!data?.id) return null;
+
+          const { data: subscription } = await supabase
+            .from('user_subscriptions')
+            .select('*')
+            .eq('user_id', data.id)
+            .maybeSingle();
+          
+          return subscription;
+        },
+      });
+
+      // Prefetch assessment data for users who might have one
+      queryClient.prefetchQuery({
+        queryKey: ['assessment-data-check', user.id],
+        queryFn: async () => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (!profile?.id) return null;
+
+          const { data } = await supabase
+            .from('assessments')
+            .select('assessment_result, assessment_values, created_at')
+            .eq('user_id', profile.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          return data;
+        },
+      });
+    }
+  }, [user, isLoading, queryClient]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(

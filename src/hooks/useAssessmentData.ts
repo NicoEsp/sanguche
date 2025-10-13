@@ -15,30 +15,22 @@ interface AssessmentData {
 export function useAssessmentData(): AssessmentData {
   const { user } = useAuth();
 
-  // First fetch profile
-  const { data: profile } = useQuery({
-    queryKey: ['profile', user?.id],
+  // Optimized: Single query that joins profile data directly
+  const { data: assessmentData, isLoading } = useQuery({
+    queryKey: ['assessment-data', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      
-      const { data } = await supabase
+
+      // Get profile.id first (using prefetched data if available)
+      const { data: profile } = await supabase
         .from('profiles')
         .select('id')
         .eq('user_id', user.id)
-        .single();
-      
-      return data;
-    },
-    enabled: !!user,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-  });
+        .maybeSingle();
 
-  // Then fetch assessment only if profile exists
-  const { data: assessmentData, isLoading } = useQuery({
-    queryKey: ['assessment-data', profile?.id],
-    queryFn: async () => {
       if (!profile?.id) return null;
 
+      // Fetch assessment
       const { data } = await supabase
         .from('assessments')
         .select('assessment_result, assessment_values, created_at')
@@ -58,8 +50,9 @@ export function useAssessmentData(): AssessmentData {
 
       return null;
     },
-    enabled: !!profile?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!user,
+    staleTime: 60 * 60 * 1000, // 1 hour - assessments rarely change
+    gcTime: 2 * 60 * 60 * 1000, // 2 hours in cache
   });
 
   // Fallback to local storage if no assessment in database

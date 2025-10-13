@@ -9,7 +9,7 @@ import { ResourcesList } from "@/components/resources/ResourcesList";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 export default function SkillGaps() {
   const {
@@ -22,14 +22,24 @@ export default function SkillGaps() {
     updatedAt
   } = useAssessmentData();
   const { trackEvent } = useMixpanelTracking();
-  const gaps = result?.gaps ?? [];
-  const strengths = result?.strengths ?? [];
-  const neutralAreas = result?.neutralAreas ?? [];
-  const canAccessRecommendations = isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium);
-  const formattedUpdatedAt = updatedAt ? new Intl.DateTimeFormat("es-AR", {
-    dateStyle: "long",
-    timeStyle: "short"
-  }).format(new Date(updatedAt)) : null;
+  
+  // Memoized calculations to avoid re-computation
+  const gaps = useMemo(() => result?.gaps ?? [], [result]);
+  const strengths = useMemo(() => result?.strengths ?? [], [result]);
+  const neutralAreas = useMemo(() => result?.neutralAreas ?? [], [result]);
+  
+  const canAccessRecommendations = useMemo(
+    () => isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium),
+    [hasActivePremium]
+  );
+  
+  const formattedUpdatedAt = useMemo(
+    () => updatedAt ? new Intl.DateTimeFormat("es-AR", {
+      dateStyle: "long",
+      timeStyle: "short"
+    }).format(new Date(updatedAt)) : null,
+    [updatedAt]
+  );
 
   // Track skill gaps view
   useEffect(() => {

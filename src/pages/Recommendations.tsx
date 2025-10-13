@@ -7,7 +7,7 @@ import { useSubscription } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { MentoriaHero } from "@/components/mentoria/MentoriaHero";
 import { ProfileAnalysis } from "@/components/mentoria/ProfileAnalysis";
@@ -41,21 +41,28 @@ export default function Recommendations() {
     }
   }, [toast]);
   
-  // Verificar si el usuario tiene acceso a recomendaciones
-  const hasAccess = isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium);
+  // Memoized access calculations
+  const hasAccess = useMemo(
+    () => isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium),
+    [hasActivePremium]
+  );
   
-  // Verificar si el usuario tiene acceso al contenido básico de mentoría
-  const hasMentoriaAccess = isMentoriaContentAvailable(
-    hasActivePremium, 
-    profile?.mentoria_completed || false, 
-    isAdmin
+  const hasMentoriaAccess = useMemo(
+    () => isMentoriaContentAvailable(
+      hasActivePremium, 
+      profile?.mentoria_completed || false, 
+      isAdmin
+    ),
+    [hasActivePremium, profile?.mentoria_completed, isAdmin]
   );
 
-  // Verificar si el usuario tiene acceso al contenido avanzado (post-mentoría)
-  const hasAdvancedAccess = isMentoriaAdvancedContentAvailable(
-    hasActivePremium, 
-    profile?.mentoria_completed || false, 
-    isAdmin
+  const hasAdvancedAccess = useMemo(
+    () => isMentoriaAdvancedContentAvailable(
+      hasActivePremium, 
+      profile?.mentoria_completed || false, 
+      isAdmin
+    ),
+    [hasActivePremium, profile?.mentoria_completed, isAdmin]
   );
 
   // Track recommendations page view

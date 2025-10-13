@@ -40,6 +40,8 @@ export function useProgressObjectives() {
       if (error) throw error;
       return data as ProgressObjective[];
     },
+    staleTime: 30 * 60 * 1000, // 30 minutes - catalog rarely changes
+    gcTime: 60 * 60 * 1000, // 1 hour in cache
   });
 }
 

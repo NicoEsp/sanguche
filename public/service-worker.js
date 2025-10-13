@@ -1,5 +1,6 @@
-// Service Worker for caching static assets
-const CACHE_NAME = 'productprepa-v1';
+// Service Worker for caching static assets and API responses
+const CACHE_NAME = 'productprepa-v2';
+const API_CACHE = 'productprepa-api-v1';
 const urlsToCache = [
   '/',
   '/assets/sanguche.png',
@@ -35,6 +36,32 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // Cache Supabase GET requests for better offline support
+  if (url.hostname.includes('supabase.co') && event.request.method === 'GET') {
+    event.respondWith(
+      caches.open(API_CACHE).then((cache) => {
+        return cache.match(event.request).then((cached) => {
+          const fetchPromise = fetch(event.request)
+            .then((response) => {
+              // Only cache successful responses
+              if (response.ok) {
+                cache.put(event.request, response.clone());
+              }
+              return response;
+            })
+            .catch(() => cached); // Fallback to cache on network error
+          
+          // Return cached response immediately if available, otherwise wait for network
+          return cached || fetchPromise;
+        });
+      })
+    );
+    return;
+  }
+  
+  // Standard caching for static assets
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -52,7 +79,6 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => {
         // If both cache and network fail, show offline page
-        // You can create a custom offline page here
         return new Response('Offline');
       })
   );

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface UserProfile {
+export interface UserProfile {
   id: string;
   name: string | null;
   user_id: string;
@@ -15,39 +15,25 @@ interface UseUserProfileOptions {
 
 export function useUserProfile(options: UseUserProfileOptions = {}) {
   const { skip = false } = options;
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  useEffect(() => {
-    async function fetchProfile() {
-      if (!user || skip) {
-        setProfile(null);
-        setLoading(false);
-        return;
-      }
+  const { data: profile = null, isLoading: loading } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, name, user_id, mentoria_completed')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, name, user_id, mentoria_completed')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (error) {
-          setProfile(null);
-        } else {
-          setProfile(data);
-        }
-      } catch (error) {
-        setProfile(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchProfile();
-  }, [user, skip]);
+      return data;
+    },
+    enabled: !!user && !skip,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes in cache
+  });
 
   return { profile, loading };
 }

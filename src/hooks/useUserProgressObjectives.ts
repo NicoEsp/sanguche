@@ -39,7 +39,7 @@ export function useUserProgressObjectives(userId: string | undefined) {
     enabled: !!userId,
   });
 
-  // Setup realtime subscription
+  // Setup realtime subscription with optimistic updates
   useEffect(() => {
     if (!userId) return;
 
@@ -54,8 +54,30 @@ export function useUserProgressObjectives(userId: string | undefined) {
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          console.log('Realtime update for user objectives:', payload);
-          queryClient.invalidateQueries({ queryKey: ['user-progress-objectives', userId] });
+          if (import.meta.env.DEV) {
+            console.log('Realtime update for user objectives:', payload);
+          }
+          
+          // Optimistic update instead of full invalidation
+          queryClient.setQueryData(
+            ['user-progress-objectives', userId],
+            (old: UserProgressObjective[] | undefined) => {
+              if (!old) return old;
+              
+              if (payload.eventType === 'INSERT') {
+                return [...old, payload.new as UserProgressObjective];
+              }
+              if (payload.eventType === 'UPDATE') {
+                return old.map(obj => 
+                  obj.id === (payload.new as any).id ? payload.new as UserProgressObjective : obj
+                );
+              }
+              if (payload.eventType === 'DELETE') {
+                return old.filter(obj => obj.id !== (payload.old as any).id);
+              }
+              return old;
+            }
+          );
         }
       )
       .subscribe();

@@ -32,7 +32,8 @@ export function useResources() {
       if (error) throw error;
       return (data || []) as Resource[];
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 30 * 60 * 1000, // 30 minutes - resources rarely change
+    gcTime: 60 * 60 * 1000, // 1 hour in cache
   });
 
   return { 
