@@ -52,7 +52,7 @@ export default function Premium() {
                   <ul className="space-y-3">
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>Autoevaluación completa de tus habilidades</span>
+                      <span>Autoevaluación completa de tus habilidades basada en 11 dominios específicos</span>
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
