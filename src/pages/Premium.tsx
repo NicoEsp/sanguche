@@ -60,7 +60,7 @@ export default function Premium() {
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>Recursos introductorios sobre Producto</span>
+                      <span>Recursos introductorios sobre Product Management</span>
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
@@ -191,10 +191,8 @@ export default function Premium() {
                     </div>
                   </div>
                   <div className="text-center md:text-left">
-                    <p className="text-lg italic mb-4">
-                      "ProductPrepa me ayudó a identificar exactamente en qué trabajar. La mentoría mensual me dio claridad sobre mi próximo paso en la carrera."
-                    </p>
-                    <p className="font-semibold">— María López, Product Manager</p>
+                    <p className="text-lg italic mb-4">&quot;ProductPrepa me ayudó a identificar exactamente en qué trabajar y donde hacer foco. La mentoría mensual con Nico me dió claridad además de ordenar mis próximos pasos.&quot;</p>
+                    <p className="font-semibold">— Mariel, Product Manager</p>
                   </div>
                 </div>
               </CardContent>
