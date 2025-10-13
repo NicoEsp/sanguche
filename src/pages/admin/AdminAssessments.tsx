@@ -48,20 +48,11 @@ export default function AdminAssessments() {
           assessment_values,
           assessment_result,
           user_id,
-          profiles!assessments_user_id_fkey(name, user_id)
+          profiles!assessments_user_id_fkey(name, email, user_id)
         `)
         .order('created_at', { ascending: false });
 
       if (assessmentsError) throw assessmentsError;
-
-      // Get user IDs to fetch emails
-      const userIds = assessments?.map(a => (a.profiles as any)?.user_id).filter(Boolean) || [];
-      
-      // Fetch emails from auth.users
-      const { data: { users } } = await supabase.auth.admin.listUsers();
-      const emailMap = Object.fromEntries(
-        users?.map(u => [u.id, u.email]) || []
-      );
 
       const transformedData = assessments?.map(assessment => ({
         id: assessment?.id || '',
@@ -70,7 +61,7 @@ export default function AdminAssessments() {
         assessment_result: assessment?.assessment_result || {},
         user: {
           name: (assessment?.profiles as any)?.name || null,
-          email: emailMap[(assessment?.profiles as any)?.user_id] || null,
+          email: (assessment?.profiles as any)?.email || null,
           user_id: (assessment?.profiles as any)?.user_id || null
         }
       })).filter(Boolean) || [];
