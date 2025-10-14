@@ -32,6 +32,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 
+// Constantes para localStorage
+const ASSESSMENT_IN_PROGRESS_KEY = 'assessment_in_progress';
+const ASSESSMENT_PARTIAL_ANSWERS_KEY = 'assessment_partial_answers';
+
 export default function Assessment() {
   const navigate = useNavigate();
   const [showDiagnosticQuestions, setShowDiagnosticQuestions] = useState(false);
@@ -61,18 +65,68 @@ export default function Assessment() {
 
   useEffect(() => {
     if (!assessmentLoading) {
-      setIsReevaluating(!hasAssessment);
-      if (!hasAssessment) {
+      // Verificar si hay una evaluación en progreso en localStorage
+      const assessmentInProgress = localStorage.getItem(ASSESSMENT_IN_PROGRESS_KEY) === 'true';
+      
+      // Si hay assessment en progreso O no hay assessment guardado, mostrar formulario
+      const shouldShowForm = assessmentInProgress || !hasAssessment;
+      
+      setIsReevaluating(shouldShowForm);
+      
+      // Si no hay assessment y tampoco había una en progreso, marcar como nueva
+      if (!hasAssessment && !assessmentInProgress) {
         trackEvent('assessment_started');
+        localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
+      }
+      
+      // Si hay evaluación en progreso, recuperar respuestas parciales
+      if (assessmentInProgress) {
+        const partialAnswers = localStorage.getItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
+        if (partialAnswers) {
+          try {
+            const parsedAnswers = JSON.parse(partialAnswers);
+            form.reset(parsedAnswers);
+          } catch (e) {
+            console.error('Error recuperando respuestas parciales:', e);
+          }
+        }
       }
     }
-  }, [assessmentLoading, hasAssessment, trackEvent]);
+  }, [assessmentLoading, hasAssessment, trackEvent, form]);
 
   useEffect(() => {
     if (isReevaluating) {
-      // SIEMPRE resetear a valores vacíos cuando se inicia re-evaluación
-      // Esto garantiza que el usuario pueda modificar libremente sus respuestas
-      form.reset({} as AssessmentValues);
+      // Verificar si hay respuestas parciales guardadas
+      const partialAnswers = localStorage.getItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
+      
+      if (partialAnswers) {
+        // Si hay respuestas parciales, recuperarlas
+        try {
+          const parsedAnswers = JSON.parse(partialAnswers);
+          form.reset(parsedAnswers);
+        } catch (e) {
+          console.error('Error recuperando respuestas parciales:', e);
+          form.reset({} as AssessmentValues);
+        }
+      } else {
+        // Si no hay respuestas parciales, resetear a vacío
+        form.reset({} as AssessmentValues);
+      }
+    }
+  }, [isReevaluating, form]);
+
+  // Guardar respuestas parciales mientras el usuario escribe
+  useEffect(() => {
+    if (isReevaluating) {
+      const subscription = form.watch((value) => {
+        // Solo guardar si hay al menos una respuesta
+        const hasAnswers = Object.values(value || {}).some(v => typeof v === 'number');
+        if (hasAnswers) {
+          localStorage.setItem(ASSESSMENT_PARTIAL_ANSWERS_KEY, JSON.stringify(value));
+        }
+      });
+      
+      return () => subscription.unsubscribe();
     }
   }, [isReevaluating, form]);
 
@@ -95,6 +149,10 @@ export default function Assessment() {
     setShowDiagnosticQuestions(false);
     setDiagnosticAnswers({} as Record<DomainKey, boolean>);
     setIsReevaluating(true);
+    // Marcar que hay una evaluación en progreso
+    localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
+    // Limpiar respuestas parciales previas
+    localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
   };
 
   async function onSubmit(data: AssessmentValues) {
@@ -120,6 +178,10 @@ export default function Assessment() {
     });
     
     toast({ title: "Autoevaluación guardada", description: `Nivel estimado: ${result.nivel} (promedio ${result.promedioGlobal})` });
+    
+    // Limpiar las flags de evaluación en progreso
+    localStorage.removeItem(ASSESSMENT_IN_PROGRESS_KEY);
+    localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
     
     // Resetear estado de re-evaluación para mostrar los resultados
     setIsReevaluating(false);
