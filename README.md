@@ -59,6 +59,7 @@ src/pages/admin/
 
 ### / progreso
 - Sistema de progreso estructurado en un Canvas y una lista de items arrastrable. Cada item tiene un checklist, al completar todos los elementos de la checklist el item pasa a estado 'completed' y eso se ve reflejado como avance en la sección superior de /progreso
+- ✨ NUEVO: Ahora el canvas puede guardarse para fijar el plan de trabajo y se puede exportar a PDF
 
 -----
 
