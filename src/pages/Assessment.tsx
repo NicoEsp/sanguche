@@ -70,13 +70,11 @@ export default function Assessment() {
 
   useEffect(() => {
     if (isReevaluating) {
-      if (savedValues) {
-        form.reset(savedValues);
-      } else {
-        form.reset({} as AssessmentValues);
-      }
+      // SIEMPRE resetear a valores vacíos cuando se inicia re-evaluación
+      // Esto garantiza que el usuario pueda modificar libremente sus respuestas
+      form.reset({} as AssessmentValues);
     }
-  }, [isReevaluating, savedValues, form]);
+  }, [isReevaluating, form]);
 
   const values = form.watch();
   const total = DOMAINS.length;
