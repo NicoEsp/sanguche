@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UseSubscriptionOptions {
   skip?: boolean;
@@ -13,6 +14,8 @@ export function useSubscription(options?: UseSubscriptionOptions) {
     current_period_end?: Date | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  const { user, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
     if (options?.skip) {
@@ -25,9 +28,12 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       return;
     }
 
+    if (authLoading) {
+      return;
+    }
+
     async function fetchSubscription() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           setSubscription({
             plan: 'free',
@@ -91,11 +97,11 @@ export function useSubscription(options?: UseSubscriptionOptions) {
     }
 
     fetchSubscription();
-  }, [options?.skip]);
+  }, [user, authLoading, options?.skip]);
 
   return {
     subscription,
-    loading,
+    loading: loading || authLoading,
     hasActivePremium: subscription?.status === 'active' && subscription?.plan === 'premium',
     isTrialing: subscription?.trialEnd ? new Date() < subscription.trialEnd : false,
   };
