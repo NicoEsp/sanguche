@@ -132,8 +132,8 @@ export default function Recommendations() {
           </p>
         </div>
 
-        {/* Hero Section - Agendamiento */}
-        <MentoriaHero />
+          {/* Hero Section - Agendamiento */}
+          <MentoriaHero mentoriaCompleted={profile?.mentoria_completed || false} />
 
         {/* Assessment Required Alert */}
         {!hasAssessment && (

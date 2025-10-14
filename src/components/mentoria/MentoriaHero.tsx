@@ -1,11 +1,68 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Target } from "lucide-react";
+import { Calendar, Clock, Target, CheckCircle, TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-export function MentoriaHero() {
+interface MentoriaHeroProps {
+  mentoriaCompleted: boolean;
+}
+
+export function MentoriaHero({ mentoriaCompleted }: MentoriaHeroProps) {
+  const navigate = useNavigate();
+  
   const handleScheduleClick = () => {
     window.open('https://calendar.notion.so/meet/nicoproducto/poai3w8g', '_blank');
   };
+
+  const handleProgressClick = () => {
+    navigate('/progreso');
+  };
+
+  // Versión Post-Mentoría
+  if (mentoriaCompleted) {
+    return (
+      <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+        <CardContent className="p-8">
+          <div className="text-center space-y-6">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-foreground">
+                ¡Excelente trabajo en tu mentoría!
+              </h2>
+              <p className="text-muted-foreground text-lg">
+                Ahora es momento de poner en práctica lo conversado. Completa tus ejercicios y enfócate en tu progreso.
+              </p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                <span>Objetivos definidos</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                <span>Plan en marcha</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span>Próxima sesión: inicio del próximo mes</span>
+              </div>
+            </div>
+
+            <Button 
+              size="lg" 
+              onClick={handleProgressClick}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3 text-lg"
+            >
+              <TrendingUp className="mr-2 h-5 w-5" />
+              Ver mi Progreso
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Versión Agendar Sesión (original)
 
   return (
     <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
