@@ -230,9 +230,9 @@ export default function Assessment() {
           )}
         </div>
         <p className="text-muted-foreground mb-4">
-          {hasAssessment && !isReevaluating 
-            ? "Estos son tus resultados" 
-            : "Responde del 1 al 5 según tu dominio en cada área."}
+          {hasAssessment && !isReevaluating
+            ? "Estos son tus resultados"
+            : "Elegí la afirmación que mejor describa tu experiencia en cada dominio."}
         </p>
 
         {assessmentLoading && (
@@ -389,17 +389,23 @@ export default function Assessment() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid gap-6">
                   {DOMAINS.map((d) => (
-                    <fieldset key={d.key} className="rounded-lg border p-4 bg-card">
-                      <legend className="font-medium mb-3 flex items-center gap-2">
-                        {d.label}
+                    <fieldset key={d.key} className="rounded-lg border p-4 bg-card space-y-4">
+                      <legend className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-base sm:text-lg leading-snug">
+                            {d.question}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">{d.label}</p>
+                        </div>
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-5 w-5"
+                          className="h-8 w-8 shrink-0"
                           onClick={() => setSelectedDomain(d.key)}
+                          aria-label={`Ver más información sobre ${d.label}`}
                         >
-                          <Info className="h-3 w-3" />
+                          <Info className="h-4 w-4" />
                         </Button>
                       </legend>
                       <FormField
@@ -410,18 +416,28 @@ export default function Assessment() {
                             <FormLabel className="sr-only">{d.label}</FormLabel>
                             <FormControl>
                               <RadioGroup
-                                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3"
+                                className="space-y-3"
                                 value={field.value ? String(field.value) : undefined}
                                 onValueChange={(val) => field.onChange(parseInt(val))}
                               >
-                                {[1,2,3,4,5].map((n) => (
-                                  <label key={n} className="flex items-center gap-2 rounded-md border p-2 sm:p-3 cursor-pointer min-h-[44px] hover:bg-muted/50 transition-colors">
-                                    <RadioGroupItem value={String(n)} />
-                                    <span className="text-xs sm:text-sm leading-tight">
-                                      {n} <span className="hidden sm:inline">{n===1?"(Novato)":n===2?"(Básico)":n===3?"(Intermedio)":n===4?"(Avanzado)":"(Experto)"}</span>
-                                    </span>
-                                  </label>
-                                ))}
+                                {d.statements.map((option) => {
+                                  const optionId = `${d.key}-${option.value}`;
+                                  const isSelected = field.value === option.value;
+                                  return (
+                                    <label
+                                      key={option.value}
+                                      htmlFor={optionId}
+                                      className={`flex items-start gap-3 rounded-lg border p-3 sm:p-4 cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-primary/40 ${
+                                        isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-input hover:bg-muted/40"
+                                      }`}
+                                    >
+                                      <RadioGroupItem id={optionId} value={String(option.value)} className="mt-1" />
+                                      <span className="text-sm sm:text-base leading-snug text-left">
+                                        {option.label}
+                                      </span>
+                                    </label>
+                                  );
+                                })}
                               </RadioGroup>
                             </FormControl>
                             <FormMessage />
