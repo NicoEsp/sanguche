@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface PremiumUser {
@@ -48,4 +48,12 @@ export function usePremiumUsers() {
       }).filter(user => user.user_subscriptions) as PremiumUser[];
     }
   });
+}
+
+export function useRefreshPremiumUsers() {
+  const queryClient = useQueryClient();
+  
+  return () => {
+    queryClient.invalidateQueries({ queryKey: ['premium-users'] });
+  };
 }

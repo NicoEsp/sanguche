@@ -2,14 +2,16 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Search, Crown } from 'lucide-react';
-import { usePremiumUsers } from '@/hooks/usePremiumUsers';
+import { Loader2, Search, Crown, RefreshCw } from 'lucide-react';
+import { usePremiumUsers, useRefreshPremiumUsers } from '@/hooks/usePremiumUsers';
 import { useNavigate } from 'react-router-dom';
 
 export default function AdminRecommendations() {
   const [searchTerm, setSearchTerm] = useState('');
   const { data: premiumUsers, isLoading } = usePremiumUsers();
+  const refreshPremiumUsers = useRefreshPremiumUsers();
   const navigate = useNavigate();
 
   const filteredUsers = (premiumUsers || []).filter(user => {
@@ -33,11 +35,22 @@ export default function AdminRecommendations() {
   return (
     <div className="container mx-auto py-8">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gestión de Mentorías</h1>
-          <p className="text-muted-foreground">
-            Configura ejercicios, recomendaciones y recursos para tus usuarios Premium
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Gestión de Mentorías</h1>
+            <p className="text-muted-foreground">
+              Configura ejercicios, recomendaciones y recursos para tus usuarios Premium
+            </p>
+          </div>
+          <Button 
+            onClick={refreshPremiumUsers}
+            disabled={isLoading}
+            variant="outline"
+            size="default"
+          >
+            <RefreshCw className={isLoading ? "animate-spin" : ""} />
+            Actualizar
+          </Button>
         </div>
 
         <Card>
