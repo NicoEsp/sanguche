@@ -82,7 +82,9 @@ serve(async (req) => {
       console.log('🔐 Signature verification:', {
         valid: true,
         format: verification.format,
-        signatureLength: verification.signatureLength
+        signatureLength: verification.signatureLength,
+        header: verification.headerName,
+        matchedPreview: verification.matchedVariant.substring(0, 8) + '...'
       });
     } catch (error) {
       if (error instanceof SignatureVerificationError) {
