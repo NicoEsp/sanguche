@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, ClipboardList, Download, Eye, BarChart3, AlertTriangle, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -30,6 +31,7 @@ export default function AdminAssessments() {
   const [error, setError] = useState<string | null>(null);
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
   const [showOnlyAtRisk, setShowOnlyAtRisk] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState<string>('all');
 
   useEffect(() => {
     fetchAssessments();
@@ -124,7 +126,11 @@ export default function AdminAssessments() {
     )
     .filter(assessment => 
       !showOnlyAtRisk || isDiscountCandidate(assessment)
-    );
+    )
+    .filter(assessment => {
+      if (selectedLevel === 'all') return true;
+      return assessment?.assessment_result?.nivel === selectedLevel;
+    });
 
   function exportAssessments() {
     exportToCSV(
@@ -288,6 +294,31 @@ export default function AdminAssessments() {
                 Mostrar solo usuarios en riesgo (candidatos descuento)
               </label>
             </div>
+            
+            <div className="flex items-center gap-2">
+              <label htmlFor="level-filter" className="text-sm font-medium min-w-fit">
+                Filtrar por nivel:
+              </label>
+              <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+                <SelectTrigger id="level-filter" className="w-[200px]">
+                  <SelectValue placeholder="Todos los niveles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los niveles</SelectItem>
+                  <SelectItem value="Junior">Junior</SelectItem>
+                  <SelectItem value="Mid">Mid</SelectItem>
+                  <SelectItem value="Senior">Senior</SelectItem>
+                  <SelectItem value="Lead">Lead</SelectItem>
+                  <SelectItem value="Head">Head</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {selectedLevel !== 'all' && (
+                <Badge variant="secondary" className="gap-1">
+                  {filteredAssessments.length} evaluaciones
+                </Badge>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -295,7 +326,14 @@ export default function AdminAssessments() {
       {/* Assessments Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Evaluaciones ({filteredAssessments.length})</CardTitle>
+          <CardTitle>
+            Lista de Evaluaciones ({filteredAssessments.length})
+            {selectedLevel !== 'all' && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                - Nivel: {selectedLevel}
+              </span>
+            )}
+          </CardTitle>
           <CardDescription>
             Evaluaciones completadas y sus resultados
           </CardDescription>
