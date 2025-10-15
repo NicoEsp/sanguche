@@ -3,11 +3,19 @@ import { z } from "zod";
 export type SeniorityLevel = "Junior" | "Mid" | "Senior" | "Lead" | "Head";
 
 export const DOMAINS = [
-  { 
-    key: "estrategia", 
+  {
+    key: "estrategia",
     label: "Estrategia de producto",
     description: "Capacidad para definir visión, objetivos estratégicos y roadmap de largo plazo del producto.",
     diagnosticQuestion: "¿Tu equipo tiene una visión de producto clara y documentada?",
+    question: "¿Qué tan sólida sentís tu capacidad para definir la estrategia de producto?",
+    statements: [
+      { value: 1, label: "Sigo la estrategia definida por otros y no participo en su construcción (1)" },
+      { value: 2, label: "Participo en conversaciones estratégicas aportando insumos puntuales cuando me lo piden (2)" },
+      { value: 3, label: "Defino objetivos y prioridades para features o squads con acompañamiento ocasional (3)" },
+      { value: 4, label: "Diseño y comunico estrategias integrales que alinean al equipo y stakeholders (4)" },
+      { value: 5, label: "Impulso la visión de producto a nivel negocio y guío a otros en estrategia (5)" }
+    ],
     levelDefinitions: [
       "Novato: Comprende conceptos básicos de estrategia pero necesita guía constante",
       "Básico: Puede contribuir en definiciones estratégicas con supervisión",
@@ -17,10 +25,18 @@ export const DOMAINS = [
     ]
   },
   { 
-    key: "roadmap", 
+    key: "roadmap",
     label: "Roadmap y priorización",
     description: "Habilidad para planificar, priorizar funcionalidades y gestionar el backlog del producto.",
     diagnosticQuestion: "¿Existe un roadmap actualizado y compartido con stakeholders?",
+    question: "¿Qué tanto dominio tenés para priorizar y construir el roadmap del producto?",
+    statements: [
+      { value: 1, label: "Prioritizo tareas siguiendo instrucciones sin evaluar impacto (1)" },
+      { value: 2, label: "Propongo priorizaciones simples usando criterios dados por el equipo (2)" },
+      { value: 3, label: "Construyo y actualizo roadmaps de mi scope equilibrando valor y esfuerzo (3)" },
+      { value: 4, label: "Anticipo dependencias, comunico cambios y alineo roadmaps multiequipo (4)" },
+      { value: 5, label: "Diseño procesos de priorización que optimizan portfolio y guían a la organización (5)" }
+    ],
     levelDefinitions: [
       "Novato: Entiende conceptos de priorización pero requiere ayuda para aplicarlos",
       "Básico: Puede priorizar tareas simples usando frameworks básicos",
@@ -30,10 +46,18 @@ export const DOMAINS = [
     ]
   },
   { 
-    key: "ejecucion", 
+    key: "ejecucion",
     label: "Ejecución y entregas",
     description: "Dominio de metodologías ágiles, delivery management y seguimiento de proyectos.",
     diagnosticQuestion: "¿Utilizas metodologías ágiles para la entrega de producto?",
+    question: "¿Cómo describirías tu capacidad para planificar y asegurar la ejecución del producto?",
+    statements: [
+      { value: 1, label: "Necesito guía para organizar tareas y seguir ceremonias ágiles (1)" },
+      { value: 2, label: "Coordino sprints simples asegurando entregas con apoyo del equipo (2)" },
+      { value: 3, label: "Gestiono planificación, seguimiento y riesgos de mi squad de forma autónoma (3)" },
+      { value: 4, label: "Orquesto múltiples equipos, removiendo bloqueos y mejorando procesos continuamente (4)" },
+      { value: 5, label: "Diseño sistemas de ejecución escalables y mido performance de punta a punta (5)" }
+    ],
     levelDefinitions: [
       "Novato: Conoce metodologías ágiles básicas pero necesita orientación en su aplicación",
       "Básico: Aplica Scrum/Kanban en proyectos simples con supervisión",
@@ -43,10 +67,18 @@ export const DOMAINS = [
     ]
   },
   { 
-    key: "discovery", 
+    key: "discovery",
     label: "Discovery de usuarios",
     description: "Capacidad para investigar usuarios, validar hipótesis y generar insights accionables.",
     diagnosticQuestion: "¿Realizas entrevistas con usuarios al menos una vez al mes?",
+    question: "¿Qué tan sólida sentís tu habilidad en discovery de usuarios?",
+    statements: [
+      { value: 1, label: "Nunca participé de entrevistas con usuarios (1)" },
+      { value: 2, label: "Acompañé entrevistas pero no las lideré (2)" },
+      { value: 3, label: "Organicé entrevistas con ayuda (3)" },
+      { value: 4, label: "Lideré procesos completos (4)" },
+      { value: 5, label: "Sistematizo el proceso y enseño a otros (5)" }
+    ],
     levelDefinitions: [
       "Novato: Comprende la importancia del user research pero requiere guía metodológica",
       "Básico: Conduce entrevistas básicas y encuestas con plantillas predefinidas",
@@ -56,10 +88,18 @@ export const DOMAINS = [
     ]
   },
   { 
-    key: "analitica", 
+    key: "analitica",
     label: "Analítica y métricas",
     description: "Habilidad para definir KPIs, analizar datos y tomar decisiones basadas en métricas.",
     diagnosticQuestion: "¿Tienes definidas métricas clave para medir el éxito del producto?",
+    question: "¿Cómo evaluás tu capacidad para definir y analizar métricas del producto?",
+    statements: [
+      { value: 1, label: "Consulto métricas básicas solo cuando me las comparten (1)" },
+      { value: 2, label: "Sigo dashboards existentes y saco conclusiones tácticas (2)" },
+      { value: 3, label: "Defino KPIs para mi área y analizo resultados regularmente (3)" },
+      { value: 4, label: "Construyo modelos de medición que conectan métricas con decisiones estratégicas (4)" },
+      { value: 5, label: "Anticipo tendencias del negocio y enseño a otros a operar con métricas (5)" }
+    ],
     levelDefinitions: [
       "Novato: Entiende métricas básicas pero necesita ayuda para interpretarlas",
       "Básico: Analiza métricas simples y genera reportes básicos",
@@ -69,10 +109,18 @@ export const DOMAINS = [
     ]
   },
   { 
-    key: "ux", 
+    key: "ux",
     label: "UX e investigación",
     description: "Conocimiento en experiencia de usuario, usabilidad y metodologías de design thinking.",
     diagnosticQuestion: "¿Colaboras regularmente con el equipo de UX/Design en el proceso de producto?",
+    question: "¿Qué tan integrada sentís tu contribución al diseño y la experiencia de usuario?",
+    statements: [
+      { value: 1, label: "Confío en el criterio del equipo de diseño sin involucrarme en el proceso (1)" },
+      { value: 2, label: "Participo en revisiones de diseño aportando feedback puntual (2)" },
+      { value: 3, label: "Mapeo journeys y coordino validaciones de usabilidad para mi producto (3)" },
+      { value: 4, label: "Cocreo soluciones complejas junto a UX asegurando experiencias consistentes (4)" },
+      { value: 5, label: "Instalo prácticas de diseño centrado en usuario y mentoreo al equipo (5)" }
+    ],
     levelDefinitions: [
       "Novato: Comprende principios básicos de UX pero necesita apoyo en su aplicación",
       "Básico: Evalúa usabilidad básica y propone mejoras simples de experiencia",
@@ -82,10 +130,18 @@ export const DOMAINS = [
     ]
   },
   { 
-    key: "stakeholders", 
+    key: "stakeholders",
     label: "Gestión de stakeholders",
     description: "Capacidad para alinear, comunicar y gestionar expectativas con diferentes equipos y roles.",
     diagnosticQuestion: "¿Tienes reuniones regulares de alineación con todos los stakeholders clave?",
+    question: "¿Cómo describirías tu habilidad para gestionar stakeholders?",
+    statements: [
+      { value: 1, label: "Solo interactúo con stakeholders cuando me convocan (1)" },
+      { value: 2, label: "Mantengo comunicación regular con mi equipo directo (2)" },
+      { value: 3, label: "Gestiono expectativas y alineación con múltiples áreas involucradas (3)" },
+      { value: 4, label: "Anticipo conflictos, negocio acuerdos y mantengo a todos sincronizados (4)" },
+      { value: 5, label: "Construyo alianzas estratégicas y lidero alineación a nivel organizacional (5)" }
+    ],
     levelDefinitions: [
       "Novato: Identifica stakeholders básicos pero necesita ayuda para gestionarlos",
       "Básico: Mantiene comunicación regular con stakeholders directos",
@@ -95,10 +151,18 @@ export const DOMAINS = [
     ]
   },
   { 
-    key: "comunicacion", 
+    key: "comunicacion",
     label: "Comunicación y alineación",
     description: "Habilidad para presentar, documentar y crear narrativas que generen alineación organizacional.",
     diagnosticQuestion: "¿Documentas y comunicas decisiones de producto de forma sistemática?",
+    question: "¿Qué tan efectiva es tu comunicación para alinear a tu organización?",
+    statements: [
+      { value: 1, label: "Comparto información básica por mensajes o reuniones informales (1)" },
+      { value: 2, label: "Documento actualizaciones clave cuando me las piden (2)" },
+      { value: 3, label: "Estructuro narrativas claras para comunicar decisiones de producto (3)" },
+      { value: 4, label: "Alineo equipos con presentaciones convincentes y documentación accesible (4)" },
+      { value: 5, label: "Creo storytelling que inspira acción y establezco estándares de comunicación (5)" }
+    ],
     levelDefinitions: [
       "Novato: Comunica información básica pero necesita apoyo en estructura y claridad",
       "Básico: Presenta updates simples y mantiene documentación básica",
@@ -108,10 +172,18 @@ export const DOMAINS = [
     ]
   },
   { 
-    key: "liderazgo", 
+    key: "liderazgo",
     label: "Liderazgo",
     description: "Capacidad para liderar equipos, mentorar profesionales y generar influence organizacional.",
     diagnosticQuestion: "¿Lideras o mentorízas a otros miembros del equipo de producto?",
+    question: "¿Cómo evaluás tu liderazgo dentro del equipo de producto?",
+    statements: [
+      { value: 1, label: "Me enfoco en mis tareas individuales y no lidero iniciativas (1)" },
+      { value: 2, label: "Coordino esfuerzos puntuales con pares cuando es necesario (2)" },
+      { value: 3, label: "Guío a un equipo pequeño y ofrezco mentoring estructurado (3)" },
+      { value: 4, label: "Desarrollo talento, delego estratégicamente y gestiono desempeño (4)" },
+      { value: 5, label: "Moldeo la cultura de producto y formo líderes en toda la organización (5)" }
+    ],
     levelDefinitions: [
       "Novato: Muestra potencial de liderazgo pero necesita desarrollar habilidades básicas",
       "Básico: Lidera tareas específicas y apoya a compañeros junior ocasionalmente",
@@ -121,10 +193,18 @@ export const DOMAINS = [
     ]
   },
   { 
-    key: "tecnico", 
+    key: "tecnico",
     label: "Conocimiento técnico",
     description: "Comprensión de tecnología, arquitectura de software y capacidades de desarrollo.",
     diagnosticQuestion: "¿Puedes evaluar la complejidad técnica y feasibilidad de las funcionalidades?",
+    question: "¿Qué tan segura sentís tu comprensión técnica para tomar decisiones de producto?",
+    statements: [
+      { value: 1, label: "Necesito traducción técnica para comprender impacto y factibilidad (1)" },
+      { value: 2, label: "Converso con devs sobre alcance sin profundizar en trade-offs (2)" },
+      { value: 3, label: "Evalúo factibilidad técnica y propongo alternativas junto al equipo (3)" },
+      { value: 4, label: "Tomo decisiones informadas sobre arquitectura y complejidad (4)" },
+      { value: 5, label: "Diseño soluciones junto a líderes técnicos y elevo la calidad técnica (5)" }
+    ],
     levelDefinitions: [
       "Novato: Entiende conceptos técnicos básicos pero necesita explicaciones detalladas",
       "Básico: Comprende limitaciones técnicas simples y comunica con desarrolladores",
@@ -134,10 +214,18 @@ export const DOMAINS = [
     ]
   },
   { 
-    key: "monetizacion", 
+    key: "monetizacion",
     label: "Monetización y negocio",
     description: "Conocimiento de modelos de negocio, pricing strategies y métricas financieras del producto.",
     diagnosticQuestion: "¿Conoces el modelo de monetización y métricas de revenue de tu producto?",
+    question: "¿Qué tanto entendés y potenciás la monetización del producto?",
+    statements: [
+      { value: 1, label: "Desconozco cómo el producto genera revenue (1)" },
+      { value: 2, label: "Entiendo los basics del modelo actual cuando me los explican (2)" },
+      { value: 3, label: "Analizo métricas de negocio y propongo mejoras de monetización (3)" },
+      { value: 4, label: "Experimento con pricing, growth y nuevas palancas de ingresos (4)" },
+      { value: 5, label: "Defino estrategias de negocio que expanden revenue y guío al equipo (5)" }
+    ],
     levelDefinitions: [
       "Novato: Comprende conceptos básicos de monetización pero necesita contexto del negocio",
       "Básico: Analiza métricas de revenue simples y comprende el modelo de negocio actual",
