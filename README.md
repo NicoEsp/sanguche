@@ -14,7 +14,7 @@ Una plataforma para Product Managers que permite:
 src/pages/
 ├── Index.tsx              → Landing page (página de inicio pública)
 ├── Auth.tsx               → Autenticación (login/registro)
-├── Assessment.tsx         → Autoevaluación en 11 dominios
+├── Assessment.tsx         → ✨ NUEVO: Autoevaluación en 11 dominios basada en preguntas y ejemplos concretos
 ├── SkillGaps.tsx          → Áreas de mejora
 ├── Recommendations.tsx    → Mentoría personalizada (premium)
 ├── Progress.tsx           → Sistema de seguimiento de progreso (premium)
@@ -49,16 +49,18 @@ src/pages/admin/
 ## 🧩 Funcionalidades premium principales
 
 ### /mentoria
+Desde esta sección un usuario puede:
 - Agendar sesión de Mentoria con NicoProducto
-- Recomendaciones personalizadas
-- Recursos especializados
-- Ejercicios prácticos
+- Recibir recomendaciones personalizadas en base a sesión de Mentoria
+- Recibir recursos especializados
+- Ejercicios prácticos post sesión de Mentoria
 - Contenido bloqueado hasta completar mentoría
 - Desbloqueo desde panel de administración
 - Acceso gradual a funcionalidades premium
 
 ### / progreso
-- Sistema de progreso estructurado en un Canvas y una lista de items arrastrable. Cada item tiene un checklist, al completar todos los elementos de la checklist el item pasa a estado 'completed' y eso se ve reflejado como avance en la sección superior de /progreso
+Desde esta sección el usuario puede:
+- Acceder a un sistema de progreso estructurado en un Canvas y una lista de items arrastrable. Cada item tiene un checklist, al completar todos los elementos de la checklist el item pasa a estado 'completed' y eso se ve reflejado como avance en la sección superior de /progreso
 - ✨ NUEVO: Ahora el canvas puede guardarse para fijar el plan de trabajo y se puede exportar a PDF
 
 -----
