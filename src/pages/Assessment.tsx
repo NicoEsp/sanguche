@@ -7,7 +7,6 @@ import { assessmentSchema, DOMAINS, type AssessmentValues, computeSeniorityScore
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
 import { saveAssessment } from "@/utils/storage";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,9 +37,7 @@ const ASSESSMENT_PARTIAL_ANSWERS_KEY = 'assessment_partial_answers';
 
 export default function Assessment() {
   const navigate = useNavigate();
-  const [showDiagnosticQuestions, setShowDiagnosticQuestions] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<DomainKey | null>(null);
-  const [diagnosticAnswers, setDiagnosticAnswers] = useState<Record<DomainKey, boolean>>({} as Record<DomainKey, boolean>);
   const [isReevaluating, setIsReevaluating] = useState(false);
   const [showReevaluationDialog, setShowReevaluationDialog] = useState(false);
   const [assessmentStartTime] = useState(Date.now());
@@ -146,8 +143,6 @@ export default function Assessment() {
   }, [updatedAt]);
 
   const handleStartReevaluation = () => {
-    setShowDiagnosticQuestions(false);
-    setDiagnosticAnswers({} as Record<DomainKey, boolean>);
     setIsReevaluating(true);
     // Marcar que hay una evaluación en progreso
     localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
@@ -360,17 +355,6 @@ export default function Assessment() {
 
         {isReevaluating && (
           <>
-            <div className="flex items-center justify-between mb-6 p-4 rounded-lg border bg-card">
-              <div>
-                <h3 className="font-medium">Preguntas diagnósticas</h3>
-                <p className="text-sm text-muted-foreground">Incluir preguntas adicionales de diagnóstico para una evaluación más detallada</p>
-              </div>
-              <Switch
-                checked={showDiagnosticQuestions}
-                onCheckedChange={setShowDiagnosticQuestions}
-              />
-            </div>
-
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2 text-sm">
                 <span>Progreso</span>
@@ -444,27 +428,6 @@ export default function Assessment() {
                           </FormItem>
                         )}
                       />
-
-                      {showDiagnosticQuestions && (
-                        <div className="mt-4 p-3 rounded-lg bg-muted/50 border-l-4 border-primary">
-                          <h4 className="text-sm font-medium mb-2">Pregunta diagnóstica:</h4>
-                          <p className="text-sm mb-3">{d.diagnosticQuestion}</p>
-                          <RadioGroup
-                            className="flex gap-4"
-                            value={diagnosticAnswers[d.key] !== undefined ? String(diagnosticAnswers[d.key]) : undefined}
-                            onValueChange={(val) => setDiagnosticAnswers(prev => ({ ...prev, [d.key]: val === "true" }))}
-                          >
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <RadioGroupItem value="true" />
-                              <span className="text-sm">Sí</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <RadioGroupItem value="false" />
-                              <span className="text-sm">No</span>
-                            </label>
-                          </RadioGroup>
-                        </div>
-                      )}
                     </fieldset>
                   ))}
                 </div>

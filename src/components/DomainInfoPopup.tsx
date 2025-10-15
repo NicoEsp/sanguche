@@ -50,13 +50,6 @@ export function DomainInfoPopup({ domainKey, isOpen, onClose }: DomainInfoPopupP
               ))}
             </div>
           </div>
-          
-          <div className="border-t pt-4">
-            <h3 className="font-medium mb-2">Pregunta diagnóstica</h3>
-            <div className="p-3 rounded-lg bg-muted">
-              <p className="text-sm">{domain.diagnosticQuestion}</p>
-            </div>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

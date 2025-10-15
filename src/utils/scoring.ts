@@ -7,7 +7,6 @@ export const DOMAINS = [
     key: "estrategia",
     label: "Estrategia de producto",
     description: "Capacidad para definir visión, objetivos estratégicos y roadmap de largo plazo del producto.",
-    diagnosticQuestion: "¿Tu equipo tiene una visión de producto clara y documentada?",
     question: "¿Qué tan sólida sentís tu capacidad para definir la estrategia de producto?",
     statements: [
       { value: 1, label: "Sigo la estrategia definida por otros y no participo en su construcción (1)" },
@@ -28,7 +27,6 @@ export const DOMAINS = [
     key: "roadmap",
     label: "Roadmap y priorización",
     description: "Habilidad para planificar, priorizar funcionalidades y gestionar el backlog del producto.",
-    diagnosticQuestion: "¿Existe un roadmap actualizado y compartido con stakeholders?",
     question: "¿Qué tanto dominio tenés para priorizar y construir el roadmap del producto?",
     statements: [
       { value: 1, label: "Prioritizo tareas siguiendo instrucciones sin evaluar impacto (1)" },
@@ -49,7 +47,6 @@ export const DOMAINS = [
     key: "ejecucion",
     label: "Ejecución y entregas",
     description: "Dominio de metodologías ágiles, delivery management y seguimiento de proyectos.",
-    diagnosticQuestion: "¿Utilizas metodologías ágiles para la entrega de producto?",
     question: "¿Cómo describirías tu capacidad para planificar y asegurar la ejecución del producto?",
     statements: [
       { value: 1, label: "Necesito guía para organizar tareas y seguir ceremonias ágiles (1)" },
@@ -70,7 +67,6 @@ export const DOMAINS = [
     key: "discovery",
     label: "Discovery de usuarios",
     description: "Capacidad para investigar usuarios, validar hipótesis y generar insights accionables.",
-    diagnosticQuestion: "¿Realizas entrevistas con usuarios al menos una vez al mes?",
     question: "¿Qué tan sólida sentís tu habilidad en discovery de usuarios?",
     statements: [
       { value: 1, label: "Nunca participé de entrevistas con usuarios (1)" },
@@ -91,7 +87,6 @@ export const DOMAINS = [
     key: "analitica",
     label: "Analítica y métricas",
     description: "Habilidad para definir KPIs, analizar datos y tomar decisiones basadas en métricas.",
-    diagnosticQuestion: "¿Tienes definidas métricas clave para medir el éxito del producto?",
     question: "¿Cómo evaluás tu capacidad para definir y analizar métricas del producto?",
     statements: [
       { value: 1, label: "Consulto métricas básicas solo cuando me las comparten (1)" },
@@ -112,7 +107,6 @@ export const DOMAINS = [
     key: "ux",
     label: "UX e investigación",
     description: "Conocimiento en experiencia de usuario, usabilidad y metodologías de design thinking.",
-    diagnosticQuestion: "¿Colaboras regularmente con el equipo de UX/Design en el proceso de producto?",
     question: "¿Qué tan integrada sentís tu contribución al diseño y la experiencia de usuario?",
     statements: [
       { value: 1, label: "Confío en el criterio del equipo de diseño sin involucrarme en el proceso (1)" },
@@ -133,7 +127,6 @@ export const DOMAINS = [
     key: "stakeholders",
     label: "Gestión de stakeholders",
     description: "Capacidad para alinear, comunicar y gestionar expectativas con diferentes equipos y roles.",
-    diagnosticQuestion: "¿Tienes reuniones regulares de alineación con todos los stakeholders clave?",
     question: "¿Cómo describirías tu habilidad para gestionar stakeholders?",
     statements: [
       { value: 1, label: "Solo interactúo con stakeholders cuando me convocan (1)" },
@@ -154,7 +147,6 @@ export const DOMAINS = [
     key: "comunicacion",
     label: "Comunicación y alineación",
     description: "Habilidad para presentar, documentar y crear narrativas que generen alineación organizacional.",
-    diagnosticQuestion: "¿Documentas y comunicas decisiones de producto de forma sistemática?",
     question: "¿Qué tan efectiva es tu comunicación para alinear a tu organización?",
     statements: [
       { value: 1, label: "Comparto información básica por mensajes o reuniones informales (1)" },
@@ -175,7 +167,6 @@ export const DOMAINS = [
     key: "liderazgo",
     label: "Liderazgo",
     description: "Capacidad para liderar equipos, mentorar profesionales y generar influence organizacional.",
-    diagnosticQuestion: "¿Lideras o mentorízas a otros miembros del equipo de producto?",
     question: "¿Cómo evaluás tu liderazgo dentro del equipo de producto?",
     statements: [
       { value: 1, label: "Me enfoco en mis tareas individuales y no lidero iniciativas (1)" },
@@ -196,7 +187,6 @@ export const DOMAINS = [
     key: "tecnico",
     label: "Conocimiento técnico",
     description: "Comprensión de tecnología, arquitectura de software y capacidades de desarrollo.",
-    diagnosticQuestion: "¿Puedes evaluar la complejidad técnica y feasibilidad de las funcionalidades?",
     question: "¿Qué tan segura sentís tu comprensión técnica para tomar decisiones de producto?",
     statements: [
       { value: 1, label: "Necesito traducción técnica para comprender impacto y factibilidad (1)" },
@@ -217,7 +207,6 @@ export const DOMAINS = [
     key: "monetizacion",
     label: "Monetización y negocio",
     description: "Conocimiento de modelos de negocio, pricing strategies y métricas financieras del producto.",
-    diagnosticQuestion: "¿Conoces el modelo de monetización y métricas de revenue de tu producto?",
     question: "¿Qué tanto entendés y potenciás la monetización del producto?",
     statements: [
       { value: 1, label: "Desconozco cómo el producto genera revenue (1)" },
