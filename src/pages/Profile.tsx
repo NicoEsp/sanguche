@@ -31,7 +31,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export default function Profile() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isSigningOut } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
   const { subscription, loading: subscriptionLoading } = useSubscription();
   const stats = useProfileStats();
@@ -298,9 +298,10 @@ export default function Profile() {
               variant="outline" 
               onClick={() => signOut()}
               className="w-full sm:w-auto"
+              disabled={isSigningOut}
             >
               <LogOut className="h-4 w-4 mr-2" />
-              Cerrar Sesión
+              {isSigningOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}
             </Button>
           </CardContent>
         </Card>

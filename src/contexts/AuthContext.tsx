@@ -10,6 +10,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
+  isSigningOut: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
   signUp: (email: string, password: string, name?: string) => Promise<{ error: any }>;
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -181,14 +183,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    setIsLoading(true);
+    if (isSigningOut) {
+      return { error: null };
+    }
+    
+    setIsSigningOut(true);
     try {
       Mixpanel.track('user_logout');
-      Mixpanel.reset(); // Limpiar identidad de Mixpanel
+      Mixpanel.reset();
       const { error } = await supabase.auth.signOut();
+      
+      if (!error) {
+        queryClient.clear();
+      }
+      
       return { error };
     } finally {
-      setIsLoading(false);
+      setIsSigningOut(false);
     }
   };
 
@@ -268,14 +279,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     session,
     isLoading: isLoading || isAdminValidating,
+    isSigningOut,
     isAuthenticated: !!user,
-    isAdmin, // SECURITY: Now validated server-side, immune to localStorage manipulation
+    isAdmin,
     signUp,
     signIn,
     signOut,
     resetPassword,
     resendConfirmation,
-  }), [user, session, isLoading, isAdminValidating, isAdmin]);
+  }), [user, session, isLoading, isAdminValidating, isAdmin, isSigningOut]);
 
   return (
     <AuthContext.Provider value={value}>

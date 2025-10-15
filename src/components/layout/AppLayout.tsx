@@ -19,7 +19,7 @@ import {
 export function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
-  const { user, isAuthenticated, isAdmin, signOut, isLoading } = useAuth();
+  const { user, isAuthenticated, isAdmin, signOut, isLoading, isSigningOut } = useAuth();
   const shouldLoadProfile = isAuthenticated && !isLoading;
   const { profile, loading: profileLoading } = useUserProfile({ skip: !shouldLoadProfile });
 
@@ -121,10 +121,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => signOut()}
-                      disabled={isLoading}
+                      disabled={isSigningOut}
                     >
                       <LogOut className="h-4 w-4 mr-2" />
-                      Cerrar Sesión
+                      {isSigningOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -215,10 +215,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
                               signOut();
                               setIsOpen(false);
                             }}
-                            disabled={isLoading}
+                            disabled={isSigningOut}
                           >
                             <LogOut className="h-4 w-4 mr-2" />
-                            Cerrar Sesión
+                            {isSigningOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}
                           </Button>
                         </div>
                       </div>
