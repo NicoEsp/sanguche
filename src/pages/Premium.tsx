@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Seo } from "@/components/Seo";
-import { PolarCheckout } from "@/components/PolarCheckout";
+import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useEffect } from "react";
 
@@ -125,7 +125,7 @@ export default function Premium() {
                   <div className="mt-6">
                     {hasActivePremium ? <Button asChild size="lg" className="w-full min-h-[44px]">
                         <Link to="/mentoria">Acceder a Premium</Link>
-                      </Button> : <PolarCheckout />}
+                      </Button> : <LemonSqueezyCheckout />}
                   </div>
                 </CardContent>
               </Card>

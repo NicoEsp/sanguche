@@ -32,10 +32,10 @@ serve(async (req) => {
       );
     }
 
-    const polarAccessToken = Deno.env.get('POLAR_ACCESS_TOKEN');
-    if (!polarAccessToken) {
+    const lemonSqueezyApiKey = Deno.env.get('LEMON_SQUEEZY_API_KEY');
+    if (!lemonSqueezyApiKey) {
       return new Response(
-        JSON.stringify({ error: 'Polar access token not configured' }),
+        JSON.stringify({ error: 'Lemon Squeezy API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -49,7 +49,6 @@ serve(async (req) => {
     const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
     
     if (authError || !authUser?.user?.email) {
-      // SECURITY: Don't expose detailed error information
       return new Response(
         JSON.stringify({ error: 'User not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -69,60 +68,54 @@ serve(async (req) => {
       );
     }
 
-    // First, get the product details to find the correct price_id
-    const productResponse = await fetch('https://api.polar.sh/v1/products/0e76f08a-fe1e-4533-a173-fbfc3da81c49', {
-      headers: {
-        'Authorization': `Bearer ${polarAccessToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    // REPLACE THIS WITH YOUR ACTUAL LEMON SQUEEZY VARIANT ID
+    // You can find it in your Lemon Squeezy dashboard under Products -> Your Product -> Variants
+    const variantId = 'YOUR_VARIANT_ID_HERE';
 
-    if (!productResponse.ok) {
-      // SECURITY: Log error without exposing response data
-      console.error('Failed to fetch product details:', productResponse.status);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch product details' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const productData = await productResponse.json();
-    
-    // Extract the price_id from the product
-    const priceId = productData.prices?.[0]?.id;
-    if (!priceId) {
-      return new Response(
-        JSON.stringify({ error: 'Product configuration error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Create Polar checkout session with product_price_id
+    // Create Lemon Squeezy checkout
     const checkoutData = {
-      product_price_id: priceId,
-      success_url: `${req.headers.get('origin')}/mentoria?success=true`,
-      customer_email: authUser.user.email,
-      metadata: {
-        profile_id: profile.id,
-        user_id: userId
+      data: {
+        type: 'checkouts',
+        attributes: {
+          checkout_data: {
+            email: authUser.user.email,
+            name: profile.name || '',
+            custom: {
+              profile_id: profile.id,
+              user_id: userId
+            }
+          },
+          product_options: {
+            redirect_url: `${req.headers.get('origin')}/mentoria?success=true`
+          }
+        },
+        relationships: {
+          variant: {
+            data: {
+              type: 'variants',
+              id: variantId
+            }
+          }
+        }
       }
     };
 
-    // SECURITY: Log action without exposing sensitive data
-    console.log('Creating Polar checkout session for user');
+    console.log('Creating Lemon Squeezy checkout session for user');
 
-    const response = await fetch('https://api.polar.sh/v1/checkouts/', {
+    const response = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${polarAccessToken}`,
-        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${lemonSqueezyApiKey}`,
+        'Content-Type': 'application/vnd.api+json',
+        'Accept': 'application/vnd.api+json',
       },
       body: JSON.stringify(checkoutData),
     });
 
     if (!response.ok) {
-      // SECURITY: Log error without exposing API response
-      console.error('Polar API error:', response.status);
+      console.error('Lemon Squeezy API error:', response.status);
+      const errorText = await response.text();
+      console.error('Error details:', errorText);
       return new Response(
         JSON.stringify({ error: 'Failed to create checkout session' }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -130,16 +123,15 @@ serve(async (req) => {
     }
 
     const checkoutSession = await response.json();
-    console.log('Polar checkout session created successfully');
+    console.log('Lemon Squeezy checkout session created successfully');
 
     return new Response(
-      JSON.stringify({ checkoutUrl: checkoutSession.url }),
+      JSON.stringify({ checkoutUrl: checkoutSession.data.attributes.url }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    // SECURITY: Log error without exposing detailed information
-    console.error('Error in polar-checkout function:', error instanceof Error ? error.name : 'Unknown error');
+    console.error('Error in lemon-squeezy-checkout function:', error instanceof Error ? error.message : 'Unknown error');
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

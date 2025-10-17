@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Star } from "lucide-react";
-import { PolarCheckout } from "@/components/PolarCheckout";
+import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
 
 interface PaywallCardProps {
   title?: string;
@@ -58,7 +58,7 @@ export function PaywallCard({
           </div>
           
           <div className="pt-2">
-            <PolarCheckout />
+            <LemonSqueezyCheckout />
           </div>
         </CardContent>
       </Card>

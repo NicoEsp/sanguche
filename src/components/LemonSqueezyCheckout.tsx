@@ -5,16 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 
-interface PolarCheckoutProps {
+interface LemonSqueezyCheckoutProps {
   onSuccess?: () => void;
   onError?: (error: string) => void;
 }
 
-export function PolarCheckout({ onSuccess, onError }: PolarCheckoutProps) {
+export function LemonSqueezyCheckout({ onSuccess, onError }: LemonSqueezyCheckoutProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { trackEvent, setUserProperties } = useMixpanelTracking();
+  const { trackEvent } = useMixpanelTracking();
 
   const handleCheckout = async () => {
     if (!user) {
@@ -27,10 +27,10 @@ export function PolarCheckout({ onSuccess, onError }: PolarCheckoutProps) {
     }
 
     setLoading(true);
-    trackEvent('checkout_started', { plan: 'premium', price: 9.99 });
+    trackEvent('checkout_started', { plan: 'premium', price: 9.99, provider: 'lemon_squeezy' });
     
     try {
-      const { data, error } = await supabase.functions.invoke('polar-checkout', {
+      const { data, error } = await supabase.functions.invoke('lemon-squeezy-checkout', {
         body: { userId: user.id }
       });
 
@@ -39,8 +39,7 @@ export function PolarCheckout({ onSuccess, onError }: PolarCheckoutProps) {
       }
 
       if (data?.checkoutUrl) {
-        // Redirect to Polar checkout
-        trackEvent('checkout_redirect', { checkout_url: data.checkoutUrl });
+        trackEvent('checkout_redirect', { checkout_url: data.checkoutUrl, provider: 'lemon_squeezy' });
         window.location.href = data.checkoutUrl;
       } else {
         throw new Error('No checkout URL received');
@@ -49,7 +48,7 @@ export function PolarCheckout({ onSuccess, onError }: PolarCheckoutProps) {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al crear el checkout';
       
-      trackEvent('checkout_failed', { error: errorMessage });
+      trackEvent('checkout_failed', { error: errorMessage, provider: 'lemon_squeezy' });
       
       toast({
         variant: "destructive",

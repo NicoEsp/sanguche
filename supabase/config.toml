@@ -62,11 +62,10 @@ enable_signup = false
 enable_confirmations = false
 template = "Your code is {{ .Code }}"
 
-[functions.polar-webhook]
+[functions.lemon-squeezy-webhook]
 verify_jwt = false
 
-
-[functions.polar-checkout]
+[functions.lemon-squeezy-checkout]
 verify_jwt = true
 
 [functions.get-admin-users]
