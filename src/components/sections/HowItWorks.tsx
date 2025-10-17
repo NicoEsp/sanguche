@@ -22,7 +22,7 @@ const steps = [
   },
   {
     icon: Trophy,
-    title: "Seguimiento de Progreso",
+    title: "Progreso",
     description: "Mide tu evolución y mantén el foco en tus objetivos de carrera",
     color: "text-secondary-foreground"
   }
