@@ -18,7 +18,7 @@ const Index = () => {
   return <>
       <Seo 
         title="ProductPrepa — Autoevaluación PM" 
-        description="Evalúa tu seniority en Product Management y descubre tus brechas de habilidades." 
+        description="Evalúa tu seniority en Product Management y recibe recomendaciones personalizadas para crecer en tu carrera profesional con acompañamiento 1:1." 
         canonical="/" 
       />
       <main className="min-h-screen bg-background">
