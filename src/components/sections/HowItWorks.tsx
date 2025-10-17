@@ -10,7 +10,7 @@ const steps = [
   },
   {
     icon: Target,
-    title: "Identifica Áreas de Mejora",
+    title: "Identifica áreas de mejora",
     description: "Descubre las áreas específicas donde puedes mejorar tu perfil profesional",
     color: "text-secondary-foreground"
   },
