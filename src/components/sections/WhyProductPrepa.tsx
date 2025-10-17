@@ -7,7 +7,7 @@ const features = [{
   highlight: true
 }, {
   icon: BookOpen,
-  title: "Recursos Curados por Expertos",
+  title: "Recursos curados por expertos",
   description: "Accede a contenido seleccionado por profesionales experimentados, no contenido automático.",
   highlight: true
 }, {
