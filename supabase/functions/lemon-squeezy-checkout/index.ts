@@ -68,9 +68,8 @@ serve(async (req) => {
       );
     }
 
-    // REPLACE THIS WITH YOUR ACTUAL LEMON SQUEEZY VARIANT ID
-    // You can find it in your Lemon Squeezy dashboard under Products -> Your Product -> Variants
-    const variantId = 'YOUR_VARIANT_ID_HERE';
+    // Lemon Squeezy Variant ID for Premium Plan
+    const variantId = '1045425';
 
     // Create Lemon Squeezy checkout
     const checkoutData = {
