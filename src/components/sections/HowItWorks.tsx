@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 const steps = [
   {
     icon: CheckCircle,
-    title: "Autoevaluación Completa",
+    title: "Autoevaluación completa",
     description: "Evalúa tus habilidades en 11 dominios clave de Product Management",
     color: "text-primary"
   },
