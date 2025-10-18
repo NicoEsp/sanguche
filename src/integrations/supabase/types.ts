@@ -621,9 +621,10 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           id: string
+          lemon_squeezy_customer_id: string | null
+          lemon_squeezy_order_id: string | null
+          lemon_squeezy_subscription_id: string | null
           plan: Database["public"]["Enums"]["subscription_plan"]
-          polar_customer_id: string | null
-          polar_subscription_id: string | null
           status: Database["public"]["Enums"]["subscription_status"]
           trial_end: string | null
           updated_at: string
@@ -633,9 +634,10 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          lemon_squeezy_customer_id?: string | null
+          lemon_squeezy_order_id?: string | null
+          lemon_squeezy_subscription_id?: string | null
           plan?: Database["public"]["Enums"]["subscription_plan"]
-          polar_customer_id?: string | null
-          polar_subscription_id?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
           trial_end?: string | null
           updated_at?: string
@@ -645,9 +647,10 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           id?: string
+          lemon_squeezy_customer_id?: string | null
+          lemon_squeezy_order_id?: string | null
+          lemon_squeezy_subscription_id?: string | null
           plan?: Database["public"]["Enums"]["subscription_plan"]
-          polar_customer_id?: string | null
-          polar_subscription_id?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
           trial_end?: string | null
           updated_at?: string

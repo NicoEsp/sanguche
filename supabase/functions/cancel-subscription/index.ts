@@ -47,10 +47,10 @@ serve(async (req) => {
       throw new Error('Profile not found');
     }
 
-    // Get subscription with Polar ID (server-side only)
+    // Get subscription with Lemon Squeezy ID (server-side only)
     const { data: subscription, error: subError } = await supabase
       .from('user_subscriptions')
-      .select('polar_subscription_id, status, plan')
+      .select('lemon_squeezy_subscription_id, status, plan')
       .eq('user_id', profile.id)
       .single();
 
@@ -63,33 +63,34 @@ serve(async (req) => {
       throw new Error('No active premium subscription found');
     }
 
-    if (!subscription.polar_subscription_id) {
-      throw new Error('No Polar subscription ID found');
+    if (!subscription.lemon_squeezy_subscription_id) {
+      throw new Error('No Lemon Squeezy subscription ID found');
     }
 
-    // Cancel subscription in Polar
-    const polarAccessToken = Deno.env.get('POLAR_ACCESS_TOKEN');
-    if (!polarAccessToken) {
-      throw new Error('Polar access token not configured');
+    // Cancel subscription in Lemon Squeezy
+    const lemonSqueezyApiKey = Deno.env.get('LEMON_SQUEEZY_API_KEY');
+    if (!lemonSqueezyApiKey) {
+      throw new Error('Lemon Squeezy API key not configured');
     }
 
-    console.log('Canceling Polar subscription:', subscription.polar_subscription_id);
+    console.log('Canceling Lemon Squeezy subscription:', subscription.lemon_squeezy_subscription_id);
 
-    const polarResponse = await fetch(
-      `https://api.polar.sh/v1/subscriptions/${subscription.polar_subscription_id}/cancel`,
+    const lemonSqueezyResponse = await fetch(
+      `https://api.lemonsqueezy.com/v1/subscriptions/${subscription.lemon_squeezy_subscription_id}`,
       {
-        method: 'POST',
+        method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${polarAccessToken}`,
-          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${lemonSqueezyApiKey}`,
+          'Accept': 'application/vnd.api+json',
+          'Content-Type': 'application/vnd.api+json',
         },
       }
     );
 
-    if (!polarResponse.ok) {
-      const errorText = await polarResponse.text();
-      console.error('Polar API error:', errorText);
-      throw new Error(`Failed to cancel subscription in Polar: ${errorText}`);
+    if (!lemonSqueezyResponse.ok) {
+      const errorText = await lemonSqueezyResponse.text();
+      console.error('Lemon Squeezy API error:', errorText);
+      throw new Error(`Failed to cancel subscription in Lemon Squeezy: ${errorText}`);
     }
 
     // Update subscription status in database

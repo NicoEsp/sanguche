@@ -43,7 +43,7 @@ export function useAdminAnalytics() {
 
         const { data: subscriptionsData, error: subscriptionsError } = await supabase
           .from('user_subscriptions')
-          .select('plan, status, user_id, created_at, polar_subscription_id');
+          .select('plan, status, user_id, created_at, lemon_squeezy_subscription_id');
 
         if (subscriptionsError) throw subscriptionsError;
 
