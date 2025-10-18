@@ -42,7 +42,7 @@ src/pages/admin/
 
 ## 💳 Pagos
 
-- Integración con Polar para procesamiento de pagos
+- Integración con LemonSqueezy para procesamiento de pagos (Se descarta Polar como procesador de pagos por problemas administrativos)
 - Webhooks para sincronización de suscripciones
 - Gestión automática de estados de suscripción
 
