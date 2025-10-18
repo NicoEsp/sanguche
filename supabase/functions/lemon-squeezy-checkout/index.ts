@@ -84,14 +84,14 @@ serve(async (req) => {
       data: {
         type: 'checkouts',
         attributes: {
-          checkout_data: {
-            email: authUser.user.email,
-            name: profile.name || '',
-            custom: {
-              profile_id: profile.id,
-              user_id: userId
-            }
-          },
+      checkout_data: {
+        email: authUser.user.email,
+        name: profile.name || '',
+        custom_data: {
+          profile_id: profile.id,
+          user_id: userId
+        }
+      },
           product_options: {
             redirect_url: `${req.headers.get('origin')}/mentoria?success=true`
           }
