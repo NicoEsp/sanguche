@@ -40,6 +40,14 @@ serve(async (req) => {
       );
     }
 
+    const lemonSqueezyStoreId = Deno.env.get('LEMON_SQUEEZY_STORE_ID');
+    if (!lemonSqueezyStoreId) {
+      return new Response(
+        JSON.stringify({ error: 'Lemon Squeezy Store ID not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get user profile and email from Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -89,6 +97,12 @@ serve(async (req) => {
           }
         },
         relationships: {
+          store: {
+            data: {
+              type: 'stores',
+              id: lemonSqueezyStoreId
+            }
+          },
           variant: {
             data: {
               type: 'variants',
