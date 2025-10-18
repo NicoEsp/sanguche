@@ -86,11 +86,7 @@ serve(async (req) => {
         attributes: {
       checkout_data: {
         email: authUser.user.email,
-        name: profile.name || '',
-        custom_data: {
-          profile_id: profile.id,
-          user_id: userId
-        }
+        name: profile.name || ''
       },
           product_options: {
             redirect_url: `${req.headers.get('origin')}/mentoria?success=true`

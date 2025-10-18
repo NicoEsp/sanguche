@@ -25,6 +25,8 @@ interface LemonSqueezyWebhookEvent {
       trial_ends_at?: string;
       created_at: string;
       updated_at: string;
+      user_email?: string;
+      customer_email?: string;
     };
   };
 }
@@ -103,16 +105,35 @@ serve(async (req) => {
     const orderId = event.data.attributes.order_id?.toString();
     const status = event.data.attributes.status;
 
-    // Get user_id from custom_data
-    const userId = event.meta.custom_data?.user_id;
+    // Get user email from webhook event
+    const userEmail = event.data.attributes.user_email || event.data.attributes.customer_email;
 
-    if (!userId) {
-      console.error('No user_id in custom_data');
+    if (!userEmail) {
+      console.error('No user email in webhook event');
       return new Response(
-        JSON.stringify({ error: 'No user_id provided' }),
+        JSON.stringify({ error: 'No user email provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Find user profile by email
+    console.log('Looking up user by email:', userEmail);
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, user_id, email')
+      .eq('email', userEmail)
+      .single();
+
+    if (profileError || !profile) {
+      console.error('User profile not found for email:', userEmail, profileError);
+      return new Response(
+        JSON.stringify({ error: 'User profile not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = profile.id;
+    console.log('Found user profile:', userId);
 
     // Handle different event types
     switch (eventName) {
