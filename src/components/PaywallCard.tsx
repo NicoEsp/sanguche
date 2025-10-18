@@ -50,7 +50,7 @@ export function PaywallCard({
           
           <div className="bg-muted/50 p-4 rounded-lg text-center">
             <div className="text-2xl font-bold text-primary mb-1">
-              $9.99 <span className="text-base font-normal text-muted-foreground">/mes</span>
+              ARS $25.000 <span className="text-base font-normal text-muted-foreground">/mes</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Cancela cuando quieras

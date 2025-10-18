@@ -27,7 +27,7 @@ export default function Premium() {
     });
   }, [hasActivePremium, trackEvent]);
   return <>
-      <Seo title="Premium: Crece como Product Manager con mentoría personalizada | ProductPrepa" description="Evaluá tus habilidades, trabajá en tus áreas de mejora y recibí mentoría mensual con NicoProducto. Desde $9.99/mes. Cancelá cuando quieras." canonical="/premium" />
+      <Seo title="Premium: Crece como Product Manager con mentoría personalizada | ProductPrepa" description="Evaluá tus habilidades, trabajá en tus áreas de mejora y recibí mentoría mensual con NicoProducto. Desde ARS $25.000/mes. Cancelá cuando quieras." canonical="/premium" />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         {/* Hero Section */}
@@ -92,7 +92,7 @@ export default function Premium() {
                     <CardTitle className="text-2xl">PLAN PREMIUM</CardTitle>
                   </div>
                   <CardDescription>Pensado para quienes quieren crecer en serio</CardDescription>
-                  <div className="text-3xl font-bold">$9.99<span className="text-sm font-normal text-muted-foreground">/mes</span></div>
+                  <div className="text-3xl font-bold">ARS $25.000<span className="text-sm font-normal text-muted-foreground">/mes</span></div>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
