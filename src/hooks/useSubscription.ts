@@ -44,14 +44,17 @@ export function useSubscription(options?: UseSubscriptionOptions) {
           return;
         }
 
-        // Get user profile first
-        const { data: profile } = await supabase
+        const { data: profileWithSubscription, error } = await supabase
           .from('profiles')
-          .select('id')
+          .select('id, user_subscriptions(plan, status, trial_end, current_period_end)')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (!profile) {
+        if (error) {
+          throw error;
+        }
+
+        if (!profileWithSubscription) {
           setSubscription({
             plan: 'free',
             status: 'active',
@@ -61,19 +64,16 @@ export function useSubscription(options?: UseSubscriptionOptions) {
           return;
         }
 
-        // Get subscription data
-        const { data: subData } = await supabase
-          .from('user_subscriptions')
-          .select('plan, status, trial_end, current_period_end')
-          .eq('user_id', profile.id)
-          .single();
+        const subscriptionRow = Array.isArray(profileWithSubscription.user_subscriptions)
+          ? profileWithSubscription.user_subscriptions[0]
+          : profileWithSubscription.user_subscriptions;
 
-        if (subData) {
+        if (subscriptionRow) {
           setSubscription({
-            plan: subData.plan,
-            status: subData.status,
-            trialEnd: subData.trial_end ? new Date(subData.trial_end) : null,
-            current_period_end: subData.current_period_end ? new Date(subData.current_period_end) : null,
+            plan: subscriptionRow.plan,
+            status: subscriptionRow.status,
+            trialEnd: subscriptionRow.trial_end ? new Date(subscriptionRow.trial_end) : null,
+            current_period_end: subscriptionRow.current_period_end ? new Date(subscriptionRow.current_period_end) : null,
           });
         } else {
           setSubscription({
