@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ReactNode, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -8,6 +8,19 @@ import { isPremiumFeature, FEATURES } from "@/utils/features";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { createTodoistFeedbackTask } from "@/integrations/todoist/api";
+import { useToast } from "@/hooks/use-toast";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -22,6 +35,91 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { user, isAuthenticated, isAdmin, signOut, isLoading, isSigningOut } = useAuth();
   const shouldLoadProfile = isAuthenticated && !isLoading;
   const { profile, loading: profileLoading } = useUserProfile({ skip: !shouldLoadProfile });
+  const { toast } = useToast();
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [nameInput, setNameInput] = useState("");
+  const [emailInput, setEmailInput] = useState("");
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
+  const metadataName = (() => {
+    const possibleName = user?.user_metadata?.name;
+    return typeof possibleName === "string" ? possibleName : "";
+  })();
+
+  useEffect(() => {
+    if (!nameInput && (profile?.name || metadataName)) {
+      setNameInput(profile?.name ?? metadataName ?? "");
+    }
+  }, [profile?.name, metadataName, nameInput]);
+
+  useEffect(() => {
+    if (!emailInput && user?.email) {
+      setEmailInput(user.email);
+    }
+  }, [user?.email, emailInput]);
+
+  const handleSubmitFeedback = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmedFeedback = feedback.trim();
+    const trimmedName = nameInput.trim();
+    const trimmedEmail = emailInput.trim();
+
+    if (!trimmedFeedback) {
+      toast({
+        title: "Falta feedback",
+        description: "Por favor contanos qué le cambiarías al Sanguche.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!trimmedName) {
+      toast({
+        title: "Falta tu nombre",
+        description: "Necesitamos tu nombre para enviar el feedback.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!trimmedEmail) {
+      toast({
+        title: "Falta tu email",
+        description: "Necesitamos tu email para enviar el feedback.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+
+    try {
+      await createTodoistFeedbackTask({
+        name: trimmedName,
+        email: trimmedEmail,
+        feedback: trimmedFeedback,
+      });
+
+      toast({
+        title: "¡Gracias!",
+        description: "Tu feedback llegó al equipo.",
+      });
+
+      setFeedback("");
+      setIsFeedbackOpen(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Ocurrió un error al enviar tu feedback.";
+      toast({
+        title: "No pudimos enviar el feedback",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
 
   const navItems = [
     { href: "/autoevaluacion", label: "Autoevaluación", premium: false },
@@ -242,6 +340,82 @@ export function AppLayout({ children }: { children: ReactNode }) {
           © {new Date().getFullYear()} ProductPrepa
         </div>
       </footer>
+
+      {isAuthenticated && (
+        <>
+          <Button
+            className="fixed bottom-6 right-6 z-50 shadow-lg"
+            size="lg"
+            onClick={() => setIsFeedbackOpen(true)}
+          >
+            ¿Qué le cambias al Sanguche?
+          </Button>
+
+          <Dialog open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Contanos tu feedback</DialogTitle>
+                <DialogDescription>
+                  Usamos esta información para mejorar ProductPrepa. ¡Gracias por tomarte el tiempo!
+                </DialogDescription>
+              </DialogHeader>
+
+              <form className="space-y-4" onSubmit={handleSubmitFeedback}>
+                <div className="space-y-2">
+                  <Label htmlFor="feedback">Feedback</Label>
+                  <Textarea
+                    id="feedback"
+                    value={feedback}
+                    onChange={(event) => setFeedback(event.target.value)}
+                    placeholder="Contanos qué le cambiarías al Sanguche..."
+                    required
+                    minLength={5}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                  <Label htmlFor="feedback-name">Nombre</Label>
+                  <Input
+                    id="feedback-name"
+                    value={nameInput}
+                    onChange={(event) => setNameInput(event.target.value)}
+                    placeholder="Tu nombre"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="feedback-email">Email</Label>
+                  <Input
+                    id="feedback-email"
+                    type="email"
+                    value={emailInput}
+                    onChange={(event) => setEmailInput(event.target.value)}
+                    placeholder="tu@mail.com"
+                    required
+                  />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsFeedbackOpen(false)}
+                    disabled={isSubmittingFeedback}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={isSubmittingFeedback}>
+                    {isSubmittingFeedback ? "Enviando..." : "Enviar feedback"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   );
 }
