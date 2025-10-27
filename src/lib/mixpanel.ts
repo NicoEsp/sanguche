@@ -20,7 +20,7 @@ const loadMixpanel = async (): Promise<MixpanelBrowser | null> => {
 
   if (!mixpanelLoader) {
     mixpanelLoader = import('mixpanel-browser')
-      .then(({ default: mixpanel }) => {
+      .then((mixpanel) => {
         mixpanel.init(MIXPANEL_TOKEN, {
           debug: import.meta.env.DEV,
           track_pageview: false,

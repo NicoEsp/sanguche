@@ -40,47 +40,48 @@ export function useSubscription(options?: UseSubscriptionOptions) {
         };
       }
 
-        const { data: profileWithSubscription, error } = await supabase
-          .from('profiles')
-          .select('id, user_subscriptions(plan, status, trial_end, current_period_end)')
-          .eq('user_id', user.id)
-          .maybeSingle();
+      const { data: subscriptionData } = await supabase
+        .from('user_subscriptions')
+        .select('plan, status, trial_end, current_period_end')
+        .eq('user_id', profile.id)
+        .maybeSingle();
 
-        if (error) {
-          throw error;
-        }
+      if (!subscriptionData) {
+        return {
+          plan: 'free' as const,
+          status: 'active' as const,
+          trialEnd: null,
+          current_period_end: null,
+        };
+      }
 
-        if (!profileWithSubscription) {
-          setSubscription({
-            plan: 'free',
-            status: 'active',
-            trialEnd: null,
-          });
-          setLoading(false);
-          return;
-        }
+      return {
+        plan: subscriptionData.plan,
+        status: subscriptionData.status,
+        trialEnd: subscriptionData.trial_end ? new Date(subscriptionData.trial_end) : null,
+        current_period_end: subscriptionData.current_period_end ? new Date(subscriptionData.current_period_end) : null,
+      };
+    },
+    enabled: !!user && !options?.skip,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000,
+  });
 
-        const subscriptionRow = Array.isArray(profileWithSubscription.user_subscriptions)
-          ? profileWithSubscription.user_subscriptions[0]
-          : profileWithSubscription.user_subscriptions;
+  // Real-time subscription
+  useEffect(() => {
+    if (!user || options?.skip) return;
 
-        if (subscriptionRow) {
-          setSubscription({
-            plan: subscriptionRow.plan,
-            status: subscriptionRow.status,
-            trialEnd: subscriptionRow.trial_end ? new Date(subscriptionRow.trial_end) : null,
-            current_period_end: subscriptionRow.current_period_end ? new Date(subscriptionRow.current_period_end) : null,
-          });
-        } else {
-          setSubscription({
-            plan: 'free',
-            status: 'active',
-            trialEnd: null,
-          });
-        }
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error('Error fetching subscription:', error);
+    const channel = supabase
+      .channel('user-subscription-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_subscriptions',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
         }
       )
       .subscribe();
