@@ -242,18 +242,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       <main className="flex-1">{children}</main>
 
-      <footer className="border-t">
-        <div className="container py-6 text-sm text-muted-foreground">
-          © {new Date().getFullYear()} ProductPrepa
+      <footer className="border-t bg-background">
+        <div className="container py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground text-center sm:text-left">
+            © {new Date().getFullYear()} ProductPrepa
+          </p>
+          
+          <FeedbackFooterCta
+            isAuthenticated={isAuthenticated}
+            profileName={profile?.name}
+            metadataName={metadataName}
+            userEmail={user?.email}
+          />
         </div>
       </footer>
-
-      <FeedbackFooterCta
-        isAuthenticated={isAuthenticated}
-        profileName={profile?.name}
-        metadataName={metadataName}
-        userEmail={user?.email}
-      />
     </div>
   );
 }

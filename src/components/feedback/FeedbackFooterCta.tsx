@@ -134,9 +134,9 @@ export function FeedbackFooterCta({
   return (
     <>
       <Button
-        className="fixed bottom-6 right-6 z-50 shadow-lg"
         size="lg"
         onClick={() => setIsDialogOpen(true)}
+        className="w-full sm:w-auto"
       >
         ¿Qué le cambias al Sanguche?
       </Button>
