@@ -15,8 +15,19 @@ type FeedbackPayload = {
   feedback?: unknown;
 };
 
+// Validation constants
+const MAX_NAME_LENGTH = 100;
+const MAX_EMAIL_LENGTH = 255;
+const MAX_FEEDBACK_LENGTH = 5000;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function sanitizeInput(str: string): string {
+  // Remove potential HTML/script tags for safety
+  return str.replace(/[<>]/g, '');
 }
 
 serve(async (req) => {
@@ -38,6 +49,7 @@ serve(async (req) => {
     const payload: FeedbackPayload = await req.json();
     const { name, email, feedback } = payload;
 
+    // Validate required fields
     if (!isNonEmptyString(name) || !isNonEmptyString(email) || !isNonEmptyString(feedback)) {
       return new Response(
         JSON.stringify({ error: "Los campos de nombre, email y feedback son obligatorios." }),
@@ -47,6 +59,53 @@ serve(async (req) => {
         },
       );
     }
+
+    // Validate field lengths
+    if (name.length > MAX_NAME_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `El nombre no puede exceder ${MAX_NAME_LENGTH} caracteres.` }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (email.length > MAX_EMAIL_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `El email no puede exceder ${MAX_EMAIL_LENGTH} caracteres.` }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (feedback.length > MAX_FEEDBACK_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `El feedback no puede exceder ${MAX_FEEDBACK_LENGTH} caracteres.` }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // Validate email format
+    if (!EMAIL_REGEX.test(email)) {
+      return new Response(
+        JSON.stringify({ error: "El formato del email no es válido." }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // Sanitize inputs
+    const sanitizedName = sanitizeInput(name);
+    const sanitizedEmail = sanitizeInput(email);
+    const sanitizedFeedback = sanitizeInput(feedback);
 
     const todoistToken = Deno.env.get("TODOIST_API_TOKEN");
     if (!todoistToken) {
@@ -64,8 +123,8 @@ serve(async (req) => {
     console.log("Creating Todoist task to Inbox", {
       hasToken: !!todoistToken,
       route: "inbox",
-      contentLength: `${name}+${email}`.length,
-      feedbackLength: feedback.length,
+      contentLength: `${sanitizedName}+${sanitizedEmail}`.length,
+      feedbackLength: sanitizedFeedback.length,
     });
 
     const response = await fetch(TODOIST_API_URL, {
@@ -76,8 +135,8 @@ serve(async (req) => {
         "X-Request-Id": crypto.randomUUID(),
       },
       body: JSON.stringify({
-        content: `${name}+${email}`,
-        description: feedback,
+        content: `${sanitizedName}+${sanitizedEmail}`,
+        description: sanitizedFeedback,
       }),
     });
 
@@ -88,7 +147,7 @@ serve(async (req) => {
         statusText: response.statusText,
         errorBody,
         route: "inbox",
-        requestContent: `${name}+${email}`,
+        requestContent: `${sanitizedName}+${sanitizedEmail}`,
       });
       
       return new Response(

@@ -1,6 +1,6 @@
 const MIXPANEL_TOKEN = '35fe7a2706398ebc90ae3f1012d0a558';
 
-type MixpanelBrowser = typeof import('mixpanel-browser');
+type MixpanelBrowser = typeof import('mixpanel-browser').default;
 
 let mixpanelInstance: MixpanelBrowser | null = null;
 let mixpanelLoader: Promise<MixpanelBrowser | null> | null = null;
@@ -20,7 +20,8 @@ const loadMixpanel = async (): Promise<MixpanelBrowser | null> => {
 
   if (!mixpanelLoader) {
     mixpanelLoader = import('mixpanel-browser')
-      .then((mixpanel) => {
+      .then((mixpanelModule) => {
+        const mixpanel = mixpanelModule.default;
         mixpanel.init(MIXPANEL_TOKEN, {
           debug: import.meta.env.DEV,
           track_pageview: false,

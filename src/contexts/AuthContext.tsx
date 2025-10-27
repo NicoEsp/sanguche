@@ -33,65 +33,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // SECURITY: Server-side admin validation - cannot be bypassed by localStorage manipulation
   const { isAdmin, isValidating: isAdminValidating } = useServerAdminValidation(user);
 
-  // Prefetch critical data when user authenticates
+  // Prefetch critical data when user authenticates - OPTIMIZED: Single composite query
   useEffect(() => {
     if (user && !isLoading) {
-      // Prefetch user profile
+      // Single composite query to fetch all user data at once
+      queryClient.prefetchQuery({
+        queryKey: ['user-composite-data', user.id],
+        queryFn: async () => {
+          const { data } = await supabase
+            .from('profiles')
+            .select(`
+              id, 
+              name, 
+              user_id, 
+              mentoria_completed,
+              user_subscriptions(*),
+              assessments(assessment_result, assessment_values, created_at)
+            `)
+            .eq('user_id', user.id)
+            .order('assessments(created_at)', { ascending: false })
+            .limit(1, { foreignTable: 'assessments' })
+            .maybeSingle();
+
+          return data;
+        },
+      });
+
+      // Cache individual queries from composite data for backwards compatibility
       queryClient.prefetchQuery({
         queryKey: ['user-profile', user.id],
         queryFn: async () => {
-          const { data } = await supabase
-            .from('profiles')
-            .select('id, name, user_id, mentoria_completed')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          return data;
+          const compositeData = queryClient.getQueryData(['user-composite-data', user.id]) as any;
+          if (compositeData) {
+            return {
+              id: compositeData.id,
+              name: compositeData.name,
+              user_id: compositeData.user_id,
+              mentoria_completed: compositeData.mentoria_completed,
+            };
+          }
+          return null;
         },
       });
 
-      // Prefetch subscription status
       queryClient.prefetchQuery({
         queryKey: ['subscription', user.id],
         queryFn: async () => {
-          const { data } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          if (!data?.id) return null;
-
-          const { data: subscription } = await supabase
-            .from('user_subscriptions')
-            .select('*')
-            .eq('user_id', data.id)
-            .maybeSingle();
-          
-          return subscription;
+          const compositeData = queryClient.getQueryData(['user-composite-data', user.id]) as any;
+          return compositeData?.user_subscriptions?.[0] || null;
         },
       });
 
-      // Prefetch assessment data for users who might have one
       queryClient.prefetchQuery({
         queryKey: ['assessment-data-check', user.id],
         queryFn: async () => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          if (!profile?.id) return null;
-
-          const { data } = await supabase
-            .from('assessments')
-            .select('assessment_result, assessment_values, created_at')
-            .eq('user_id', profile.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          return data;
+          const compositeData = queryClient.getQueryData(['user-composite-data', user.id]) as any;
+          return compositeData?.assessments?.[0] || null;
         },
       });
     }
