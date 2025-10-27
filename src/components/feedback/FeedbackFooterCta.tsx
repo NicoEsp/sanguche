@@ -45,6 +45,7 @@ export function FeedbackFooterCta({
   const [nameInput, setNameInput] = useState("");
   const [emailInput, setEmailInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAnimation, setShowAnimation] = useState(false);
 
   const initialName = useMemo(() => getInitialName(profileName, metadataName), [profileName, metadataName]);
   const initialEmail = useMemo(() => (userEmail && userEmail.trim().length > 0 ? userEmail : ""), [userEmail]);
@@ -115,6 +116,8 @@ export function FeedbackFooterCta({
 
       setFeedback("");
       setIsDialogOpen(false);
+      setShowAnimation(true);
+      setTimeout(() => setShowAnimation(false), 3000);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Ocurrió un error al enviar tu feedback.";
       toast({
@@ -188,15 +191,7 @@ export function FeedbackFooterCta({
               </div>
             </div>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-                disabled={isSubmitting}
-              >
-                Cancelar
-              </Button>
+            <DialogFooter className="justify-center">
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Enviando..." : "Enviar feedback"}
               </Button>
@@ -204,6 +199,26 @@ export function FeedbackFooterCta({
           </form>
         </DialogContent>
       </Dialog>
+
+      {showAnimation && (
+        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+          {[...Array(15)].map((_, i) => (
+            <img
+              key={i}
+              src="/favicon.png"
+              alt=""
+              className="absolute animate-fall"
+              style={{
+                left: `${Math.random() * 100}%`,
+                width: '40px',
+                height: '40px',
+                animationDelay: `${Math.random() * 0.5}s`,
+                animationDuration: `${2 + Math.random() * 1}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
     </>
   );
 }
