@@ -19,6 +19,7 @@ import { UserExercises } from "@/components/mentoria/UserExercises";
 import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Recommendations() {
   const { hasActivePremium, loading } = useSubscription();
@@ -27,26 +28,31 @@ export default function Recommendations() {
   const { profile, loading: profileLoading } = useUserProfile();
   const { isAdmin } = useAuth();
   const { trackEvent } = useMixpanelTracking();
+  const queryClient = useQueryClient();
 
-  // Check for success payment
+  // Check for success payment and force subscription refresh
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('success') === 'true') {
-      // Track successful checkout completion
-      trackEvent('checkout_completed', {
-        plan: 'premium',
-        price: 9.99,
-        payment_method: 'polar'
-      });
-      
-      toast({
-        title: "¡Suscripción exitosa!",
-        description: "Bienvenido a ProductPrepa Premium. Ya tienes acceso a todas las funcionalidades."
-      });
-      // Clean URL
-      window.history.replaceState({}, '', '/mentoria');
+      // Wait for webhook to process (2 seconds), then invalidate subscription
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['subscription'] });
+        
+        trackEvent('checkout_completed', {
+          plan: 'premium',
+          price: 25000,
+          provider: 'lemon_squeezy'
+        });
+        
+        toast({
+          title: "¡Suscripción exitosa!",
+          description: "Bienvenido a ProductPrepa Premium. Ya tienes acceso a todas las funcionalidades."
+        });
+        
+        window.history.replaceState({}, '', '/mentoria');
+      }, 2000);
     }
-  }, [toast, trackEvent]);
+  }, [toast, trackEvent, queryClient]);
   
   // Memoized access calculations
   const hasAccess = useMemo(
