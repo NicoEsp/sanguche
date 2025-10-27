@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,48 +47,32 @@ export default function AdminUsers() {
     email: string | null;
   } | null>(null);
   const [deleting, setDeleting] = useState(false);
-  
+
   const { isAdmin } = useAuth();
+  const initialLoadRef = useRef(true);
+  const refreshQueueRef = useRef<number | null>(null);
+  const pendingRealtimeUpdateRef = useRef(false);
+  const isFetchingRef = useRef(false);
 
-  useEffect(() => {
-    fetchUsers();
-    
-    const profilesChannel = supabase
-      .channel('profiles-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'profiles' },
-        () => fetchUsers()
-      )
-      .subscribe();
+  const fetchUsers = useCallback(async (options: { silent?: boolean } = {}) => {
+    const { silent = false } = options;
 
-    const subscriptionsChannel = supabase
-      .channel('subscriptions-changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'user_subscriptions' },
-        () => fetchUsers()
-      )
-      .subscribe();
+    if (isFetchingRef.current) {
+      if (silent) {
+        pendingRealtimeUpdateRef.current = true;
+        return;
+      }
+    }
 
-    const rolesChannel = supabase
-      .channel('roles-changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'user_roles' },
-        () => fetchUsers()
-      )
-      .subscribe();
+    isFetchingRef.current = true;
+    const isInitialLoad = initialLoadRef.current;
 
-    return () => {
-      supabase.removeChannel(profilesChannel);
-      supabase.removeChannel(subscriptionsChannel);
-      supabase.removeChannel(rolesChannel);
-    };
-  }, []);
-
-  async function fetchUsers() {
     try {
-      const isRefresh = !loading;
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
+      if (isInitialLoad && !silent) {
+        setLoading(true);
+      } else if (!silent) {
+        setRefreshing(true);
+      }
       setError(null);
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
@@ -99,49 +83,60 @@ export default function AdminUsers() {
 
       if (!profiles?.length) {
         setUsers([]);
+        if (!silent && !isInitialLoad) {
+          toast.success('Datos actualizados correctamente');
+        }
         return;
       }
       const profileIds = profiles.map(p => p.id);
 
       // SECURITY: Fetch emails using secure edge function instead of direct auth.admin call
       const emailMap = new Map<string, string>();
-      try {
-        const { data: emailData, error: emailError } = await supabase.functions.invoke('get-admin-users');
-        
-        if (!emailError && emailData?.users) {
-          emailData.users.forEach((user: any) => {
-            if (user.user_id && user.email) {
-              emailMap.set(user.user_id, user.email);
-            }
-          });
-        }
-      } catch (error) {
-        // Failed to fetch user emails from edge function
-      }
 
-      // Fetch subscriptions
-      const { data: subscriptions, error: subscriptionsError } = await supabase
-        .from('user_subscriptions')
-        .select('user_id, plan, status')
-        .in('user_id', profileIds);
+      const emailPromise = supabase.functions.invoke('get-admin-users').catch((error) => {
+        if (import.meta.env.DEV) {
+          console.error('Error fetching user emails:', error);
+        }
+        return { data: null, error };
+      });
+
+      const [emailResult, subscriptionsResult, rolesResult] = await Promise.all([
+        emailPromise,
+        supabase
+          .from('user_subscriptions')
+          .select('user_id, plan, status')
+          .in('user_id', profileIds),
+        supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', profileIds)
+      ]);
+
+      const { data: subscriptions, error: subscriptionsError } = subscriptionsResult;
 
       if (subscriptionsError) {
         throw subscriptionsError;
       }
 
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .in('user_id', profileIds);
+      const { data: roles, error: rolesError } = rolesResult;
 
       if (rolesError) {
         throw rolesError;
       }
 
+      const { data: emailData, error: emailError } = emailResult as { data?: any; error?: unknown };
+      if (!emailError && emailData?.users) {
+        emailData.users.forEach((user: any) => {
+          if (user.user_id && user.email) {
+            emailMap.set(user.user_id, user.email);
+          }
+        });
+      }
+
       const usersData = profiles.map(profile => {
         const subscription = subscriptions?.find(s => s.user_id === profile.id);
         const userRole = roles?.find(r => r.user_id === profile.id);
-        
+
         return {
           id: profile.id,
           name: profile.name,
@@ -155,18 +150,80 @@ export default function AdminUsers() {
       });
 
       setUsers(usersData);
-      
-      if (isRefresh) {
+
+      if (!silent && !isInitialLoad) {
         toast.success('Datos actualizados correctamente');
       }
     } catch (err) {
       setError('Error cargando usuarios');
       toast.error('Error cargando usuarios');
     } finally {
+      initialLoadRef.current = false;
+      isFetchingRef.current = false;
       setLoading(false);
       setRefreshing(false);
+
+      if (pendingRealtimeUpdateRef.current) {
+        pendingRealtimeUpdateRef.current = false;
+        void fetchUsers({ silent: true });
+      }
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+
+    const scheduleRefresh = () => {
+      if (isFetchingRef.current) {
+        pendingRealtimeUpdateRef.current = true;
+        return;
+      }
+
+      if (refreshQueueRef.current !== null) {
+        return;
+      }
+
+      refreshQueueRef.current = window.setTimeout(() => {
+        refreshQueueRef.current = null;
+        void fetchUsers({ silent: true });
+      }, 250);
+    };
+
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        scheduleRefresh
+      )
+      .subscribe();
+
+    const subscriptionsChannel = supabase
+      .channel('subscriptions-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'user_subscriptions' },
+        scheduleRefresh
+      )
+      .subscribe();
+
+    const rolesChannel = supabase
+      .channel('roles-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'user_roles' },
+        scheduleRefresh
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(subscriptionsChannel);
+      supabase.removeChannel(rolesChannel);
+      if (refreshQueueRef.current !== null) {
+        window.clearTimeout(refreshQueueRef.current);
+        refreshQueueRef.current = null;
+      }
+      pendingRealtimeUpdateRef.current = false;
+    };
+  }, [fetchUsers]);
 
   const filteredUsers = (users || []).filter(user => {
     if (!user) return false;

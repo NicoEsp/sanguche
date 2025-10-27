@@ -40,53 +40,47 @@ export function useSubscription(options?: UseSubscriptionOptions) {
         };
       }
 
-      // Get subscription data
-      const { data: subData } = await supabase
-        .from('user_subscriptions')
-        .select('plan, status, trial_end, current_period_end')
-        .eq('user_id', profile.id)
-        .single();
+        const { data: profileWithSubscription, error } = await supabase
+          .from('profiles')
+          .select('id, user_subscriptions(plan, status, trial_end, current_period_end)')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-      if (subData) {
-        return {
-          plan: subData.plan,
-          status: subData.status,
-          trialEnd: subData.trial_end ? new Date(subData.trial_end) : null,
-          current_period_end: subData.current_period_end ? new Date(subData.current_period_end) : null,
-        };
-      }
+        if (error) {
+          throw error;
+        }
 
-      return {
-        plan: 'free' as const,
-        status: 'active' as const,
-        trialEnd: null,
-        current_period_end: null,
-      };
-    },
-    enabled: !!user && !options?.skip,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  });
+        if (!profileWithSubscription) {
+          setSubscription({
+            plan: 'free',
+            status: 'active',
+            trialEnd: null,
+          });
+          setLoading(false);
+          return;
+        }
 
-  // Real-time subscription to user_subscriptions changes
-  useEffect(() => {
-    if (!user || options?.skip) return;
+        const subscriptionRow = Array.isArray(profileWithSubscription.user_subscriptions)
+          ? profileWithSubscription.user_subscriptions[0]
+          : profileWithSubscription.user_subscriptions;
 
-    const channel = supabase
-      .channel('user-subscription-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_subscriptions',
-        },
-        (payload) => {
-          // Only invalidate if the change affects current user
-          if (import.meta.env.DEV) {
-            console.log('Subscription changed, invalidating query:', payload);
-          }
-          queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
+        if (subscriptionRow) {
+          setSubscription({
+            plan: subscriptionRow.plan,
+            status: subscriptionRow.status,
+            trialEnd: subscriptionRow.trial_end ? new Date(subscriptionRow.trial_end) : null,
+            current_period_end: subscriptionRow.current_period_end ? new Date(subscriptionRow.current_period_end) : null,
+          });
+        } else {
+          setSubscription({
+            plan: 'free',
+            status: 'active',
+            trialEnd: null,
+          });
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('Error fetching subscription:', error);
         }
       )
       .subscribe();

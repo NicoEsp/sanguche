@@ -120,10 +120,13 @@ export default function Progress() {
   const premiumReady = hasActivePremium && !loading;
   const isLoadingData = loadingSuggested || loadingUser;
   
-  // Separate objectives by source
-  const mentorObjectives = userObjectives.filter(obj => obj.source === 'mentor');
-  const customObjectives = userObjectives.filter(obj => obj.source === 'custom');
-  const availableCustomCount = customObjectives.length;
+  // Separate objectives by source with memoization to keep stable references
+  const { mentorObjectives, customObjectives } = useMemo(() => {
+    const mentor = userObjectives.filter(obj => obj.source === 'mentor');
+    const custom = userObjectives.filter(obj => obj.source === 'custom');
+    return { mentorObjectives: mentor, customObjectives: custom };
+  }, [userObjectives]);
+  const availableCustomCount = useMemo(() => customObjectives.length, [customObjectives]);
   
   // Filtrar objetivos sugeridos que ya están en el canvas
   const availableSuggestedObjectives = useMemo(() => {
@@ -134,8 +137,11 @@ export default function Progress() {
   
   // Canvas objectives (mentor + custom)
   const canvasObjectives = useMemo(() => [...mentorObjectives, ...customObjectives], [mentorObjectives, customObjectives]);
-  const completedObjectives = canvasObjectives.filter(obj => isCompleted(obj));
-  const completionRate = canvasObjectives.length ? Math.round(completedObjectives.length / canvasObjectives.length * 100) : 0;
+  const { completedObjectives, completionRate } = useMemo(() => {
+    const completed = canvasObjectives.filter(obj => isCompleted(obj));
+    const rate = canvasObjectives.length ? Math.round((completed.length / canvasObjectives.length) * 100) : 0;
+    return { completedObjectives: completed, completionRate: rate };
+  }, [canvasObjectives]);
   // DnD handlers
   const handleDragStart = (event: DragStartEvent) => {
     setDraggingId(event.active.id as string);

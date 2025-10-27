@@ -8,13 +8,14 @@ import { isPremiumFeature, FEATURES } from "@/utils/features";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { FeedbackFooterCta } from "@/components/feedback/FeedbackFooterCta";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -22,6 +23,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { user, isAuthenticated, isAdmin, signOut, isLoading, isSigningOut } = useAuth();
   const shouldLoadProfile = isAuthenticated && !isLoading;
   const { profile, loading: profileLoading } = useUserProfile({ skip: !shouldLoadProfile });
+  const metadataName = (() => {
+    const possibleName = user?.user_metadata?.name;
+    return typeof possibleName === "string" ? possibleName : undefined;
+  })();
 
   const navItems = [
     { href: "/autoevaluacion", label: "Autoevaluación", premium: false },
@@ -242,6 +247,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
           © {new Date().getFullYear()} ProductPrepa
         </div>
       </footer>
+
+      <FeedbackFooterCta
+        isAuthenticated={isAuthenticated}
+        profileName={profile?.name}
+        metadataName={metadataName}
+        userEmail={user?.email}
+      />
     </div>
   );
 }

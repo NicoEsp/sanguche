@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
 import { Link, useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { assessmentSchema, DOMAINS, type AssessmentValues, computeSeniorityScore, type DomainKey } from "@/utils/scoring";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -12,7 +12,7 @@ import { saveAssessment } from "@/utils/storage";
 import { supabase } from "@/integrations/supabase/client";
 import { DomainInfoPopup } from "@/components/DomainInfoPopup";
 import { Info, Star, Trophy, Target, Calendar, ArrowRight } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import {
   AlertDialog,
@@ -59,6 +59,9 @@ export default function Assessment() {
     defaultValues: {} as AssessmentValues,
     mode: "onChange",
   });
+
+  const watchedValues = useWatch<AssessmentValues>({ control: form.control });
+  const persistenceTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!assessmentLoading) {
@@ -112,25 +115,63 @@ export default function Assessment() {
     }
   }, [isReevaluating, form]);
 
-  // Guardar respuestas parciales mientras el usuario escribe
   useEffect(() => {
-    if (isReevaluating) {
-      const subscription = form.watch((value) => {
-        // Solo guardar si hay al menos una respuesta
-        const hasAnswers = Object.values(value || {}).some(v => typeof v === 'number');
-        if (hasAnswers) {
-          localStorage.setItem(ASSESSMENT_PARTIAL_ANSWERS_KEY, JSON.stringify(value));
-        }
-      });
-      
-      return () => subscription.unsubscribe();
+    if (!isReevaluating) {
+      if (persistenceTimeoutRef.current !== null) {
+        window.clearTimeout(persistenceTimeoutRef.current);
+        persistenceTimeoutRef.current = null;
+      }
+      return;
     }
-  }, [isReevaluating, form]);
 
-  const values = form.watch();
+    if (!watchedValues) {
+      return;
+    }
+
+    if (persistenceTimeoutRef.current !== null) {
+      window.clearTimeout(persistenceTimeoutRef.current);
+    }
+
+    persistenceTimeoutRef.current = window.setTimeout(() => {
+      persistenceTimeoutRef.current = null;
+      const hasAnswers = Object.values(watchedValues || {}).some((v) => typeof v === 'number');
+      if (!hasAnswers) {
+        return;
+      }
+
+      const persist = () => {
+        try {
+          localStorage.setItem(ASSESSMENT_PARTIAL_ANSWERS_KEY, JSON.stringify(watchedValues));
+        } catch (error) {
+          if (import.meta.env.DEV) {
+            console.error('Error guardando respuestas parciales:', error);
+          }
+        }
+      };
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        (window as unknown as { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback?.(persist);
+      } else {
+        persist();
+      }
+    }, 400);
+
+    return () => {
+      if (persistenceTimeoutRef.current !== null) {
+        window.clearTimeout(persistenceTimeoutRef.current);
+        persistenceTimeoutRef.current = null;
+      }
+    };
+  }, [watchedValues, isReevaluating]);
+
   const total = DOMAINS.length;
-  const answered = Object.values(values || {}).filter((v) => typeof v === "number").length;
-  const progress = Math.round((answered / total) * 100);
+  const answered = useMemo(() => {
+    if (!watchedValues) {
+      return 0;
+    }
+    return Object.values(watchedValues).filter((v) => typeof v === "number").length;
+  }, [watchedValues]);
+  const progress = total ? Math.round((answered / total) * 100) : 0;
 
   const formattedUpdatedAt = useMemo(() => {
     if (!updatedAt) return null;
