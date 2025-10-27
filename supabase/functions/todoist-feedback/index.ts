@@ -1,3 +1,5 @@
+// Todoist Feedback Edge Function
+// This function receives feedback from authenticated users and creates tasks in Todoist
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const TODOIST_API_URL = "https://api.todoist.com/rest/v2/tasks";
