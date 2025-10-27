@@ -60,17 +60,28 @@ serve(async (req) => {
       );
     }
 
-    const todoistProjectId = Deno.env.get("TODOIST_PROJECT_ID");
-    if (!todoistProjectId) {
-      console.error("TODOIST_PROJECT_ID environment variable is not set");
+    // Validate and convert TODOIST_PROJECT_ID to number
+    const rawProjectId = Deno.env.get("TODOIST_PROJECT_ID");
+    const projectId = rawProjectId ? Number(rawProjectId) : NaN;
+    
+    if (!Number.isFinite(projectId)) {
+      console.error("Invalid TODOIST_PROJECT_ID", { rawProjectId });
       return new Response(
-        JSON.stringify({ error: "Todoist project ID no configurado." }),
+        JSON.stringify({ error: "Todoist project ID inválido o no configurado." }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
     }
+
+    // Log diagnostic information before making the request
+    console.log("Creating Todoist task", {
+      hasToken: !!todoistToken,
+      projectId,
+      contentLength: `${name}+${email}`.length,
+      feedbackLength: feedback.length,
+    });
 
     const response = await fetch(TODOIST_API_URL, {
       method: "POST",
@@ -80,7 +91,7 @@ serve(async (req) => {
         "X-Request-Id": crypto.randomUUID(),
       },
       body: JSON.stringify({
-        project_id: todoistProjectId,
+        project_id: projectId, // Using number directly, not string
         content: `${name}+${email}`,
         description: feedback,
       }),
@@ -88,9 +99,19 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error("Todoist API error", response.status, errorBody);
+      console.error("Todoist API error - Full details", {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody,
+        projectId,
+        requestContent: `${name}+${email}`,
+      });
+      
       return new Response(
-        JSON.stringify({ error: errorBody || "No se pudo crear la tarea en Todoist." }),
+        JSON.stringify({ 
+          error: `Error ${response.status}: ${errorBody || "No se pudo crear la tarea en Todoist."}`,
+          details: errorBody 
+        }),
         {
           status: response.status,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
