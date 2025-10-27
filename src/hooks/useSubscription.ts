@@ -1,48 +1,44 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface UseSubscriptionOptions {
   skip?: boolean;
 }
 
 export function useSubscription(options?: UseSubscriptionOptions) {
-  const [subscription, setSubscription] = useState<{
-    plan: 'free' | 'premium';
-    status: 'active' | 'inactive' | 'cancelled';
-    trialEnd: Date | null;
-    current_period_end?: Date | null;
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
-  
   const { user, isLoading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (options?.skip) {
-      setSubscription({
-        plan: 'premium',
-        status: 'active',
-        trialEnd: null,
-      });
-      setLoading(false);
-      return;
-    }
+  // Use React Query for subscription data
+  const { data: subscription, isLoading: loading } = useQuery({
+    queryKey: ['subscription', user?.id],
+    queryFn: async () => {
+      if (!user) {
+        return {
+          plan: 'free' as const,
+          status: 'active' as const,
+          trialEnd: null,
+          current_period_end: null,
+        };
+      }
 
-    if (authLoading) {
-      return;
-    }
+      // Get user profile first
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
 
-    async function fetchSubscription() {
-      try {
-        if (!user) {
-          setSubscription({
-            plan: 'free',
-            status: 'active',
-            trialEnd: null,
-          });
-          setLoading(false);
-          return;
-        }
+      if (!profile) {
+        return {
+          plan: 'free' as const,
+          status: 'active' as const,
+          trialEnd: null,
+          current_period_end: null,
+        };
+      }
 
         const { data: profileWithSubscription, error } = await supabase
           .from('profiles')
@@ -86,18 +82,28 @@ export function useSubscription(options?: UseSubscriptionOptions) {
         if (import.meta.env.DEV) {
           console.error('Error fetching subscription:', error);
         }
-        setSubscription({
-          plan: 'free',
-          status: 'active',
-          trialEnd: null,
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
+      )
+      .subscribe();
 
-    fetchSubscription();
-  }, [user, authLoading, options?.skip]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient, options?.skip]);
+
+  // Handle skip option
+  if (options?.skip) {
+    return {
+      subscription: {
+        plan: 'premium' as const,
+        status: 'active' as const,
+        trialEnd: null,
+        current_period_end: null,
+      },
+      loading: false,
+      hasActivePremium: true,
+      isTrialing: false,
+    };
+  }
 
   return {
     subscription,

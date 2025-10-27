@@ -10,6 +10,8 @@ import { Seo } from "@/components/Seo";
 import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Premium() {
   const {
@@ -19,6 +21,8 @@ export default function Premium() {
     hasActivePremium
   } = useSubscription();
   const { trackEvent } = useMixpanelTracking();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Track premium page view
   useEffect(() => {
@@ -26,6 +30,30 @@ export default function Premium() {
       has_premium: hasActivePremium
     });
   }, [hasActivePremium, trackEvent]);
+
+  // Check for success payment and force subscription refresh
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true') {
+      // Wait for webhook to process (2 seconds), then invalidate subscription
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['subscription'] });
+        
+        trackEvent('checkout_completed', {
+          plan: 'premium',
+          price: 25000,
+          provider: 'lemon_squeezy'
+        });
+        
+        toast({
+          title: "¡Suscripción exitosa!",
+          description: "Bienvenido a ProductPrepa Premium. Ya tienes acceso a todas las funcionalidades."
+        });
+        
+        window.history.replaceState({}, '', '/premium');
+      }, 2000);
+    }
+  }, [toast, trackEvent, queryClient]);
   return <>
       <Seo title="Premium: Crece como Product Manager con mentoría personalizada | ProductPrepa" description="Evaluá tus habilidades, trabajá en tus áreas de mejora y recibí mentoría mensual con NicoProducto. Desde ARS $25.000/mes. Cancelá cuando quieras." canonical="/premium" />
       
