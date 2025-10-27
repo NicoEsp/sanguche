@@ -60,25 +60,10 @@ serve(async (req) => {
       );
     }
 
-    // Validate and convert TODOIST_PROJECT_ID to number
-    const rawProjectId = Deno.env.get("TODOIST_PROJECT_ID");
-    const projectId = rawProjectId ? Number(rawProjectId) : NaN;
-    
-    if (!Number.isFinite(projectId)) {
-      console.error("Invalid TODOIST_PROJECT_ID", { rawProjectId });
-      return new Response(
-        JSON.stringify({ error: "Todoist project ID inválido o no configurado." }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-
     // Log diagnostic information before making the request
-    console.log("Creating Todoist task", {
+    console.log("Creating Todoist task to Inbox", {
       hasToken: !!todoistToken,
-      projectId,
+      route: "inbox",
       contentLength: `${name}+${email}`.length,
       feedbackLength: feedback.length,
     });
@@ -91,7 +76,6 @@ serve(async (req) => {
         "X-Request-Id": crypto.randomUUID(),
       },
       body: JSON.stringify({
-        project_id: projectId, // Using number directly, not string
         content: `${name}+${email}`,
         description: feedback,
       }),
@@ -103,7 +87,7 @@ serve(async (req) => {
         status: response.status,
         statusText: response.statusText,
         errorBody,
-        projectId,
+        route: "inbox",
         requestContent: `${name}+${email}`,
       });
       
