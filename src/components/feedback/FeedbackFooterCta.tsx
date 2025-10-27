@@ -191,7 +191,7 @@ export function FeedbackFooterCta({
               </div>
             </div>
 
-            <DialogFooter className="justify-center">
+            <DialogFooter className="justify-center sm:justify-center">
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Enviando..." : "Enviar feedback"}
               </Button>
