@@ -54,11 +54,11 @@ const queryClient = new QueryClient({
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
             <Suspense fallback={<LoadingScreen />}>
               <Routes>
                 {/* Admin Routes - Protected with server-side validation */}
@@ -122,9 +122,9 @@ const App = () => (
                 } />
               </Routes>
             </Suspense>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
     </QueryClientProvider>
   </ErrorBoundary>
 );
