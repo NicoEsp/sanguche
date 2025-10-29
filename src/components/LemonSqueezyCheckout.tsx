@@ -8,9 +8,10 @@ import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 interface LemonSqueezyCheckoutProps {
   onSuccess?: () => void;
   onError?: (error: string) => void;
+  onCheckoutStart?: () => void;
 }
 
-export function LemonSqueezyCheckout({ onSuccess, onError }: LemonSqueezyCheckoutProps) {
+export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: LemonSqueezyCheckoutProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -25,6 +26,8 @@ export function LemonSqueezyCheckout({ onSuccess, onError }: LemonSqueezyCheckou
       });
       return;
     }
+
+    onCheckoutStart?.();
 
     setLoading(true);
     trackEvent('checkout_started', { plan: 'premium', price: 25000, provider: 'lemon_squeezy' });
