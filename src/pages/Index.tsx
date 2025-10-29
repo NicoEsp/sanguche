@@ -9,12 +9,20 @@ import { HowItWorks } from "@/components/sections/HowItWorks";
 import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
 import { useAuth } from '@/contexts/AuthContext';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
+import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
 
 const Index = () => {
   const {
     isAuthenticated
   } = useAuth();
   const { trackEvent } = useMixpanelTracking();
+  const premiumBenefits = [
+    <>Mentoría personalizada mensual con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>,
+    "Seguimiento visual de tu progreso y objetivos",
+    "Recursos curados según tus áreas de mejora",
+    "Roadmap de carrera diseñado a tu medida",
+    "Nuevos contenidos y ejercicios cada mes"
+  ];
   return <>
       <Seo 
         title="ProductPrepa — Autoevaluación PM" 
@@ -132,45 +140,41 @@ const Index = () => {
             </Card>
 
             {/* Plan Premium */}
-            <Card className="border-primary relative flex flex-col h-full">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground">
-                  <Star className="h-3 w-3 mr-1" />
-                  Más popular
-                </Badge>
-              </div>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl">Premium</CardTitle>
-                  <div className="text-right">
-                  <div className="text-2xl font-bold">$9.99</div>
-                  <div className="text-sm text-muted-foreground">por mes</div>
-                  </div>
+            <Card className="border-primary flex flex-col h-full">
+              <CardHeader className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Star className="h-4 w-4 text-primary" />
+                  <Badge variant="secondary">Premium</Badge>
+                  <Star className="h-4 w-4 text-primary" />
                 </div>
-                <p className="text-muted-foreground">Todo lo gratuito, más funciones avanzadas</p>
+                <CardTitle className="text-xl sm:text-2xl mb-2">Prepárate aún más para dar el salto</CardTitle>
+                <p className="text-muted-foreground text-sm sm:text-base">
+                  Para acceder a más funcionalidades de ProductPrepa necesitas una suscripción Premium
+                </p>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
-                <div className="space-y-3 flex-1">
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">Mentoría personalizada</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">Panel de seguimiento de progreso</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">Recursos curados por expertos</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">Roadmap de carrera personalizado</span>
-                  </div>
+              <CardContent className="flex-1 flex flex-col space-y-6">
+                <div className="space-y-3">
+                  <h3 className="font-semibold">Lo que obtienes con Premium:</h3>
+                  <ul className="space-y-2">
+                    {premiumBenefits.map((benefit, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                        <span className="text-sm">{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <Button asChild className="w-full mt-6" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'pricing_premium' })}>
-                  <Link to="/mentoria">Suscribirse a Premium</Link>
-                </Button>
+
+                <div className="bg-muted/50 p-4 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-primary mb-1">
+                    ARS $25.000 <span className="text-base font-normal text-muted-foreground">/mes</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Cancela cuando quieras</p>
+                </div>
+
+                <div className="pt-2 mt-auto">
+                  <LemonSqueezyCheckout onCheckoutStart={() => trackEvent('landing_page_cta_click', { cta_location: 'pricing_premium' })} />
+                </div>
               </CardContent>
             </Card>
           </div>
