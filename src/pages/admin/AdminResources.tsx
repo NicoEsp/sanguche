@@ -99,7 +99,7 @@ export default function AdminResources() {
       const { data, error } = await supabase.storage
         .from('resources')
         .upload(fileName, file, {
-          cacheControl: '3600',
+          cacheControl: '0',
           upsert: false,
         });
 

@@ -95,6 +95,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, isLoading, queryClient]);
 
   useEffect(() => {
+    if (!user) return;
+
+    let active = true;
+    let profileChannel: ReturnType<typeof supabase.channel> | null = null;
+    let subscriptionChannel: ReturnType<typeof supabase.channel> | null = null;
+    let assessmentChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    const setupRealtimeSync = async () => {
+      profileChannel = supabase
+        .channel(`auth-profile-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'profiles',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['user-profile', user.id] });
+            queryClient.invalidateQueries({ queryKey: ['user-composite-data', user.id] });
+          }
+        )
+        .subscribe();
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!active || !profile?.id) {
+        return;
+      }
+
+      subscriptionChannel = supabase
+        .channel(`auth-subscription-${profile.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'user_subscriptions',
+            filter: `user_id=eq.${profile.id}`,
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
+            queryClient.invalidateQueries({ queryKey: ['user-composite-data', user.id] });
+          }
+        )
+        .subscribe();
+
+      assessmentChannel = supabase
+        .channel(`auth-assessments-${profile.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'assessments',
+            filter: `user_id=eq.${profile.id}`,
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['assessment-data', user.id] });
+            queryClient.invalidateQueries({ queryKey: ['assessment-data-check', user.id] });
+            queryClient.invalidateQueries({ queryKey: ['user-composite-data', user.id] });
+          }
+        )
+        .subscribe();
+    };
+
+    setupRealtimeSync();
+
+    return () => {
+      active = false;
+      if (profileChannel) supabase.removeChannel(profileChannel);
+      if (subscriptionChannel) supabase.removeChannel(subscriptionChannel);
+      if (assessmentChannel) supabase.removeChannel(assessmentChannel);
+    };
+  }, [user, queryClient]);
+
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
