@@ -38,14 +38,14 @@ const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
 const AdminProgressObjectives = lazy(() => import("./pages/admin/AdminProgressObjectives"));
 const AdminMentoriaDetail = lazy(() => import("./pages/admin/AdminMentoriaDetail"));
 
-// Optimized QueryClient configuration - More aggressive caching
+// QueryClient configuration tuned for freshness-first experience
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 10 * 60 * 1000, // 10 minutes - data considered fresh
-      gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache (formerly cacheTime)
-      refetchOnWindowFocus: false, // Avoid refetch on tab change
-      refetchOnMount: false, // Don't refetch if data in cache
+      staleTime: 0, // Consider cached data stale immediately so refetch can trigger
+      gcTime: 5 * 60 * 1000, // Keep cache lightweight to avoid stale screens
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
       retry: 1, // Only one retry on error
     },
   },

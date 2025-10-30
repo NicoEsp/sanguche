@@ -63,31 +63,54 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       };
     },
     enabled: !!user && !options?.skip,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // Real-time subscription
   useEffect(() => {
     if (!user || options?.skip) return;
 
-    const channel = supabase
-      .channel('user-subscription-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_subscriptions',
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
-        }
-      )
-      .subscribe();
+    let active = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const subscribe = async () => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!active || !profile?.id) return;
+
+      const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const channelName = `user-subscription-${profile.id}-${uniqueSuffix}`;
+
+      channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'user_subscriptions',
+            filter: `user_id=eq.${profile.id}`,
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
+          }
+        )
+        .subscribe();
+    };
+
+    subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      active = false;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [user, queryClient, options?.skip]);
 

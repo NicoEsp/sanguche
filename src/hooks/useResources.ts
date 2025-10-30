@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AssessmentResult } from '@/utils/scoring';
 import { shouldShowResource } from '@/utils/resourceFilters';
-import { useMemo, useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 export interface Resource {
   id: string;
@@ -32,15 +32,41 @@ export function useResources() {
       if (error) throw error;
       return (data || []) as Resource[];
     },
-    staleTime: 30 * 60 * 1000, // 30 minutes - resources rarely change
-    gcTime: 60 * 60 * 1000, // 1 hour in cache
+    staleTime: 60 * 1000, // keep cache fresh and allow quick updates
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 5 * 60 * 1000,
   });
 
-  return { 
-    resources, 
-    loading, 
-    error: error ? 'Error al cargar recursos' : null, 
-    refetch 
+  useEffect(() => {
+    const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const channelName = `resources-changes-${uniqueSuffix}`;
+
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'resources',
+        },
+        () => {
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch]);
+
+  return {
+    resources,
+    loading,
+    error: error ? 'Error al cargar recursos' : null,
+    refetch
   };
 }
 
