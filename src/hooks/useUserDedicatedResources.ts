@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -50,7 +50,7 @@ export function useUserDedicatedResources(userId?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchResources = async () => {
+  const fetchResources = useCallback(async () => {
     if (!userId) {
       setLoading(false);
       return;
@@ -73,11 +73,35 @@ export function useUserDedicatedResources(userId?: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchResources();
-  }, [userId]);
+  }, [fetchResources]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`user-dedicated-resources-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_dedicated_resources',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          fetchResources();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, fetchResources]);
 
   return { resources, loading, error, refetch: fetchResources };
 }

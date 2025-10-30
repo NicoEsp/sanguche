@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ExternalLink, BookOpen, Wrench, Users, FileText, Lock, Target, Sparkles } from "lucide-react";
+import { ExternalLink, BookOpen, Wrench, Users, FileText, Lock, Target, Sparkles, RefreshCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NeutralArea } from "@/utils/scoring";
 import { useUserDedicatedResources, ResourceType } from "@/hooks/useUserDedicatedResources";
@@ -124,9 +124,11 @@ const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
 export function DedicatedResources({ neutralAreas, locked = false, mentoriaCompleted = false }: DedicatedResourcesProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { resources: dedicatedResources, loading: loadingDedicated } = useUserDedicatedResources(
-    user ? (user as any).profile_id : undefined
-  );
+  const {
+    resources: dedicatedResources,
+    loading: loadingDedicated,
+    refetch: refetchDedicated,
+  } = useUserDedicatedResources(user ? (user as any).profile_id : undefined);
 
   const handleScrollToMentoria = () => {
     navigate('/mentoria');
@@ -144,10 +146,22 @@ export function DedicatedResources({ neutralAreas, locked = false, mentoriaCompl
     return (
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Recursos personalizados de tu mentor
-          </CardTitle>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Recursos personalizados de tu mentor
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              onClick={() => refetchDedicated()}
+              disabled={loadingDedicated}
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Actualizar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {dedicatedResources.map((resource) => (
