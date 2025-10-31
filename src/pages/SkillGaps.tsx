@@ -32,6 +32,24 @@ export default function SkillGaps() {
     () => isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium),
     [hasActivePremium]
   );
+
+  const gapCount = gaps.length;
+
+  const mentorshipCtaLabel = useMemo(() => {
+    if (gapCount >= 1 && gapCount <= 3) {
+      return "Quiero mejorar como PM";
+    }
+
+    if (gapCount > 3) {
+      return "Quiero crecer como PM";
+    }
+
+    return canAccessRecommendations
+      ? "Ver mentoría personalizada"
+      : "Acceder a mentoría personalizada";
+  }, [gapCount, canAccessRecommendations]);
+
+  const mentorshipCtaPath = canAccessRecommendations ? "/mentoria" : "/premium";
   
   const formattedUpdatedAt = useMemo(
     () => updatedAt ? new Intl.DateTimeFormat("es-AR", {
@@ -133,11 +151,13 @@ export default function SkillGaps() {
 
 
         <div className="mt-8 flex flex-col sm:flex-row gap-3">
-          {canAccessRecommendations ? <Button asChild disabled={!hasAssessment || !result} className="w-full sm:w-auto">
-              <Link to="/mentoria">Ver mentoría personalizada</Link>
-            </Button> : <Button asChild disabled={!hasAssessment || !result} className="w-full sm:w-auto">
-              <Link to="/premium">Acceder a mentoría personalizada</Link>
-            </Button>}
+          <Button
+            asChild
+            disabled={!hasAssessment || !result}
+            className="w-full sm:w-auto"
+          >
+            <Link to={mentorshipCtaPath}>{mentorshipCtaLabel}</Link>
+          </Button>
           <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link to="/autoevaluacion">Atrás</Link>
           </Button>
