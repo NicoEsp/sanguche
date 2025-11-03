@@ -175,8 +175,8 @@ export default function AdminAssessments() {
   }
 
   const filteredAssessments = (assessments || [])
-    .filter(assessment => 
-      assessment?.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    .filter(assessment =>
+      assessment?.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       assessment?.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       false
     )
@@ -187,6 +187,10 @@ export default function AdminAssessments() {
       if (selectedLevel === 'all') return true;
       return assessment?.assessment_result?.nivel === selectedLevel;
     });
+
+  const formattedSelectedAssessmentDate = selectedAssessment
+    ? new Date(selectedAssessment.created_at).toLocaleDateString('es-ES')
+    : null;
 
   function exportAssessments() {
     exportToCSV(
@@ -491,7 +495,10 @@ export default function AdminAssessments() {
                           <DialogHeader className="space-y-2">
                             <DialogTitle>Detalles de la Evaluación</DialogTitle>
                             <DialogDescription>
-                              Usuario: {selectedAssessment?.user.name} - {new Date(selectedAssessment?.created_at || '').toLocaleDateString('es-ES')}
+                              Usuario: {selectedAssessment?.user.name}
+                              {' '}-
+                              {' '}
+                              {formattedSelectedAssessmentDate ?? 'Fecha no disponible'}
                             </DialogDescription>
                           </DialogHeader>
                           <Button
