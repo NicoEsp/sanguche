@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,11 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, ClipboardList, Download, Eye, BarChart3, AlertTriangle, Info } from 'lucide-react';
+import { Loader2, Search, ClipboardList, Download, Eye, BarChart3, AlertTriangle, Info, RefreshCw } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { exportToCSV } from '@/utils/csvExport';
+import { toast } from 'sonner';
 
 interface Assessment {
   id: string;
@@ -27,19 +28,21 @@ interface Assessment {
 export default function AdminAssessments() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
   const [showOnlyAtRisk, setShowOnlyAtRisk] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
+  const detailRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    fetchAssessments();
-  }, []);
-
-  async function fetchAssessments() {
+  const fetchAssessments = useCallback(async ({ refresh = false }: { refresh?: boolean } = {}) => {
     try {
-      setLoading(true);
+      if (refresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
 
       const { data: assessments, error: assessmentsError } = await supabase
@@ -74,8 +77,61 @@ export default function AdminAssessments() {
       setError('Error cargando evaluaciones');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void fetchAssessments();
+  }, [fetchAssessments]);
+
+  const handlePrintDetails = useCallback(() => {
+    if (!detailRef.current || !selectedAssessment) {
+      toast.error('No se encontró la evaluación para descargar');
+      return;
+    }
+
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+
+    if (!printWindow) {
+      toast.error('No se pudo abrir la ventana de descarga');
+      return;
+    }
+
+    const headContent = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map((node) => node.outerHTML)
+      .join('');
+
+    const clonedNode = detailRef.current.cloneNode(true) as HTMLElement;
+    const title = `Evaluación ${selectedAssessment.user.name || selectedAssessment.user.email || selectedAssessment.id}`;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${title}</title>
+          ${headContent}
+          <style>
+            body { font-family: 'Inter', sans-serif; padding: 24px; background: #ffffff; color: #0f172a; }
+            .print-wrapper { max-width: 720px; margin: 0 auto; }
+            [data-print-hidden] { display: none !important; }
+          </style>
+        </head>
+        <body>
+          <div class="print-wrapper">
+            ${clonedNode.outerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 400);
+  }, [selectedAssessment]);
 
   // Helper functions
   function calculateAverageLevel(assessments: Assessment[]): string {
@@ -190,21 +246,32 @@ export default function AdminAssessments() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Gestión de Evaluaciones</h1>
           <p className="text-muted-foreground mt-2">
             Revisa y analiza las evaluaciones completadas por los usuarios
           </p>
         </div>
-        <Button onClick={exportAssessments} variant="outline">
-          <Download className="h-4 w-4 mr-2" />
-          Exportar CSV
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Button
+            onClick={() => fetchAssessments({ refresh: true })}
+            variant="outline"
+            size="sm"
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Actualizando...' : 'Actualizar'}
+          </Button>
+          <Button onClick={exportAssessments} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Exportar CSV
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -272,7 +339,7 @@ export default function AdminAssessments() {
           <CardTitle>Buscar y Filtrar Evaluaciones</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+            <div className="space-y-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -282,8 +349,8 @@ export default function AdminAssessments() {
                 className="pl-10"
               />
             </div>
-            
-            <div className="flex items-center gap-2">
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <Checkbox
                 id="at-risk-filter"
                 checked={showOnlyAtRisk}
@@ -294,13 +361,13 @@ export default function AdminAssessments() {
                 Mostrar solo usuarios en riesgo (candidatos descuento)
               </label>
             </div>
-            
-            <div className="flex items-center gap-2">
-              <label htmlFor="level-filter" className="text-sm font-medium min-w-fit">
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <label htmlFor="level-filter" className="text-sm font-medium">
                 Filtrar por nivel:
               </label>
               <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                <SelectTrigger id="level-filter" className="w-[200px]">
+                <SelectTrigger id="level-filter" className="w-full sm:w-[200px]">
                   <SelectValue placeholder="Todos los niveles" />
                 </SelectTrigger>
                 <SelectContent>
@@ -345,20 +412,21 @@ export default function AdminAssessments() {
             </div>
           )}
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Usuario</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Nivel General</TableHead>
-                <TableHead>Riesgo</TableHead>
-                <TableHead>Áreas Evaluadas</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredAssessments.map((assessment) => (
-                <TableRow key={assessment.id}>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuario</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Nivel General</TableHead>
+                  <TableHead>Riesgo</TableHead>
+                  <TableHead>Áreas Evaluadas</TableHead>
+                  <TableHead>Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAssessments.map((assessment) => (
+                  <TableRow key={assessment.id}>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
                       <span>{assessment.user.name || 'Sin nombre'}</span>
@@ -419,15 +487,26 @@ export default function AdminAssessments() {
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>Detalles de la Evaluación</DialogTitle>
-                          <DialogDescription>
-                            Usuario: {selectedAssessment?.user.name} - {new Date(selectedAssessment?.created_at || '').toLocaleDateString('es-ES')}
-                          </DialogDescription>
-                        </DialogHeader>
-                        
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <DialogHeader className="space-y-2">
+                            <DialogTitle>Detalles de la Evaluación</DialogTitle>
+                            <DialogDescription>
+                              Usuario: {selectedAssessment?.user.name} - {new Date(selectedAssessment?.created_at || '').toLocaleDateString('es-ES')}
+                            </DialogDescription>
+                          </DialogHeader>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handlePrintDetails}
+                            data-print-hidden
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Descargar PDF
+                          </Button>
+                        </div>
+
                         {selectedAssessment && (
-                          <div className="space-y-4">
+                          <div ref={detailRef} className="space-y-4">
                             <div>
                               <h4 className="font-semibold mb-2">Nivel General</h4>
                               <Badge variant={getLevelBadgeVariant(selectedAssessment.assessment_result?.nivel)}>
@@ -437,13 +516,13 @@ export default function AdminAssessments() {
                                 Promedio Global: <strong>{selectedAssessment.assessment_result?.promedioGlobal?.toFixed(2) || 'N/A'}</strong>
                               </p>
                             </div>
-                            
+
                             {selectedAssessment.assessment_result?.gaps && selectedAssessment.assessment_result.gaps.length > 0 && (
                               <div>
                                 <h4 className="font-semibold mb-2 text-destructive">Áreas de Mejora (Gaps)</h4>
                                 <div className="space-y-2">
                                   {selectedAssessment.assessment_result.gaps.map((gap: any, index: number) => (
-                                    <div key={index} className="flex justify-between items-center p-2 bg-destructive/10 rounded border border-destructive/20">
+                                    <div key={index} className="flex flex-col gap-2 rounded border border-destructive/20 bg-destructive/10 p-3 sm:flex-row sm:items-center sm:justify-between">
                                       <div>
                                         <span className="text-sm font-medium">{gap.label}</span>
                                         <p className="text-xs text-muted-foreground">{gap.descripcion || 'Sin descripción'}</p>
@@ -467,7 +546,7 @@ export default function AdminAssessments() {
                                 <h4 className="font-semibold mb-2 text-green-600">Fortalezas</h4>
                                 <div className="space-y-2">
                                   {selectedAssessment.assessment_result.strengths.map((strength: any, index: number) => (
-                                    <div key={index} className="flex justify-between items-center p-2 bg-green-50 dark:bg-green-950/20 rounded border border-green-200 dark:border-green-900">
+                                    <div key={index} className="flex flex-col gap-2 rounded border border-green-200 bg-green-50 p-3 text-green-900 dark:border-green-900 dark:bg-green-950/20 sm:flex-row sm:items-center sm:justify-between">
                                       <span className="text-sm font-medium">{strength.label}</span>
                                       <Badge variant="secondary" className="text-xs">
                                         {strength.value}/5
@@ -486,6 +565,7 @@ export default function AdminAssessments() {
               ))}
             </TableBody>
           </Table>
+          </div>
 
           {filteredAssessments.length === 0 && (
             <div className="text-center py-8">

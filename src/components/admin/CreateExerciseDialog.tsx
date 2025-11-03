@@ -11,9 +11,6 @@ import { useCreateExercise } from "@/hooks/useUserExercises";
 import { useAuth } from "@/contexts/AuthContext";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const exerciseSchema = z.object({
   exercise_title: z.string().min(5, "El título debe tener al menos 5 caracteres").max(200),
@@ -128,28 +125,22 @@ export function CreateExerciseDialog({ open, onOpenChange, userId }: CreateExerc
 
           <div className="space-y-2">
             <Label>Fecha de entrega (opcional)</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dueDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dueDate ? format(dueDate, "PPP") : <span>Seleccionar fecha</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={dueDate}
-                  onSelect={(date) => setValue('due_date', date)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="relative">
+              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                type="date"
+                className="pl-10"
+                value={dueDate ? format(dueDate, "yyyy-MM-dd") : ""}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setValue('due_date', value ? new Date(`${value}T00:00:00`) : undefined, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: true,
+                  });
+                }}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
