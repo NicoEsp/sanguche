@@ -16,8 +16,8 @@ const steps = [
   },
   {
     icon: TrendingUp,
-    title: "Mentoría personalizada",
-    description: "Recibe recursos curados y un roadmap específico para tu crecimiento",
+    title: "Recursos personalizados",
+    description: "Accede a recursos curados y un roadmap específico para tu crecimiento",
     color: "text-primary"
   },
   {

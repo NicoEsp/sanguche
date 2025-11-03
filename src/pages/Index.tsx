@@ -17,7 +17,7 @@ const Index = () => {
   } = useAuth();
   const { trackEvent } = useMixpanelTracking();
   const premiumBenefits = [
-    <>Mentoría personalizada mensual con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>,
+    <>Acceso a guía de carrera personalizada diseñada por <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>,
     "Seguimiento visual de tu progreso y objetivos",
     "Recursos curados según tus áreas de mejora",
     "Roadmap de carrera diseñado a tu medida",
@@ -26,7 +26,7 @@ const Index = () => {
   return <>
       <Seo 
         title="ProductPrepa — Autoevaluación PM" 
-        description="Evalúa tu seniority en Product Management y recibe recomendaciones personalizadas para crecer en tu carrera profesional con acompañamiento 1:1." 
+        description="Evalúa tu seniority en Product Management y accede a recomendaciones personalizadas, recursos curados y un roadmap estructurado para crecer en tu carrera." 
         canonical="/" 
       />
       <main className="min-h-screen bg-background">
@@ -45,7 +45,7 @@ const Index = () => {
             Impulsa tu carrera como <span className="text-primary">Product Manager</span>
           </h1>
           
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">Evaluación integral que identifica tu nivel actual y áreas de crecimiento para trabajar de la mano de recursos especificos y acompañamiento de <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a>.</p>
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">Plataforma integral que identifica tu nivel actual y áreas de crecimiento, con recursos curados y roadmap de carrera diseñado por <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a>.</p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Button asChild size="lg" className="w-full sm:w-auto text-base px-8 py-6 font-semibold" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'hero', cta_text: isAuthenticated ? 'Continuar evaluación' : 'Comenzar evaluación gratis' })}>
@@ -70,7 +70,7 @@ const Index = () => {
             </div>
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-primary" />
-              <span>Acompañamiento personalizado</span>
+              <span>Roadmap personalizado</span>
             </div>
           </div>
         </section>
@@ -98,7 +98,7 @@ const Index = () => {
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-4">Todo lo que necesitas para crecer</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Comienza gratis con la autoevaluación y áreas de mejora. Desbloquea mentoría y seguimiento con Premium.
+              Comienza gratis con la autoevaluación y áreas de mejora. Desbloquea recursos avanzados y seguimiento de progreso con Premium.
             </p>
           </div>
           

@@ -12,8 +12,8 @@ const features = [{
   highlight: true
 }, {
   icon: MessageCircle,
-  title: "Acompañamiento personalizado",
-  description: "Recibe orientación directa de NicoProducto. Un Senior PM con experiencia en empresas tech que te guiará en tu desarrollo profesional.",
+  title: "Guía personalizada estructurada",
+  description: "Accede a guía estructurada diseñada por NicoProducto, Senior PM con experiencia en empresas tech, para acelerar tu desarrollo profesional.",
   highlight: true
 }];
 export function WhyProductPrepa() {
