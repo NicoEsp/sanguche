@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useCreateExercise } from "@/hooks/useUserExercises";
@@ -32,7 +32,7 @@ export function CreateExerciseDialog({ open, onOpenChange, userId }: CreateExerc
   const { user } = useAuth();
   const createExercise = useCreateExercise();
   
-  const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<ExerciseFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, reset, control } = useForm<ExerciseFormData>({
     resolver: zodResolver(exerciseSchema),
     defaultValues: {
       exercise_type: 'case_study',
@@ -41,8 +41,6 @@ export function CreateExerciseDialog({ open, onOpenChange, userId }: CreateExerc
       attachment_url: ''
     }
   });
-
-  const dueDate = watch('due_date');
 
   const onSubmit = async (data: ExerciseFormData) => {
     if (!user) return;
@@ -127,18 +125,20 @@ export function CreateExerciseDialog({ open, onOpenChange, userId }: CreateExerc
             <Label>Fecha de entrega (opcional)</Label>
             <div className="relative">
               <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input
-                type="date"
-                className="pl-10"
-                value={dueDate ? format(dueDate, "yyyy-MM-dd") : ""}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setValue('due_date', value ? new Date(`${value}T00:00:00`) : undefined, {
-                    shouldDirty: true,
-                    shouldTouch: true,
-                    shouldValidate: true,
-                  });
-                }}
+              <Controller
+                name="due_date"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    type="date"
+                    className="pl-10"
+                    value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      field.onChange(value ? new Date(`${value}T00:00:00`) : undefined);
+                    }}
+                  />
+                )}
               />
             </div>
           </div>
