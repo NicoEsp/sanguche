@@ -76,13 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       });
 
-      queryClient.prefetchQuery({
-        queryKey: ['subscription', user.id],
-        queryFn: async () => {
-          const compositeData = queryClient.getQueryData(['user-composite-data', user.id]) as any;
-          return compositeData?.user_subscriptions?.[0] || null;
-        },
-      });
+      // NOTE: Subscription prefetch removed to avoid cache conflicts
+      // useSubscription hook is now the single source of truth for subscription data
 
       queryClient.prefetchQuery({
         queryKey: ['assessment-data-check', user.id],

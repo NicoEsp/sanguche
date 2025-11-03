@@ -63,9 +63,11 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       };
     },
     enabled: !!user && !options?.skip,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 1000, // 5 seconds - detects changes faster
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
+    refetchOnMount: 'always', // Always fetch on mount
+    refetchInterval: 30 * 1000, // Polling every 30 seconds
   });
 
   // Real-time subscription
@@ -99,6 +101,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
           },
           () => {
             queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
+            queryClient.invalidateQueries({ queryKey: ['user-composite-data', user.id] });
           }
         )
         .subscribe();
