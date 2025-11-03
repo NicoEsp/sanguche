@@ -4,16 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useCreateExercise } from "@/hooks/useUserExercises";
 import { useAuth } from "@/contexts/AuthContext";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const exerciseSchema = z.object({
   exercise_title: z.string().min(5, "El título debe tener al menos 5 caracteres").max(200),
@@ -35,7 +32,7 @@ export function CreateExerciseDialog({ open, onOpenChange, userId }: CreateExerc
   const { user } = useAuth();
   const createExercise = useCreateExercise();
   
-  const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<ExerciseFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, reset, control } = useForm<ExerciseFormData>({
     resolver: zodResolver(exerciseSchema),
     defaultValues: {
       exercise_type: 'case_study',
@@ -44,8 +41,6 @@ export function CreateExerciseDialog({ open, onOpenChange, userId }: CreateExerc
       attachment_url: ''
     }
   });
-
-  const dueDate = watch('due_date');
 
   const onSubmit = async (data: ExerciseFormData) => {
     if (!user) return;
@@ -128,28 +123,24 @@ export function CreateExerciseDialog({ open, onOpenChange, userId }: CreateExerc
 
           <div className="space-y-2">
             <Label>Fecha de entrega (opcional)</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dueDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dueDate ? format(dueDate, "PPP") : <span>Seleccionar fecha</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={dueDate}
-                  onSelect={(date) => setValue('due_date', date)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="relative">
+              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Controller
+                name="due_date"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    type="date"
+                    className="pl-10"
+                    value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      field.onChange(value ? new Date(`${value}T00:00:00`) : undefined);
+                    }}
+                  />
+                )}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
