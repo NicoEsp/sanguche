@@ -10,7 +10,7 @@ export function AdminLayout() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background w-full">
         <div className="flex min-h-screen flex-col md:flex-row">
           <AdminSidebar />
 

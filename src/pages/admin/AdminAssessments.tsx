@@ -91,46 +91,67 @@ export default function AdminAssessments() {
       return;
     }
 
-    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
-
-    if (!printWindow) {
-      toast.error('No se pudo abrir la ventana de descarga');
-      return;
+    try {
+      // Clonar el contenido
+      const clonedNode = detailRef.current.cloneNode(true) as HTMLElement;
+      
+      // Crear contenedor temporal oculto
+      const printContainer = document.createElement('div');
+      printContainer.style.position = 'fixed';
+      printContainer.style.left = '-9999px';
+      printContainer.style.top = '0';
+      printContainer.style.width = '800px';
+      printContainer.style.backgroundColor = 'white';
+      printContainer.style.padding = '40px';
+      
+      // Remover elementos con data-print-hidden
+      const hiddenElements = clonedNode.querySelectorAll('[data-print-hidden]');
+      hiddenElements.forEach(el => el.remove());
+      
+      printContainer.appendChild(clonedNode);
+      document.body.appendChild(printContainer);
+      
+      // Usar window.print() en lugar de window.open()
+      const originalTitle = document.title;
+      document.title = `Evaluación - ${selectedAssessment.user.name || selectedAssessment.user.email}`;
+      
+      // Crear estilos específicos para impresión
+      const printStyles = document.createElement('style');
+      printStyles.textContent = `
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #print-content, #print-content * {
+            visibility: visible;
+          }
+          #print-content {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+          }
+        }
+      `;
+      document.head.appendChild(printStyles);
+      printContainer.id = 'print-content';
+      
+      // Trigger print
+      window.print();
+      
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(printContainer);
+        document.head.removeChild(printStyles);
+        document.title = originalTitle;
+      }, 100);
+      
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      toast.error('Error al generar el PDF. Por favor intenta nuevamente.');
     }
-
-    const headContent = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-      .map((node) => node.outerHTML)
-      .join('');
-
-    const clonedNode = detailRef.current.cloneNode(true) as HTMLElement;
-    const title = `Evaluación ${selectedAssessment.user.name || selectedAssessment.user.email || selectedAssessment.id}`;
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>${title}</title>
-          ${headContent}
-          <style>
-            body { font-family: 'Inter', sans-serif; padding: 24px; background: #ffffff; color: #0f172a; }
-            .print-wrapper { max-width: 720px; margin: 0 auto; }
-            [data-print-hidden] { display: none !important; }
-          </style>
-        </head>
-        <body>
-          <div class="print-wrapper">
-            ${clonedNode.outerHTML}
-          </div>
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    printWindow.focus();
-
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 400);
   }, [selectedAssessment]);
 
   // Helper functions
