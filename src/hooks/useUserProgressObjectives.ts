@@ -247,6 +247,9 @@ export function useCreateUserObjective() {
       timeframe,
       steps,
       dueDate,
+      objectiveId = null,
+      source = 'custom',
+      status = 'not-started',
     }: {
       userId: string;
       title: string;
@@ -255,19 +258,22 @@ export function useCreateUserObjective() {
       timeframe: 'now' | 'soon' | 'later';
       steps: Array<{ id: string; title: string; completed: boolean }>;
       dueDate?: string;
+      objectiveId?: string | null;
+      source?: ProgressObjective['source'];
+      status?: ProgressObjective['status'];
     }) => {
       const { data, error } = await supabase
         .from('user_progress_objectives')
         .insert({
           user_id: userId,
-          objective_id: null, // Custom objectives don't reference global catalog
+          objective_id: objectiveId,
           title,
           summary,
           type,
           steps,
           timeframe,
-          source: 'custom',
-          status: 'not-started',
+          source,
+          status,
           due_date: dueDate || null,
           mentor_notes: null,
           assigned_by_admin: null,
@@ -280,7 +286,10 @@ export function useCreateUserObjective() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['user-progress-objectives', variables.userId] });
-      toast.success('Objetivo personalizado creado');
+      const message = variables.objectiveId
+        ? 'Objetivo agregado a tu Career Path'
+        : 'Objetivo personalizado creado';
+      toast.success(message);
     },
     onError: (error: Error) => {
       console.error('Error creating custom objective:', error);
