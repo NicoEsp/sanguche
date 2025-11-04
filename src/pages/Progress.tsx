@@ -108,8 +108,8 @@ const MAX_CUSTOM_OBJECTIVES = 3;
 export default function Progress() {
   const location = useLocation();
   const isDemoMode = import.meta.env.DEV && new URLSearchParams(location.search).has("demo");
-  const { hasActivePremium, loading } = useSubscription({ skip: isDemoMode });
-  const { profile } = useUserProfile();
+  const { hasActivePremium, loading: subscriptionLoading } = useSubscription({ skip: isDemoMode });
+  const { profile, loading: profileLoading } = useUserProfile();
   const profileId = profile?.id;
   const queryClient = useQueryClient();
   
@@ -139,8 +139,9 @@ export default function Progress() {
     useSensor(KeyboardSensor)
   );
   
-  const premiumReady = hasActivePremium && !loading;
   const isLoadingData = loadingSuggested || loadingUser;
+  const isFullyLoaded = !subscriptionLoading && !profileLoading && !isLoadingData;
+  const hasAccess = isDemoMode || hasActivePremium;
   
   // Separate objectives by source with memoization to keep stable references
   const { mentorObjectives, customObjectives } = useMemo(() => {
@@ -430,7 +431,8 @@ export default function Progress() {
 
     handleDialogChange(false);
   }, [customObjectiveLimitReached, customState, profileId, isMapLocked, createUserObjective, handleDialogChange]);
-  if ((loading || isLoadingData) && !isDemoMode) {
+  // Mostrar loading mientras carga
+  if ((subscriptionLoading || profileLoading || isLoadingData) && !isDemoMode) {
     return <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center space-y-3">
           <Sparkles className="h-6 w-6 mx-auto animate-pulse text-primary" />
@@ -438,8 +440,15 @@ export default function Progress() {
         </div>
       </div>;
   }
-  if (!premiumReady && !isDemoMode) {
-    return <PaywallCard feature="el tablero de Progreso" />;
+  
+  // Solo mostrar Paywall cuando datos están cargados y confirmamos que NO es premium
+  if (isFullyLoaded && !hasAccess) {
+    return <div className="container mx-auto p-6 max-w-4xl">
+        <PaywallCard
+          title="Desbloquea tu Plan de Carrera"
+          feature="progreso personalizado"
+        />
+      </div>;
   }
   return <>
       <Seo 

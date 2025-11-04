@@ -12,7 +12,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
   const queryClient = useQueryClient();
 
   // Use React Query for subscription data
-  const { data: subscription, isLoading: loading } = useQuery({
+  const { data: subscription, isLoading: loading, isError } = useQuery({
     queryKey: ['subscription', user?.id],
     queryFn: async () => {
       if (!user) {
@@ -24,29 +24,27 @@ export function useSubscription(options?: UseSubscriptionOptions) {
         };
       }
 
-      // Get user profile first
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) {
-        return {
-          plan: 'free' as const,
-          status: 'active' as const,
-          trialEnd: null,
-          current_period_end: null,
-        };
-      }
-
-      const { data: subscriptionData } = await supabase
+      // Query única: user_subscriptions JOIN profiles
+      const { data, error } = await supabase
         .from('user_subscriptions')
-        .select('plan, status, trial_end, current_period_end')
-        .eq('user_id', profile.id)
+        .select(`
+          plan,
+          status,
+          trial_end,
+          current_period_end,
+          profiles!inner(user_id)
+        `)
+        .eq('profiles.user_id', user.id)
         .maybeSingle();
 
-      if (!subscriptionData) {
+      if (error) {
+        console.error('[useSubscription] Query error:', error);
+        throw error; // Marca como error para retry
+      }
+
+      if (!data) {
+        // Si no hay data después de ensure_user_defaults, default a free
+        console.warn('[useSubscription] No subscription found, defaulting to free');
         return {
           plan: 'free' as const,
           status: 'active' as const,
@@ -56,18 +54,21 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       }
 
       return {
-        plan: subscriptionData.plan,
-        status: subscriptionData.status,
-        trialEnd: subscriptionData.trial_end ? new Date(subscriptionData.trial_end) : null,
-        current_period_end: subscriptionData.current_period_end ? new Date(subscriptionData.current_period_end) : null,
+        plan: data.plan,
+        status: data.status,
+        trialEnd: data.trial_end ? new Date(data.trial_end) : null,
+        current_period_end: data.current_period_end ? new Date(data.current_period_end) : null,
       };
     },
-    enabled: !!user && !options?.skip,
-    staleTime: 5 * 1000, // 5 seconds - detects changes faster
+    enabled: !!user && !authLoading && !options?.skip,
+    staleTime: 5 * 1000, // 5 segundos
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
-    refetchOnMount: 'always', // Always fetch on mount
-    refetchInterval: 30 * 1000, // Polling every 30 seconds
+    refetchOnMount: 'always',
+    refetchInterval: 30 * 1000, // Polling cada 30s
+    retry: 3, // Reintentar 3 veces en caso de error
+    retryDelay: 500, // 500ms entre reintentos
+    refetchOnReconnect: true, // Refetch al reconectar red
   });
 
   // Real-time subscription
@@ -134,8 +135,10 @@ export function useSubscription(options?: UseSubscriptionOptions) {
 
   return {
     subscription,
-    loading: loading || authLoading,
-    hasActivePremium: subscription?.status === 'active' && subscription?.plan === 'premium',
+    loading: loading || authLoading || isError, // Tratar error como loading
+    hasActivePremium: (!loading && !authLoading && !isError) 
+      ? (subscription?.status === 'active' && subscription?.plan === 'premium')
+      : false, // No calcular hasActivePremium si hay error/loading
     isTrialing: subscription?.trialEnd ? new Date() < subscription.trialEnd : false,
   };
 }

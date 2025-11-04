@@ -226,7 +226,7 @@ export type Database = {
           action: string
           created_at: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           resource_id: string | null
           resource_type: string
           user_agent: string | null
@@ -236,7 +236,7 @@ export type Database = {
           action: string
           created_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type: string
           user_agent?: string | null
@@ -246,7 +246,7 @@ export type Database = {
           action?: string
           created_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type?: string
           user_agent?: string | null
@@ -694,41 +694,33 @@ export type Database = {
         Args: { admin_user_id: string }
         Returns: boolean
       }
-      create_admin_user: {
-        Args: { admin_user_id: string }
-        Returns: boolean
-      }
-      has_active_premium: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_admin_jwt: {
-        Args: { check_user_id?: string }
-        Returns: boolean
-      }
+      create_admin_user: { Args: { admin_user_id: string }; Returns: boolean }
+      ensure_user_defaults: { Args: never; Returns: undefined }
+      has_active_premium: { Args: never; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
+      is_admin_jwt: { Args: { check_user_id?: string }; Returns: boolean }
       is_assessment_owner: {
         Args: { assessment_user_id: string }
         Returns: boolean
       }
-      log_admin_action: {
-        Args:
-          | {
+      log_admin_action:
+        | {
+            Args: {
+              p_action_type: string
+              p_details?: Json
+              p_target_user_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
               p_action_type: string
               p_admin_user_id: string
               p_details?: Json
               p_target_user_id: string
             }
-          | {
-              p_action_type: string
-              p_details?: Json
-              p_target_user_id: string
-            }
-        Returns: string
-      }
+            Returns: string
+          }
       log_security_event: {
         Args: {
           p_action: string

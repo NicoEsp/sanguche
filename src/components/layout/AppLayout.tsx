@@ -85,7 +85,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     <Button variant="ghost" size="sm" className="flex items-center gap-2">
                       <User className="h-4 w-4" />
                       <span className="max-w-32 truncate">
-                        {profileLoading ? "Cargando..." : `Hola ${profile?.name}!`}
+                        {profileLoading ? "Cargando..." : `Hola ${profile?.name || metadataName || user?.email?.split('@')[0] || 'Usuario'}!`}
                       </span>
                     </Button>
                   </DropdownMenuTrigger>
@@ -163,7 +163,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                         <div className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
                           <User className="h-4 w-4" />
                           <span className="truncate">
-                            {profileLoading ? "Cargando..." : `Hola ${profile?.name}!`}
+                            {profileLoading ? "Cargando..." : `Hola ${profile?.name || metadataName || user?.email?.split('@')[0] || 'Usuario'}!`}
                           </span>
                         </div>
                         

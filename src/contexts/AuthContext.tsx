@@ -175,8 +175,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
-        setUser(session?.user ?? null);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
         setIsLoading(false);
+
+        // Bootstrap: asegurar datos base existen
+        if (currentUser) {
+          setTimeout(async () => {
+            try {
+              await supabase.rpc('ensure_user_defaults');
+              // Invalidar queries para refrescar con datos garantizados
+              queryClient.invalidateQueries({ queryKey: ['user-profile', currentUser.id] });
+              queryClient.invalidateQueries({ queryKey: ['subscription', currentUser.id] });
+              queryClient.invalidateQueries({ queryKey: ['user-composite-data', currentUser.id] });
+            } catch (error) {
+              console.error('[AuthContext] Error ensuring user defaults:', error);
+            }
+          }, 0);
+        }
 
         if (event === 'SIGNED_OUT') {
           toast({
@@ -189,12 +205,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
       setIsLoading(false);
+
+      // Bootstrap inicial si ya está logueado
+      if (currentUser) {
+        setTimeout(async () => {
+          try {
+            await supabase.rpc('ensure_user_defaults');
+            queryClient.invalidateQueries({ queryKey: ['user-profile', currentUser.id] });
+            queryClient.invalidateQueries({ queryKey: ['subscription', currentUser.id] });
+            queryClient.invalidateQueries({ queryKey: ['user-composite-data', currentUser.id] });
+          } catch (error) {
+            console.error('[AuthContext] Error ensuring user defaults:', error);
+          }
+        }, 0);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, [toast]);
+  }, [toast, queryClient]);
 
   const signUp = async (email: string, password: string, name?: string) => {
     setIsLoading(true);

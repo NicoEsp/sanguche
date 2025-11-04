@@ -22,7 +22,7 @@ import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function Recommendations() {
-  const { hasActivePremium, loading } = useSubscription();
+  const { hasActivePremium, loading: subscriptionLoading } = useSubscription();
   const { toast } = useToast();
   const { result: assessmentResult, loading: assessmentLoading, hasAssessment } = useAssessmentData();
   const { profile, loading: profileLoading } = useUserProfile();
@@ -80,16 +80,18 @@ export default function Recommendations() {
 
   // Track recommendations page view
   useEffect(() => {
-    if (!loading && !assessmentLoading && !profileLoading) {
+    if (!subscriptionLoading && !assessmentLoading && !profileLoading) {
       trackEvent('recommendations_viewed', {
         has_premium: hasActivePremium,
         has_assessment: hasAssessment,
         mentoria_completed: profile?.mentoria_completed || false
       });
     }
-  }, [loading, assessmentLoading, profileLoading, hasActivePremium, hasAssessment, profile, trackEvent]);
+  }, [subscriptionLoading, assessmentLoading, profileLoading, hasActivePremium, hasAssessment, profile, trackEvent]);
 
-  if (loading || assessmentLoading || profileLoading) {
+  const isFullyLoaded = !subscriptionLoading && !profileLoading && !assessmentLoading;
+
+  if (subscriptionLoading || assessmentLoading || profileLoading) {
     return (
       <>
         <Seo
@@ -107,7 +109,7 @@ export default function Recommendations() {
     );
   }
 
-  if (!hasAccess) {
+  if (isFullyLoaded && !hasAccess) {
     return (
       <>
         <Seo
@@ -115,10 +117,12 @@ export default function Recommendations() {
           description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
           canonical="/mentoria"
         />
-        <PaywallCard 
-          title="Preparate aún más para dar el salto"
-          feature="mentoría curada"
-        />
+        <div className="container mx-auto p-6 max-w-6xl">
+          <PaywallCard 
+            title="Accede a Recomendaciones Personalizadas"
+            feature="mentoría personalizada"
+          />
+        </div>
       </>
     );
   }

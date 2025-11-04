@@ -139,35 +139,43 @@ serve(async (req) => {
     switch (eventName) {
       case 'order_created':
         console.log('Processing order_created event');
-        // Order created, subscription will be created separately
         await supabase
           .from('user_subscriptions')
-          .update({
+          .upsert({
+            user_id: userId,
             lemon_squeezy_order_id: orderId,
             lemon_squeezy_customer_id: customerId,
             updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', userId);
+          }, { 
+            onConflict: 'user_id',
+            ignoreDuplicates: false 
+          });
         break;
 
       case 'subscription_created':
         console.log('Processing subscription_created event');
+        const renews_at = event.data.attributes.renews_at;
+        const trial_ends_at = event.data.attributes.trial_ends_at;
+        
         await supabase
           .from('user_subscriptions')
-          .update({
+          .upsert({
+            user_id: userId,
             plan: 'premium',
             status: 'active',
             lemon_squeezy_subscription_id: subscriptionId,
             lemon_squeezy_customer_id: customerId,
-            current_period_end: event.data.attributes.renews_at 
-              ? new Date(event.data.attributes.renews_at).toISOString()
+            current_period_end: renews_at 
+              ? new Date(renews_at).toISOString()
               : null,
-            trial_end: event.data.attributes.trial_ends_at
-              ? new Date(event.data.attributes.trial_ends_at).toISOString()
+            trial_end: trial_ends_at
+              ? new Date(trial_ends_at).toISOString()
               : null,
             updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', userId);
+          }, { 
+            onConflict: 'user_id',
+            ignoreDuplicates: false 
+          });
         break;
 
       case 'subscription_updated':
