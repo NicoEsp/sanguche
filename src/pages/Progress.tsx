@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { useSubscription } from "@/hooks/useSubscription";
 import { PaywallCard } from "@/components/PaywallCard";
 import { Seo } from "@/components/Seo";
-import { Calendar, CheckCircle2, FileText, Lock, Plus, Save, Sparkles, Trash2 } from "lucide-react";
+import { Calendar, CheckCircle2, FileText, Loader2, Lock, Plus, Save, Sparkles, Trash2 } from "lucide-react";
 import { CanvasStage, ProgressObjective } from "@/types/progress";
 import { useProgressObjectives } from "@/hooks/useProgressObjectives";
 import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjective, useDeleteUserObjective } from "@/hooks/useUserProgressObjectives";
@@ -50,6 +50,25 @@ const STAGES: StageConfig[] = [{
   description: "Hitos estratégicos para tu carrera a largo plazo",
   gradient: "from-emerald-200/40 via-emerald-100/30 to-transparent"
 }];
+
+type StageObjectivesMap = Record<CanvasStage, UserProgressObjective[]>;
+type AvailableObjective = {
+  id: string;
+  title: string;
+  summary: string;
+  type: string;
+  steps?: Array<{ id: string; title: string; completed: boolean }>;
+  source?: string | null;
+  dueDate?: string | null;
+  due_date?: string | null;
+};
+
+const getObjectiveDueDate = (objective: AvailableObjective) => {
+  if ("due_date" in objective) {
+    return objective.due_date ?? undefined;
+  }
+  return objective.dueDate;
+};
 interface AddCustomObjectiveState {
   title: string;
   summary: string;
@@ -91,11 +110,12 @@ export default function Progress() {
   const isDemoMode = import.meta.env.DEV && new URLSearchParams(location.search).has("demo");
   const { hasActivePremium, loading } = useSubscription({ skip: isDemoMode });
   const { profile } = useUserProfile();
+  const profileId = profile?.id;
   const queryClient = useQueryClient();
   
   // Fetch data from DB
   const { data: suggestedObjectives = [], isLoading: loadingSuggested } = useProgressObjectives();
-  const { data: userObjectives = [], isLoading: loadingUser } = useUserProgressObjectives(profile?.id);
+  const { data: userObjectives = [], isLoading: loadingUser } = useUserProgressObjectives(profileId);
   
   // Mutations
   const createUserObjective = useCreateUserObjective();
@@ -107,6 +127,8 @@ export default function Progress() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [customState, setCustomState] = useState<AddCustomObjectiveState>(initialCustomState);
   const [isLockDialogOpen, setIsLockDialogOpen] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
   
   // Check if map is locked
   const isMapLocked = userObjectives.length > 0 && userObjectives.every(obj => obj.is_locked);
@@ -126,7 +148,12 @@ export default function Progress() {
     const custom = userObjectives.filter(obj => obj.source === 'custom');
     return { mentorObjectives: mentor, customObjectives: custom };
   }, [userObjectives]);
-  const availableCustomCount = useMemo(() => customObjectives.length, [customObjectives]);
+  const customObjectivesCreatedCount = useMemo(
+    () => customObjectives.filter(obj => obj.objective_id === null).length,
+    [customObjectives]
+  );
+  const customObjectiveLimitReached = customObjectivesCreatedCount >= MAX_CUSTOM_OBJECTIVES;
+  const remainingCustomSlots = Math.max(0, MAX_CUSTOM_OBJECTIVES - customObjectivesCreatedCount);
   
   // Filtrar objetivos sugeridos que ya están en el canvas
   const availableSuggestedObjectives = useMemo(() => {
@@ -137,21 +164,31 @@ export default function Progress() {
   
   // Canvas objectives (mentor + custom)
   const canvasObjectives = useMemo(() => [...mentorObjectives, ...customObjectives], [mentorObjectives, customObjectives]);
+  const objectivesByStage = useMemo<StageObjectivesMap>(() => {
+    return canvasObjectives.reduce<StageObjectivesMap>((acc, objective) => {
+      acc[objective.timeframe].push(objective);
+      return acc;
+    }, {
+      now: [],
+      soon: [],
+      later: []
+    });
+  }, [canvasObjectives]);
   const { completedObjectives, completionRate } = useMemo(() => {
     const completed = canvasObjectives.filter(obj => isCompleted(obj));
     const rate = canvasObjectives.length ? Math.round((completed.length / canvasObjectives.length) * 100) : 0;
     return { completedObjectives: completed, completionRate: rate };
   }, [canvasObjectives]);
   // DnD handlers
-  const handleDragStart = (event: DragStartEvent) => {
+  const handleDragStart = useCallback((event: DragStartEvent) => {
     setDraggingId(event.active.id as string);
-  };
+  }, []);
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     setDraggingId(null);
 
-    if (!over || !profile?.id || isMapLocked) return;
+    if (!over || !profileId || isMapLocked) return;
 
     const draggedId = active.id as string;
     const targetTimeframe = over.id as CanvasStage;
@@ -168,12 +205,14 @@ export default function Progress() {
 
       // Create custom objective from suggested
       createUserObjective.mutate({
-        userId: profile.id,
+        userId: profileId,
         title: suggestedObj.title,
         summary: suggestedObj.summary,
         type: suggestedObj.type,
         timeframe: targetTimeframe,
-        steps: suggestedObj.steps,
+        steps: suggestedObj.steps ?? [],
+        dueDate: getObjectiveDueDate(suggestedObj),
+        objectiveId: suggestedObj.id,
       });
       return;
     }
@@ -184,16 +223,16 @@ export default function Progress() {
       // Update timeframe
       updateUserObjective.mutate({
         id: customObj.id,
-        userId: profile.id,
+        userId: profileId,
         updates: { timeframe: targetTimeframe },
       });
       return;
     }
 
     // Mentor objectives cannot be dragged (handled by disabled prop)
-  };
-  const toggleStep = (objective: UserProgressObjective, stepId: string) => {
-    if (!profile?.id) return;
+  }, [profileId, isMapLocked, suggestedObjectives, userObjectives, createUserObjective, customObjectives, updateUserObjective]);
+  const toggleStep = useCallback((objective: UserProgressObjective, stepId: string) => {
+    if (!profileId) return;
 
     const updatedSteps = objective.steps.map(step =>
       step.id === stepId ? { ...step, completed: !step.completed } : step
@@ -202,18 +241,18 @@ export default function Progress() {
 
     updateUserObjective.mutate({
       id: objective.id,
-      userId: profile.id,
+      userId: profileId,
       updates: {
         steps: updatedSteps,
         status: allCompleted ? 'completed' : 'in-progress',
       },
     });
-  };
+  }, [profileId, updateUserObjective]);
 
-  const handleDeleteCustom = (id: string) => {
-    if (!profile?.id || isMapLocked) return;
-    deleteUserObjective.mutate({ id, userId: profile.id });
-  };
+  const handleDeleteCustom = useCallback((id: string) => {
+    if (!profileId || isMapLocked) return;
+    deleteUserObjective.mutate({ id, userId: profileId });
+  }, [profileId, isMapLocked, deleteUserObjective]);
   
   // Lock all user objectives
   const lockUserObjectives = useMutation({
@@ -230,7 +269,7 @@ export default function Progress() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-progress-objectives', profile?.id] });
+      queryClient.invalidateQueries({ queryKey: ['user-progress-objectives', profileId] });
       toast.success('Tu Career Path ha sido guardado exitosamente');
     },
     onError: (error: Error) => {
@@ -239,19 +278,133 @@ export default function Progress() {
     }
   });
   
-  const handleLockCareerPath = () => {
-    if (!profile?.id) return;
-    lockUserObjectives.mutate(profile.id);
+  const handleLockCareerPath = useCallback(() => {
+    if (!profileId) return;
+    lockUserObjectives.mutate(profileId);
     setIsLockDialogOpen(false);
-  };
-  const handleDialogChange = (open: boolean) => {
+  }, [lockUserObjectives, profileId]);
+
+  const handleExportPdf = useCallback(() => {
+    const exportNode = exportRef.current;
+
+    if (!exportNode) {
+      toast.error('No pudimos preparar tu Career Path para exportarlo.');
+      return;
+    }
+
+    setIsExportingPdf(true);
+
+    try {
+      const clonedNode = exportNode.cloneNode(true) as HTMLElement;
+      const printRoot = document.createElement('div');
+      const styleTag = document.createElement('style');
+      const cleanupCallbacks: (() => void)[] = [];
+      let cleanedUp = false;
+
+      printRoot.id = 'career-path-print-root';
+      printRoot.setAttribute('data-career-path-print', 'true');
+      printRoot.style.position = 'fixed';
+      printRoot.style.inset = '0';
+      printRoot.style.overflow = 'auto';
+      printRoot.style.backgroundColor = '#ffffff';
+      printRoot.style.padding = '0';
+      printRoot.style.width = '100%';
+      printRoot.style.minHeight = '100%';
+      printRoot.appendChild(clonedNode);
+
+      styleTag.id = 'career-path-print-styles';
+      styleTag.textContent = `
+        @media screen {
+          [data-career-path-print] {
+            display: none !important;
+          }
+        }
+
+        @media print {
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            color: #0f172a !important;
+          }
+
+          #career-path-print-root {
+            display: block !important;
+            padding: 24px !important;
+          }
+
+          body > :not(#career-path-print-root) {
+            display: none !important;
+          }
+        }
+      `;
+
+      document.body.appendChild(printRoot);
+      document.head.appendChild(styleTag);
+
+      const finalize = () => {
+        if (cleanedUp) return;
+        cleanedUp = true;
+
+        cleanupCallbacks.forEach(fn => fn());
+        printRoot.remove();
+        styleTag.remove();
+        setIsExportingPdf(false);
+        toast.success('Usá la opción "Guardar como PDF" para descargar tu Career Path.');
+      };
+
+      const afterPrintHandler = () => finalize();
+
+      if (typeof window.matchMedia === 'function') {
+        const mediaQueryList = window.matchMedia('print');
+
+        if (mediaQueryList.addEventListener) {
+          const listener = (event: MediaQueryListEvent) => {
+            if (!event.matches) {
+              finalize();
+            }
+          };
+
+          mediaQueryList.addEventListener('change', listener);
+          cleanupCallbacks.push(() => mediaQueryList.removeEventListener('change', listener));
+        } else if (mediaQueryList.addListener) {
+          const legacyListener = (event: MediaQueryListEvent) => {
+            if (!event.matches) {
+              finalize();
+            }
+          };
+
+          mediaQueryList.addListener(legacyListener);
+          cleanupCallbacks.push(() => mediaQueryList.removeListener(legacyListener));
+        }
+      }
+
+      window.addEventListener('afterprint', afterPrintHandler, { once: true });
+      cleanupCallbacks.push(() => window.removeEventListener('afterprint', afterPrintHandler));
+
+      const fallbackTimeout = window.setTimeout(() => finalize(), 60000);
+      cleanupCallbacks.push(() => window.clearTimeout(fallbackTimeout));
+
+      requestAnimationFrame(() => {
+        window.focus();
+        window.print();
+      });
+    } catch (error) {
+      console.error('Error exporting Career Path as PDF:', error);
+      document.getElementById('career-path-print-root')?.remove();
+      document.getElementById('career-path-print-styles')?.remove();
+      toast.error('No pudimos exportar tu Career Path. Intentá nuevamente.');
+      setIsExportingPdf(false);
+    }
+  }, []);
+  const handleDialogChange = useCallback((open: boolean) => {
     setIsDialogOpen(open);
     if (!open) {
       setCustomState(initialCustomState);
     }
-  };
-  const addCustomObjective = () => {
-    if (availableCustomCount >= MAX_CUSTOM_OBJECTIVES || !customState.title.trim() || !profile?.id || isMapLocked) {
+  }, []);
+  const addCustomObjective = useCallback(() => {
+    if (customObjectiveLimitReached || !customState.title.trim() || !profileId || isMapLocked) {
       return;
     }
 
@@ -266,7 +419,7 @@ export default function Progress() {
       }));
 
     createUserObjective.mutate({
-      userId: profile.id,
+      userId: profileId,
       title: customState.title,
       summary: customState.summary,
       type: customState.type,
@@ -276,7 +429,7 @@ export default function Progress() {
     });
 
     handleDialogChange(false);
-  };
+  }, [customObjectiveLimitReached, customState, profileId, isMapLocked, createUserObjective, handleDialogChange]);
   if ((loading || isLoadingData) && !isDemoMode) {
     return <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center space-y-3">
@@ -295,7 +448,7 @@ export default function Progress() {
         canonical="/progreso" 
       />
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40">
-        <div className="container py-10 space-y-8">
+        <div ref={exportRef} className="container py-10 space-y-8">
           <header className="space-y-4">
             <div className="flex flex-col gap-4">
               <div className="space-y-2">
@@ -312,11 +465,11 @@ export default function Progress() {
                   <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight">
                     Tu Career Path
                   </h1>
-                  
-                  <div className="flex items-center gap-3">
+
+                  <div className="flex items-center gap-3 print:hidden">
                     {/* Botón Guardar - Solo visible si NO está locked */}
                     {!isMapLocked && canvasObjectives.length > 0 && (
-                      <Button 
+                      <Button
                         onClick={() => setIsLockDialogOpen(true)}
                         className="gap-2"
                       >
@@ -330,21 +483,34 @@ export default function Progress() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                             <span>
-                              <Button 
-                                disabled={!isMapLocked}
+                            <span className="inline-flex">
+                              <Button
+                                disabled={!isMapLocked || isExportingPdf}
                                 variant="outline"
-                                className={cn("gap-2", !isMapLocked && "cursor-not-allowed")}
-                                onClick={isMapLocked ? () => toast.info('Funcionalidad próximamente disponible') : undefined}
+                                className={cn(
+                                  "gap-2",
+                                  !isMapLocked && "cursor-not-allowed",
+                                  isExportingPdf && "pointer-events-none opacity-80"
+                                )}
+                                onClick={isMapLocked ? handleExportPdf : undefined}
                               >
-                                <FileText className="h-4 w-4" />
-                                Exportar PDF
+                                {isExportingPdf ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Generando PDF...
+                                  </>
+                                ) : (
+                                  <>
+                                    <FileText className="h-4 w-4" />
+                                    Exportar PDF
+                                  </>
+                                )}
                               </Button>
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {isMapLocked 
-                              ? "Descarga tu Career Path en PDF" 
+                            {isMapLocked
+                              ? "Descargá tu Career Path en PDF"
                               : "Primero debes guardar tu Career Path para exportarlo"}
                           </TooltipContent>
                         </Tooltip>
@@ -402,7 +568,7 @@ export default function Progress() {
                 <div className="absolute inset-x-10 -top-10 h-40 bg-primary/10 blur-3xl rounded-full pointer-events-none" />
                 <div className="relative rounded-3xl border bg-card/70 backdrop-blur-sm shadow-xl overflow-hidden">
                   <div className="grid md:grid-cols-3 gap-0 md:gap-0">
-                    {STAGES.map(stage => <CanvasStageColumn key={stage.key} stage={stage} objectives={canvasObjectives.filter(obj => obj.timeframe === stage.key)} draggingId={draggingId} toggleStep={toggleStep} onDeleteCustom={handleDeleteCustom} isMapLocked={isMapLocked} />)}
+                    {STAGES.map(stage => <CanvasStageColumn key={stage.key} stage={stage} objectives={objectivesByStage[stage.key]} draggingId={draggingId} toggleStep={toggleStep} onDeleteCustom={handleDeleteCustom} isMapLocked={isMapLocked} />)}
                   </div>
                 </div>
               </div>
@@ -419,78 +585,118 @@ export default function Progress() {
                 </div>
                 
                 <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      disabled={availableCustomCount >= MAX_CUSTOM_OBJECTIVES}
-                      className="w-full sm:w-auto sm:self-end"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Objetivo personalizado
-                    </Button>
-                  </DialogTrigger>
-                <DialogContent className="max-w-xl">
-                  <DialogHeader>
-                    <DialogTitle>Crea un objetivo personalizado</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="title">Título</Label>
-                      <Input id="title" value={customState.title} onChange={event => setCustomState(prev => ({
-                      ...prev,
-                      title: event.target.value
-                    }))} placeholder="Ej: Liderar discovery en nueva vertical" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="summary">Descripción</Label>
-                      <Textarea id="summary" value={customState.summary} onChange={event => setCustomState(prev => ({
-                      ...prev,
-                      summary: event.target.value
-                    }))} placeholder="Describe por qué este objetivo es relevante para tu plan." />
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label>Tipo</Label>
-                        <Input value={customState.type} onChange={event => setCustomState(prev => ({
-                        ...prev,
-                        type: event.target.value
-                      }))} />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>Horizonte temporal</Label>
-                        <Select value={customState.timeframe} onValueChange={(value: CanvasStage) => setCustomState(prev => ({
-                        ...prev,
-                        timeframe: value
-                      }))}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="now">En foco</SelectItem>
-                            <SelectItem value="soon">Próximo paso</SelectItem>
-                            <SelectItem value="later">Visión</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="dueDate">Fecha estimada</Label>
-                      <Input id="dueDate" type="date" value={customState.dueDate} onChange={event => setCustomState(prev => ({
-                      ...prev,
-                      dueDate: event.target.value
-                    }))} />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Checklist (uno por línea)</Label>
-                      <Textarea value={customState.stepsText} onChange={event => setCustomState(prev => ({
-                      ...prev,
-                      stepsText: event.target.value
-                    }))} placeholder={`Ejemplo:\n[✓] Leer libro “Continuous Discovery Habits”\n[ ] Aplicar template de Opportunity Solution Tree`} className="min-h-[120px]" />
-                    </div>
-                    <Button className="w-full" onClick={addCustomObjective} disabled={!customState.title.trim()}>
-                      Guardar objetivo
-                    </Button>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3">
+                    <DialogTrigger asChild>
+                      <Button
+                        disabled={customObjectiveLimitReached || isMapLocked}
+                        className="w-full sm:w-auto"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Objetivo personalizado
+                      </Button>
+                    </DialogTrigger>
+                    {!customObjectiveLimitReached && !isMapLocked && (
+                      <p className="text-xs text-muted-foreground sm:text-right">
+                        Te quedan {remainingCustomSlots} objetivo{remainingCustomSlots === 1 ? '' : 's'} personalizado{remainingCustomSlots === 1 ? '' : 's'}.
+                      </p>
+                    )}
                   </div>
-                </DialogContent>
+                  <DialogContent className="max-w-xl">
+                    <DialogHeader>
+                      <DialogTitle>Crea un objetivo personalizado</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="title">Título</Label>
+                        <Input
+                          id="title"
+                          value={customState.title}
+                          onChange={event => setCustomState(prev => ({
+                            ...prev,
+                            title: event.target.value,
+                          }))}
+                          placeholder="Ej: Liderar discovery en nueva vertical"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="summary">Descripción</Label>
+                        <Textarea
+                          id="summary"
+                          value={customState.summary}
+                          onChange={event => setCustomState(prev => ({
+                            ...prev,
+                            summary: event.target.value,
+                          }))}
+                          placeholder="Describe por qué este objetivo es relevante para tu plan."
+                        />
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label>Tipo</Label>
+                          <Input
+                            value={customState.type}
+                            onChange={event => setCustomState(prev => ({
+                              ...prev,
+                              type: event.target.value,
+                            }))}
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label>Horizonte temporal</Label>
+                          <Select
+                            value={customState.timeframe}
+                            onValueChange={(value: CanvasStage) =>
+                              setCustomState(prev => ({
+                                ...prev,
+                                timeframe: value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="now">En foco</SelectItem>
+                              <SelectItem value="soon">Próximo paso</SelectItem>
+                              <SelectItem value="later">Visión</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="dueDate">Fecha estimada</Label>
+                        <Input
+                          id="dueDate"
+                          type="date"
+                          value={customState.dueDate}
+                          onChange={event => setCustomState(prev => ({
+                            ...prev,
+                            dueDate: event.target.value,
+                          }))}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>Checklist (uno por línea)</Label>
+                        <Textarea
+                          value={customState.stepsText}
+                          onChange={event => setCustomState(prev => ({
+                            ...prev,
+                            stepsText: event.target.value,
+                          }))}
+                          placeholder={`Ejemplo:\n[✓] Leer libro “Continuous Discovery Habits”\n[ ] Aplicar template de Opportunity Solution Tree`}
+                          className="min-h-[120px]"
+                        />
+                      </div>
+                      <Button className="w-full" onClick={addCustomObjective} disabled={!customState.title.trim()}>
+                        Guardar objetivo
+                      </Button>
+                    </div>
+                    {customObjectiveLimitReached && (
+                      <p className="text-xs text-muted-foreground">
+                        Llegaste al máximo de objetivos personalizados creados ({MAX_CUSTOM_OBJECTIVES}).
+                      </p>
+                    )}
+                  </DialogContent>
               </Dialog>
             </div>
 
@@ -536,7 +742,7 @@ interface CanvasStageColumnProps {
   isMapLocked: boolean;
 }
 
-function CanvasStageColumn({ stage, objectives, draggingId, toggleStep, onDeleteCustom, isMapLocked }: CanvasStageColumnProps) {
+const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, draggingId, toggleStep, onDeleteCustom, isMapLocked }: CanvasStageColumnProps) {
   const { setNodeRef } = useDroppable({ id: stage.key });
 
   return (
@@ -588,9 +794,8 @@ function CanvasStageColumn({ stage, objectives, draggingId, toggleStep, onDelete
       </ScrollArea>
     </div>
   );
-}
+});
 
-// Canvas Objective Card with draggable
 interface CanvasObjectiveCardProps {
   objective: UserProgressObjective;
   toggleStep: (obj: UserProgressObjective, stepId: string) => void;
@@ -598,10 +803,11 @@ interface CanvasObjectiveCardProps {
   isMapLocked: boolean;
 }
 
-function CanvasObjectiveCard({ objective, toggleStep, onDeleteCustom, isMapLocked }: CanvasObjectiveCardProps) {
+const CanvasObjectiveCard = memo(function CanvasObjectiveCard({ objective, toggleStep, onDeleteCustom, isMapLocked }: CanvasObjectiveCardProps) {
   const isMentor = objective.source === 'mentor';
   const complete = isCompleted(objective);
-  
+  const completedSteps = objective.steps.filter(step => step.completed).length;
+
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: objective.id,
     disabled: isMentor || isMapLocked,
@@ -643,7 +849,7 @@ function CanvasObjectiveCard({ objective, toggleStep, onDeleteCustom, isMapLocke
           </Badge>
         ) : (
           <Badge variant="outline" className="text-xs ml-auto">
-            {objective.steps.filter(s => s.completed).length}/{objective.steps.length}
+            {completedSteps}/{objective.steps.length}
           </Badge>
         )}
       </div>
@@ -723,19 +929,18 @@ function CanvasObjectiveCard({ objective, toggleStep, onDeleteCustom, isMapLocke
       </div>
     </div>
   );
-}
+});
 
-// Available Objectives Column with draggable items
 interface ObjectiveAvailableColumnProps {
   title: string;
   description: string;
-  objectives: any[];
+  objectives: AvailableObjective[];
   draggingId: string | null;
   locked?: boolean;
   onDelete?: (id: string) => void;
 }
 
-function ObjectiveAvailableColumn({ title, description, objectives, draggingId, locked, onDelete }: ObjectiveAvailableColumnProps) {
+const ObjectiveAvailableColumn = memo(function ObjectiveAvailableColumn({ title, description, objectives, draggingId, locked, onDelete }: ObjectiveAvailableColumnProps) {
   return (
     <Card className="border-dashed h-full">
       <CardHeader>
@@ -768,16 +973,16 @@ function ObjectiveAvailableColumn({ title, description, objectives, draggingId, 
       </CardContent>
     </Card>
   );
-}
+});
 
 interface DraggableObjectiveCardProps {
-  objective: any;
+  objective: AvailableObjective;
   draggingId: string | null;
   locked?: boolean;
   onDelete?: (id: string) => void;
 }
 
-function DraggableObjectiveCard({ objective, draggingId, locked, onDelete }: DraggableObjectiveCardProps) {
+const DraggableObjectiveCard = memo(function DraggableObjectiveCard({ objective, draggingId, locked, onDelete }: DraggableObjectiveCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: objective.id,
     disabled: locked,
@@ -786,6 +991,9 @@ function DraggableObjectiveCard({ objective, draggingId, locked, onDelete }: Dra
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
+  const dueDate = getObjectiveDueDate(objective);
+  const completedSteps = objective.steps?.filter(step => step.completed).length ?? 0;
+  const totalSteps = objective.steps?.length ?? 0;
 
   return (
     <div
@@ -821,12 +1029,12 @@ function DraggableObjectiveCard({ objective, draggingId, locked, onDelete }: Dra
       <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
         <Badge variant="secondary">{objective.type}</Badge>
         <Badge variant="outline" className="border-dashed">
-          {objective.steps?.filter((s: any) => s.completed).length || 0}/{objective.steps?.length || 0} pasos
+          {completedSteps}/{totalSteps} pasos
         </Badge>
-        {(objective.dueDate || objective.due_date) && (
-          <Badge variant="outline">{formatDueDate(objective.dueDate || objective.due_date)}</Badge>
+        {dueDate && (
+          <Badge variant="outline">{formatDueDate(dueDate)}</Badge>
         )}
       </div>
     </div>
   );
-}
+});
