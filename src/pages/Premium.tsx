@@ -41,7 +41,7 @@ export default function Premium() {
         
         trackEvent('checkout_completed', {
           plan: 'premium',
-          price: 25000,
+          price: 50000,
           provider: 'lemon_squeezy'
         });
         
@@ -55,7 +55,7 @@ export default function Premium() {
     }
   }, [toast, trackEvent, queryClient]);
   return <>
-      <Seo title="Premium: Crece como Product Manager con mentoría personalizada | ProductPrepa" description="Evaluá tus habilidades, trabajá en tus áreas de mejora y recibí mentoría mensual con NicoProducto. Desde ARS $25.000/mes. Cancelá cuando quieras." canonical="/premium" />
+      <Seo title="Premium: Crece como Product Manager con mentoría personalizada | ProductPrepa" description="Evaluá tus habilidades, trabajá en tus áreas de mejora y recibí mentoría mensual con NicoProducto. Desde ARS $50.000/mes. Cancelá cuando quieras." canonical="/premium" />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         {/* Hero Section */}
@@ -112,7 +112,7 @@ export default function Premium() {
               {/* Premium Plan */}
               <Card className="relative border-primary bg-primary/5">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-primary text-primary-foreground px-4 py-1">15+ usuarios activos</Badge>
+                  <Badge className="bg-primary text-primary-foreground px-4 py-1">20+ usuarios activos</Badge>
                 </div>
                 <CardHeader>
                   <div className="flex items-center gap-2 mb-2">
@@ -120,7 +120,7 @@ export default function Premium() {
                     <CardTitle className="text-2xl">PLAN PREMIUM</CardTitle>
                   </div>
                   <CardDescription>Pensado para quienes quieren crecer en serio</CardDescription>
-                  <div className="text-3xl font-bold">ARS $25.000<span className="text-sm font-normal text-muted-foreground">/mes</span></div>
+                  <div className="text-3xl font-bold">ARS $50.000<span className="text-sm font-normal text-muted-foreground">/mes</span></div>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
@@ -130,7 +130,7 @@ export default function Premium() {
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span>Mentoría personalizada mensual con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></span>
+                      <span>Guía de carrera personalizada diseñada por <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></span>
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
@@ -174,7 +174,7 @@ export default function Premium() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-center">
-                    Sesión mensual 1:1 con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a> para revisar tu progreso y planificar próximos pasos.
+                    Sesión mensual 1:1 con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a> para diseñar tu guía de carrera y acompañarte en tus próximos pasos.
                   </p>
                 </CardContent>
               </Card>
