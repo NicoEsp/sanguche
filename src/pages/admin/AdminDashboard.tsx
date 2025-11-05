@@ -223,10 +223,13 @@ export default function AdminDashboard() {
             {analytics.skillGapDistribution.length > 0 ? (
               <div className="space-y-3">
                 {analytics.skillGapDistribution.map((skill, index) => (
-                  <div key={skill.skill} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                    <span className="text-sm font-medium">{skill.skill}</span>
+                  <div key={skill.skill} className="space-y-2 p-3 bg-muted/50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">{skill.skill}</span>
+                      <Badge variant="outline">{skill.percentage.toFixed(1)}% usuarios</Badge>
+                    </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-24 bg-muted rounded-full h-2">
+                      <div className="flex-1 bg-muted rounded-full h-2">
                         <div 
                           className="bg-primary h-2 rounded-full" 
                           style={{ 
@@ -236,6 +239,13 @@ export default function AdminDashboard() {
                       </div>
                       <span className="text-sm font-bold min-w-[2rem]">{skill.count}</span>
                     </div>
+                    {skill.avgCurrentLevel > 0 && skill.avgTargetLevel > 0 && (
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Nivel actual: {skill.avgCurrentLevel.toFixed(1)}</span>
+                        <span>Objetivo: {skill.avgTargetLevel.toFixed(1)}</span>
+                        <span className="font-medium text-primary">Gap: {(skill.avgTargetLevel - skill.avgCurrentLevel).toFixed(1)}</span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -260,6 +270,58 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Distribución de Scores */}
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                <span className="text-sm font-medium block">Distribución de Scores</span>
+                <div className="grid grid-cols-2 gap-2">
+                  {analytics.scoreDistribution.map((range) => (
+                    <div key={range.range} className="flex items-center justify-between p-2 bg-background rounded">
+                      <span className="text-xs">{range.range}</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {range.count}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          ({range.percentage.toFixed(0)}%)
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Comparación Free vs Premium */}
+              <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                <span className="text-sm font-medium block">Promedio por Plan</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Free</span>
+                  <span className="text-lg font-bold text-foreground">
+                    {analytics.avgScoreFree > 0 ? analytics.avgScoreFree.toFixed(2) : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Premium</span>
+                  <span className="text-lg font-bold text-primary">
+                    {analytics.avgScorePremium > 0 ? analytics.avgScorePremium.toFixed(2) : 'N/A'}
+                  </span>
+                </div>
+                {analytics.avgScoreFree > 0 && analytics.avgScorePremium > 0 && (
+                  <div className="pt-2 border-t border-border">
+                    <span className="text-xs text-muted-foreground">
+                      Diferencia: {(analytics.avgScorePremium - analytics.avgScoreFree).toFixed(2)} pts
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Re-evaluación */}
+              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
+                <span className="text-sm font-medium">Tasa de re-evaluación</span>
+                <span className="text-lg font-semibold">
+                  {analytics.reEvaluationRate.toFixed(1)}%
+                </span>
+              </div>
+
               <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
                 <span className="text-sm font-medium">Promedio de puntuación</span>
                 <span className="text-2xl font-bold text-primary">
