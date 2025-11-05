@@ -30,7 +30,7 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
     onCheckoutStart?.();
 
     setLoading(true);
-    trackEvent('checkout_started', { plan: 'premium', price: 25000, provider: 'lemon_squeezy' });
+    trackEvent('checkout_started', { plan: 'premium', price: 50000, provider: 'lemon_squeezy' });
     
     try {
       const { data, error } = await supabase.functions.invoke('lemon-squeezy-checkout', {
@@ -72,7 +72,7 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
       onClick={handleCheckout}
       disabled={loading}
     >
-      {loading ? "Procesando..." : "Suscribirse por ARS $25.000/mes"}
+      {loading ? "Procesando..." : "Suscribirse por ARS $50.000/mes"}
     </Button>
   );
 }
