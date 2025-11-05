@@ -77,7 +77,7 @@ serve(async (req) => {
     }
 
     // Lemon Squeezy Variant ID for Premium Plan
-    const variantId = '1045425';
+    const variantId = '1071322';
 
     // Create Lemon Squeezy checkout
     const checkoutData = {
