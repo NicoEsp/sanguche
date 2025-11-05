@@ -8,6 +8,7 @@ export interface UserProfile {
   name: string | null;
   user_id: string;
   mentoria_completed: boolean;
+  last_mentoria_date?: string | null;
 }
 
 interface UseUserProfileOptions {
@@ -26,7 +27,7 @@ export function useUserProfile(options: UseUserProfileOptions = {}) {
       
       const { data } = await supabase
         .from('profiles')
-        .select('id, name, user_id, mentoria_completed')
+        .select('id, name, user_id, mentoria_completed, last_mentoria_date')
         .eq('user_id', user.id)
         .maybeSingle();
 

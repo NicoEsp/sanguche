@@ -4,7 +4,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Crown, Loader2, Plus } from "lucide-react";
+import { ArrowLeft, Crown, Loader2, Plus, CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import AdminMentoriaExercises from "./AdminMentoriaExercises";
 import { usePremiumUsers } from "@/hooks/usePremiumUsers";
 import { useUserProgressObjectives, useDeleteUserObjective } from "@/hooks/useUserProgressObjectives";
@@ -18,6 +20,7 @@ import type { UserProgressObjective } from "@/hooks/useUserProgressObjectives";
 export default function AdminMentoriaDetail() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { data: premiumUsers, isLoading } = usePremiumUsers();
   const { data: userObjectives, isLoading: loadingObjectives } = useUserProgressObjectives(userId);
   const deleteObjective = useDeleteUserObjective();
@@ -108,13 +111,51 @@ export default function AdminMentoriaDetail() {
           </div>
         </div>
 
-        <p className="text-muted-foreground">
-          Usuario premium desde: {new Date(selectedUser.user_subscriptions.created_at).toLocaleDateString('es-ES', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="text-muted-foreground">
+            Usuario premium desde: {new Date(selectedUser.user_subscriptions.created_at).toLocaleDateString('es-ES', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </p>
+          
+          {!selectedUser.mentoria_completed && (
+            <Button 
+              variant="default"
+              size="sm"
+              onClick={async () => {
+                const { error } = await supabase
+                  .from('profiles')
+                  .update({
+                    mentoria_completed: true,
+                    last_mentoria_date: new Date().toISOString()
+                  })
+                  .eq('id', selectedUser.id);
+                
+                if (error) {
+                  toast({
+                    title: "Error",
+                    description: "No se pudo actualizar el estado de la mentoría",
+                    variant: "destructive"
+                  });
+                } else {
+                  toast({
+                    title: "✅ Mentoría completada",
+                    description: "El usuario ahora tiene acceso a todo el contenido avanzado"
+                  });
+                  
+                  // Refresh premium users list
+                  window.location.reload();
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <CheckCircle className="h-4 w-4" />
+              Marcar como Completada
+            </Button>
+          )}
+        </div>
 
         {/* Tabs de contenido */}
         <Tabs defaultValue="ejercicios" className="w-full">

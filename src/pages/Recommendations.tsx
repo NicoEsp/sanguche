@@ -143,7 +143,10 @@ export default function Recommendations() {
         </div>
 
           {/* Hero Section - Agendamiento */}
-          <MentoriaHero mentoriaCompleted={profile?.mentoria_completed || false} />
+          <MentoriaHero 
+            mentoriaCompleted={profile?.mentoria_completed || false}
+            lastMentoriaDate={profile?.last_mentoria_date}
+          />
 
         {/* Assessment Required Alert */}
         {!hasAssessment && (

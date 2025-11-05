@@ -103,6 +103,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          last_mentoria_date: string | null
           mentoria_completed: boolean
           name: string | null
           updated_at: string
@@ -112,6 +113,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          last_mentoria_date?: string | null
           mentoria_completed?: boolean
           name?: string | null
           updated_at?: string
@@ -121,6 +123,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          last_mentoria_date?: string | null
           mentoria_completed?: boolean
           name?: string | null
           updated_at?: string
