@@ -1,5 +1,7 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { findOrCreateUser } from './helpers.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,6 +29,7 @@ interface LemonSqueezyWebhookEvent {
       updated_at: string;
       user_email?: string;
       customer_email?: string;
+      user_name?: string;
     };
   };
 }
@@ -116,24 +119,21 @@ serve(async (req) => {
       );
     }
 
-    // Find user profile by email
-    console.log('Looking up user by email:', userEmail);
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, user_id, email')
-      .eq('email', userEmail)
-      .single();
-
-    if (profileError || !profile) {
-      console.error('User profile not found for email:', userEmail, profileError);
+    // Find or create user profile by email
+    console.log('Finding or creating user for email:', userEmail);
+    
+    let userId: string;
+    try {
+      const userName = event.data.attributes.user_name || null;
+      userId = await findOrCreateUser(userEmail, userName, supabase);
+      console.log('User profile ready:', userId);
+    } catch (error) {
+      console.error('Failed to find or create user:', error);
       return new Response(
-        JSON.stringify({ error: 'User profile not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Failed to process user account' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const userId = profile.id;
-    console.log('Found user profile:', userId);
 
     // Handle different event types
     switch (eventName) {

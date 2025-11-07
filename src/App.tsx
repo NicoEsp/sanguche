@@ -21,6 +21,7 @@ const Progress = lazy(() => import("./pages/Progress"));
 const Premium = lazy(() => import("./pages/Premium"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Auth = lazy(() => import("./pages/Auth"));
+const Welcome = lazy(() => import("./pages/Welcome"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Skeleton components for better perceived performance
@@ -85,6 +86,7 @@ const App = () => (
                       <Route path="/" element={<Index />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/premium" element={<Premium />} />
+                      <Route path="/welcome" element={<Welcome />} />
                       <Route path="/perfil" element={
                         <ProtectedRoute>
                           <Profile />

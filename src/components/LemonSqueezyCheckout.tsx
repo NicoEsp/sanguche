@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
+import { EmailCaptureDialog } from "./EmailCaptureDialog";
 
 interface LemonSqueezyCheckoutProps {
   onSuccess?: () => void;
@@ -13,28 +14,28 @@ interface LemonSqueezyCheckoutProps {
 
 export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: LemonSqueezyCheckoutProps) {
   const [loading, setLoading] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { trackEvent } = useMixpanelTracking();
 
-  const handleCheckout = async () => {
-    if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Debes iniciar sesión para suscribirte"
-      });
-      return;
-    }
-
+  const handleCheckout = async (email?: string) => {
     onCheckoutStart?.();
 
     setLoading(true);
-    trackEvent('checkout_started', { plan: 'premium', price: 50000, provider: 'lemon_squeezy' });
+    trackEvent('checkout_started', { 
+      plan: 'premium', 
+      price: 50000, 
+      provider: 'lemon_squeezy',
+      is_anonymous: !user
+    });
     
     try {
       const { data, error } = await supabase.functions.invoke('lemon-squeezy-checkout', {
-        body: { userId: user.id }
+        body: { 
+          userId: user?.id,
+          email: email
+        }
       });
 
       if (error) {
@@ -42,7 +43,11 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
       }
 
       if (data?.checkoutUrl) {
-        trackEvent('checkout_redirect', { checkout_url: data.checkoutUrl, provider: 'lemon_squeezy' });
+        trackEvent('checkout_redirect', { 
+          checkout_url: data.checkoutUrl, 
+          provider: 'lemon_squeezy',
+          is_anonymous: !user
+        });
         window.location.href = data.checkoutUrl;
       } else {
         throw new Error('No checkout URL received');
@@ -51,7 +56,11 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al crear el checkout';
       
-      trackEvent('checkout_failed', { error: errorMessage, provider: 'lemon_squeezy' });
+      trackEvent('checkout_failed', { 
+        error: errorMessage, 
+        provider: 'lemon_squeezy',
+        is_anonymous: !user
+      });
       
       toast({
         variant: "destructive",
@@ -60,19 +69,43 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
       });
       
       onError?.(errorMessage);
+      setShowEmailDialog(false);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleButtonClick = () => {
+    if (user) {
+      // Usuario logueado - checkout directo
+      handleCheckout();
+    } else {
+      // Usuario no logueado - mostrar dialog para capturar email
+      setShowEmailDialog(true);
+    }
+  };
+
+  const handleEmailSubmit = (email: string) => {
+    handleCheckout(email);
+  };
+
   return (
-    <Button 
-      size="lg" 
-      className="w-full min-h-[44px]" 
-      onClick={handleCheckout}
-      disabled={loading}
-    >
-      {loading ? "Procesando..." : "Suscribirse por ARS $50.000/mes"}
-    </Button>
+    <>
+      <Button 
+        size="lg" 
+        className="w-full min-h-[44px]" 
+        onClick={handleButtonClick}
+        disabled={loading}
+      >
+        {loading ? "Procesando..." : "Suscribirse por ARS $50.000/mes"}
+      </Button>
+      
+      <EmailCaptureDialog
+        open={showEmailDialog}
+        onOpenChange={setShowEmailDialog}
+        onEmailSubmit={handleEmailSubmit}
+        isLoading={loading}
+      />
+    </>
   );
 }
