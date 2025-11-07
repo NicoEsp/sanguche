@@ -27,10 +27,10 @@ export default function AdminDashboard() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-ES', {
+    return new Intl.NumberFormat('es-AR', {
       style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
+      currency: 'ARS',
+      minimumFractionDigits: 0
     }).format(amount);
   };
 
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Resumen Financiero</CardTitle>
-            <CardDescription>Métricas clave de ingresos Polar</CardDescription>
+            <CardDescription>Métricas clave de ingresos</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">

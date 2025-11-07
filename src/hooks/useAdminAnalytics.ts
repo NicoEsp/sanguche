@@ -85,8 +85,8 @@ export function useAdminAnalytics() {
         ) || [];
         const premiumUsers = premiumSubscriptions.length;
 
-        const polarMonthlyPrice = 9.99;
-        const mrr = premiumUsers * polarMonthlyPrice;
+        const monthlyPriceARS = 50000;
+        const mrr = premiumUsers * monthlyPriceARS;
         const arr = mrr * 12;
         const arpu = totalUsers > 0 ? mrr / totalUsers : 0;
 
