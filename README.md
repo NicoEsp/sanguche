@@ -71,4 +71,4 @@ Desde esta sección el usuario puede:
 - Vite
 - Tailwind CSS
 - Supabase (Backend as a Service)
-- Polar (Pagos)
+- LemonSqueezy (Pagos)
