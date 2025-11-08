@@ -14,6 +14,8 @@ import { DomainInfoPopup } from "@/components/DomainInfoPopup";
 import { Info, Star, Trophy, Target, Calendar, ArrowRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,7 +44,9 @@ export default function Assessment() {
   const [showReevaluationDialog, setShowReevaluationDialog] = useState(false);
   const [assessmentStartTime] = useState(Date.now());
   const [isSaving, setIsSaving] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
   
+  const isMobile = useIsMobile();
   const { trackEvent, setUserProperties } = useMixpanelTracking();
 
   const {
@@ -87,13 +91,19 @@ export default function Assessment() {
           try {
             const parsedAnswers = JSON.parse(partialAnswers);
             form.reset(parsedAnswers);
+            
+            // En mobile, posicionar en el siguiente paso sin responder
+            if (isMobile) {
+              const answeredCount = Object.keys(parsedAnswers).length;
+              setCurrentStep(Math.min(answeredCount, DOMAINS.length - 1));
+            }
           } catch (e) {
             console.error('Error recuperando respuestas parciales:', e);
           }
         }
       }
     }
-  }, [assessmentLoading, hasAssessment, trackEvent, form]);
+  }, [assessmentLoading, hasAssessment, trackEvent, form, isMobile]);
 
   useEffect(() => {
     if (isReevaluating) {
@@ -211,10 +221,39 @@ export default function Assessment() {
 
   const handleStartReevaluation = () => {
     setIsReevaluating(true);
+    setCurrentStep(0);
     // Marcar que hay una evaluación en progreso
     localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
     // Limpiar respuestas parciales previas
     localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
+  };
+
+  const handleNextStep = () => {
+    const currentDomain = DOMAINS[currentStep];
+    const currentValue = watchedValues?.[currentDomain.key];
+    
+    if (!currentValue) {
+      toast({
+        title: "Respuesta requerida",
+        description: "Por favor seleccioná una opción antes de continuar.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Guardar respuestas parciales
+    localStorage.setItem(ASSESSMENT_PARTIAL_ANSWERS_KEY, JSON.stringify(watchedValues));
+    
+    // Avanzar al siguiente paso
+    setCurrentStep(currentStep + 1);
+    
+    // Scroll suave al top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePreviousStep = () => {
+    setCurrentStep(currentStep - 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   async function onSubmit(data: AssessmentValues) {
@@ -435,13 +474,37 @@ export default function Assessment() {
 
         {isReevaluating && (
           <>
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2 text-sm">
-                <span>Progreso</span>
-                <span>{answered}/{total} ({progress}%)</span>
+            {/* Barra de progreso - sticky en mobile, normal en desktop */}
+            {isMobile ? (
+              <div className="sticky top-0 z-10 bg-background border-b shadow-sm p-4 mb-6 -mx-4 sm:mx-0">
+                <div className="flex items-center justify-between mb-2 text-sm">
+                  <span className="font-medium">Paso {currentStep + 1} de {DOMAINS.length}</span>
+                  <span className="text-muted-foreground">{progress}% completado</span>
+                </div>
+                <Progress value={progress} className="h-2" />
+                {/* Indicador de pasos */}
+                <div className="flex gap-1 mt-3">
+                  {DOMAINS.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`h-1 flex-1 rounded transition-colors ${
+                        idx < currentStep ? 'bg-primary' : 
+                        idx === currentStep ? 'bg-primary/60' : 
+                        'bg-muted'
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
-              <Progress value={progress} />
-            </div>
+            ) : (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2 text-sm">
+                  <span>Progreso</span>
+                  <span>{answered}/{total} ({progress}%)</span>
+                </div>
+                <Progress value={progress} />
+              </div>
+            )}
 
             {hasAssessment && (
               <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -452,7 +515,7 @@ export default function Assessment() {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid gap-6">
-                  {DOMAINS.map((d) => (
+                  {(isMobile ? [DOMAINS[currentStep]] : DOMAINS).map((d) => (
                     <fieldset key={d.key} className="rounded-lg border p-4 bg-card space-y-4">
                       <legend className="flex items-start justify-between gap-3">
                         <div>
@@ -512,21 +575,64 @@ export default function Assessment() {
                   ))}
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button type="submit" className="w-full sm:w-auto" disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <span className="inline-block animate-spin mr-2">⏳</span>
-                        Guardando...
-                      </>
-                    ) : (
-                      'Guardar y continuar'
+                {/* Navegación - diferente para mobile vs desktop */}
+                {isMobile ? (
+                  <div className="flex gap-3 mt-6">
+                    {currentStep > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handlePreviousStep}
+                        className="w-full"
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Anterior
+                      </Button>
                     )}
-                  </Button>
-                  <Button asChild variant="outline" className="w-full sm:w-auto" disabled={isSaving}>
-                    <Link to="/">Volver</Link>
-                  </Button>
-                </div>
+                    {currentStep < DOMAINS.length - 1 ? (
+                      <Button
+                        type="button"
+                        onClick={handleNextStep}
+                        className="w-full"
+                        disabled={!watchedValues?.[DOMAINS[currentStep].key]}
+                      >
+                        Siguiente
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    ) : (
+                      <Button 
+                        type="submit" 
+                        className="w-full" 
+                        disabled={isSaving}
+                      >
+                        {isSaving ? (
+                          <>
+                            <span className="inline-block animate-spin mr-2">⏳</span>
+                            Guardando...
+                          </>
+                        ) : (
+                          'Guardar y continuar'
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button type="submit" className="w-full sm:w-auto" disabled={isSaving}>
+                      {isSaving ? (
+                        <>
+                          <span className="inline-block animate-spin mr-2">⏳</span>
+                          Guardando...
+                        </>
+                      ) : (
+                        'Guardar y continuar'
+                      )}
+                    </Button>
+                    <Button asChild variant="outline" className="w-full sm:w-auto" disabled={isSaving}>
+                      <Link to="/">Volver</Link>
+                    </Button>
+                  </div>
+                )}
               </form>
             </Form>
           </>
