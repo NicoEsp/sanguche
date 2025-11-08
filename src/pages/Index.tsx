@@ -10,12 +10,14 @@ import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
 import { useAuth } from '@/contexts/AuthContext';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
+import { usePricing } from "@/hooks/usePricing";
 
 const Index = () => {
   const {
     isAuthenticated
   } = useAuth();
   const { trackEvent } = useMixpanelTracking();
+  const { formatted, loading: pricingLoading } = usePricing();
   const premiumBenefits = [
     <>Acceso a guía de carrera personalizada diseñada por <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>,
     "Seguimiento visual de tu progreso y objetivos",
@@ -167,7 +169,11 @@ const Index = () => {
 
                 <div className="bg-muted/50 p-4 rounded-lg text-center">
                   <div className="text-2xl font-bold text-primary mb-1">
-                    ARS $25.000 <span className="text-base font-normal text-muted-foreground">/mes</span>
+                    {pricingLoading ? (
+                      <span className="inline-block animate-pulse">Cargando...</span>
+                    ) : (
+                      <>{formatted} <span className="text-base font-normal text-muted-foreground">/mes</span></>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground">Cancela cuando quieras</p>
                 </div>

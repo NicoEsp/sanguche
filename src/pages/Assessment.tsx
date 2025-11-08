@@ -41,6 +41,7 @@ export default function Assessment() {
   const [isReevaluating, setIsReevaluating] = useState(false);
   const [showReevaluationDialog, setShowReevaluationDialog] = useState(false);
   const [assessmentStartTime] = useState(Date.now());
+  const [isSaving, setIsSaving] = useState(false);
   
   const { trackEvent, setUserProperties } = useMixpanelTracking();
 
@@ -113,6 +114,31 @@ export default function Assessment() {
         form.reset({} as AssessmentValues);
       }
     }
+  }, [isReevaluating, form]);
+
+  // Guardar antes de cerrar la ventana/pestaña
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!isReevaluating) return;
+      
+      const formValues = form.getValues();
+      const hasAnswers = Object.values(formValues || {}).some((v) => typeof v === 'number');
+      
+      if (hasAnswers) {
+        try {
+          localStorage.setItem(ASSESSMENT_PARTIAL_ANSWERS_KEY, JSON.stringify(formValues));
+        } catch (error) {
+          console.error('Error guardando respuestas antes de cerrar:', error);
+        }
+        
+        // Mostrar advertencia de navegador
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isReevaluating, form]);
 
   useEffect(() => {
@@ -192,10 +218,13 @@ export default function Assessment() {
   };
 
   async function onSubmit(data: AssessmentValues) {
-    const result = computeSeniorityScore(data);
-    const timeSpent = Math.round((Date.now() - assessmentStartTime) / 1000); // segundos
+    setIsSaving(true);
     
-    await saveAssessment(data, result, supabase);
+    try {
+      const result = computeSeniorityScore(data);
+      const timeSpent = Math.round((Date.now() - assessmentStartTime) / 1000); // segundos
+      
+      await saveAssessment(data, result, supabase);
     
     // Track assessment completion
     trackEvent('assessment_completed', {
@@ -212,18 +241,28 @@ export default function Assessment() {
       estimated_level: result.nivel,
       last_assessment_date: new Date().toISOString()
     });
-    
-    toast({ title: "Autoevaluación guardada", description: `Nivel estimado: ${result.nivel} (promedio ${result.promedioGlobal})` });
-    
-    // Limpiar las flags de evaluación en progreso
-    localStorage.removeItem(ASSESSMENT_IN_PROGRESS_KEY);
-    localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
-    
-    // Resetear estado de re-evaluación para mostrar los resultados
-    setIsReevaluating(false);
-    
-    // Scroll suave al top para que vea su resultado
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      toast({ title: "Autoevaluación guardada", description: `Nivel estimado: ${result.nivel} (promedio ${result.promedioGlobal})` });
+      
+      // Limpiar las flags de evaluación en progreso
+      localStorage.removeItem(ASSESSMENT_IN_PROGRESS_KEY);
+      localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
+      
+      // Resetear estado de re-evaluación para mostrar los resultados
+      setIsReevaluating(false);
+      
+      // Scroll suave al top para que vea su resultado
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      console.error('Error guardando evaluación:', error);
+      toast({ 
+        title: "Error al guardar", 
+        description: "Hubo un problema guardando tu evaluación. Por favor intenta de nuevo.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -474,8 +513,17 @@ export default function Assessment() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Button type="submit" className="w-full sm:w-auto">Guardar y continuar</Button>
-                  <Button asChild variant="outline" className="w-full sm:w-auto">
+                  <Button type="submit" className="w-full sm:w-auto" disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <span className="inline-block animate-spin mr-2">⏳</span>
+                        Guardando...
+                      </>
+                    ) : (
+                      'Guardar y continuar'
+                    )}
+                  </Button>
+                  <Button asChild variant="outline" className="w-full sm:w-auto" disabled={isSaving}>
                     <Link to="/">Volver</Link>
                   </Button>
                 </div>
