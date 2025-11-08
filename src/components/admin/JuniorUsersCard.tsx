@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useRecentJuniorUsers } from '@/hooks/useRecentJuniorUsers';
-import { Loader2, Tag, ArrowRight } from 'lucide-react';
+import { Loader2, Tag, ArrowRight, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -57,6 +57,12 @@ export function JuniorUsersCard() {
                     <Badge variant="secondary" className="text-xs">
                       Junior
                     </Badge>
+                    {user.is_at_risk && (
+                      <Badge variant="destructive" className="text-xs gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Riesgo
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
                     {user.email}
@@ -65,7 +71,7 @@ export function JuniorUsersCard() {
                     Evaluación: {formatDistance(new Date(user.assessment_date), new Date(), { 
                       addSuffix: true,
                       locale: es 
-                    })}
+                    })} · {user.gaps_count} gaps
                   </p>
                 </div>
                 <div className="text-right ml-4">
