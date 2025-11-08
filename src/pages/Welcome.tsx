@@ -7,18 +7,20 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Seo } from "@/components/Seo";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useQueryClient } from "@tanstack/react-query";
-
 export default function Welcome() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
-  const { trackEvent } = useMixpanelTracking();
+  const {
+    isAuthenticated,
+    user
+  } = useAuth();
+  const {
+    trackEvent
+  } = useMixpanelTracking();
   const queryClient = useQueryClient();
   const [countdown, setCountdown] = useState(3);
-
   const success = searchParams.get('success') === 'true';
   const isAnonymous = searchParams.get('anonymous') === 'true';
-
   useEffect(() => {
     if (success) {
       trackEvent('welcome_page_viewed', {
@@ -28,7 +30,9 @@ export default function Welcome() {
 
       // Force refresh subscription data
       setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['subscription'] });
+        queryClient.invalidateQueries({
+          queryKey: ['subscription']
+        });
       }, 2000);
     }
   }, [success, isAnonymous, isAuthenticated, trackEvent, queryClient]);
@@ -37,7 +41,7 @@ export default function Welcome() {
   useEffect(() => {
     if (isAuthenticated && success) {
       const timer = setInterval(() => {
-        setCountdown((prev) => {
+        setCountdown(prev => {
           if (prev <= 1) {
             clearInterval(timer);
             navigate('/mentoria');
@@ -46,19 +50,14 @@ export default function Welcome() {
           return prev - 1;
         });
       }, 1000);
-
       return () => clearInterval(timer);
     }
   }, [isAuthenticated, success, navigate]);
 
   // Página de bienvenida genérica (sin parámetro success)
   if (!success) {
-    return (
-      <>
-        <Seo 
-          title="Bienvenido a ProductPrepa" 
-          description="Acelera tu crecimiento como Product Manager con mentoría personalizada"
-        />
+    return <>
+        <Seo title="Bienvenido a ProductPrepa" description="Acelera tu crecimiento como Product Manager con mentoría personalizada" />
         
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
           <Card className="max-w-2xl w-full">
@@ -90,32 +89,19 @@ export default function Welcome() {
               </div>
 
               <div className="grid gap-3">
-                <Button 
-                  onClick={() => navigate('/auth')}
-                  size="lg"
-                  className="w-full"
-                >
+                <Button onClick={() => navigate('/auth')} size="lg" className="w-full">
                   Iniciar sesión
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
                 
-                <Button 
-                  onClick={() => navigate('/premium')}
-                  variant="outline"
-                  size="lg"
-                  className="w-full"
-                >
+                <Button onClick={() => navigate('/premium')} variant="outline" size="lg" className="w-full">
                   Ver Premium
                 </Button>
               </div>
 
               <div className="pt-4 border-t">
-                <p className="text-xs text-center text-muted-foreground">
-                  ¿Necesitas ayuda? Contáctanos a{" "}
-                  <a 
-                    href="mailto:soporte@productprepa.com" 
-                    className="text-primary hover:underline"
-                  >
+                <p className="text-xs text-center text-muted-foreground">¿Necesitas ayuda? Contáctanos a nicoproducto@hey.com{" "}
+                  <a href="mailto:soporte@productprepa.com" className="text-primary hover:underline">
                     soporte@productprepa.com
                   </a>
                 </p>
@@ -123,17 +109,12 @@ export default function Welcome() {
             </CardContent>
           </Card>
         </div>
-      </>
-    );
+      </>;
   }
 
   // Página de confirmación de pago (con success=true)
-  return (
-    <>
-      <Seo 
-        title="Bienvenido a ProductPrepa Premium" 
-        description="Tu suscripción ha sido confirmada. Revisa tu email para activar tu cuenta."
-      />
+  return <>
+      <Seo title="Bienvenido a ProductPrepa Premium" description="Tu suscripción ha sido confirmada. Revisa tu email para activar tu cuenta." />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full">
@@ -143,35 +124,26 @@ export default function Welcome() {
             </div>
             <CardTitle className="text-3xl">¡Pago exitoso!</CardTitle>
             <CardDescription className="text-lg">
-              {isAnonymous ? (
-                "Tu suscripción ha sido confirmada"
-              ) : (
-                "Bienvenido a ProductPrepa Premium"
-              )}
+              {isAnonymous ? "Tu suscripción ha sido confirmada" : "Bienvenido a ProductPrepa Premium"}
             </CardDescription>
           </CardHeader>
           
           <CardContent className="space-y-6">
-            {isAuthenticated ? (
-              // Usuario ya autenticado
-              <div className="text-center space-y-4">
+            {isAuthenticated ?
+          // Usuario ya autenticado
+          <div className="text-center space-y-4">
                 <div className="flex items-center justify-center gap-2 text-lg">
                   <Loader2 className="w-5 h-5 animate-spin text-primary" />
                   <span>Redirigiendo a tu dashboard en {countdown}...</span>
                 </div>
                 
-                <Button 
-                  onClick={() => navigate('/mentoria')}
-                  size="lg"
-                  className="w-full"
-                >
+                <Button onClick={() => navigate('/mentoria')} size="lg" className="w-full">
                   Ir ahora a Premium
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
-              </div>
-            ) : isAnonymous ? (
-              // Usuario nuevo - checkout anónimo
-              <div className="space-y-4">
+              </div> : isAnonymous ?
+          // Usuario nuevo - checkout anónimo
+          <div className="space-y-4">
                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <Mail className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
@@ -194,40 +166,27 @@ export default function Welcome() {
                 </div>
 
                 <div className="pt-4">
-                  <Button 
-                    onClick={() => navigate('/auth')}
-                    variant="outline"
-                    className="w-full"
-                  >
+                  <Button onClick={() => navigate('/auth')} variant="outline" className="w-full">
                     Ir a iniciar sesión
                   </Button>
                 </div>
-              </div>
-            ) : (
-              // Usuario existente que no está logueado
-              <div className="space-y-4">
+              </div> :
+          // Usuario existente que no está logueado
+          <div className="space-y-4">
                 <p className="text-center text-muted-foreground">
                   Tu suscripción está activa. Inicia sesión para acceder a Premium.
                 </p>
                 
-                <Button 
-                  onClick={() => navigate('/auth')}
-                  size="lg"
-                  className="w-full"
-                >
+                <Button onClick={() => navigate('/auth')} size="lg" className="w-full">
                   Iniciar sesión
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
-              </div>
-            )}
+              </div>}
 
             <div className="pt-4 border-t">
               <p className="text-xs text-center text-muted-foreground">
                 ¿Necesitas ayuda? Contáctanos a{" "}
-                <a 
-                  href="mailto:soporte@productprepa.com" 
-                  className="text-primary hover:underline"
-                >
+                <a href="mailto:soporte@productprepa.com" className="text-primary hover:underline">
                   soporte@productprepa.com
                 </a>
               </p>
@@ -235,6 +194,5 @@ export default function Welcome() {
           </CardContent>
         </Card>
       </div>
-    </>
-  );
+    </>;
 }
