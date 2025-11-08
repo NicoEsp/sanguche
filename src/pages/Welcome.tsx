@@ -51,11 +51,83 @@ export default function Welcome() {
     }
   }, [isAuthenticated, success, navigate]);
 
+  // Página de bienvenida genérica (sin parámetro success)
   if (!success) {
-    navigate('/');
-    return null;
+    return (
+      <>
+        <Seo 
+          title="Bienvenido a ProductPrepa" 
+          description="Acelera tu crecimiento como Product Manager con mentoría personalizada"
+        />
+        
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+          <Card className="max-w-2xl w-full">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="w-10 h-10 text-primary" />
+              </div>
+              <CardTitle className="text-3xl">¡Bienvenido a ProductPrepa!</CardTitle>
+              <CardDescription className="text-lg">
+                Tu plataforma para acelerar tu carrera como Product Manager
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              <div className="space-y-4 text-center">
+                <p className="text-muted-foreground">
+                  ProductPrepa te ayuda a desarrollar las habilidades clave para destacar en Product Management.
+                </p>
+                
+                <div className="space-y-2 text-sm text-muted-foreground text-left">
+                  <h4 className="font-semibold text-foreground text-center">¿Qué puedes hacer?</h4>
+                  <ul className="list-disc list-inside space-y-2 ml-4">
+                    <li>Evalúa tus habilidades actuales</li>
+                    <li>Recibe recomendaciones personalizadas</li>
+                    <li>Accede a recursos exclusivos</li>
+                    <li>Sigue tu progreso en tiempo real</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <Button 
+                  onClick={() => navigate('/auth')}
+                  size="lg"
+                  className="w-full"
+                >
+                  Iniciar sesión
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+                
+                <Button 
+                  onClick={() => navigate('/premium')}
+                  variant="outline"
+                  size="lg"
+                  className="w-full"
+                >
+                  Ver Premium
+                </Button>
+              </div>
+
+              <div className="pt-4 border-t">
+                <p className="text-xs text-center text-muted-foreground">
+                  ¿Necesitas ayuda? Contáctanos a{" "}
+                  <a 
+                    href="mailto:soporte@productprepa.com" 
+                    className="text-primary hover:underline"
+                  >
+                    soporte@productprepa.com
+                  </a>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </>
+    );
   }
 
+  // Página de confirmación de pago (con success=true)
   return (
     <>
       <Seo 
