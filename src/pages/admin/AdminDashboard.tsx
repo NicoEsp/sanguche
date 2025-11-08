@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAdminAnalytics } from '@/hooks/useAdminAnalytics';
 import { Loader2, Users, ClipboardList, TrendingUp, Crown, Target, Calendar, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { JuniorUsersCard } from '@/components/admin/JuniorUsersCard';
 
 export default function AdminDashboard() {
   const { analytics, loading, error } = useAdminAnalytics();
@@ -368,6 +369,9 @@ export default function AdminDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Junior Users Card */}
+      <JuniorUsersCard />
     </div>
   );
 }
