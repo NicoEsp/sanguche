@@ -2,13 +2,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useRecentJuniorUsers } from '@/hooks/useRecentJuniorUsers';
-import { Loader2, Tag, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Loader2, Tag, ArrowRight, AlertTriangle, Copy, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 export function JuniorUsersCard() {
   const { data: juniorUsers = [], isLoading } = useRecentJuniorUsers();
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const copyEmail = async (email: string, userId: string) => {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopiedId(userId);
+      toast({
+        title: "Email copiado",
+        description: `${email} copiado al portapapeles`,
+        duration: 2000,
+      });
+      
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "No se pudo copiar el email",
+        variant: "destructive",
+        duration: 2000,
+      });
+    }
+  };
 
   return (
     <Card>
@@ -47,7 +72,7 @@ export function JuniorUsersCard() {
             {juniorUsers.map((user) => (
               <div
                 key={user.id}
-                className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                className="group flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -64,9 +89,25 @@ export function JuniorUsersCard() {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {user.email}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs text-muted-foreground truncate">
+                      {user.email}
+                    </p>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyEmail(user.email || '', user.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded"
+                      title="Copiar email"
+                    >
+                      {copiedId === user.id ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <Copy className="h-3 w-3 text-muted-foreground" />
+                      )}
+                    </button>
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Evaluación: {formatDistance(new Date(user.assessment_date), new Date(), { 
                       addSuffix: true,
