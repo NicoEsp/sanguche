@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { EmailCaptureDialog } from "./EmailCaptureDialog";
+import { usePricing } from "@/hooks/usePricing";
 
 interface LemonSqueezyCheckoutProps {
   onSuccess?: () => void;
@@ -18,6 +19,7 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
   const { toast } = useToast();
   const { user } = useAuth();
   const { trackEvent } = useMixpanelTracking();
+  const { amount, formatted } = usePricing();
 
   const handleCheckout = async (email?: string) => {
     onCheckoutStart?.();
@@ -25,7 +27,7 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
     setLoading(true);
     trackEvent('checkout_started', { 
       plan: 'premium', 
-      price: 50000, 
+      price: amount, 
       provider: 'lemon_squeezy',
       is_anonymous: !user
     });
@@ -97,7 +99,7 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
         onClick={handleButtonClick}
         disabled={loading}
       >
-        {loading ? "Procesando..." : "Suscribirse por ARS $50.000/mes"}
+        {loading ? "Procesando..." : `Suscribirse por ${formatted}/mes`}
       </Button>
       
       <EmailCaptureDialog

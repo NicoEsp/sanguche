@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Star } from "lucide-react";
 import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
+import { usePricing } from "@/hooks/usePricing";
 
 interface PaywallCardProps {
   title?: string;
@@ -13,6 +14,8 @@ export function PaywallCard({
   title = "Preparate aún más para dar el salto",
   feature = "esta funcionalidad"
 }: PaywallCardProps) {
+  const { formatted, loading } = usePricing();
+  
   const benefits = [
     <>Guía de carrera personalizada diseñada por <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>,
     "Seguimiento visual de tu progreso y objetivos",
@@ -50,7 +53,11 @@ export function PaywallCard({
           
           <div className="bg-muted/50 p-4 rounded-lg text-center">
             <div className="text-2xl font-bold text-primary mb-1">
-              ARS $50.000 <span className="text-base font-normal text-muted-foreground">/mes</span>
+              {loading ? (
+                <span className="inline-block animate-pulse">Cargando...</span>
+              ) : (
+                <>{formatted} <span className="text-base font-normal text-muted-foreground">/mes</span></>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">
               Cancela cuando quieras

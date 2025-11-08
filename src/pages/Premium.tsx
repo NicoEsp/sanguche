@@ -12,6 +12,7 @@ import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePricing } from "@/hooks/usePricing";
 
 export default function Premium() {
   const {
@@ -23,6 +24,7 @@ export default function Premium() {
   const { trackEvent } = useMixpanelTracking();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { amount, formatted } = usePricing();
 
   // Track premium page view
   useEffect(() => {
@@ -41,7 +43,7 @@ export default function Premium() {
         
         trackEvent('checkout_completed', {
           plan: 'premium',
-          price: 50000,
+          price: amount,
           provider: 'lemon_squeezy'
         });
         
@@ -55,7 +57,7 @@ export default function Premium() {
     }
   }, [toast, trackEvent, queryClient]);
   return <>
-      <Seo title="Premium: Crece como Product Manager con mentoría personalizada | ProductPrepa" description="Evaluá tus habilidades, trabajá en tus áreas de mejora y recibí mentoría mensual con NicoProducto. Desde ARS $50.000/mes. Cancelá cuando quieras." canonical="/premium" />
+      <Seo title="Premium: Crece como Product Manager con mentoría personalizada | ProductPrepa" description={`Evaluá tus habilidades, trabajá en tus áreas de mejora y recibí mentoría mensual con NicoProducto. Desde ${formatted}/mes. Cancelá cuando quieras.`} canonical="/premium" />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         {/* Hero Section */}
@@ -120,7 +122,7 @@ export default function Premium() {
                     <CardTitle className="text-2xl">PLAN PREMIUM</CardTitle>
                   </div>
                   <CardDescription>Pensado para quienes quieren crecer en serio</CardDescription>
-                  <div className="text-3xl font-bold">ARS $50.000<span className="text-sm font-normal text-muted-foreground">/mes</span></div>
+                  <div className="text-3xl font-bold">{formatted}<span className="text-sm font-normal text-muted-foreground">/mes</span></div>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
