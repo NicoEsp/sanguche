@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +34,6 @@ export default function AdminAssessments() {
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
   const [showOnlyAtRisk, setShowOnlyAtRisk] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
-  const detailRef = useRef<HTMLDivElement | null>(null);
 
   const fetchAssessments = useCallback(async ({ refresh = false }: { refresh?: boolean } = {}) => {
     try {
@@ -85,74 +84,6 @@ export default function AdminAssessments() {
     void fetchAssessments();
   }, [fetchAssessments]);
 
-  const handlePrintDetails = useCallback(() => {
-    if (!detailRef.current || !selectedAssessment) {
-      toast.error('No se encontró la evaluación para descargar');
-      return;
-    }
-
-    try {
-      // Clonar el contenido
-      const clonedNode = detailRef.current.cloneNode(true) as HTMLElement;
-      
-      // Crear contenedor temporal oculto
-      const printContainer = document.createElement('div');
-      printContainer.style.position = 'fixed';
-      printContainer.style.left = '-9999px';
-      printContainer.style.top = '0';
-      printContainer.style.width = '800px';
-      printContainer.style.backgroundColor = 'white';
-      printContainer.style.padding = '40px';
-      
-      // Remover elementos con data-print-hidden
-      const hiddenElements = clonedNode.querySelectorAll('[data-print-hidden]');
-      hiddenElements.forEach(el => el.remove());
-      
-      printContainer.appendChild(clonedNode);
-      document.body.appendChild(printContainer);
-      
-      // Usar window.print() en lugar de window.open()
-      const originalTitle = document.title;
-      document.title = `Evaluación - ${selectedAssessment.user.name || selectedAssessment.user.email}`;
-      
-      // Crear estilos específicos para impresión
-      const printStyles = document.createElement('style');
-      printStyles.textContent = `
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #print-content, #print-content * {
-            visibility: visible;
-          }
-          #print-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            max-width: 800px;
-            margin: 0 auto;
-          }
-        }
-      `;
-      document.head.appendChild(printStyles);
-      printContainer.id = 'print-content';
-      
-      // Trigger print
-      window.print();
-      
-      // Cleanup
-      setTimeout(() => {
-        document.body.removeChild(printContainer);
-        document.head.removeChild(printStyles);
-        document.title = originalTitle;
-      }, 100);
-      
-    } catch (error) {
-      console.error('Error generando PDF:', error);
-      toast.error('Error al generar el PDF. Por favor intenta nuevamente.');
-    }
-  }, [selectedAssessment]);
 
   // Helper functions
   function calculateAverageLevel(assessments: Assessment[]): string {
@@ -512,29 +443,18 @@ export default function AdminAssessments() {
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <DialogHeader className="space-y-2">
-                            <DialogTitle>Detalles de la Evaluación</DialogTitle>
-                            <DialogDescription>
-                              Usuario: {selectedAssessment?.user.name}
-                              {' '}-
-                              {' '}
-                              {formattedSelectedAssessmentDate ?? 'Fecha no disponible'}
-                            </DialogDescription>
-                          </DialogHeader>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handlePrintDetails}
-                            data-print-hidden
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Descargar PDF
-                          </Button>
-                        </div>
+                        <DialogHeader className="space-y-2">
+                          <DialogTitle>Detalles de la Evaluación</DialogTitle>
+                          <DialogDescription>
+                            Usuario: {selectedAssessment?.user.name}
+                            {' '}-
+                            {' '}
+                            {formattedSelectedAssessmentDate ?? 'Fecha no disponible'}
+                          </DialogDescription>
+                        </DialogHeader>
 
                         {selectedAssessment && (
-                          <div ref={detailRef} className="space-y-4">
+                          <div className="space-y-4">
                             <div>
                               <h4 className="font-semibold mb-2">Nivel General</h4>
                               <Badge variant={getLevelBadgeVariant(selectedAssessment.assessment_result?.nivel)}>
