@@ -32,6 +32,7 @@ import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
+import { useSearchParams } from "react-router-dom";
 
 // Constantes para localStorage
 const ASSESSMENT_IN_PROGRESS_KEY = 'assessment_in_progress';
@@ -39,6 +40,7 @@ const ASSESSMENT_PARTIAL_ANSWERS_KEY = 'assessment_partial_answers';
 
 export default function Assessment() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedDomain, setSelectedDomain] = useState<DomainKey | null>(null);
   const [isReevaluating, setIsReevaluating] = useState(false);
   const [showReevaluationDialog, setShowReevaluationDialog] = useState(false);
@@ -67,6 +69,21 @@ export default function Assessment() {
 
   const watchedValues = useWatch<AssessmentValues>({ control: form.control });
   const persistenceTimeoutRef = useRef<number | null>(null);
+
+  // Toast de bienvenida para usuarios nuevos
+  useEffect(() => {
+    const fromSignup = searchParams.get('from_signup') === 'true';
+    if (fromSignup && !hasAssessment) {
+      toast({
+        title: "¡Bienvenido a ProductPrepa! 🎉",
+        description: "Completa tu autoevaluación para obtener recomendaciones personalizadas.",
+        duration: 5000,
+      });
+      // Limpiar parámetro
+      searchParams.delete('from_signup');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, hasAssessment, setSearchParams]);
 
   useEffect(() => {
     if (!assessmentLoading) {

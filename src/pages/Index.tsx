@@ -11,8 +11,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
 import { usePricing } from "@/hooks/usePricing";
+import { useNewUserRedirect } from '@/hooks/useNewUserRedirect';
 
 const Index = () => {
+  // Hook para redirigir usuarios nuevos sin evaluación
+  useNewUserRedirect();
+  
   const {
     isAuthenticated
   } = useAuth();
