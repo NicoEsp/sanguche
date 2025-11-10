@@ -111,11 +111,11 @@ serve(async (req) => {
             email: checkoutEmail,
             name: userName,
             custom: {
-              anonymous_checkout: isAnonymousCheckout
+              anonymous_checkout: String(isAnonymousCheckout)
             }
           },
           product_options: {
-            redirect_url: `${req.headers.get('origin')}/welcome?success=true&anonymous=${isAnonymousCheckout}`
+            redirect_url: `${req.headers.get('origin')}/welcome?success=true&anonymous=${String(isAnonymousCheckout)}`
           }
         },
         relationships: {
