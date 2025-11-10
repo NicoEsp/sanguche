@@ -65,11 +65,8 @@ template = "Your code is {{ .Code }}"
 [functions.lemon-squeezy-webhook]
 verify_jwt = false
 
-[functions.lemon-squeezy-webhook]
-verify_jwt = false
-
 [functions.lemon-squeezy-checkout]
-verify_jwt = true
+verify_jwt = false
 
 [functions.cancel-subscription]
 verify_jwt = true
