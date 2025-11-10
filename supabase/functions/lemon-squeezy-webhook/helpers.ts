@@ -1,30 +1,71 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export async function findOrCreateUser(email: string, name: string | null, supabase: any) {
-  console.log(`Finding or creating user for email: ${email}`);
+  console.log(`[findOrCreateUser] Starting for email: ${email}`);
   
-  // 1. Check if user exists in auth.users
-  const { data: existingAuthUser } = await supabase.auth.admin.listUsers();
-  const authUser = existingAuthUser?.users?.find((u: any) => u.email === email);
-  
-  if (authUser) {
-    console.log('User exists in auth, checking profile...');
+  try {
+    // 1. Check if user exists in auth by listing all users and finding by email
+    console.log('[findOrCreateUser] Checking if user exists in auth...');
+    const { data: existingAuthUser } = await supabase.auth.admin.listUsers();
+    let authUser = existingAuthUser?.users?.find((u: any) => u.email === email);
     
-    // User exists in auth, check if profile exists
-    const { data: profile } = await supabase
+    // If user doesn't exist in auth, try to create them
+    if (!authUser) {
+      console.log('[findOrCreateUser] User not in auth, creating...');
+      
+      const temporaryPassword = generateSecurePassword();
+      const { data: newAuthData, error: createError } = await supabase.auth.admin.createUser({
+        email: email,
+        password: temporaryPassword,
+        email_confirm: true,
+        user_metadata: { name: name || email.split('@')[0] }
+      });
+      
+      // Handle email_exists error (race condition - user was created between check and create)
+      if (createError?.code === 'email_exists') {
+        console.log('[findOrCreateUser] Race condition: user exists, re-fetching...');
+        const { data: refetchedUsers } = await supabase.auth.admin.listUsers();
+        authUser = refetchedUsers?.users?.find((u: any) => u.email === email);
+        
+        if (!authUser) {
+          console.error('[findOrCreateUser] User exists but could not be retrieved after race condition');
+          throw new Error('User exists but could not be retrieved');
+        }
+      } else if (createError) {
+        console.error('[findOrCreateUser] Failed to create auth user:', createError);
+        throw new Error(`Failed to create user account: ${createError.message}`);
+      } else {
+        authUser = newAuthData.user;
+      }
+    }
+    
+    if (!authUser) {
+      console.error('[findOrCreateUser] No auth user after create/find attempts');
+      throw new Error('No auth user available');
+    }
+    
+    console.log(`[findOrCreateUser] Auth user ready: ${authUser.id}`);
+    
+    // 2. Check if profile exists for this auth user
+    const { data: profile, error: profileFetchError } = await supabase
       .from('profiles')
       .select('id')
       .eq('user_id', authUser.id)
       .maybeSingle();
     
+    if (profileFetchError) {
+      console.error('[findOrCreateUser] Error fetching profile:', profileFetchError);
+      throw new Error(`Failed to check profile: ${profileFetchError.message}`);
+    }
+    
     if (profile) {
-      console.log('User and profile exist, returning profile id:', profile.id);
+      console.log(`[findOrCreateUser] Profile exists: ${profile.id}`);
       return profile.id;
     }
     
-    // Profile doesn't exist, create it
-    console.log('Creating profile for existing auth user...');
-    const { data: newProfile, error: profileError } = await supabase
+    // 3. Profile doesn't exist, create it
+    console.log('[findOrCreateUser] Creating profile for auth user...');
+    const { data: newProfile, error: profileCreateError } = await supabase
       .from('profiles')
       .insert({
         user_id: authUser.id,
@@ -34,70 +75,31 @@ export async function findOrCreateUser(email: string, name: string | null, supab
       .select('id')
       .single();
     
-    if (profileError) {
-      console.error('Error creating profile:', profileError);
-      throw new Error('Failed to create user profile');
+    if (profileCreateError) {
+      console.error('[findOrCreateUser] Error creating profile:', profileCreateError);
+      throw new Error(`Failed to create profile: ${profileCreateError.message}`);
     }
     
-    console.log('Profile created:', newProfile.id);
-    return newProfile.id;
-  }
-  
-  // 2. User doesn't exist, create new user in auth
-  console.log('Creating new user in auth...');
-  
-  const temporaryPassword = generateSecurePassword();
-  
-  const { data: newAuthUser, error: authError } = await supabase.auth.admin.createUser({
-    email: email,
-    password: temporaryPassword,
-    email_confirm: true,
-    user_metadata: {
-      name: name || email.split('@')[0]
+    console.log(`[findOrCreateUser] Profile created successfully: ${newProfile.id}`);
+    
+    // 4. Generate password reset link (optional, don't fail if this errors)
+    try {
+      await supabase.auth.admin.generateLink({
+        type: 'recovery',
+        email: email
+      });
+      console.log('[findOrCreateUser] Password reset link generated');
+    } catch (resetError) {
+      console.error('[findOrCreateUser] Error generating reset link (non-fatal):', resetError);
+      // Don't throw - user can request password reset manually
     }
-  });
-  
-  if (authError || !newAuthUser.user) {
-    console.error('Error creating auth user:', authError);
-    throw new Error('Failed to create user account');
+    
+    return newProfile.id;
+    
+  } catch (error) {
+    console.error('[findOrCreateUser] Unexpected error:', error);
+    throw error;
   }
-  
-  console.log('Auth user created:', newAuthUser.user.id);
-  
-  // 3. Create profile for new user
-  const { data: newProfile, error: profileError } = await supabase
-    .from('profiles')
-    .insert({
-      user_id: newAuthUser.user.id,
-      email: email,
-      name: name || email.split('@')[0]
-    })
-    .select('id')
-    .single();
-  
-  if (profileError) {
-    console.error('Error creating profile for new user:', profileError);
-    throw new Error('Failed to create user profile');
-  }
-  
-  console.log('Profile created for new user:', newProfile.id);
-  
-  // 4. Generate password reset link
-  const { data: resetData, error: resetError } = await supabase.auth.admin.generateLink({
-    type: 'recovery',
-    email: email
-  });
-  
-  if (resetError) {
-    console.error('Error generating reset link:', resetError);
-    // Don't throw here, user can request password reset manually
-  } else {
-    console.log('Password reset link generated successfully');
-    // TODO: In production, send this link via email service (Resend)
-    // For now, it will be sent by Supabase's default email
-  }
-  
-  return newProfile.id;
 }
 
 function generateSecurePassword(): string {
