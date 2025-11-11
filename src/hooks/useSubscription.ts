@@ -60,7 +60,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
         current_period_end: data.current_period_end ? new Date(data.current_period_end) : null,
       };
     },
-    enabled: !!user && !authLoading && !options?.skip,
+    enabled: !!user && !options?.skip,
     staleTime: 5 * 1000, // 5 segundos
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,

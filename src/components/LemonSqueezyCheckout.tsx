@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
@@ -25,6 +26,14 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
     onCheckoutStart?.();
 
     setLoading(true);
+    
+    // Feedback inmediato al usuario
+    toast({
+      title: "Preparando checkout...",
+      description: "Redirigiendo a la página de pago segura.",
+      duration: 3000,
+    });
+    
     trackEvent('checkout_started', { 
       plan: 'premium', 
       price: amount, 
@@ -67,7 +76,8 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
       toast({
         variant: "destructive",
         title: "Error en el checkout",
-        description: errorMessage
+        description: "No pudimos crear la sesión de pago. Por favor intenta nuevamente o contacta a soporte.",
+        duration: 5000
       });
       
       onError?.(errorMessage);
@@ -99,7 +109,14 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
         onClick={handleButtonClick}
         disabled={loading}
       >
-        {loading ? "Procesando..." : `Suscribirse por ${formatted}/mes`}
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Redirigiendo a checkout...
+          </>
+        ) : (
+          `Suscribirse por ${formatted}/mes`
+        )}
       </Button>
       
       <EmailCaptureDialog

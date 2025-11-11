@@ -136,6 +136,9 @@ serve(async (req) => {
     };
 
     console.log('Creating Lemon Squeezy checkout session for user');
+    console.log('[Checkout Request] Variant ID:', variantId);
+    console.log('[Checkout Request] Email:', checkoutEmail);
+    console.log('[Checkout Request] Is anonymous:', isAnonymousCheckout);
 
     // Crear AbortController para timeout de 15 segundos
     const controller = new AbortController();
@@ -172,29 +175,42 @@ serve(async (req) => {
     }
 
     if (!response.ok) {
-      console.error('Lemon Squeezy API error:', response.status);
+      console.error('[Lemon Squeezy API Error] Status:', response.status, response.statusText);
+      console.error('[Lemon Squeezy API Error] Request was for email:', checkoutEmail);
+      console.error('[Lemon Squeezy API Error] Variant ID:', variantId);
+      
       const errorText = await response.text();
-      console.error('Error details:', errorText);
+      console.error('[Lemon Squeezy API Error] Response body:', errorText);
       
       // Intentar parsear como JSON para más detalles
+      let parsedError = null;
       try {
-        const errorJson = JSON.parse(errorText);
-        console.error('Parsed error:', JSON.stringify(errorJson, null, 2));
+        parsedError = JSON.parse(errorText);
+        console.error('[Lemon Squeezy API Error] Parsed JSON:', JSON.stringify(parsedError, null, 2));
       } catch (e) {
-        // No es JSON, ya está loggeado como texto
+        console.error('[Lemon Squeezy API Error] Response is not valid JSON');
       }
       
+      // Devolver error más descriptivo
       return new Response(
         JSON.stringify({ 
           error: 'Failed to create checkout session',
-          details: errorText 
+          status: response.status,
+          details: parsedError || errorText,
+          context: {
+            email: checkoutEmail,
+            variant: variantId,
+            anonymous: isAnonymousCheckout
+          }
         }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const checkoutSession = await response.json();
-    console.log('Lemon Squeezy checkout session created successfully');
+    console.log('[Lemon Squeezy API Success] Checkout session created');
+    console.log('[Lemon Squeezy API Success] Session ID:', checkoutSession.data?.id);
+    console.log('[Lemon Squeezy API Success] Checkout URL generated for:', checkoutEmail);
 
     return new Response(
       JSON.stringify({ checkoutUrl: checkoutSession.data.attributes.url }),
