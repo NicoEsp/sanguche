@@ -33,18 +33,35 @@ export default function Premium() {
     });
   }, [hasActivePremium, trackEvent]);
 
-  // Check for success payment and force subscription refresh
+  // Check for success payment with retry logic
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('success') === 'true') {
-      // Wait for webhook to process (2 seconds), then invalidate subscription
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['subscription'] });
+    if (urlParams.get('success') !== 'true') return;
+    
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    const checkSubscription = async () => {
+      attempts++;
+      console.log(`[Premium] Verificando suscripción, intento ${attempts}/${maxAttempts}`);
+      
+      // Invalidar cache y refetch
+      await queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      
+      // Esperar un ciclo para que React Query actualice
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Obtener estado actualizado
+      const subscription: any = queryClient.getQueryData(['subscription', user?.id]);
+      
+      if (subscription?.plan === 'premium' && subscription?.status === 'active') {
+        console.log('[Premium] ✅ Suscripción activada correctamente');
         
         trackEvent('checkout_completed', {
           plan: 'premium',
           price: amount,
-          provider: 'lemon_squeezy'
+          provider: 'lemon_squeezy',
+          attempts
         });
         
         toast({
@@ -53,9 +70,40 @@ export default function Premium() {
         });
         
         window.history.replaceState({}, '', '/premium');
-      }, 2000);
-    }
-  }, [toast, trackEvent, queryClient]);
+        return true;
+      }
+      
+      // Si no está activo y quedan intentos, reintentar
+      if (attempts < maxAttempts) {
+        console.log(`[Premium] ⏳ Suscripción no activada aún, reintentando en 2s...`);
+        setTimeout(checkSubscription, 2000);
+        return false;
+      }
+      
+      // Falló después de max intentos
+      console.error('[Premium] ❌ Fallo en activación después de', maxAttempts, 'intentos');
+      
+      trackEvent('checkout_activation_failed', {
+        plan: 'premium',
+        provider: 'lemon_squeezy',
+        attempts,
+        current_subscription: subscription
+      });
+      
+      toast({
+        variant: "destructive",
+        title: "Problema con la activación",
+        description: "Tu pago fue procesado pero hay un retraso. Por favor contacta a soporte si no se activa en unos minutos.",
+        duration: 10000
+      });
+      
+      window.history.replaceState({}, '', '/premium');
+      return false;
+    };
+    
+    // Iniciar verificación después de 2 segundos
+    setTimeout(checkSubscription, 2000);
+  }, [user?.id, toast, trackEvent, queryClient, amount]);
   return <>
       <Seo title="Premium: Crece como Product Manager con mentoría personalizada | ProductPrepa" description={`Evaluá tus habilidades, trabajá en tus áreas de mejora y recibí mentoría mensual con NicoProducto. Desde ${formatted}/mes. Cancelá cuando quieras.`} canonical="/premium" />
       
@@ -254,11 +302,19 @@ export default function Premium() {
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              {user ? <Button asChild size="lg" className="w-full sm:w-auto min-h-[48px]">
-                  <Link to="/progreso">Suscribirme a Premium</Link>
-                </Button> : <Button asChild size="lg" className="w-full sm:w-auto min-h-[48px]">
+              {user ? (
+                hasActivePremium ? (
+                  <Button asChild size="lg" className="w-full sm:w-auto min-h-[48px]">
+                    <Link to="/mentoria">Ir a tu mentoría</Link>
+                  </Button>
+                ) : (
+                  <LemonSqueezyCheckout />
+                )
+              ) : (
+                <Button asChild size="lg" className="w-full sm:w-auto min-h-[48px]">
                   <Link to="/auth">Comenzar ahora</Link>
-                </Button>}
+                </Button>
+              )}
             </div>
           </div>
         </section>

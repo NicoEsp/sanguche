@@ -137,22 +137,58 @@ serve(async (req) => {
 
     console.log('Creating Lemon Squeezy checkout session for user');
 
-    const response = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lemonSqueezyApiKey}`,
-        'Content-Type': 'application/vnd.api+json',
-        'Accept': 'application/vnd.api+json',
-      },
-      body: JSON.stringify(checkoutData),
-    });
+    // Crear AbortController para timeout de 15 segundos
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    let response;
+    try {
+      response = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lemonSqueezyApiKey}`,
+          'Content-Type': 'application/vnd.api+json',
+          'Accept': 'application/vnd.api+json',
+        },
+        body: JSON.stringify(checkoutData),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (error.name === 'AbortError') {
+        console.error('Lemon Squeezy API timeout después de 15 segundos');
+        return new Response(
+          JSON.stringify({ 
+            error: 'La solicitud de checkout ha excedido el tiempo límite. Por favor intenta nuevamente.' 
+          }),
+          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      throw error;
+    }
 
     if (!response.ok) {
       console.error('Lemon Squeezy API error:', response.status);
       const errorText = await response.text();
       console.error('Error details:', errorText);
+      
+      // Intentar parsear como JSON para más detalles
+      try {
+        const errorJson = JSON.parse(errorText);
+        console.error('Parsed error:', JSON.stringify(errorJson, null, 2));
+      } catch (e) {
+        // No es JSON, ya está loggeado como texto
+      }
+      
       return new Response(
-        JSON.stringify({ error: 'Failed to create checkout session' }),
+        JSON.stringify({ 
+          error: 'Failed to create checkout session',
+          details: errorText 
+        }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
