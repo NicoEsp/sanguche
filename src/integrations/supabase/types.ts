@@ -98,6 +98,33 @@ export type Database = {
           },
         ]
       }
+      checkout_rate_limit: {
+        Row: {
+          created_at: string | null
+          first_request_at: string | null
+          id: string
+          identifier: string
+          last_request_at: string | null
+          request_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          first_request_at?: string | null
+          id?: string
+          identifier: string
+          last_request_at?: string | null
+          request_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          first_request_at?: string | null
+          id?: string
+          identifier?: string
+          last_request_at?: string | null
+          request_count?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -697,6 +724,7 @@ export type Database = {
         Args: { admin_user_id: string }
         Returns: boolean
       }
+      clean_old_rate_limits: { Args: never; Returns: undefined }
       create_admin_user: { Args: { admin_user_id: string }; Returns: boolean }
       ensure_user_defaults: { Args: never; Returns: undefined }
       has_active_premium: { Args: never; Returns: boolean }
