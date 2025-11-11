@@ -42,7 +42,7 @@ export function EmailCaptureDialog({ open, onOpenChange, onEmailSubmit, isLoadin
             Ingresa tu email para continuar
           </DialogTitle>
           <DialogDescription>
-            Te enviaremos los detalles de tu suscripción y el acceso a tu cuenta.
+            Al completar tu pago, te enviaremos acceso inmediato a tu cuenta Premium con todos los beneficios incluidos.
           </DialogDescription>
         </DialogHeader>
         
@@ -84,7 +84,7 @@ export function EmailCaptureDialog({ open, onOpenChange, onEmailSubmit, isLoadin
             </Button>
             
             <p className="text-xs text-muted-foreground text-center">
-              Al continuar, crearemos tu cuenta automáticamente después del pago
+              🔒 Pago 100% seguro procesado por Lemon Squeezy. Cancela cuando quieras.
             </p>
           </div>
         </form>

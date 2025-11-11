@@ -61,7 +61,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       };
     },
     enabled: !!user && !options?.skip,
-    staleTime: 5 * 1000, // 5 segundos
+    staleTime: 60 * 1000, // 60 segundos - reduce carga en servidor
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnMount: 'always',

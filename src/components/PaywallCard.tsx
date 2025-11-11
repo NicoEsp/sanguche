@@ -62,6 +62,11 @@ export function PaywallCard({
             <p className="text-sm text-muted-foreground">
               Cancela cuando quieras
             </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              <a href="/premium" className="text-primary hover:underline">
+                Ver todos los beneficios de Premium →
+              </a>
+            </p>
           </div>
           
           <div className="pt-2">

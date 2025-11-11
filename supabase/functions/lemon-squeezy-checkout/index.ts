@@ -66,6 +66,72 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Rate limiting: Max 3 requests por email/userId en 10 minutos
+    const identifier = userId || email!;
+    const rateLimitWindow = 10 * 60 * 1000; // 10 minutos en ms
+    const maxRequests = 3;
+
+    // Check rate limit
+    const { data: rateLimitData } = await supabase
+      .from('checkout_rate_limit')
+      .select('request_count, first_request_at, last_request_at')
+      .eq('identifier', identifier)
+      .single();
+
+    if (rateLimitData) {
+      const timeSinceFirst = Date.now() - new Date(rateLimitData.first_request_at).getTime();
+      
+      // Si está dentro de la ventana y excede el límite
+      if (timeSinceFirst < rateLimitWindow && rateLimitData.request_count >= maxRequests) {
+        const waitTime = Math.ceil((rateLimitWindow - timeSinceFirst) / 1000 / 60);
+        
+        console.warn(`[Rate Limit] Blocked checkout attempt for ${identifier}`);
+        console.warn(`[Rate Limit] Attempts: ${rateLimitData.request_count}, Wait: ${waitTime}min`);
+        
+        return new Response(
+          JSON.stringify({ 
+            error: 'Demasiados intentos de checkout',
+            message: `Por favor espera ${waitTime} minutos antes de intentar nuevamente.`,
+            retry_after: waitTime
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Si pasó la ventana, resetear contador
+      if (timeSinceFirst >= rateLimitWindow) {
+        await supabase
+          .from('checkout_rate_limit')
+          .update({
+            request_count: 1,
+            first_request_at: new Date().toISOString(),
+            last_request_at: new Date().toISOString()
+          })
+          .eq('identifier', identifier);
+      } else {
+        // Incrementar contador
+        await supabase
+          .from('checkout_rate_limit')
+          .update({
+            request_count: rateLimitData.request_count + 1,
+            last_request_at: new Date().toISOString()
+          })
+          .eq('identifier', identifier);
+      }
+    } else {
+      // Primera vez, crear entry
+      await supabase
+        .from('checkout_rate_limit')
+        .insert({
+          identifier,
+          request_count: 1,
+          first_request_at: new Date().toISOString(),
+          last_request_at: new Date().toISOString()
+        });
+    }
+
+    console.log(`[Rate Limit] Checkout allowed for ${identifier}`);
+
     let checkoutEmail = email;
     let userName = '';
     let isAnonymousCheckout = !userId;
@@ -102,6 +168,12 @@ serve(async (req) => {
     // Lemon Squeezy Variant ID for Premium Plan
     const variantId = '1071322';
 
+    // Generar un checkout_intent_id único para tracking
+    const checkoutIntentId = crypto.randomUUID();
+
+    console.log('[Checkout Intent] Generated ID:', checkoutIntentId);
+    console.log('[Checkout Intent] Email:', checkoutEmail);
+
     // Create Lemon Squeezy checkout
     const checkoutData = {
       data: {
@@ -110,12 +182,14 @@ serve(async (req) => {
           checkout_data: {
             email: checkoutEmail,
             name: userName,
-            custom: {
-              anonymous_checkout: String(isAnonymousCheckout)
-            }
-          },
-          product_options: {
-            redirect_url: `${req.headers.get('origin')}/welcome?success=true&anonymous=${String(isAnonymousCheckout)}`
+          custom: {
+            anonymous_checkout: String(isAnonymousCheckout),
+            checkout_intent_id: checkoutIntentId,
+            created_at: new Date().toISOString()
+          }
+        },
+        product_options: {
+          redirect_url: `${req.headers.get('origin')}/welcome?success=true&anonymous=${String(isAnonymousCheckout)}&intent=${checkoutIntentId}&email=${encodeURIComponent(checkoutEmail)}`
           }
         },
         relationships: {

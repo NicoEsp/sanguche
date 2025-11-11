@@ -33,10 +33,45 @@ export default function Premium() {
     });
   }, [hasActivePremium, trackEvent]);
 
+  // Track page abandonment (usuario vio Premium pero no completó compra)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (!hasActivePremium) {
+        trackEvent('premium_page_abandoned', {
+          time_on_page: Date.now() - pageLoadTime,
+          is_authenticated: !!user
+        });
+      }
+    };
+
+    const pageLoadTime = Date.now();
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [user, hasActivePremium, trackEvent]);
+
   // Check for success payment with retry logic
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('success') !== 'true') return;
+    
+    const checkoutIntentId = urlParams.get('intent');
+    const checkoutEmail = urlParams.get('email');
+    const isAnonymous = urlParams.get('anonymous') === 'true';
+
+    console.log('[Premium] Checkout completed:', {
+      intent_id: checkoutIntentId,
+      email: checkoutEmail,
+      is_anonymous: isAnonymous
+    });
+
+    trackEvent('checkout_redirect_received', {
+      intent_id: checkoutIntentId,
+      email: checkoutEmail,
+      is_anonymous: isAnonymous
+    });
     
     let attempts = 0;
     const maxAttempts = 3;
@@ -87,7 +122,10 @@ export default function Premium() {
         plan: 'premium',
         provider: 'lemon_squeezy',
         attempts,
-        current_subscription: subscription
+        current_subscription: subscription,
+        user_email: user?.email,
+        error_type: 'webhook_delayed_or_failed',
+        timestamp: new Date().toISOString()
       });
       
       toast({

@@ -67,10 +67,14 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al crear el checkout';
       
+      // Track intent fallido con detalles
       trackEvent('checkout_failed', { 
         error: errorMessage, 
         provider: 'lemon_squeezy',
-        is_anonymous: !user
+        is_anonymous: !user,
+        error_type: error instanceof Error ? error.name : 'unknown',
+        user_email: user?.email || email,
+        timestamp: new Date().toISOString()
       });
       
       toast({

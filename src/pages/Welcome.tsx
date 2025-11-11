@@ -18,7 +18,7 @@ export default function Welcome() {
     trackEvent
   } = useMixpanelTracking();
   const queryClient = useQueryClient();
-  const [countdown, setCountdown] = useState(3);
+  const [countdown, setCountdown] = useState(5);
   const success = searchParams.get('success') === 'true';
   const isAnonymous = searchParams.get('anonymous') === 'true';
   useEffect(() => {

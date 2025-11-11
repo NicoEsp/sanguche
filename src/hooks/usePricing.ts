@@ -27,9 +27,16 @@ export function usePricing() {
   });
 
   return {
-    amount: data?.amount ?? 50000, // Fallback value
+    amount: data?.amount ?? (() => {
+      console.warn('[Pricing] Using fallback value: 50000 ARS');
+      console.warn('[Pricing] API error:', error);
+      return 50000;
+    })(),
     currency: data?.currency ?? 'ARS',
-    formatted: data?.formatted ?? 'ARS $50.000',
+    formatted: data?.formatted ?? (() => {
+      console.warn('[Pricing] Using fallback formatted: "$ 50.000"');
+      return '$ 50.000';
+    })(),
     loading: isLoading,
     error
   };
