@@ -67,22 +67,41 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al crear el checkout';
       
-      // Track intent fallido con detalles
-      trackEvent('checkout_failed', { 
-        error: errorMessage, 
-        provider: 'lemon_squeezy',
-        is_anonymous: !user,
-        error_type: error instanceof Error ? error.name : 'unknown',
-        user_email: user?.email || email,
-        timestamp: new Date().toISOString()
-      });
+      // Detectar rate limit (429)
+      const isRateLimited = errorMessage.includes('429') || errorMessage.toLowerCase().includes('rate limit');
       
-      toast({
-        variant: "destructive",
-        title: "Error en el checkout",
-        description: "No pudimos crear la sesión de pago. Por favor intenta nuevamente o contacta a soporte.",
-        duration: 5000
-      });
+      if (isRateLimited) {
+        trackEvent('checkout_rate_limited', { 
+          provider: 'lemon_squeezy',
+          is_anonymous: !user,
+          user_email: user?.email || email,
+          timestamp: new Date().toISOString()
+        });
+        
+        toast({
+          variant: "destructive",
+          title: "Demasiados intentos",
+          description: "Has alcanzado el límite de intentos. Por favor espera 10 minutos e intenta nuevamente.",
+          duration: 7000
+        });
+      } else {
+        // Track intent fallido con detalles
+        trackEvent('checkout_failed', { 
+          error: errorMessage, 
+          provider: 'lemon_squeezy',
+          is_anonymous: !user,
+          error_type: error instanceof Error ? error.name : 'unknown',
+          user_email: user?.email || email,
+          timestamp: new Date().toISOString()
+        });
+        
+        toast({
+          variant: "destructive",
+          title: "Error en el checkout",
+          description: "No pudimos crear la sesión de pago. Por favor intenta nuevamente o contacta a soporte.",
+          duration: 5000
+        });
+      }
       
       onError?.(errorMessage);
       setShowEmailDialog(false);
