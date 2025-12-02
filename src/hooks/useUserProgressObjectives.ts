@@ -169,7 +169,9 @@ export function useAssignObjective() {
       toast.success('Objetivo asignado exitosamente');
     },
     onError: (error: Error) => {
-      console.error('Error assigning objective:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error assigning objective:', error);
+      }
       // Keep specific messages for business logic errors
       const isBusinessError = error.message.includes('ya está asignado') || error.message.includes('no encontrado');
       toast.error(isBusinessError ? error.message : 'No se pudo asignar el objetivo. Intenta nuevamente.');
@@ -206,7 +208,9 @@ export function useUpdateUserObjective() {
       toast.success('Objetivo actualizado');
     },
     onError: (error: Error) => {
-      console.error('Error updating objective:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating objective:', error);
+      }
       toast.error('No se pudo actualizar el objetivo. Intenta nuevamente.');
     },
   });
@@ -230,7 +234,9 @@ export function useDeleteUserObjective() {
       toast.success('Objetivo eliminado');
     },
     onError: (error: Error) => {
-      console.error('Error deleting objective:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting objective:', error);
+      }
       toast.error('No se pudo eliminar el objetivo. Intenta nuevamente.');
     },
   });
@@ -294,7 +300,9 @@ export function useCreateUserObjective() {
       toast.success(message);
     },
     onError: (error: Error) => {
-      console.error('Error creating custom objective:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error creating custom objective:', error);
+      }
       toast.error('No se pudo crear el objetivo. Intenta nuevamente.');
     },
   });

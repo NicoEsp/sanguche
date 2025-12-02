@@ -38,13 +38,17 @@ export function useSubscription(options?: UseSubscriptionOptions) {
         .maybeSingle();
 
       if (error) {
-        console.error('[useSubscription] Query error:', error);
+        if (import.meta.env.DEV) {
+          console.error('[useSubscription] Query error:', error);
+        }
         throw error; // Marca como error para retry
       }
 
       if (!data) {
         // Si no hay data después de ensure_user_defaults, default a free
-        console.warn('[useSubscription] No subscription found, defaulting to free');
+        if (import.meta.env.DEV) {
+          console.warn('[useSubscription] No subscription found, defaulting to free');
+        }
         return {
           plan: 'free' as const,
           status: 'active' as const,

@@ -274,7 +274,9 @@ export default function Progress() {
       toast.success('Tu Career Path ha sido guardado exitosamente');
     },
     onError: (error: Error) => {
-      console.error('Error locking objectives:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error locking objectives:', error);
+      }
       toast.error('Error al guardar tu Career Path');
     }
   });
@@ -391,7 +393,9 @@ export default function Progress() {
         window.print();
       });
     } catch (error) {
-      console.error('Error exporting Career Path as PDF:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error exporting Career Path as PDF:', error);
+      }
       document.getElementById('career-path-print-root')?.remove();
       document.getElementById('career-path-print-styles')?.remove();
       toast.error('No pudimos exportar tu Career Path. Intentá nuevamente.');
