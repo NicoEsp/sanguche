@@ -111,7 +111,9 @@ export function useCreateProgressObjective() {
       toast.success('Objetivo creado exitosamente');
     },
     onError: (error: Error) => {
-      console.error('Error creating objective:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error creating objective:', error);
+      }
       toast.error('No se pudo crear el objetivo. Intenta nuevamente.');
     },
   });
@@ -145,7 +147,9 @@ export function useUpdateProgressObjective() {
       toast.success('Objetivo actualizado exitosamente');
     },
     onError: (error: Error) => {
-      console.error('Error updating objective:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating objective:', error);
+      }
       toast.error('No se pudo actualizar el objetivo. Intenta nuevamente.');
     },
   });
@@ -177,7 +181,9 @@ export function useDeleteProgressObjective() {
       toast.success('Objetivo desactivado exitosamente');
     },
     onError: (error: Error) => {
-      console.error('Error deleting objective:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting objective:', error);
+      }
       toast.error('No se pudo desactivar el objetivo. Intenta nuevamente.');
     },
   });
@@ -215,7 +221,9 @@ export function useReorderProgressObjectives() {
       toast.success('Orden actualizado exitosamente');
     },
     onError: (error: Error) => {
-      console.error('Error reordering objectives:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error reordering objectives:', error);
+      }
       toast.error('No se pudo reordenar los objetivos. Intenta nuevamente.');
     },
   });

@@ -26,17 +26,18 @@ export function usePricing() {
     retry: 2
   });
 
+  // Fallback values for when API fails
+  const fallbackAmount = 50000;
+  const fallbackFormatted = '$ 50.000';
+
+  if (!data && import.meta.env.DEV && error) {
+    console.warn('[Pricing] Using fallback values due to API error');
+  }
+
   return {
-    amount: data?.amount ?? (() => {
-      console.warn('[Pricing] Using fallback value: 50000 ARS');
-      console.warn('[Pricing] API error:', error);
-      return 50000;
-    })(),
+    amount: data?.amount ?? fallbackAmount,
     currency: data?.currency ?? 'ARS',
-    formatted: data?.formatted ?? (() => {
-      console.warn('[Pricing] Using fallback formatted: "$ 50.000"');
-      return '$ 50.000';
-    })(),
+    formatted: data?.formatted ?? fallbackFormatted,
     loading: isLoading,
     error
   };

@@ -61,11 +61,12 @@ export default function Premium() {
     const checkoutEmail = urlParams.get('email');
     const isAnonymous = urlParams.get('anonymous') === 'true';
 
-    console.log('[Premium] Checkout completed:', {
-      intent_id: checkoutIntentId,
-      email: checkoutEmail,
-      is_anonymous: isAnonymous
-    });
+    if (import.meta.env.DEV) {
+      console.log('[Premium] Checkout completed:', {
+        intent_id: checkoutIntentId,
+        is_anonymous: isAnonymous
+      });
+    }
 
     trackEvent('checkout_redirect_received', {
       intent_id: checkoutIntentId,
@@ -78,7 +79,9 @@ export default function Premium() {
     
     const checkSubscription = async () => {
       attempts++;
-      console.log(`[Premium] Verificando suscripción, intento ${attempts}/${maxAttempts}`);
+      if (import.meta.env.DEV) {
+        console.log(`[Premium] Verificando suscripción, intento ${attempts}/${maxAttempts}`);
+      }
       
       // Invalidar cache y refetch
       await queryClient.invalidateQueries({ queryKey: ['subscription'] });
@@ -90,7 +93,9 @@ export default function Premium() {
       const subscription: any = queryClient.getQueryData(['subscription', user?.id]);
       
       if (subscription?.plan === 'premium' && subscription?.status === 'active') {
-        console.log('[Premium] ✅ Suscripción activada correctamente');
+        if (import.meta.env.DEV) {
+          console.log('[Premium] ✅ Suscripción activada correctamente');
+        }
         
         trackEvent('checkout_completed', {
           plan: 'premium',
@@ -110,13 +115,17 @@ export default function Premium() {
       
       // Si no está activo y quedan intentos, reintentar
       if (attempts < maxAttempts) {
-        console.log(`[Premium] ⏳ Suscripción no activada aún, reintentando en 2s...`);
+        if (import.meta.env.DEV) {
+          console.log(`[Premium] ⏳ Suscripción no activada aún, reintentando en 2s...`);
+        }
         setTimeout(checkSubscription, 2000);
         return false;
       }
       
       // Falló después de max intentos
-      console.error('[Premium] ❌ Fallo en activación después de', maxAttempts, 'intentos');
+      if (import.meta.env.DEV) {
+        console.error('[Premium] ❌ Fallo en activación después de', maxAttempts, 'intentos');
+      }
       
       trackEvent('checkout_activation_failed', {
         plan: 'premium',

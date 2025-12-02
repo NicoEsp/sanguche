@@ -189,7 +189,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               queryClient.invalidateQueries({ queryKey: ['subscription', currentUser.id] });
               queryClient.invalidateQueries({ queryKey: ['user-composite-data', currentUser.id] });
             } catch (error) {
-              console.error('[AuthContext] Error ensuring user defaults:', error);
+              if (import.meta.env.DEV) {
+                console.error('[AuthContext] Error ensuring user defaults:', error);
+              }
             }
           }, 0);
         }
@@ -218,7 +220,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             queryClient.invalidateQueries({ queryKey: ['subscription', currentUser.id] });
             queryClient.invalidateQueries({ queryKey: ['user-composite-data', currentUser.id] });
           } catch (error) {
-            console.error('[AuthContext] Error ensuring user defaults:', error);
+            if (import.meta.env.DEV) {
+              console.error('[AuthContext] Error ensuring user defaults:', error);
+            }
           }
         }, 0);
       }

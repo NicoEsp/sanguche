@@ -95,7 +95,9 @@ export function useCreateExercise() {
       });
     },
     onError: (error) => {
-      console.error('Error creating exercise:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error creating exercise:', error);
+      }
       toast({
         variant: "destructive",
         title: "Error",
@@ -131,7 +133,9 @@ export function useUpdateExercise() {
       });
     },
     onError: (error) => {
-      console.error('Error updating exercise:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating exercise:', error);
+      }
       toast({
         variant: "destructive",
         title: "Error",
@@ -163,7 +167,9 @@ export function useDeleteExercise() {
       });
     },
     onError: (error) => {
-      console.error('Error deleting exercise:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting exercise:', error);
+      }
       toast({
         variant: "destructive",
         title: "Error",

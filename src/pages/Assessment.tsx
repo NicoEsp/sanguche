@@ -115,7 +115,9 @@ export default function Assessment() {
               setCurrentStep(Math.min(answeredCount, DOMAINS.length - 1));
             }
           } catch (e) {
-            console.error('Error recuperando respuestas parciales:', e);
+            if (import.meta.env.DEV) {
+              console.error('Error recuperando respuestas parciales:', e);
+            }
           }
         }
       }
@@ -133,7 +135,9 @@ export default function Assessment() {
           const parsedAnswers = JSON.parse(partialAnswers);
           form.reset(parsedAnswers);
         } catch (e) {
-          console.error('Error recuperando respuestas parciales:', e);
+          if (import.meta.env.DEV) {
+            console.error('Error recuperando respuestas parciales:', e);
+          }
           form.reset({} as AssessmentValues);
         }
       } else {
@@ -155,7 +159,9 @@ export default function Assessment() {
         try {
           localStorage.setItem(ASSESSMENT_PARTIAL_ANSWERS_KEY, JSON.stringify(formValues));
         } catch (error) {
-          console.error('Error guardando respuestas antes de cerrar:', error);
+          if (import.meta.env.DEV) {
+            console.error('Error guardando respuestas antes de cerrar:', error);
+          }
         }
         
         // Mostrar advertencia de navegador
@@ -310,7 +316,9 @@ export default function Assessment() {
       // Scroll suave al top para que vea su resultado
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
-      console.error('Error guardando evaluación:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error guardando evaluación:', error);
+      }
       toast({ 
         title: "Error al guardar", 
         description: "Hubo un problema guardando tu evaluación. Por favor intenta de nuevo.",

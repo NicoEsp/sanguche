@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
     console.error('[ERROR] get-resource-access:', error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Error al acceder al recurso' }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400 
