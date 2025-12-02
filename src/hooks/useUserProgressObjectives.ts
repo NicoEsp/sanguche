@@ -170,7 +170,9 @@ export function useAssignObjective() {
     },
     onError: (error: Error) => {
       console.error('Error assigning objective:', error);
-      toast.error(error.message || 'Error al asignar objetivo');
+      // Keep specific messages for business logic errors
+      const isBusinessError = error.message.includes('ya está asignado') || error.message.includes('no encontrado');
+      toast.error(isBusinessError ? error.message : 'No se pudo asignar el objetivo. Intenta nuevamente.');
     },
   });
 }
@@ -205,7 +207,7 @@ export function useUpdateUserObjective() {
     },
     onError: (error: Error) => {
       console.error('Error updating objective:', error);
-      toast.error('Error al actualizar objetivo');
+      toast.error('No se pudo actualizar el objetivo. Intenta nuevamente.');
     },
   });
 }
@@ -229,7 +231,7 @@ export function useDeleteUserObjective() {
     },
     onError: (error: Error) => {
       console.error('Error deleting objective:', error);
-      toast.error('Error al eliminar objetivo');
+      toast.error('No se pudo eliminar el objetivo. Intenta nuevamente.');
     },
   });
 }
@@ -293,7 +295,7 @@ export function useCreateUserObjective() {
     },
     onError: (error: Error) => {
       console.error('Error creating custom objective:', error);
-      toast.error('Error al crear objetivo');
+      toast.error('No se pudo crear el objetivo. Intenta nuevamente.');
     },
   });
 }

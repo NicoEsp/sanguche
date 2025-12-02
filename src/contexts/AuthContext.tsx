@@ -375,9 +375,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       'User already registered': 'Ya existe una cuenta con este email.',
       'Invalid email': 'Por favor ingresa un email válido.',
       'Signup requires a valid password': 'Se requiere una contraseña válida para registrarse.',
+      'Email rate limit exceeded': 'Demasiados intentos. Espera unos minutos e intenta nuevamente.',
+      'Password is too weak': 'La contraseña es muy débil. Usa al menos 6 caracteres.',
+      'User not found': 'No se encontró una cuenta con este email.',
     };
 
-    return errorMessages[message] || 'Ha ocurrido un error. Inténtalo de nuevo.';
+    return errorMessages[message] || 'Hubo un error, intenta nuevamente en unos minutos.';
   };
 
   const value = useMemo(() => ({

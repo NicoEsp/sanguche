@@ -119,10 +119,10 @@ export function FeedbackFooterCta({
       setShowAnimation(true);
       setTimeout(() => setShowAnimation(false), 3000);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Ocurrió un error al enviar tu feedback.";
+      console.error('Error sending feedback:', error);
       toast({
         title: "No pudimos enviar el feedback",
-        description: message,
+        description: "Intenta nuevamente en unos minutos.",
         variant: "destructive",
       });
     } finally {

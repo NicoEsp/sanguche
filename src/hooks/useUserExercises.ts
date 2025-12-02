@@ -95,10 +95,11 @@ export function useCreateExercise() {
       });
     },
     onError: (error) => {
+      console.error('Error creating exercise:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo crear el ejercicio"
+        description: "No se pudo crear el ejercicio. Intenta nuevamente."
       });
     }
   });
@@ -130,10 +131,11 @@ export function useUpdateExercise() {
       });
     },
     onError: (error) => {
+      console.error('Error updating exercise:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo actualizar el ejercicio"
+        description: "No se pudo actualizar el ejercicio. Intenta nuevamente."
       });
     }
   });
@@ -161,10 +163,11 @@ export function useDeleteExercise() {
       });
     },
     onError: (error) => {
+      console.error('Error deleting exercise:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo eliminar el ejercicio"
+        description: "No se pudo eliminar el ejercicio. Intenta nuevamente."
       });
     }
   });

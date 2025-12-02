@@ -265,17 +265,10 @@ serve(async (req) => {
         console.error('[Lemon Squeezy API Error] Response is not valid JSON');
       }
       
-      // Devolver error más descriptivo
+      // Return generic user-friendly error (technical details logged above)
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to create checkout session',
-          status: response.status,
-          details: parsedError || errorText,
-          context: {
-            email: checkoutEmail,
-            variant: variantId,
-            anonymous: isAnonymousCheckout
-          }
+          error: 'No pudimos procesar tu solicitud de pago. Intenta nuevamente en unos minutos.'
         }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
