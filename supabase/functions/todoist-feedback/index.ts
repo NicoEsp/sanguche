@@ -142,6 +142,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorBody = await response.text();
+      // Log detailed error for debugging (server-side only)
       console.error("Todoist API error - Full details", {
         status: response.status,
         statusText: response.statusText,
@@ -150,10 +151,10 @@ serve(async (req) => {
         requestContent: `${sanitizedName}+${sanitizedEmail}`,
       });
       
+      // Return generic user-friendly error (no technical details)
       return new Response(
         JSON.stringify({ 
-          error: `Error ${response.status}: ${errorBody || "No se pudo crear la tarea en Todoist."}`,
-          details: errorBody 
+          error: "No pudimos enviar tu feedback. Intenta nuevamente en unos minutos."
         }),
         {
           status: response.status,

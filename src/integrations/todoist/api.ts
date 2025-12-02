@@ -21,11 +21,13 @@ export async function createTodoistFeedbackTask({ name, email, feedback }: Creat
   );
 
   if (error) {
-    throw new Error(error.message || 'No se pudo crear la tarea en Todoist.');
+    console.error('Todoist API error:', error);
+    throw new Error('No pudimos enviar tu feedback. Intenta nuevamente en unos minutos.');
   }
 
   if (!data?.success) {
-    throw new Error(data?.error || 'No se pudo crear la tarea en Todoist.');
+    console.error('Todoist API error:', data?.error);
+    throw new Error('No pudimos enviar tu feedback. Intenta nuevamente en unos minutos.');
   }
 
   return data;
