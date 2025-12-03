@@ -353,7 +353,7 @@ export default function AdminDashboard() {
           <CardDescription>Métricas clave del sistema</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-muted/50 rounded-lg">
               <div className="text-2xl font-bold text-primary">{analytics.assessmentsToday}</div>
               <p className="text-sm text-muted-foreground">Evaluaciones hoy</p>
@@ -365,6 +365,12 @@ export default function AdminDashboard() {
             <div className="text-center p-4 bg-muted/50 rounded-lg">
               <div className="text-2xl font-bold text-primary">{analytics.conversionRate.toFixed(1)}%</div>
               <p className="text-sm text-muted-foreground">Tasa de conversión</p>
+            </div>
+            <div className="text-center p-4 bg-purple-100 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-800">
+              <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">{analytics.usersWithOptionalAnswers}</div>
+              <p className="text-sm text-purple-600 dark:text-purple-400">
+                🟣 Opcionales ({analytics.totalUsers > 0 ? ((analytics.usersWithOptionalAnswers / analytics.totalUsers) * 100).toFixed(1) : 0}%)
+              </p>
             </div>
           </div>
         </CardContent>

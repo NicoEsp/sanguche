@@ -26,6 +26,7 @@ interface AdminAnalytics {
   reEvaluationRate: number;
   avgScoreFree: number;
   avgScorePremium: number;
+  usersWithOptionalAnswers: number;
 }
 
 export function useAdminAnalytics() {
@@ -216,6 +217,23 @@ export function useAdminAnalytics() {
         const conversionRate = totalUsers > 0 ? (premiumUsers / totalUsers) * 100 : 0;
         const averageAssessmentScore = totalScoreCount > 0 ? totalScores / totalScoreCount : 0;
 
+        // Contar usuarios únicos con preguntas opcionales completadas
+        const usersWithOptionalDomains = new Set<string>();
+        assessmentsData?.forEach(assessment => {
+          try {
+            const result = assessment.assessment_result as any;
+            const optionalDomains = result?.optionalDomains;
+            if (optionalDomains && (optionalDomains.growth || optionalDomains.ia_aplicada)) {
+              if (assessment.user_id) {
+                usersWithOptionalDomains.add(assessment.user_id);
+              }
+            }
+          } catch (e) {
+            // Skip invalid
+          }
+        });
+        const usersWithOptionalAnswers = usersWithOptionalDomains.size;
+
         const analyticsData: AdminAnalytics = {
           totalUsers,
           activeUsers,
@@ -235,6 +253,7 @@ export function useAdminAnalytics() {
           reEvaluationRate,
           avgScoreFree,
           avgScorePremium,
+          usersWithOptionalAnswers,
         };
 
         setAnalytics(analyticsData);
