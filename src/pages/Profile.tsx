@@ -16,6 +16,19 @@ import { ProfileStats } from '@/components/profile/ProfileStats';
 import { EditNameDialog } from '@/components/profile/EditNameDialog';
 import { Seo } from '@/components/Seo';
 import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { 
   FileText, 
   Target, 
   TrendingUp, 
@@ -25,7 +38,9 @@ import {
   Edit2,
   LogOut,
   Crown,
-  CheckCircle
+  CheckCircle,
+  XCircle,
+  Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -39,8 +54,46 @@ export default function Profile() {
   const { data: exercises, isLoading: exercisesLoading } = useMyExercises();
   const [editNameOpen, setEditNameOpen] = useState(false);
   const [refetchKey, setRefetchKey] = useState(0);
+  const [isCanceling, setIsCanceling] = useState(false);
+  const { toast } = useToast();
 
   const loading = profileLoading || subscriptionLoading;
+
+  const handleCancelSubscription = async () => {
+    setIsCanceling(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No session found');
+      }
+
+      const { error } = await supabase.functions.invoke('cancel-subscription', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Suscripción cancelada",
+        description: "Tu suscripción ha sido cancelada. Seguirás teniendo acceso hasta el fin del período actual.",
+      });
+
+      window.location.reload();
+    } catch (error: any) {
+      if (import.meta.env.DEV) {
+        console.error('Error canceling subscription:', error);
+      }
+      toast({
+        title: "Error al cancelar",
+        description: "No pudimos cancelar tu suscripción. Por favor intenta nuevamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCanceling(false);
+    }
+  };
 
   const getInitials = (name: string | null) => {
     if (!name) return 'U';
@@ -160,6 +213,50 @@ export default function Profile() {
               <p className="text-sm text-muted-foreground">
                 {formatNextBillingDate()}
               </p>
+            )}
+
+            {subscription?.plan === 'premium' && subscription?.status === 'active' && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Cancelar suscripción
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Cancelar tu suscripción Premium?</AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                      <div className="space-y-2">
+                        <p>Al cancelar tu suscripción:</p>
+                        <ul className="list-disc list-inside space-y-1 text-sm">
+                          <li>Perderás acceso a recursos dedicados y ejercicios personalizados</li>
+                          <li>No podrás acceder a la mentoría personalizada</li>
+                          <li>Seguirás teniendo acceso hasta el fin de tu período actual</li>
+                        </ul>
+                        <p className="font-medium mt-4">¿Estás seguro de que deseas continuar?</p>
+                      </div>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Mantener Premium</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleCancelSubscription}
+                      disabled={isCanceling}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isCanceling ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Cancelando...
+                        </>
+                      ) : (
+                        'Sí, cancelar suscripción'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
 
             {subscription?.plan === 'free' && (
