@@ -1,20 +1,23 @@
-import { AssessmentResult, AssessmentValues } from "./scoring";
+import { AssessmentResult, AssessmentValues, OptionalAssessmentValues } from "./scoring";
 
 const KEY = "productprepa:assessment";
 
 export type AssessmentRecord = {
   values: AssessmentValues;
+  optionalValues?: OptionalAssessmentValues;
   result: AssessmentResult;
   createdAt: string; // ISO string
 };
 
 export async function saveAssessment(
-  values: AssessmentValues, 
+  values: AssessmentValues,
+  optionalValues: OptionalAssessmentValues | undefined,
   result: AssessmentResult,
   supabaseClient?: any
 ) {
   const record: AssessmentRecord = {
     values,
+    optionalValues,
     result,
     createdAt: new Date().toISOString(),
   };

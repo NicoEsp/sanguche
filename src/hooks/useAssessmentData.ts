@@ -2,12 +2,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAssessment } from '@/utils/storage';
-import { AssessmentResult, AssessmentValues, Gap, NeutralArea, Strength } from '@/utils/scoring';
+import { AssessmentResult, AssessmentValues, Gap, NeutralArea, Strength, OptionalAssessmentValues } from '@/utils/scoring';
 import { useEffect } from 'react';
 
 interface AssessmentData {
   result: AssessmentResult | null;
   values: AssessmentValues | null;
+  optionalValues: OptionalAssessmentValues | null;
   loading: boolean;
   hasAssessment: boolean;
   updatedAt: string | null;
@@ -111,6 +112,7 @@ export function useAssessmentData(): AssessmentData {
       return {
         result: localAssessment.result || null,
         values: localAssessment.values || null,
+        optionalValues: localAssessment.optionalValues || null,
         loading: false,
         hasAssessment: !!localAssessment,
         updatedAt: localAssessment.createdAt ?? null
@@ -121,6 +123,7 @@ export function useAssessmentData(): AssessmentData {
   return {
     result: assessmentData?.result || null,
     values: assessmentData?.values || null,
+    optionalValues: assessmentData?.result?.optionalDomains || null,
     loading: isLoading,
     hasAssessment: assessmentData?.hasAssessment || false,
     updatedAt: assessmentData?.updatedAt || null

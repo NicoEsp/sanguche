@@ -19,7 +19,8 @@ export default function SkillGaps() {
     result,
     loading,
     hasAssessment,
-    updatedAt
+    updatedAt,
+    optionalValues
   } = useAssessmentData();
   const { trackEvent } = useMixpanelTracking();
   
@@ -27,6 +28,8 @@ export default function SkillGaps() {
   const gaps = useMemo(() => result?.gaps ?? [], [result]);
   const strengths = useMemo(() => result?.strengths ?? [], [result]);
   const neutralAreas = useMemo(() => result?.neutralAreas ?? [], [result]);
+  const optionalImprovements = useMemo(() => result?.optionalImprovements ?? [], [result]);
+  const answeredOptionalDomains = useMemo(() => result?.optionalDomains ?? {}, [result]);
   
   const canAccessRecommendations = useMemo(
     () => isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium),
@@ -147,6 +150,53 @@ export default function SkillGaps() {
                   No se detectaron áreas críticas de mejora. Tu perfil muestra competencias sólidas en todos los dominios evaluados.
                 </p>
               </div>}
+
+            {/* Dominios opcionales explorados */}
+            {Object.keys(answeredOptionalDomains).length > 0 && (
+              <div className="mt-4 p-4 rounded-lg bg-purple-50 border border-purple-200">
+                <p className="text-sm text-purple-800">
+                  🟣 Exploraste además estos dominios opcionales:{" "}
+                  <strong>
+                    {Object.keys(answeredOptionalDomains)
+                      .map(k => k === 'growth' ? 'Growth' : 'IA aplicada a Producto')
+                      .join(' y ')}
+                  </strong>
+                </p>
+              </div>
+            )}
+
+            {/* Áreas de mejora generadas por preguntas opcionales */}
+            {optionalImprovements.length > 0 && (
+              <div className="mt-8">
+                <h2 className="text-xl font-semibold mb-4">🟣 Áreas de mejora (dominios opcionales)</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Estas áreas se generaron según tus respuestas en los dominios opcionales.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {optionalImprovements.map((improvement) => (
+                    <div 
+                      key={improvement.key} 
+                      className="rounded-lg border border-purple-200 bg-purple-50/50 p-4"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className="border-purple-300 text-purple-700">
+                          {improvement.label}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Respondiste: {improvement.value}/5
+                        </span>
+                      </div>
+                      <h4 className="font-medium text-purple-900 mb-1">
+                        {improvement.title}
+                      </h4>
+                      <p className="text-sm text-purple-700">
+                        {improvement.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>}
 
 

@@ -251,6 +251,80 @@ export type NeutralArea = DomainScore;
 
 export type Strength = DomainScore & { nivel: "Destacada" | "Sólida" };
 
+// ============= OPTIONAL DOMAINS =============
+
+export const OPTIONAL_DOMAINS = [
+  {
+    key: "growth",
+    label: "Growth",
+    description: "Capacidad para detectar y probar oportunidades de Growth para tu producto.",
+    question: "¿Qué tan familiarizado estás con detectar y probar oportunidades de Growth para tu producto?",
+    statements: [
+      { value: 1, label: "Todavía no sé bien cómo abordar Growth ni hice experimentos concretos. (1)" },
+      { value: 2, label: "Identifico algunas oportunidades, pero me cuesta priorizarlas o convertirlas en experimentos claros. (2)" },
+      { value: 3, label: "Puedo armar hipótesis y correr experimentos simples, aunque sin un proceso estable. (3)" },
+      { value: 4, label: "Tengo un método para detectar oportunidades, diseñar experimentos y medir impacto en métricas de Growth. (4)" },
+      { value: 5, label: "Trabajo Growth de forma continua: tengo un pipeline activo y uso datos para optimizar lo que funciona. (5)" }
+    ],
+    improvementFeedback: {
+      1: {
+        title: "Te falta un proceso básico de Growth.",
+        description: "Hoy no tenés definido cómo detectar oportunidades ni cómo testearlas. Empezá por entender las bases: hipótesis, experimentos simples y métricas clave."
+      },
+      2: {
+        title: "Te cuesta convertir ideas en experimentos.",
+        description: "Tenés intuiciones y oportunidades, pero falta estructura. Priorizar por impacto/esfuerzo y definir hipótesis claras te va a ayudar a avanzar más rápido."
+      },
+      3: {
+        title: "Te falta consistencia en el proceso.",
+        description: "Sabés armar experimentos simples, pero todavía no tenés un sistema para repetirlos y medir impacto. Tu siguiente paso es armar un mini-pipeline de experimentos."
+      }
+    }
+  },
+  {
+    key: "ia_aplicada",
+    label: "IA aplicada a Producto",
+    description: "Nivel de incorporación de IA en tu forma de trabajar como Product Manager.",
+    question: "¿Qué tan incorporada tenés la IA en tu forma de trabajar como Product Manager?",
+    statements: [
+      { value: 1, label: "Todavía no la uso y no tengo claro en qué podría ayudarme en el día a día. (1)" },
+      { value: 2, label: "La uso de vez en cuando, pero sin un proceso o criterio definido. (2)" },
+      { value: 3, label: "La incorporo en varias tareas (research, documentación, prototipos), aunque sin un flujo consistente. (3)" },
+      { value: 4, label: "La uso de manera estable para acelerar mi trabajo: prompts, herramientas y procesos definidos. (4)" },
+      { value: 5, label: "Es parte central de mi workflow: diseño flujos, automatizaciones o sistemas que potencian mi trabajo como PM. (5)" }
+    ],
+    improvementFeedback: {
+      1: {
+        title: "Podés incorporar IA en tareas simples del día a día.",
+        description: "Documentación, análisis, research o comunicación interna son buenos puntos de partida."
+      },
+      2: {
+        title: "Te falta método para usarla con más impacto.",
+        description: "Ya la probaste, pero sin un flujo estable. Sumá prompts propios y herramientas que te acompañen en discovery y delivery."
+      },
+      3: {
+        title: "Necesitás consolidar un workflow claro.",
+        description: "Usás IA en varias tareas, pero todavía no como parte estable de tu proceso. El siguiente paso es estandarizar lo que ya funciona."
+      }
+    }
+  }
+] as const;
+
+export type OptionalDomainKey = (typeof OPTIONAL_DOMAINS)[number]["key"];
+
+export type OptionalAssessmentValues = {
+  growth?: number;
+  ia_aplicada?: number;
+};
+
+export type OptionalDomainFeedback = {
+  key: OptionalDomainKey;
+  label: string;
+  value: number;
+  title: string;
+  description: string;
+};
+
 export type AssessmentResult = {
   promedioGlobal: number;
   nivel: SeniorityLevel;
@@ -261,9 +335,40 @@ export type AssessmentResult = {
   standardDeviation: number;
   specialization: string;
   ctaInfo: { text: string; route: string };
+  optionalDomains?: OptionalAssessmentValues;
+  optionalImprovements?: OptionalDomainFeedback[];
 };
 
-export function computeSeniorityScore(values: AssessmentValues): AssessmentResult {
+export function computeOptionalImprovements(
+  optionalValues: OptionalAssessmentValues
+): OptionalDomainFeedback[] {
+  const improvements: OptionalDomainFeedback[] = [];
+  
+  for (const domain of OPTIONAL_DOMAINS) {
+    const value = optionalValues[domain.key as keyof OptionalAssessmentValues];
+    
+    // Solo mostrar mejora si respondió 1, 2 o 3
+    if (value && value <= 3) {
+      const feedback = domain.improvementFeedback[value as 1 | 2 | 3];
+      if (feedback) {
+        improvements.push({
+          key: domain.key as OptionalDomainKey,
+          label: domain.label,
+          value,
+          title: feedback.title,
+          description: feedback.description
+        });
+      }
+    }
+  }
+  
+  return improvements;
+}
+
+export function computeSeniorityScore(
+  values: AssessmentValues,
+  optionalValues?: OptionalAssessmentValues
+): AssessmentResult {
   const entries = Object.entries(values) as [keyof AssessmentValues, number][];
   const sum = entries.reduce((acc, [, v]) => acc + v, 0);
   const n = entries.length || 1;
@@ -336,6 +441,11 @@ export function computeSeniorityScore(values: AssessmentValues): AssessmentResul
     gaps.filter(g => g.prioridad === "Alta").length
   );
 
+  // Calcular mejoras opcionales si se proporcionaron valores
+  const optionalImprovements = optionalValues 
+    ? computeOptionalImprovements(optionalValues) 
+    : undefined;
+
   return { 
     promedioGlobal, 
     nivel, 
@@ -345,7 +455,9 @@ export function computeSeniorityScore(values: AssessmentValues): AssessmentResul
     profileEstimate,
     standardDeviation,
     specialization,
-    ctaInfo
+    ctaInfo,
+    optionalDomains: optionalValues,
+    optionalImprovements
   };
 }
 
