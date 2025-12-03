@@ -12,7 +12,7 @@ export function OptionalQuestionTooltip() {
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs">
           <p className="text-sm">
-            Esta pregunta es opcional. No impactará en tu puntaje general.
+            Esta pregunta es opcional. No impactará en tu puntaje general, pero sí me ayuda a darte mejores recomendaciones si querés profundizar en Growth o en IA.
           </p>
         </TooltipContent>
       </Tooltip>
