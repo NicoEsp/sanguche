@@ -188,6 +188,17 @@ export default function AdminAssessments() {
     }
   }
 
+  function getOptionalNivelLabel(score: number): string {
+    if (score >= 4) return "Avanzado";
+    if (score === 3) return "En progreso";
+    return "En desarrollo";
+  }
+
+  function hasOptionalDomains(assessment: Assessment): boolean {
+    const optionalDomains = assessment.assessment_result?.optionalDomains;
+    return !!(optionalDomains && (optionalDomains.growth || optionalDomains.ia_aplicada));
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -385,7 +396,18 @@ export default function AdminAssessments() {
                   <TableRow key={assessment.id}>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
-                      <span>{assessment.user.name || 'Sin nombre'}</span>
+                      <div className="flex items-center gap-2">
+                        <span>{assessment.user.name || 'Sin nombre'}</span>
+                        {hasOptionalDomains(assessment) && (
+                          <Badge 
+                            variant="outline" 
+                            className="text-[10px] px-1.5 py-0 h-4 border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-950/30 dark:text-purple-300"
+                            title="Completó preguntas opcionales"
+                          >
+                            🟣
+                          </Badge>
+                        )}
+                      </div>
                       <span className="text-xs text-muted-foreground">
                         {assessment.user.email || 'Sin email'}
                       </span>
@@ -501,6 +523,50 @@ export default function AdminAssessments() {
                                       </Badge>
                                     </div>
                                   ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Optional Domains Section */}
+                            {hasOptionalDomains(selectedAssessment) && (
+                              <div>
+                                <h4 className="font-semibold mb-2 text-purple-600">🟣 Dominios Opcionales</h4>
+                                <p className="text-xs text-muted-foreground mb-3">
+                                  Estas respuestas no afectan el puntaje general.
+                                </p>
+                                <div className="space-y-2">
+                                  {selectedAssessment.assessment_result?.optionalDomains?.growth && (
+                                    <div className="flex flex-col gap-2 rounded border border-purple-200 bg-purple-50 p-3 dark:border-purple-800 dark:bg-purple-950/30 sm:flex-row sm:items-center sm:justify-between">
+                                      <div>
+                                        <span className="text-sm font-medium text-purple-900 dark:text-purple-100">Growth</span>
+                                        <p className="text-xs text-purple-700 dark:text-purple-300">Estrategias de crecimiento y experimentación</p>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-xs border-purple-300 bg-purple-100 text-purple-800 dark:border-purple-700 dark:bg-purple-900 dark:text-purple-200">
+                                          {selectedAssessment.assessment_result.optionalDomains.growth}/5
+                                        </Badge>
+                                        <Badge variant="outline" className="text-xs border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-300">
+                                          {getOptionalNivelLabel(selectedAssessment.assessment_result.optionalDomains.growth)}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {selectedAssessment.assessment_result?.optionalDomains?.ia_aplicada && (
+                                    <div className="flex flex-col gap-2 rounded border border-purple-200 bg-purple-50 p-3 dark:border-purple-800 dark:bg-purple-950/30 sm:flex-row sm:items-center sm:justify-between">
+                                      <div>
+                                        <span className="text-sm font-medium text-purple-900 dark:text-purple-100">IA aplicada a Producto</span>
+                                        <p className="text-xs text-purple-700 dark:text-purple-300">Integración de inteligencia artificial en productos</p>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-xs border-purple-300 bg-purple-100 text-purple-800 dark:border-purple-700 dark:bg-purple-900 dark:text-purple-200">
+                                          {selectedAssessment.assessment_result.optionalDomains.ia_aplicada}/5
+                                        </Badge>
+                                        <Badge variant="outline" className="text-xs border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-300">
+                                          {getOptionalNivelLabel(selectedAssessment.assessment_result.optionalDomains.ia_aplicada)}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}
