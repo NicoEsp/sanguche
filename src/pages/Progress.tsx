@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,8 @@ import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
+
 interface StageConfig {
   key: CanvasStage;
   label: string;
@@ -112,6 +114,8 @@ export default function Progress() {
   const { profile, loading: profileLoading } = useUserProfile();
   const profileId = profile?.id;
   const queryClient = useQueryClient();
+  const { trackEvent } = useMixpanelTracking();
+  const hasTrackedPageView = useRef(false);
   
   // Fetch data from DB
   const { data: suggestedObjectives = [], isLoading: loadingSuggested } = useProgressObjectives();
@@ -180,6 +184,26 @@ export default function Progress() {
     const rate = canvasObjectives.length ? Math.round((completed.length / canvasObjectives.length) * 100) : 0;
     return { completedObjectives: completed, completionRate: rate };
   }, [canvasObjectives]);
+
+  // Track page view once when fully loaded
+  useEffect(() => {
+    if (isFullyLoaded && hasAccess && !hasTrackedPageView.current) {
+      hasTrackedPageView.current = true;
+      trackEvent('progress_page_view', {
+        has_objectives: canvasObjectives.length > 0,
+        objectives_count: canvasObjectives.length,
+        completed_count: completedObjectives.length,
+        completion_rate: completionRate,
+        is_locked: isMapLocked,
+        objectives_by_stage: {
+          now: objectivesByStage.now.length,
+          soon: objectivesByStage.soon.length,
+          later: objectivesByStage.later.length
+        }
+      });
+    }
+  }, [isFullyLoaded, hasAccess, trackEvent, canvasObjectives.length, completedObjectives.length, completionRate, isMapLocked, objectivesByStage]);
+
   // DnD handlers
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setDraggingId(event.active.id as string);
@@ -215,6 +239,14 @@ export default function Progress() {
         dueDate: getObjectiveDueDate(suggestedObj),
         objectiveId: suggestedObj.id,
       });
+
+      // Track objective added
+      trackEvent('objective_added_to_canvas', {
+        source: 'suggested',
+        timeframe: targetTimeframe,
+        objective_title: suggestedObj.title,
+        method: 'drag'
+      });
       return;
     }
 
@@ -231,14 +263,28 @@ export default function Progress() {
     }
 
     // Mentor objectives cannot be dragged (handled by disabled prop)
-  }, [profileId, isMapLocked, suggestedObjectives, userObjectives, createUserObjective, customObjectives, updateUserObjective]);
+  }, [profileId, isMapLocked, suggestedObjectives, userObjectives, createUserObjective, customObjectives, updateUserObjective, trackEvent]);
+
   const toggleStep = useCallback((objective: UserProgressObjective, stepId: string) => {
     if (!profileId) return;
 
-    const updatedSteps = objective.steps.map(step =>
-      step.id === stepId ? { ...step, completed: !step.completed } : step
+    const step = objective.steps.find(s => s.id === stepId);
+    const isCompletingStep = step && !step.completed;
+
+    const updatedSteps = objective.steps.map(s =>
+      s.id === stepId ? { ...s, completed: !s.completed } : s
     );
-    const allCompleted = updatedSteps.every(step => step.completed);
+    const allCompleted = updatedSteps.every(s => s.completed);
+
+    // Track step completion
+    if (isCompletingStep) {
+      trackEvent('objective_step_completed', {
+        objective_title: objective.title,
+        step_title: step.title,
+        is_objective_completed: allCompleted,
+        source: objective.source
+      });
+    }
 
     updateUserObjective.mutate({
       id: objective.id,
@@ -248,7 +294,14 @@ export default function Progress() {
         status: allCompleted ? 'completed' : 'in-progress',
       },
     });
-  }, [profileId, updateUserObjective]);
+
+    // Celebration toast when objective is completed
+    if (allCompleted && isCompletingStep) {
+      toast.success('🎉 ¡Objetivo completado!', {
+        description: `Excelente trabajo con "${objective.title}"`,
+      });
+    }
+  }, [profileId, updateUserObjective, trackEvent]);
 
   const handleDeleteCustom = useCallback((id: string) => {
     if (!profileId || isMapLocked) return;
@@ -283,9 +336,21 @@ export default function Progress() {
   
   const handleLockCareerPath = useCallback(() => {
     if (!profileId) return;
+    
+    // Track career path saved
+    trackEvent('career_path_saved', {
+      objectives_count: canvasObjectives.length,
+      completion_rate: completionRate,
+      objectives_by_stage: {
+        now: objectivesByStage.now.length,
+        soon: objectivesByStage.soon.length,
+        later: objectivesByStage.later.length
+      }
+    });
+    
     lockUserObjectives.mutate(profileId);
     setIsLockDialogOpen(false);
-  }, [lockUserObjectives, profileId]);
+  }, [lockUserObjectives, profileId, trackEvent, canvasObjectives.length, completionRate, objectivesByStage]);
 
   const handleExportPdf = useCallback(() => {
     const exportNode = exportRef.current;
@@ -294,6 +359,13 @@ export default function Progress() {
       toast.error('No pudimos preparar tu Career Path para exportarlo.');
       return;
     }
+
+    // Track PDF export
+    trackEvent('career_path_pdf_exported', {
+      objectives_count: canvasObjectives.length,
+      completion_rate: completionRate,
+      completed_objectives: completedObjectives.length
+    });
 
     setIsExportingPdf(true);
 
@@ -401,13 +473,15 @@ export default function Progress() {
       toast.error('No pudimos exportar tu Career Path. Intentá nuevamente.');
       setIsExportingPdf(false);
     }
-  }, []);
+  }, [trackEvent, canvasObjectives.length, completionRate, completedObjectives.length]);
+
   const handleDialogChange = useCallback((open: boolean) => {
     setIsDialogOpen(open);
     if (!open) {
       setCustomState(initialCustomState);
     }
   }, []);
+
   const addCustomObjective = useCallback(() => {
     if (customObjectiveLimitReached || !customState.title.trim() || !profileId || isMapLocked) {
       return;
@@ -433,8 +507,49 @@ export default function Progress() {
       dueDate: customState.dueDate || undefined,
     });
 
+    // Track custom objective created
+    trackEvent('objective_added_to_canvas', {
+      source: 'custom',
+      timeframe: customState.timeframe,
+      objective_title: customState.title,
+      method: 'custom_dialog'
+    });
+
     handleDialogChange(false);
-  }, [customObjectiveLimitReached, customState, profileId, isMapLocked, createUserObjective, handleDialogChange]);
+  }, [customObjectiveLimitReached, customState, profileId, isMapLocked, createUserObjective, handleDialogChange, trackEvent]);
+
+  // Quick add handler for mobile
+  const handleQuickAdd = useCallback((objective: AvailableObjective, timeframe: CanvasStage = 'now') => {
+    if (!profileId || isMapLocked) return;
+    
+    const suggestedObj = suggestedObjectives.find(obj => obj.id === objective.id);
+    if (suggestedObj) {
+      const alreadyAssigned = userObjectives.some(obj => obj.objective_id === suggestedObj.id);
+      if (alreadyAssigned) {
+        toast.error('Este objetivo ya está en tu canvas');
+        return;
+      }
+
+      createUserObjective.mutate({
+        userId: profileId,
+        title: suggestedObj.title,
+        summary: suggestedObj.summary,
+        type: suggestedObj.type,
+        timeframe,
+        steps: suggestedObj.steps ?? [],
+        dueDate: getObjectiveDueDate(suggestedObj),
+        objectiveId: suggestedObj.id,
+      });
+      
+      trackEvent('objective_added_to_canvas', {
+        source: 'suggested',
+        timeframe,
+        objective_title: suggestedObj.title,
+        method: 'quick_add_mobile'
+      });
+    }
+  }, [profileId, isMapLocked, suggestedObjectives, userObjectives, createUserObjective, trackEvent]);
+
   // Mostrar loading mientras carga
   if ((subscriptionLoading || profileLoading || isLoadingData) && !isDemoMode) {
     return <div className="min-h-[60vh] flex items-center justify-center">
@@ -553,8 +668,21 @@ export default function Progress() {
                       <span>Avance</span>
                       <span className="font-medium">{completionRate}%</span>
                     </div>
-                    <ProgressBar value={completionRate} className="h-2" />
+                    <ProgressBar 
+                      value={completionRate} 
+                      className={cn(
+                        "h-2",
+                        completionRate === 100 && "[&>div]:bg-emerald-500"
+                      )} 
+                    />
                   </div>
+                  
+                  {completionRate === 100 && canvasObjectives.length > 0 && (
+                    <Badge className="bg-emerald-500 text-white hidden sm:flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      ¡Completado!
+                    </Badge>
+                  )}
                 </div>
               </div>
 
@@ -581,7 +709,18 @@ export default function Progress() {
                 <div className="absolute inset-x-10 -top-10 h-40 bg-primary/10 blur-3xl rounded-full pointer-events-none" />
                 <div className="relative rounded-3xl border bg-card/70 backdrop-blur-sm shadow-xl overflow-hidden">
                   <div className="grid md:grid-cols-3 gap-0 md:gap-0">
-                    {STAGES.map(stage => <CanvasStageColumn key={stage.key} stage={stage} objectives={objectivesByStage[stage.key]} draggingId={draggingId} toggleStep={toggleStep} onDeleteCustom={handleDeleteCustom} isMapLocked={isMapLocked} />)}
+                    {STAGES.map(stage => (
+                      <CanvasStageColumn 
+                        key={stage.key} 
+                        stage={stage} 
+                        objectives={objectivesByStage[stage.key]} 
+                        draggingId={draggingId} 
+                        toggleStep={toggleStep} 
+                        onDeleteCustom={handleDeleteCustom} 
+                        isMapLocked={isMapLocked}
+                        showEmptyState={canvasObjectives.length === 0 && stage.key === 'now'}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
@@ -696,7 +835,7 @@ export default function Progress() {
                             ...prev,
                             stepsText: event.target.value,
                           }))}
-                          placeholder={`Ejemplo:\n[✓] Leer libro “Continuous Discovery Habits”\n[ ] Aplicar template de Opportunity Solution Tree`}
+                          placeholder={`Ejemplo:\n[✓] Leer libro "Continuous Discovery Habits"\n[ ] Aplicar template de Opportunity Solution Tree`}
                           className="min-h-[120px]"
                         />
                       </div>
@@ -714,9 +853,28 @@ export default function Progress() {
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              <ObjectiveAvailableColumn title="💡 Sugeridos por ProductPrepa" description="Tomamos tus áreas de mejora para proponerte objetivos concretos." objectives={availableSuggestedObjectives} draggingId={draggingId} />
-              <ObjectiveAvailableColumn title="👨‍🏫 Derivados de mentorías" description="Objetivos acordados junto a tu mentor." objectives={mentorObjectives} draggingId={draggingId} locked />
-              <ObjectiveAvailableColumn title="✍️ Personalizados" description="Define metas propias. Puedes crear hasta tres objetivos adicionales." objectives={customObjectives} draggingId={draggingId} onDelete={handleDeleteCustom} />
+              <ObjectiveAvailableColumn 
+                title="💡 Sugeridos por ProductPrepa" 
+                description="Tomamos tus áreas de mejora para proponerte objetivos concretos." 
+                objectives={availableSuggestedObjectives} 
+                draggingId={draggingId}
+                onQuickAdd={handleQuickAdd}
+                isMapLocked={isMapLocked}
+              />
+              <ObjectiveAvailableColumn 
+                title="👨‍🏫 Derivados de mentorías" 
+                description="Objetivos acordados junto a tu mentor." 
+                objectives={mentorObjectives} 
+                draggingId={draggingId} 
+                locked 
+              />
+              <ObjectiveAvailableColumn 
+                title="✍️ Personalizados" 
+                description="Define metas propias. Puedes crear hasta tres objetivos adicionales." 
+                objectives={customObjectives} 
+                draggingId={draggingId} 
+                onDelete={handleDeleteCustom} 
+              />
             </div>
           </section>
           )}
@@ -753,10 +911,11 @@ interface CanvasStageColumnProps {
   toggleStep: (obj: UserProgressObjective, stepId: string) => void;
   onDeleteCustom: (id: string) => void;
   isMapLocked: boolean;
+  showEmptyState?: boolean;
 }
 
-const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, draggingId, toggleStep, onDeleteCustom, isMapLocked }: CanvasStageColumnProps) {
-  const { setNodeRef } = useDroppable({ id: stage.key });
+const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, draggingId, toggleStep, onDeleteCustom, isMapLocked, showEmptyState }: CanvasStageColumnProps) {
+  const { setNodeRef, isOver } = useDroppable({ id: stage.key });
 
   return (
     <div
@@ -766,8 +925,9 @@ const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, d
         "min-h-[400px] md:min-h-[500px]",
         "grid grid-rows-[auto_1fr]",
         "border-t md:border-t-0 md:border-l",
-        "transition-colors duration-200",
+        "transition-all duration-200",
         draggingId && "border-primary/60 bg-primary/5",
+        isOver && "ring-2 ring-primary ring-inset bg-primary/10",
         stage.key === "now" && "md:border-l-0 border-t-0",
         `bg-gradient-to-b ${stage.gradient}`
       )}
@@ -788,7 +948,26 @@ const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, d
 
       <ScrollArea className="h-full pr-2">
         <div className="grid grid-cols-1 gap-4 auto-rows-fr">
-          {objectives.length === 0 && (
+          {/* Enhanced empty state for first-time users */}
+          {showEmptyState && objectives.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center py-12 px-6 text-center">
+              <div className="rounded-full bg-primary/10 p-4 mb-4">
+                <Sparkles className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">
+                ¡Empezá a construir tu Career Path!
+              </h3>
+              <p className="text-muted-foreground max-w-md mb-4 text-sm">
+                Arrastrá objetivos desde las secciones de abajo hacia las columnas según tu prioridad.
+              </p>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="animate-bounce">👇</span>
+                <span>Explorá los objetivos disponibles</span>
+              </div>
+            </div>
+          )}
+
+          {objectives.length === 0 && !showEmptyState && (
             <div className="border border-dashed rounded-xl p-6 text-center text-muted-foreground text-sm">
               Arrastrá objetivos aquí para planificar tu camino.
             </div>
@@ -850,9 +1029,20 @@ const CanvasObjectiveCard = memo(function CanvasObjectiveCard({ objective, toggl
           {objective.type}
         </Badge>
         {isMentor ? (
-          <Badge variant="secondary" className="text-xs flex items-center gap-1">
-            <Lock className="h-3 w-3" /> Mentoría
-          </Badge>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="secondary" className="text-xs flex items-center gap-1 cursor-help">
+                  <Lock className="h-3 w-3" /> Mentoría
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs max-w-[200px]">
+                  Este objetivo fue asignado por tu mentor y no puede moverse.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ) : (
           <Badge variant="secondary" className="text-xs">Personalizado</Badge>
         )}
@@ -951,9 +1141,11 @@ interface ObjectiveAvailableColumnProps {
   draggingId: string | null;
   locked?: boolean;
   onDelete?: (id: string) => void;
+  onQuickAdd?: (objective: AvailableObjective, timeframe?: CanvasStage) => void;
+  isMapLocked?: boolean;
 }
 
-const ObjectiveAvailableColumn = memo(function ObjectiveAvailableColumn({ title, description, objectives, draggingId, locked, onDelete }: ObjectiveAvailableColumnProps) {
+const ObjectiveAvailableColumn = memo(function ObjectiveAvailableColumn({ title, description, objectives, draggingId, locked, onDelete, onQuickAdd, isMapLocked }: ObjectiveAvailableColumnProps) {
   return (
     <Card className="border-dashed h-full">
       <CardHeader>
@@ -973,6 +1165,8 @@ const ObjectiveAvailableColumn = memo(function ObjectiveAvailableColumn({ title,
                 draggingId={draggingId}
                 locked={locked}
                 onDelete={onDelete}
+                onQuickAdd={onQuickAdd}
+                isMapLocked={isMapLocked}
               />
             ))}
 
@@ -993,9 +1187,11 @@ interface DraggableObjectiveCardProps {
   draggingId: string | null;
   locked?: boolean;
   onDelete?: (id: string) => void;
+  onQuickAdd?: (objective: AvailableObjective, timeframe?: CanvasStage) => void;
+  isMapLocked?: boolean;
 }
 
-const DraggableObjectiveCard = memo(function DraggableObjectiveCard({ objective, draggingId, locked, onDelete }: DraggableObjectiveCardProps) {
+const DraggableObjectiveCard = memo(function DraggableObjectiveCard({ objective, draggingId, locked, onDelete, onQuickAdd, isMapLocked }: DraggableObjectiveCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: objective.id,
     disabled: locked,
@@ -1048,6 +1244,24 @@ const DraggableObjectiveCard = memo(function DraggableObjectiveCard({ objective,
           <Badge variant="outline">{formatDueDate(dueDate)}</Badge>
         )}
       </div>
+      
+      {/* Mobile quick add button */}
+      {onQuickAdd && !locked && !isMapLocked && (
+        <div className="md:hidden mt-3">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="w-full"
+            onClick={(e) => {
+              e.stopPropagation();
+              onQuickAdd(objective, 'now');
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Agregar a En Foco
+          </Button>
+        </div>
+      )}
     </div>
   );
 });
