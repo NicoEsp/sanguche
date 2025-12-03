@@ -190,7 +190,7 @@ export default function Recommendations() {
                     {/* Advanced Content Alert */}
                     <Alert className="border-primary/50 bg-primary/5">
                       <AlertTriangle className="h-4 w-4 text-primary" />
-                      <AlertDescription className="text-primary-foreground">
+                      <AlertDescription className="text-foreground">
                         <div className="space-y-2">
                           <p><strong>Desbloquea recursos adicionales con tu mentoría 1:1</strong></p>
                           <div className="text-sm">
@@ -219,7 +219,7 @@ export default function Recommendations() {
                 {/* Progress Alert */}
                 <Alert className="border-primary/50 bg-primary/5">
                   <AlertTriangle className="h-4 w-4 text-primary" />
-                  <AlertDescription className="text-primary-foreground">
+                  <AlertDescription className="text-foreground">
                     <div className="space-y-2">
                       <p><strong>¡Obtén acceso completo con Premium!</strong></p>
                       <div className="text-sm">
