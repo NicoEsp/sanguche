@@ -18,6 +18,7 @@ interface AuthContextType {
   signOut: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   resendConfirmation: (email: string) => Promise<{ error: any }>;
+  updatePassword: (newPassword: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -314,7 +315,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      const redirectUrl = `${window.location.origin}/auth?mode=reset`;
+      // Redirect to /auth - Supabase will append recovery params automatically
+      const redirectUrl = `${window.location.origin}/auth`;
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
@@ -336,6 +338,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error };
     } catch (error: any) {
       return { error };
+    }
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        toast({
+          title: "Error al actualizar contraseña",
+          description: getErrorMessage(error.message),
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Contraseña actualizada",
+          description: "Tu contraseña ha sido cambiada exitosamente.",
+        });
+      }
+
+      return { error };
+    } catch (error: any) {
+      toast({
+        title: "Error inesperado",
+        description: "Hubo un problema al actualizar tu contraseña.",
+        variant: "destructive",
+      });
+      return { error };
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -399,6 +434,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     resetPassword,
     resendConfirmation,
+    updatePassword,
   }), [user, session, isLoading, isAdminValidating, isAdmin, isSigningOut]);
 
   // Render loading screen during initial auth check to prevent context access errors
