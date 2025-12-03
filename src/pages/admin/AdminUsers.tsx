@@ -26,6 +26,7 @@ interface UserProfile {
     status: string;
   };
   role?: string;
+  hasOptionalAnswers?: boolean;
 }
 
 export default function AdminUsers() {
@@ -100,7 +101,7 @@ export default function AdminUsers() {
         return { data: null, error };
       });
 
-      const [emailResult, subscriptionsResult, rolesResult] = await Promise.all([
+      const [emailResult, subscriptionsResult, rolesResult, assessmentsResult] = await Promise.all([
         emailPromise,
         supabase
           .from('user_subscriptions')
@@ -109,6 +110,10 @@ export default function AdminUsers() {
         supabase
           .from('user_roles')
           .select('user_id, role')
+          .in('user_id', profileIds),
+        supabase
+          .from('assessments')
+          .select('user_id, assessment_result')
           .in('user_id', profileIds)
       ]);
 
@@ -123,6 +128,20 @@ export default function AdminUsers() {
       if (rolesError) {
         throw rolesError;
       }
+
+      const { data: assessmentsData, error: assessmentsError } = assessmentsResult;
+      if (assessmentsError && import.meta.env.DEV) {
+        console.error('Error fetching assessments:', assessmentsError);
+      }
+
+      // Create set of user_ids that have optionalDomains
+      const usersWithOptionalAnswers = new Set<string>();
+      assessmentsData?.forEach((assessment: any) => {
+        const optionalDomains = assessment.assessment_result?.optionalDomains;
+        if (optionalDomains && (optionalDomains.growth || optionalDomains.ia_aplicada)) {
+          usersWithOptionalAnswers.add(assessment.user_id);
+        }
+      });
 
       const { data: emailData, error: emailError } = emailResult as { data?: any; error?: unknown };
       if (!emailError && emailData?.users) {
@@ -145,7 +164,8 @@ export default function AdminUsers() {
           mentoria_completed: profile.mentoria_completed,
           email: emailMap.get(profile.user_id) || '',
           subscription: subscription || { plan: 'free', status: 'active' },
-          role: userRole?.role || 'user'
+          role: userRole?.role || 'user',
+          hasOptionalAnswers: usersWithOptionalAnswers.has(profile.id)
         };
       });
 
@@ -213,10 +233,19 @@ export default function AdminUsers() {
       )
       .subscribe();
 
+    const assessmentsChannel = supabase
+      .channel('assessments-changes-users')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'assessments' },
+        scheduleRefresh
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(profilesChannel);
       supabase.removeChannel(subscriptionsChannel);
       supabase.removeChannel(rolesChannel);
+      supabase.removeChannel(assessmentsChannel);
       if (refreshQueueRef.current !== null) {
         window.clearTimeout(refreshQueueRef.current);
         refreshQueueRef.current = null;
@@ -499,6 +528,15 @@ export default function AdminUsers() {
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">{user.name || 'Sin nombre'}</span>
+                        {user.hasOptionalAnswers && (
+                          <Badge 
+                            variant="outline" 
+                            className="text-[10px] px-1.5 py-0 h-4 border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-950/30 dark:text-purple-300"
+                            title="Completó preguntas opcionales (Growth / IA)"
+                          >
+                            🟣 Opcional
+                          </Badge>
+                        )}
                       </div>
                       {user.email && (
                         <span className="text-xs text-muted-foreground ml-6">{user.email}</span>
