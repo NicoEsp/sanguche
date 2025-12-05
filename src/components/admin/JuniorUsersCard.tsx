@@ -2,7 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useRecentJuniorUsers } from '@/hooks/useRecentJuniorUsers';
-import { Loader2, Tag, ArrowRight, AlertTriangle, Copy, Check } from 'lucide-react';
+import { Loader2, Tag, ArrowRight, AlertTriangle, Copy, Check, RefreshCw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -10,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
 export function JuniorUsersCard() {
-  const { data: juniorUsers = [], isLoading } = useRecentJuniorUsers();
+  const { data: juniorUsers = [], isLoading, refetch, isFetching } = useRecentJuniorUsers();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -48,12 +49,23 @@ export function JuniorUsersCard() {
               Candidatos para cupones de descuento
             </CardDescription>
           </div>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/admin/usuarios">
-              Ver más
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              title="Actualizar"
+            >
+              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/usuarios">
+                Ver más
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
