@@ -499,9 +499,19 @@ export default function AdminUsers() {
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <CardTitle className="text-lg">Reporte Semana Anterior</CardTitle>
             </div>
-            <Badge variant="outline" className="text-xs">
-              {formatWeekRange(getLastWeekRange())}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => fetchUsers()}
+                disabled={refreshing}
+              >
+                <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+              </Button>
+              <Badge variant="outline" className="text-xs">
+                {formatWeekRange(getLastWeekRange())}
+              </Badge>
+            </div>
           </div>
           <CardDescription>
             Comparación con lo que llevamos de esta semana
