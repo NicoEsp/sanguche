@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, UserPlus, Crown, User, Shield, Download, RefreshCw, ArrowUp, Trash2, Calendar, TrendingUp, TrendingDown, FileText } from 'lucide-react';
+import { SkeletonAdminTable } from '@/components/skeletons/SkeletonAdminTable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { PlanUpgradeModal } from '@/components/admin/PlanUpgradeModal';
@@ -413,14 +414,7 @@ export default function AdminUsers() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Cargando usuarios...</p>
-        </div>
-      </div>
-    );
+    return <SkeletonAdminTable columns={7} rows={8} showStats statsCount={4} />;
   }
 
   return (

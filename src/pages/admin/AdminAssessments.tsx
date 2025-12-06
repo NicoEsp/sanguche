@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, ClipboardList, Download, Eye, BarChart3, AlertTriangle, Info, RefreshCw } from 'lucide-react';
+import { Search, ClipboardList, Download, Eye, BarChart3, AlertTriangle, Info, RefreshCw } from 'lucide-react';
+import { SkeletonAdminTable } from '@/components/skeletons/SkeletonAdminTable';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -214,14 +215,7 @@ export default function AdminAssessments() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Cargando evaluaciones...</p>
-        </div>
-      </div>
-    );
+    return <SkeletonAdminTable columns={6} rows={8} showFilters />;
   }
 
   return (

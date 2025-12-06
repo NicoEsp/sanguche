@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { FileText, Plus, Trash2, Edit, Eye, Upload } from 'lucide-react';
+import { Plus, Trash2, Edit, Eye } from 'lucide-react';
+import { SkeletonAdminTable } from '@/components/skeletons/SkeletonAdminTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -431,10 +432,7 @@ export default function AdminResources() {
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          <div className="h-12 bg-muted animate-pulse rounded" />
-          <div className="h-12 bg-muted animate-pulse rounded" />
-        </div>
+        <SkeletonAdminTable columns={6} rows={5} showHeader={false} showFilters={false} />
       ) : (
         <Card>
           <Table>
