@@ -34,6 +34,7 @@ export function useAdminAnalytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchAnalytics = async (isRefresh = false) => {
     try {
@@ -261,6 +262,7 @@ export function useAdminAnalytics() {
         };
 
       setAnalytics(analyticsData);
+      setLastUpdated(new Date());
     } catch (err) {
       setError('Error cargando analíticas');
     } finally {
@@ -275,5 +277,5 @@ export function useAdminAnalytics() {
 
   const refetch = () => fetchAnalytics(true);
 
-  return { analytics, loading, error, refreshing, refetch };
+  return { analytics, loading, error, refreshing, refetch, lastUpdated };
 }
