@@ -5,14 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, UserPlus, Crown, User, Shield, Download, RefreshCw, ArrowUp, Trash2 } from 'lucide-react';
+import { Loader2, Search, UserPlus, Crown, User, Shield, Download, RefreshCw, ArrowUp, Trash2, Calendar, TrendingUp, TrendingDown, FileText } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { PlanUpgradeModal } from '@/components/admin/PlanUpgradeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { exportToCSV } from '@/utils/csvExport';
-import { getUsersThisMonth } from '@/utils/dateHelpers';
+import { getUsersThisMonth, getRecordsLastWeek, getRecordsThisWeek, getLastWeekRange, formatWeekRange } from '@/utils/dateHelpers';
+import { cn } from '@/lib/utils';
 
 interface UserProfile {
   id: string;
@@ -29,8 +30,29 @@ interface UserProfile {
   hasOptionalAnswers?: boolean;
 }
 
+function WeeklyTrend({ lastWeek, thisWeek }: { lastWeek: number; thisWeek: number }) {
+  if (lastWeek === 0 && thisWeek === 0) return null;
+  
+  const isUp = thisWeek >= lastWeek;
+  const Icon = isUp ? TrendingUp : TrendingDown;
+  
+  return (
+    <div className={cn(
+      "flex flex-col items-end gap-1 text-sm",
+      isUp ? "text-emerald-600" : "text-destructive"
+    )}>
+      <div className="flex items-center gap-1">
+        <Icon className="h-4 w-4" />
+        <span className="font-medium">{thisWeek}</span>
+      </div>
+      <span className="text-xs text-muted-foreground">esta semana</span>
+    </div>
+  );
+}
+
 export default function AdminUsers() {
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [assessments, setAssessments] = useState<{ created_at: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -113,7 +135,7 @@ export default function AdminUsers() {
           .in('user_id', profileIds),
         supabase
           .from('assessments')
-          .select('user_id, assessment_result')
+          .select('user_id, assessment_result, created_at')
           .in('user_id', profileIds)
       ]);
 
@@ -136,12 +158,17 @@ export default function AdminUsers() {
 
       // Create set of user_ids that have optionalDomains
       const usersWithOptionalAnswers = new Set<string>();
+      const assessmentRecords: { created_at: string }[] = [];
       assessmentsData?.forEach((assessment: any) => {
+        if (assessment.created_at) {
+          assessmentRecords.push({ created_at: assessment.created_at });
+        }
         const optionalDomains = assessment.assessment_result?.optionalDomains;
         if (optionalDomains && (optionalDomains.growth || optionalDomains.ia_aplicada)) {
           usersWithOptionalAnswers.add(assessment.user_id);
         }
       });
+      setAssessments(assessmentRecords);
 
       const { data: emailData, error: emailError } = emailResult as { data?: any; error?: unknown };
       if (!emailError && emailData?.users) {
@@ -463,6 +490,58 @@ export default function AdminUsers() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Weekly Report Card */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-lg">Reporte Semana Anterior</CardTitle>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {formatWeekRange(getLastWeekRange())}
+            </Badge>
+          </div>
+          <CardDescription>
+            Comparación con lo que llevamos de esta semana
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Registros semana anterior */}
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <UserPlus className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Nuevos Registros</p>
+                  <p className="text-2xl font-bold">{getRecordsLastWeek(users)}</p>
+                </div>
+              </div>
+              <WeeklyTrend lastWeek={getRecordsLastWeek(users)} thisWeek={getRecordsThisWeek(users)} />
+            </div>
+            
+            {/* Evaluaciones semana anterior */}
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <FileText className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Evaluaciones Realizadas</p>
+                  <p className="text-2xl font-bold">{getRecordsLastWeek(assessments)}</p>
+                </div>
+              </div>
+              <WeeklyTrend 
+                lastWeek={getRecordsLastWeek(assessments)} 
+                thisWeek={getRecordsThisWeek(assessments)} 
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
         <Card>
         <CardHeader>
