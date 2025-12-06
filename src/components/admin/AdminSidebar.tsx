@@ -28,10 +28,9 @@ const adminNavItems = [
   { title: 'Dashboard', url: '/admin', icon: BarChart3, exact: true },
   { title: 'Usuarios', url: '/admin/usuarios', icon: Users },
   { title: 'Evaluaciones', url: '/admin/evaluaciones', icon: ClipboardList },
-  { title: 'Gestión Mentorías', url: '/admin/mentoria', icon: Target },
+  { title: 'Gestión Mentorías', url: '/admin/mentoria', icon: Target, matchPrefix: '/admin/mentoria' },
   { title: 'Objetivos', url: '/admin/objetivos', icon: Flag },
   { title: 'Recursos', url: '/admin/recursos', icon: FileText },
-  { title: 'Configuración', url: '/admin/configuracion', icon: Settings },
 ];
 
 const generalNavItems = [
@@ -43,10 +42,16 @@ export function AdminSidebar() {
   const location = useLocation();
   const collapsed = state === 'collapsed';
 
-  const getNavClass = (url: string, exact = false) => {
-    const isActive = exact 
-      ? location.pathname === url
-      : location.pathname.startsWith(url);
+  const getNavClass = (url: string, exact = false, matchPrefix?: string) => {
+    let isActive: boolean;
+    
+    if (exact) {
+      isActive = location.pathname === url;
+    } else if (matchPrefix) {
+      isActive = location.pathname.startsWith(matchPrefix);
+    } else {
+      isActive = location.pathname === url;
+    }
     
     return isActive 
       ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
@@ -79,7 +84,7 @@ export function AdminSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink 
                       to={item.url} 
-                      className={getNavClass(item.url, item.exact)}
+                      className={getNavClass(item.url, item.exact, (item as any).matchPrefix)}
                       end={item.exact}
                     >
                       <item.icon className="h-4 w-4" />

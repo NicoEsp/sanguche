@@ -25,6 +25,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -57,6 +67,8 @@ export default function AdminResources() {
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [resourceToDelete, setResourceToDelete] = useState<Resource | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const form = useForm<ResourceFormData>({
     resolver: zodResolver(resourceSchema),
@@ -211,14 +223,19 @@ export default function AdminResources() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este recurso?')) return;
+  const handleDeleteClick = (resource: Resource) => {
+    setResourceToDelete(resource);
+  };
 
+  const confirmDelete = async () => {
+    if (!resourceToDelete) return;
+    
+    setDeleting(true);
     try {
       const { error } = await supabase
         .from('resources')
         .delete()
-        .eq('id', id);
+        .eq('id', resourceToDelete.id);
 
       if (error) throw error;
 
@@ -234,6 +251,9 @@ export default function AdminResources() {
         description: 'Error al eliminar el recurso',
         variant: 'destructive',
       });
+    } finally {
+      setDeleting(false);
+      setResourceToDelete(null);
     }
   };
 
@@ -482,7 +502,7 @@ export default function AdminResources() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(resource.id)}
+                          onClick={() => handleDeleteClick(resource)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -495,6 +515,25 @@ export default function AdminResources() {
           </Table>
         </Card>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!resourceToDelete} onOpenChange={() => setResourceToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar recurso?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará el recurso "{resourceToDelete?.name}" permanentemente.
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} disabled={deleting}>
+              {deleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,12 +1,14 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdminAnalytics } from '@/hooks/useAdminAnalytics';
-import { Loader2, Users, ClipboardList, TrendingUp, Crown, Target, Calendar, DollarSign } from 'lucide-react';
+import { Loader2, Users, ClipboardList, TrendingUp, Crown, Target, Calendar, DollarSign, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { JuniorUsersCard } from '@/components/admin/JuniorUsersCard';
+import { cn } from '@/lib/utils';
 
 export default function AdminDashboard() {
-  const { analytics, loading, error } = useAdminAnalytics();
+  const { analytics, loading, error, refreshing, refetch } = useAdminAnalytics();
 
   if (loading) {
     return (
@@ -41,11 +43,22 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard de Administración</h1>
-        <p className="text-muted-foreground mt-2">
-          Métricas y análisis en tiempo real del sistema ProductPrepa
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard de Administración</h1>
+          <p className="text-muted-foreground mt-2">
+            Métricas y análisis en tiempo real del sistema ProductPrepa
+          </p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={refetch}
+          disabled={refreshing}
+        >
+          <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
+          {refreshing ? 'Actualizando...' : 'Actualizar'}
+        </Button>
       </div>
 
       {/* KPIs Grid */}
