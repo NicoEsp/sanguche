@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Search, Crown, RefreshCw } from 'lucide-react';
+import { Search, Crown, RefreshCw } from 'lucide-react';
+import { SkeletonAdminTable } from '@/components/skeletons/SkeletonAdminTable';
 import { usePremiumUsers, useRefreshPremiumUsers } from '@/hooks/usePremiumUsers';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,11 +24,8 @@ export default function AdminRecommendations() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Cargando usuarios premium...</p>
-        </div>
+      <div className="container mx-auto py-8">
+        <SkeletonAdminTable columns={4} rows={6} showFilters />
       </div>
     );
   }
