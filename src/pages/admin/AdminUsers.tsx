@@ -57,6 +57,8 @@ export default function AdminUsers() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [planFilter, setPlanFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
   const [error, setError] = useState<string | null>(null);
   const [upgradeModalUser, setUpgradeModalUser] = useState<{
     id: string;
@@ -290,6 +292,18 @@ export default function AdminUsers() {
     const matchesPlan = planFilter === 'all' || user.subscription?.plan === planFilter;
     return matchesSearch && matchesPlan;
   });
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, planFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   async function toggleAdminRole(userId: string, currentRole: string) {
     if (!isAdmin) {
@@ -610,7 +624,7 @@ export default function AdminUsers() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map((user) => (
+              {paginatedUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex flex-col">
@@ -716,6 +730,36 @@ export default function AdminUsers() {
           {filteredUsers.length === 0 && (
             <div className="text-center py-8">
               <p className="text-muted-foreground">No se encontraron usuarios</p>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 border-t">
+              <p className="text-sm text-muted-foreground">
+                Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredUsers.length)} de {filteredUsers.length} usuarios
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

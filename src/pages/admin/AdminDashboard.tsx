@@ -8,7 +8,7 @@ import { JuniorUsersCard } from '@/components/admin/JuniorUsersCard';
 import { cn } from '@/lib/utils';
 
 export default function AdminDashboard() {
-  const { analytics, loading, error, refreshing, refetch } = useAdminAnalytics();
+  const { analytics, loading, error, refreshing, refetch, lastUpdated } = useAdminAnalytics();
 
   if (loading) {
     return (
@@ -50,15 +50,25 @@ export default function AdminDashboard() {
             Métricas y análisis en tiempo real del sistema ProductPrepa
           </p>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={refetch}
-          disabled={refreshing}
-        >
-          <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
-          {refreshing ? 'Actualizando...' : 'Actualizar'}
-        </Button>
+        <div className="flex items-center gap-3">
+          {lastUpdated && (
+            <span className="text-xs text-muted-foreground">
+              Actualizado: {lastUpdated.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
+            </span>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={refetch}
+            disabled={refreshing}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
+            {refreshing ? 'Actualizando...' : 'Actualizar'}
+          </Button>
+        </div>
       </div>
 
       {/* KPIs Grid */}
