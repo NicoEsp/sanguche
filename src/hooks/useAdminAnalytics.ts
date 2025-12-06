@@ -33,12 +33,16 @@ export function useAdminAnalytics() {
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    async function fetchAnalytics() {
-      try {
+  const fetchAnalytics = async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
         setLoading(true);
-        setError(null);
+      }
+      setError(null);
 
         const { data: usersData, error: usersError } = await supabase
           .from('profiles')
@@ -256,16 +260,20 @@ export function useAdminAnalytics() {
           usersWithOptionalAnswers,
         };
 
-        setAnalytics(analyticsData);
-      } catch (err) {
-        setError('Error cargando analíticas');
-      } finally {
-        setLoading(false);
-      }
+      setAnalytics(analyticsData);
+    } catch (err) {
+      setError('Error cargando analíticas');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
+  };
 
+  useEffect(() => {
     fetchAnalytics();
   }, []);
 
-  return { analytics, loading, error };
+  const refetch = () => fetchAnalytics(true);
+
+  return { analytics, loading, error, refreshing, refetch };
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,10 +21,12 @@ import type { UserProgressObjective } from "@/hooks/useUserProgressObjectives";
 export default function AdminMentoriaDetail() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: premiumUsers, isLoading } = usePremiumUsers();
   const { data: userObjectives, isLoading: loadingObjectives } = useUserProgressObjectives(userId);
   const deleteObjective = useDeleteUserObjective();
+  const [updatingMentoria, setUpdatingMentoria] = useState(false);
 
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -124,34 +127,41 @@ export default function AdminMentoriaDetail() {
             <Button 
               variant="default"
               size="sm"
+              disabled={updatingMentoria}
               onClick={async () => {
-                const { error } = await supabase
-                  .from('profiles')
-                  .update({
-                    mentoria_completed: true,
-                    last_mentoria_date: new Date().toISOString()
-                  })
-                  .eq('id', selectedUser.id);
-                
-                if (error) {
-                  toast({
-                    title: "Error",
-                    description: "No se pudo actualizar el estado de la mentoría",
-                    variant: "destructive"
-                  });
-                } else {
-                  toast({
-                    title: "✅ Mentoría completada",
-                    description: "El usuario ahora tiene acceso a todo el contenido avanzado"
+                setUpdatingMentoria(true);
+                try {
+                  const { error } = await supabase.rpc('admin_update_mentoria_status', {
+                    p_target_profile_id: selectedUser.id,
+                    p_new_status: true
                   });
                   
-                  // Refresh premium users list
-                  window.location.reload();
+                  if (error) {
+                    toast({
+                      title: "Error",
+                      description: "No se pudo actualizar el estado de la mentoría",
+                      variant: "destructive"
+                    });
+                  } else {
+                    toast({
+                      title: "✅ Mentoría completada",
+                      description: "El usuario ahora tiene acceso a todo el contenido avanzado"
+                    });
+                    
+                    // Invalidate queries to refresh data
+                    queryClient.invalidateQueries({ queryKey: ['premium-users'] });
+                  }
+                } finally {
+                  setUpdatingMentoria(false);
                 }
               }}
               className="flex items-center gap-2"
             >
-              <CheckCircle className="h-4 w-4" />
+              {updatingMentoria ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
               Marcar como Completada
             </Button>
           )}
