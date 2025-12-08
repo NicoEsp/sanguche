@@ -22,9 +22,9 @@ const StarterPackHome = () => {
         />
 
         {/* Path Selection */}
-        <section className="container py-12 sm:py-16 px-4 sm:px-6">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-4">
+        <section className="container py-6 sm:py-10 px-4 sm:px-6">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3">
               ¿Cuál es tu objetivo?
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
