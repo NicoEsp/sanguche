@@ -1,4 +1,17 @@
-import { FileText, Video, Link as LinkIcon, File } from 'lucide-react';
+import { 
+  FileText, 
+  Video, 
+  Link as LinkIcon, 
+  File,
+  Lightbulb,
+  ClipboardList,
+  ListOrdered,
+  Rocket,
+  Crown,
+  MessageCircle,
+  Share2,
+  UserPlus
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { StarterPackResource } from '@/types/starterpack';
@@ -7,6 +20,20 @@ interface PathOverviewProps {
   audience: 'build' | 'lead';
   resources: StarterPackResource[];
 }
+
+// Iconos específicos por slug del recurso
+const slugIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  // Build path
+  'guia-discovery-validar-ideas': Lightbulb,
+  'template-prd': ClipboardList,
+  'framework-priorizacion-rice': ListOrdered,
+  'checklist-lanzamiento-features': Rocket,
+  // Lead path
+  'guia-liderazgo-pms': Crown,
+  'template-1-1-equipo': MessageCircle,
+  'framework-delegacion-efectiva': Share2,
+  'checklist-onboarding-pms': UserPlus,
+};
 
 const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   guide: FileText,
@@ -44,7 +71,7 @@ export function PathOverview({ audience, resources }: PathOverviewProps) {
         
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {displayResources.map((resource) => {
-            const Icon = typeIcons[resource.type] || FileText;
+            const Icon = slugIcons[resource.slug] || typeIcons[resource.type] || FileText;
             return (
               <div 
                 key={resource.id} 
@@ -56,11 +83,13 @@ export function PathOverview({ audience, resources }: PathOverviewProps) {
                 )}
               >
                 <div className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3",
-                  isBuild ? "bg-primary/10" : "bg-purple-500/10"
+                  "w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3",
+                  isBuild 
+                    ? "bg-gradient-to-br from-primary/20 to-primary/5" 
+                    : "bg-gradient-to-br from-purple-500/20 to-purple-500/5"
                 )}>
                   <Icon className={cn(
-                    "w-5 h-5",
+                    "w-7 h-7",
                     isBuild ? "text-primary" : "text-purple-500"
                   )} />
                 </div>
