@@ -292,6 +292,66 @@ export type Database = {
           },
         ]
       }
+      starterpack_resources: {
+        Row: {
+          access_type: string
+          audience: string
+          bucket_name: string | null
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          duration_estimate: string | null
+          file_path: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          level: string | null
+          slug: string
+          step_order: number | null
+          title: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          access_type: string
+          audience: string
+          bucket_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          duration_estimate?: string | null
+          file_path?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          level?: string | null
+          slug: string
+          step_order?: number | null
+          title: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          access_type?: string
+          audience?: string
+          bucket_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          duration_estimate?: string | null
+          file_path?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          level?: string | null
+          slug?: string
+          step_order?: number | null
+          title?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_dedicated_resources: {
         Row: {
           bucket_name: string | null
