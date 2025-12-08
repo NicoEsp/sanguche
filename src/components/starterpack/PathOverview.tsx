@@ -26,7 +26,7 @@ const typeLabels: Record<string, string> = {
 
 export function PathOverview({ audience, resources }: PathOverviewProps) {
   const isBuild = audience === 'build';
-  const displayResources = resources.slice(0, 5);
+  const displayResources = resources.slice(0, 4);
 
   if (displayResources.length === 0) {
     return null;
@@ -42,7 +42,7 @@ export function PathOverview({ audience, resources }: PathOverviewProps) {
           {resources.length} recursos seleccionados para tu perfil
         </p>
         
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {displayResources.map((resource) => {
             const Icon = typeIcons[resource.type] || FileText;
             return (
