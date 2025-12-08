@@ -1,4 +1,4 @@
-import { ClipboardCheck, BookOpen, TrendingUp } from 'lucide-react';
+import { ClipboardCheck, FolderOpen, BookOpen, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
@@ -11,12 +11,18 @@ const steps = [
   },
   {
     number: 2,
+    icon: FolderOpen,
+    title: 'Accedé a los recursos',
+    description: 'Descargá guías, templates y frameworks curados para tu perfil.',
+  },
+  {
+    number: 3,
     icon: BookOpen,
     title: 'Seguí la ruta de aprendizaje',
     description: 'Accedé a recursos seleccionados según tu perfil: Build (IC) o Lead (manager).',
   },
   {
-    number: 3,
+    number: 4,
     icon: TrendingUp,
     title: 'Medí tu progreso',
     description: 'Con Premium, recibí mentoría personalizada y objetivos adaptados a tu carrera.',
@@ -26,7 +32,7 @@ const steps = [
 export function HowItWorksSection() {
   return (
     <section className="py-12 md:py-20 bg-muted/30">
-      <div className="container max-w-5xl mx-auto px-4">
+      <div className="container max-w-6xl mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
             ¿Cómo funciona?
@@ -36,7 +42,7 @@ export function HowItWorksSection() {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {steps.map((step) => (
             <div key={step.number} className="text-center">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
