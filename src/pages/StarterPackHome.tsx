@@ -5,6 +5,8 @@ import {
   HowItWorksSection,
   WhatIsProductPrepa,
 } from "@/components/starterpack";
+import sangucheBuild from "@/assets/sanguche-build.png";
+import sangucheLead from "@/assets/sanguche-lead.png";
 
 const StarterPackHome = () => {
   return (
@@ -44,6 +46,7 @@ const StarterPackHome = () => {
               ]}
               ctaText="Empezar camino Build"
               ctaHref="/starterpack/build"
+              imageSrc={sangucheBuild}
             />
 
             <PathCard
@@ -57,6 +60,7 @@ const StarterPackHome = () => {
               ]}
               ctaText="Empezar camino Lead"
               ctaHref="/starterpack/lead"
+              imageSrc={sangucheLead}
             />
           </div>
         </section>

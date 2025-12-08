@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Rocket, Users, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PathCardProps {
@@ -11,11 +11,10 @@ interface PathCardProps {
   bullets: string[];
   ctaText: string;
   ctaHref: string;
+  imageSrc: string;
 }
 
-export function PathCard({ variant, title, description, bullets, ctaText, ctaHref }: PathCardProps) {
-  const Icon = variant === 'build' ? Rocket : Users;
-  
+export function PathCard({ variant, title, description, bullets, ctaText, ctaHref, imageSrc }: PathCardProps) {
   return (
     <Card className={cn(
       "relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
@@ -30,17 +29,11 @@ export function PathCard({ variant, title, description, bullets, ctaText, ctaHre
       )} />
       
       <CardHeader className="pb-4 pt-6">
-        <div className={cn(
-          "w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110",
-          variant === 'build' 
-            ? "bg-primary/15 ring-2 ring-primary/20" 
-            : "bg-purple-500/15 ring-2 ring-purple-500/20"
-        )}>
-          <Icon className={cn(
-            "w-8 h-8",
-            variant === 'build' ? "text-primary" : "text-purple-500"
-          )} />
-        </div>
+        <img 
+          src={imageSrc} 
+          alt={title}
+          className="w-20 h-20 object-contain mb-4"
+        />
         <CardTitle className="text-xl font-bold">{title}</CardTitle>
         <p className="text-muted-foreground mt-1">{description}</p>
       </CardHeader>

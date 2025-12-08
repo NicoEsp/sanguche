@@ -5,6 +5,7 @@ import {
   StepperRoute,
   ResourceGrid,
   StarterPackCTA,
+  PathOverview,
 } from "@/components/starterpack";
 import { useStarterPackResources } from "@/hooks/useStarterPackResources";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
@@ -12,7 +13,7 @@ import { StepperStep } from "@/types/starterpack";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const StarterPackBuild = () => {
-  const { stepperResources, gridResources, isLoading } = useStarterPackResources('build');
+  const { resources, stepperResources, gridResources, isLoading } = useStarterPackResources('build');
   const { hasAssessment } = useAssessmentData();
 
   // Construir los pasos del stepper
@@ -60,6 +61,22 @@ const StarterPackBuild = () => {
           title="Construye productos que importen"
           subtitle="Sigue este camino paso a paso para dominar los fundamentos de Product Management."
         />
+
+        {/* Path Overview - recursos incluidos */}
+        {isLoading ? (
+          <section className="container py-8 px-4 sm:px-6">
+            <div className="max-w-4xl mx-auto">
+              <Skeleton className="h-6 w-48 mx-auto mb-6" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-32 w-full" />
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : (
+          <PathOverview audience="build" resources={resources} />
+        )}
 
         {/* Stepper Section */}
         <section className="container py-12 px-4 sm:px-6">

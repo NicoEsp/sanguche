@@ -7,3 +7,4 @@ export { HowItWorksSection } from './HowItWorksSection';
 export { WhatIsProductPrepa } from './WhatIsProductPrepa';
 export { StarterPackCTA } from './StarterPackCTA';
 export { StarterPackBreadcrumb } from './StarterPackBreadcrumb';
+export { PathOverview } from './PathOverview';
