@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, ArrowRight, Zap } from "lucide-react";
+import { Check, Star, ArrowRight, Zap, Rocket } from "lucide-react";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 
 import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
@@ -98,6 +98,35 @@ const Index = () => {
         {/* <Testimonials /> */}
         
         <WhyProductPrepa />
+
+        {/* Starter Pack Section */}
+        <section className="container py-12 sm:py-16 px-4 sm:px-6">
+          <Card className="bg-gradient-to-br from-primary/5 via-background to-secondary/5 border-primary/20">
+            <CardContent className="p-6 sm:p-8">
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <div className="flex-shrink-0">
+                  <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <Rocket className="h-8 w-8 text-primary" />
+                  </div>
+                </div>
+                <div className="flex-1 text-center sm:text-left">
+                  <h3 className="text-xl sm:text-2xl font-bold mb-2">¿Empezando en Producto?</h3>
+                  <p className="text-muted-foreground max-w-xl">
+                    Te preparamos un Starter Pack con recursos concretos y un camino claro para dar tus primeros pasos como PM o crecer hacia roles de liderazgo.
+                  </p>
+                </div>
+                <div className="flex-shrink-0">
+                  <Button asChild size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                    <Link to="/starterpack">
+                      Ver Starter Pack
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
         {/* Free vs Premium Section */}
         <section className="container py-12 sm:py-16 px-4 sm:px-6">
