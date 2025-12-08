@@ -134,9 +134,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button asChild variant="default" size="sm">
-                  <Link to="/auth">Iniciar Sesión</Link>
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button asChild variant="ghost" size="sm">
+                    <Link to="/starterpack">Starter Pack</Link>
+                  </Button>
+                  <Button asChild variant="default" size="sm">
+                    <Link to="/auth">Iniciar Sesión</Link>
+                  </Button>
+                </div>
               )}
             </div>
           )}
@@ -228,9 +233,14 @@ export function AppLayout({ children }: { children: ReactNode }) {
                         </div>
                       </div>
                     ) : (
-                      <Button asChild variant="default" className="w-full" onClick={() => setIsOpen(false)}>
-                        <Link to="/auth">Iniciar Sesión</Link>
-                      </Button>
+                      <div className="space-y-2">
+                        <Button asChild variant="outline" className="w-full" onClick={() => setIsOpen(false)}>
+                          <Link to="/starterpack">Starter Pack</Link>
+                        </Button>
+                        <Button asChild variant="default" className="w-full" onClick={() => setIsOpen(false)}>
+                          <Link to="/auth">Iniciar Sesión</Link>
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>

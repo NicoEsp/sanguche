@@ -24,6 +24,11 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Welcome = lazy(() => import("./pages/Welcome"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+// Starter Pack pages
+const StarterPackHome = lazy(() => import("./pages/StarterPackHome"));
+const StarterPackBuild = lazy(() => import("./pages/StarterPackBuild"));
+const StarterPackLead = lazy(() => import("./pages/StarterPackLead"));
+
 // Skeleton components for better perceived performance
 const SkeletonProgress = lazy(() => import("./components/skeletons/SkeletonProgress"));
 const SkeletonAssessment = lazy(() => import("./components/skeletons/SkeletonAssessment"));
@@ -38,6 +43,7 @@ const AdminRecommendations = lazy(() => import("./pages/admin/AdminRecommendatio
 const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
 const AdminProgressObjectives = lazy(() => import("./pages/admin/AdminProgressObjectives"));
 const AdminMentoriaDetail = lazy(() => import("./pages/admin/AdminMentoriaDetail"));
+const AdminStarterPack = lazy(() => import("./pages/admin/AdminStarterPack"));
 
 // QueryClient configuration tuned for freshness-first experience
 const queryClient = new QueryClient({
@@ -78,6 +84,7 @@ const App = () => (
                   <Route path="mentoria/:userId" element={<AdminMentoriaDetail />} />
                   <Route path="objetivos" element={<AdminProgressObjectives />} />
                   <Route path="recursos" element={<AdminResources />} />
+                  <Route path="starterpack" element={<AdminStarterPack />} />
                   <Route path="configuracion" element={<AdminSettings />} />
                 </Route>
                 <Route path="/*" element={
@@ -87,6 +94,9 @@ const App = () => (
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/premium" element={<Premium />} />
                       <Route path="/welcome" element={<Welcome />} />
+                      <Route path="/starterpack" element={<StarterPackHome />} />
+                      <Route path="/starterpack/build" element={<StarterPackBuild />} />
+                      <Route path="/starterpack/lead" element={<StarterPackLead />} />
                       <Route path="/perfil" element={
                         <ProtectedRoute>
                           <Profile />
