@@ -67,15 +67,15 @@ const StarterPackBuild = () => {
           <section className="container py-8 px-4 sm:px-6">
             <div className="max-w-4xl mx-auto">
               <Skeleton className="h-6 w-48 mx-auto mb-6" />
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                {[1, 2, 3, 4, 5].map((i) => (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => (
                   <Skeleton key={i} className="h-32 w-full" />
                 ))}
               </div>
             </div>
           </section>
         ) : (
-          <PathOverview audience="build" resources={resources} />
+          <PathOverview audience="build" resources={stepperResources} />
         )}
 
         {/* Stepper Section */}
