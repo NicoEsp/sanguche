@@ -1,6 +1,7 @@
 import { ClipboardCheck, FolderOpen, BookOpen, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 const steps = [
   {
@@ -30,8 +31,13 @@ const steps = [
 ];
 
 export function HowItWorksSection() {
+  const { isAuthenticated } = useAuth();
+
+  // Redirect to auth with return URL if not authenticated
+  const ctaLink = isAuthenticated ? '/autoevaluacion' : '/auth?redirect=/autoevaluacion';
+
   return (
-    <section className="py-12 md:py-20 bg-muted/30">
+    <section id="como-funciona" className="py-12 md:py-20 bg-muted/30 scroll-mt-16">
       <div className="container max-w-6xl mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
@@ -63,7 +69,7 @@ export function HowItWorksSection() {
         
         <div className="text-center">
           <Button asChild>
-            <Link to="/autoevaluacion">Comenzar ahora</Link>
+            <Link to={ctaLink}>Comenzar ahora</Link>
           </Button>
         </div>
       </div>
