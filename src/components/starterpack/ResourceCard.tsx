@@ -14,6 +14,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ResourceCardProps {
   resource: StarterPackResource;
@@ -51,6 +57,7 @@ const levelColors = {
 
 export function ResourceCard({ resource, accessState, onDownload }: ResourceCardProps) {
   const Icon = typeIcons[resource.type] || FileText;
+  const shouldShowTooltip = resource.description && resource.description.length > 80;
   
   return (
     <Card className={cn(
@@ -77,9 +84,24 @@ export function ResourceCard({ resource, accessState, onDownload }: ResourceCard
         </CardTitle>
         
         {resource.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {resource.description}
-          </p>
+          shouldShowTooltip ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-sm text-muted-foreground line-clamp-2 cursor-help">
+                    {resource.description}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-sm">{resource.description}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {resource.description}
+            </p>
+          )
         )}
       </CardHeader>
       

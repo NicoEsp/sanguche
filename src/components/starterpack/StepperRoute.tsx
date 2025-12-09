@@ -1,10 +1,15 @@
 import { StepperStep, Audience } from '@/types/starterpack';
 import { useAssessmentData } from '@/hooks/useAssessmentData';
+import { useResourceAccess } from '@/hooks/useStarterPackResources';
+import { useResourceProgress } from '@/hooks/useResourceProgress';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
-import { FileText, ClipboardCheck, Crown, ExternalLink } from 'lucide-react';
+import { FileText, ClipboardCheck, Crown, ExternalLink, Check, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import { useState } from 'react';
 
 interface StepperRouteProps {
   steps: StepperStep[];
@@ -13,6 +18,47 @@ interface StepperRouteProps {
 
 export function StepperRoute({ steps, audience }: StepperRouteProps) {
   const { hasAssessment } = useAssessmentData();
+  const { getDownloadUrl, canAccess, isAuthenticated } = useResourceAccess();
+  const { markAsDownloaded, isDownloaded } = useResourceProgress();
+  const { isAuthenticated: authCheck } = useAuth();
+  const navigate = useNavigate();
+  const [downloadingSlug, setDownloadingSlug] = useState<string | null>(null);
+
+  const handleResourceClick = async (step: StepperStep) => {
+    if (!step.resource) return;
+
+    const resource = step.resource;
+
+    // Check if user needs to login
+    if (resource.access_type === 'requires_account' && !isAuthenticated) {
+      navigate('/auth?redirect=/starterpack/' + audience);
+      return;
+    }
+
+    // Check if user needs premium
+    if (resource.access_type === 'premium' && !canAccess(resource)) {
+      navigate('/premium');
+      return;
+    }
+
+    // Get download URL
+    setDownloadingSlug(resource.slug);
+    try {
+      const url = await getDownloadUrl(resource);
+      if (url) {
+        window.open(url, '_blank');
+        markAsDownloaded(resource.slug);
+        toast.success(`Recurso "${resource.title}" descargado`);
+      } else {
+        toast.error('No se pudo obtener el recurso');
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Error downloading resource:', error);
+      toast.error('Error al descargar el recurso');
+    } finally {
+      setDownloadingSlug(null);
+    }
+  };
 
   return (
     <div className="relative">
@@ -22,20 +68,29 @@ export function StepperRoute({ steps, audience }: StepperRouteProps) {
       <div className="space-y-6">
         {steps.map((step, index) => {
           const isAssessmentComplete = step.isAssessmentStep && hasAssessment;
+          const isResourceDownloaded = step.resource && isDownloaded(step.resource.slug);
+          const isStepComplete = isAssessmentComplete || isResourceDownloaded;
+          const isDownloading = step.resource && downloadingSlug === step.resource.slug;
           
           return (
-            <div key={step.number} className="relative flex gap-4">
+            <div 
+              key={step.number} 
+              id={`step-${step.number}`}
+              className="relative flex gap-4 scroll-mt-24"
+            >
               {/* Step number circle */}
               <div className={cn(
-                "relative z-10 w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold",
+                "relative z-10 w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold transition-all",
                 step.isPremiumStep 
                   ? "bg-amber-500/10 text-amber-600 border-2 border-amber-500/30"
-                  : isAssessmentComplete
+                  : isStepComplete
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground border-2 border-border"
               )}>
                 {step.isPremiumStep ? (
                   <Crown className="w-5 h-5" />
+                ) : isStepComplete ? (
+                  <Check className="w-5 h-5" />
                 ) : (
                   step.number
                 )}
@@ -43,15 +98,16 @@ export function StepperRoute({ steps, audience }: StepperRouteProps) {
               
               {/* Step content */}
               <div className="flex-1 pb-6">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 className="font-semibold text-foreground">{step.title}</h3>
                   {step.isPremiumStep && (
                     <Badge variant="outline" className="text-amber-600 border-amber-500/30">
                       Premium
                     </Badge>
                   )}
-                  {isAssessmentComplete && (
-                    <Badge variant="secondary" className="text-xs">
+                  {isStepComplete && (
+                    <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
+                      <Check className="w-3 h-3 mr-1" />
                       Completado
                     </Badge>
                   )}
@@ -63,18 +119,30 @@ export function StepperRoute({ steps, audience }: StepperRouteProps) {
                 
                 {/* Resource link or action */}
                 {step.resource && (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href="#" className="inline-flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      {step.resource.title}
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                  <Button 
+                    variant={isResourceDownloaded ? "secondary" : "outline"} 
+                    size="sm"
+                    onClick={() => handleResourceClick(step)}
+                    disabled={isDownloading}
+                  >
+                    {isDownloading ? (
+                      <span className="animate-spin mr-2">⏳</span>
+                    ) : isResourceDownloaded ? (
+                      <Check className="w-4 h-4 mr-2" />
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
+                    {step.resource.title}
+                    <ExternalLink className="w-3 h-3 ml-2" />
                   </Button>
                 )}
                 
                 {step.isAssessmentStep && !hasAssessment && (
                   <Button size="sm" asChild>
-                    <Link to="/autoevaluacion" className="inline-flex items-center gap-2">
+                    <Link 
+                      to={authCheck ? "/autoevaluacion" : "/auth?redirect=/autoevaluacion"} 
+                      className="inline-flex items-center gap-2"
+                    >
                       <ClipboardCheck className="w-4 h-4" />
                       Hacer autoevaluación
                     </Link>

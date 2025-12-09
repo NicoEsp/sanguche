@@ -59,6 +59,15 @@ export function PathOverview({ audience, resources }: PathOverviewProps) {
     return null;
   }
 
+  const scrollToStep = (index: number) => {
+    // Step 1 is assessment, so resource steps start at 2
+    const stepNumber = index + 2;
+    const element = document.getElementById(`step-${stepNumber}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
   return (
     <section className="container py-8 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
@@ -70,20 +79,22 @@ export function PathOverview({ audience, resources }: PathOverviewProps) {
         </p>
         
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          {displayResources.map((resource) => {
+          {displayResources.map((resource, index) => {
             const Icon = slugIcons[resource.slug] || typeIcons[resource.type] || FileText;
             return (
-              <div 
-                key={resource.id} 
+              <button 
+                key={resource.id}
+                onClick={() => scrollToStep(index)}
                 className={cn(
-                  "text-center p-4 rounded-lg border transition-colors",
+                  "text-center p-4 rounded-lg border transition-all cursor-pointer",
+                  "hover:scale-105 hover:shadow-lg active:scale-100",
                   isBuild 
-                    ? "bg-primary/5 border-primary/20 hover:border-primary/40" 
-                    : "bg-purple-500/5 border-purple-500/20 hover:border-purple-500/40"
+                    ? "bg-primary/5 border-primary/20 hover:border-primary/40 hover:shadow-primary/10" 
+                    : "bg-purple-500/5 border-purple-500/20 hover:border-purple-500/40 hover:shadow-purple-500/10"
                 )}
               >
                 <div className={cn(
-                  "w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3",
+                  "w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3 transition-transform",
                   isBuild 
                     ? "bg-gradient-to-br from-primary/20 to-primary/5" 
                     : "bg-gradient-to-br from-purple-500/20 to-purple-500/5"
@@ -105,7 +116,7 @@ export function PathOverview({ audience, resources }: PathOverviewProps) {
                 >
                   {typeLabels[resource.type] || resource.type}
                 </Badge>
-              </div>
+              </button>
             );
           })}
         </div>

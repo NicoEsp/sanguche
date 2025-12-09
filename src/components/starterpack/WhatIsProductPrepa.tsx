@@ -1,7 +1,13 @@
-import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 
 export function WhatIsProductPrepa() {
+  const scrollToHowItWorks = () => {
+    const element = document.getElementById('como-funciona');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <section className="py-12 md:py-16">
       <div className="container max-w-4xl mx-auto px-4">
@@ -25,13 +31,13 @@ export function WhatIsProductPrepa() {
               en Latinoamérica. Te ayudamos a identificar tus fortalezas, cerrar brechas de 
               habilidades y acelerar tu carrera con mentoría personalizada.
             </p>
-            <Link 
-              to="/" 
-              className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+            <button 
+              onClick={scrollToHowItWorks}
+              className="inline-flex items-center gap-1 text-primary hover:underline font-medium cursor-pointer"
             >
               Ver cómo funciona
               <ArrowRight className="w-4 h-4" />
-            </Link>
+            </button>
           </div>
         </div>
       </div>
