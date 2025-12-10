@@ -4,7 +4,7 @@ import { useResourceAccess } from '@/hooks/useStarterPackResources';
 import { useResourceProgress } from '@/hooks/useResourceProgress';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
-import { FileText, ClipboardCheck, Crown, ExternalLink, Check, Download } from 'lucide-react';
+import { FileText, ClipboardCheck, Crown, ExternalLink, Check, Download, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -119,22 +119,29 @@ export function StepperRoute({ steps, audience }: StepperRouteProps) {
                 
                 {/* Resource link or action */}
                 {step.resource && (
-                  <Button 
-                    variant={isResourceDownloaded ? "secondary" : "outline"} 
-                    size="sm"
-                    onClick={() => handleResourceClick(step)}
-                    disabled={isDownloading}
-                  >
-                    {isDownloading ? (
-                      <span className="animate-spin mr-2">⏳</span>
-                    ) : isResourceDownloaded ? (
-                      <Check className="w-4 h-4 mr-2" />
-                    ) : (
-                      <Download className="w-4 h-4 mr-2" />
-                    )}
-                    {step.resource.title}
-                    <ExternalLink className="w-3 h-3 ml-2" />
-                  </Button>
+                  hasAssessment ? (
+                    <Button 
+                      variant={isResourceDownloaded ? "secondary" : "outline"} 
+                      size="sm"
+                      onClick={() => handleResourceClick(step)}
+                      disabled={isDownloading}
+                    >
+                      {isDownloading ? (
+                        <span className="animate-spin mr-2">⏳</span>
+                      ) : isResourceDownloaded ? (
+                        <Check className="w-4 h-4 mr-2" />
+                      ) : (
+                        <Download className="w-4 h-4 mr-2" />
+                      )}
+                      {step.resource.title}
+                      <ExternalLink className="w-3 h-3 ml-2" />
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Lock className="w-4 h-4" />
+                      <span>Completa la autoevaluación para desbloquear</span>
+                    </div>
+                  )
                 )}
                 
                 {step.isAssessmentStep && !hasAssessment && (
