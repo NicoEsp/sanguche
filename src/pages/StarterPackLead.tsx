@@ -3,7 +3,6 @@ import {
   StarterPackHero,
   StarterPackBreadcrumb,
   StepperRoute,
-  ResourceGrid,
   StarterPackCTA,
   PathOverview,
 } from "@/components/starterpack";
@@ -13,7 +12,7 @@ import { StepperStep } from "@/types/starterpack";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const StarterPackLead = () => {
-  const { resources, stepperResources, gridResources, isLoading } = useStarterPackResources('lead');
+  const { stepperResources, isLoading } = useStarterPackResources('lead');
   const { hasAssessment } = useAssessmentData();
 
   // Construir los pasos del stepper
@@ -93,27 +92,6 @@ const StarterPackLead = () => {
             )}
           </div>
         </section>
-
-        {/* Additional Resources Grid */}
-        {gridResources.length > 0 && (
-          <section className="container py-12 px-4 sm:px-6 border-t">
-            <div className="max-w-5xl mx-auto">
-              <h2 className="text-2xl font-bold mb-4 text-center">Recursos adicionales</h2>
-              <p className="text-muted-foreground text-center mb-8 max-w-2xl mx-auto">
-                Profundiza en habilidades clave de liderazgo con estos recursos
-              </p>
-              {isLoading ? (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-48 w-full" />
-                  ))}
-                </div>
-              ) : (
-                <ResourceGrid resources={gridResources} />
-              )}
-            </div>
-          </section>
-        )}
 
         <StarterPackCTA variant="lead" />
       </main>
