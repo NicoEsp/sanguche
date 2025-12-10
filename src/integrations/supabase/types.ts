@@ -798,6 +798,7 @@ export type Database = {
         | {
             Args: {
               p_action_type: string
+              p_admin_user_id: string
               p_details?: Json
               p_target_user_id: string
             }
@@ -806,7 +807,6 @@ export type Database = {
         | {
             Args: {
               p_action_type: string
-              p_admin_user_id: string
               p_details?: Json
               p_target_user_id: string
             }
