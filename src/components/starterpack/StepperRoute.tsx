@@ -125,6 +125,7 @@ export function StepperRoute({ steps, audience }: StepperRouteProps) {
                       size="sm"
                       onClick={() => handleResourceClick(step)}
                       disabled={isDownloading}
+                      className="animate-fade-in"
                     >
                       {isDownloading ? (
                         <span className="animate-spin mr-2">⏳</span>
@@ -137,10 +138,15 @@ export function StepperRoute({ steps, audience }: StepperRouteProps) {
                       <ExternalLink className="w-3 h-3 ml-2" />
                     </Button>
                   ) : (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Lock className="w-4 h-4" />
-                      <span>Completa la autoevaluación para desbloquear</span>
-                    </div>
+                    <Link 
+                      to={authCheck ? "/autoevaluacion" : "/auth?redirect=/autoevaluacion"} 
+                      className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors group"
+                    >
+                      <Lock className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                      <span className="underline-offset-2 group-hover:underline">
+                        Completa la autoevaluación para desbloquear
+                      </span>
+                    </Link>
                   )
                 )}
                 
