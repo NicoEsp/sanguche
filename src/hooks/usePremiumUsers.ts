@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface PremiumUser {
   id: string;
   name: string | null;
+  email: string | null;
   user_id: string;
   mentoria_completed: boolean;
   user_subscriptions: {
@@ -22,6 +23,7 @@ export function usePremiumUsers() {
         .select(`
           id,
           name,
+          email,
           user_id,
           mentoria_completed,
           user_subscriptions!inner (
