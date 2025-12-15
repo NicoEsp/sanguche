@@ -44,6 +44,7 @@ const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
 const AdminProgressObjectives = lazy(() => import("./pages/admin/AdminProgressObjectives"));
 const AdminMentoriaDetail = lazy(() => import("./pages/admin/AdminMentoriaDetail"));
 const AdminStarterPack = lazy(() => import("./pages/admin/AdminStarterPack"));
+const AdminExercises = lazy(() => import("./pages/admin/AdminExercises"));
 
 // QueryClient configuration tuned for freshness-first experience
 const queryClient = new QueryClient({
@@ -82,6 +83,7 @@ const App = () => (
                   <Route path="evaluaciones" element={<AdminAssessments />} />
                   <Route path="mentoria" element={<AdminRecommendations />} />
                   <Route path="mentoria/:userId" element={<AdminMentoriaDetail />} />
+                  <Route path="ejercicios" element={<AdminExercises />} />
                   <Route path="objetivos" element={<AdminProgressObjectives />} />
                   <Route path="recursos" element={<AdminResources />} />
                   <Route path="starterpack" element={<AdminStarterPack />} />
