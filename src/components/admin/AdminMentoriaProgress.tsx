@@ -9,13 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon, Trash2, Edit, Plus, CheckCircle2, Circle, ExternalLink } from "lucide-react";
+import { CalendarIcon, Trash2, Edit, Plus, BookOpen } from "lucide-react";
 import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjective, useDeleteUserObjective } from "@/hooks/useUserProgressObjectives";
 import { ProgressObjective, ObjectiveStep } from "@/types/progress";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useNavigate } from "react-router-dom";
+import { AssignObjectiveDialog } from "@/components/admin/AssignObjectiveDialog";
 
 interface AdminMentoriaProgressProps {
   userId: string;
@@ -45,9 +45,9 @@ const emptyForm: ObjectiveFormState = {
 };
 
 export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"list" | "timeline">("list");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [formState, setFormState] = useState<ObjectiveFormState>(emptyForm);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [objectiveToDelete, setObjectiveToDelete] = useState<string | null>(null);
@@ -92,34 +92,33 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
         completed: false,
       }));
 
-    const objectiveData: any = {
-      title: formState.title,
-      summary: formState.summary,
-      type: formState.type,
-      source: formState.source,
-      timeframe: formState.timeframe,
-      steps,
-      status: "not-started" as const,
-      mentorNotes: formState.mentorNotes || undefined,
-      dueDate: formState.dueDate || undefined,
-    };
-
     if (formState.id) {
+      // Update - use snake_case for DB fields and don't reset status
       await updateMutation.mutateAsync({
         id: formState.id,
         userId,
-        updates: objectiveData,
+        updates: {
+          title: formState.title,
+          summary: formState.summary,
+          type: formState.type,
+          source: formState.source,
+          timeframe: formState.timeframe,
+          steps,
+          mentor_notes: formState.mentorNotes || null,
+          due_date: formState.dueDate || null,
+        },
       });
       toast.success("Objetivo actualizado");
     } else {
+      // Create new objective
       await createMutation.mutateAsync({
         userId,
-        title: objectiveData.title,
-        summary: objectiveData.summary,
-        type: objectiveData.type,
-        timeframe: objectiveData.timeframe,
-        steps: objectiveData.steps,
-        dueDate: objectiveData.dueDate,
+        title: formState.title,
+        summary: formState.summary,
+        type: formState.type,
+        timeframe: formState.timeframe,
+        steps,
+        dueDate: formState.dueDate || undefined,
       });
       toast.success("Objetivo creado");
     }
@@ -185,6 +184,11 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
     later: objectives.filter((o) => o.timeframe === "later"),
   };
 
+  const confirmDelete = (id: string) => {
+    setObjectiveToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
   if (isLoading) {
     return <div className="p-6">Cargando objetivos...</div>;
   }
@@ -193,26 +197,26 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Gestión de Progreso</h2>
+          <h2 className="text-2xl font-bold">Gestión de Objetivos</h2>
           <p className="text-muted-foreground">
-            Gestiona los objetivos personalizados del usuario
+            Crea objetivos custom o asigna desde el catálogo global
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/admin/objetivos")}>
-            <ExternalLink className="h-4 w-4 mr-2" />
+          <Button variant="outline" onClick={() => setAssignDialogOpen(true)}>
+            <BookOpen className="h-4 w-4 mr-2" />
             Asignar desde Catálogo
           </Button>
           <Button onClick={openCreateDialog}>
             <Plus className="h-4 w-4 mr-2" />
-            Nuevo Objetivo
+            Nuevo Objetivo Custom
           </Button>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
         <TabsList>
-          <TabsTrigger value="list">Objetivos Activos</TabsTrigger>
+          <TabsTrigger value="list">Lista Detallada</TabsTrigger>
           <TabsTrigger value="timeline">Vista Timeline</TabsTrigger>
         </TabsList>
 
@@ -233,27 +237,20 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
                       <CardDescription>{obj.summary}</CardDescription>
                     </div>
                     <div className="flex gap-2">
-                      {obj.source === "custom" && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditDialog(obj)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setObjectiveToDelete(obj.id);
-                              setDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditDialog(obj)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => confirmDelete(obj.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>
@@ -318,8 +315,18 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
               </h3>
               {objectivesByTimeframe.now.map((obj) => (
                 <Card key={obj.id} className="border-red-200">
-                  <CardHeader>
-                    <CardTitle className="text-base">{obj.title}</CardTitle>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-base">{obj.title}</CardTitle>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(obj)}>
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => confirmDelete(obj.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
                     <CardDescription className="text-xs">
                       {obj.summary}
                     </CardDescription>
@@ -355,8 +362,18 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
               </h3>
               {objectivesByTimeframe.soon.map((obj) => (
                 <Card key={obj.id} className="border-yellow-200">
-                  <CardHeader>
-                    <CardTitle className="text-base">{obj.title}</CardTitle>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-base">{obj.title}</CardTitle>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(obj)}>
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => confirmDelete(obj.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
                     <CardDescription className="text-xs">
                       {obj.summary}
                     </CardDescription>
@@ -392,8 +409,18 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
               </h3>
               {objectivesByTimeframe.later.map((obj) => (
                 <Card key={obj.id} className="border-green-200">
-                  <CardHeader>
-                    <CardTitle className="text-base">{obj.title}</CardTitle>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-base">{obj.title}</CardTitle>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(obj)}>
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => confirmDelete(obj.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
                     <CardDescription className="text-xs">
                       {obj.summary}
                     </CardDescription>
@@ -424,6 +451,13 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog para asignar desde catálogo */}
+      <AssignObjectiveDialog
+        open={assignDialogOpen}
+        onOpenChange={setAssignDialogOpen}
+        userId={userId}
+      />
 
       {/* Dialog de crear/editar */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -562,8 +596,7 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar objetivo?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Solo se pueden eliminar objetivos
-              custom.
+              Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
