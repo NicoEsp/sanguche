@@ -16,9 +16,11 @@ export default function AdminRecommendations() {
   const navigate = useNavigate();
 
   const filteredUsers = (premiumUsers || []).filter(user => {
+    const search = searchTerm.toLowerCase();
     const matchesSearch = 
-      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      user.user_id?.toLowerCase().includes(searchTerm.toLowerCase());
+      user.name?.toLowerCase().includes(search) || 
+      user.email?.toLowerCase().includes(search) ||
+      user.user_id?.toLowerCase().includes(search);
     return matchesSearch;
   });
 
@@ -62,7 +64,7 @@ export default function AdminRecommendations() {
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nombre..."
+                placeholder="Buscar por nombre o email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -99,7 +101,7 @@ export default function AdminRecommendations() {
                             <span className="font-medium">{user.name || 'Usuario sin nombre'}</span>
                           </div>
                           <span className="text-xs text-muted-foreground ml-6">
-                            {user.user_id.slice(0, 8)}...
+                            {user.email || 'Sin email'}
                           </span>
                         </div>
                       </TableCell>
