@@ -3,7 +3,7 @@
 Una plataforma para Product Managers que permite:
 - Evaluarse en 11 dominios claves (Autoevaluación)
 - Ver sus Áreas de mejora personalizadas
-- Acceder a funcionalidades premium como Mentoría personalizada y Progreso
+- Acceder a funcionalidades premium como Mentoría personalizada y Career Path
 - Hacer seguimiento del avance en sus objetivos de carrera
 
 -----
@@ -17,7 +17,7 @@ src/pages/
 ├── Assessment.tsx         → ✨ NUEVO: Autoevaluación en 11 dominios basada en preguntas y ejemplos concretos
 ├── SkillGaps.tsx          → Áreas de mejora
 ├── Recommendations.tsx    → Mentoría personalizada (premium)
-├── Progress.tsx           → Sistema de seguimiento de progreso (premium)
+├── Progress.tsx           → Career Path - Sistema de seguimiento de objetivos (premium)
 ├── Premium.tsx            → Página de planes y checkout con Polar
 ├── Profile.tsx            → ✨ NUEVO: Mi Perfil (estadísticas y configuración)
 └── NotFound.tsx           → Página 404
@@ -58,9 +58,9 @@ Desde esta sección un usuario puede:
 - Desbloqueo desde panel de administración
 - Acceso gradual a funcionalidades premium
 
-### / progreso
+### /progreso (Career Path)
 Desde esta sección el usuario puede:
-- Acceder a un sistema de progreso estructurado en un Canvas y una lista de items arrastrable. Cada item tiene un checklist, al completar todos los elementos de la checklist el item pasa a estado 'completed' y eso se ve reflejado como avance en la sección superior de /progreso
+- Acceder a su Career Path estructurado en un Canvas y una lista de items arrastrable. Cada item tiene un checklist, al completar todos los elementos de la checklist el item pasa a estado 'completed' y eso se ve reflejado como avance en la sección superior
 - ✨ NUEVO: Ahora el canvas puede guardarse para fijar el plan de trabajo y se puede exportar a PDF
 
 -----

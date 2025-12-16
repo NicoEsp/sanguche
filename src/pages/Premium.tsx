@@ -231,7 +231,7 @@ export default function Premium() {
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                      <span>Seguimiento visual de tu progreso y objetivos</span>
+                      <span>Tu Career Path con objetivos y pasos concretos</span>
                     </li>
                     <li className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
@@ -279,7 +279,7 @@ export default function Premium() {
               <Card>
                 <CardHeader className="text-center">
                   <TrendingUp className="w-12 h-12 text-primary mx-auto mb-4" />
-                  <CardTitle className="text-xl">Dashboard de Progreso</CardTitle>
+                  <CardTitle className="text-xl">Career Path</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-center">
@@ -302,8 +302,8 @@ export default function Premium() {
 
               <Card>
                 <CardHeader className="text-center">
-                  <TrendingUp className="w-12 h-12 text-primary mx-auto mb-4" />
-                  <CardTitle className="text-xl">Progreso</CardTitle>
+                  <MapPin className="w-12 h-12 text-primary mx-auto mb-4" />
+                  <CardTitle className="text-xl">Roadmap Personalizado</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-center">

@@ -32,7 +32,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { href: "/autoevaluacion", label: "Autoevaluación", premium: false },
     { href: "/mejoras", label: "Áreas de mejora", premium: false },
     { href: "/mentoria", label: "Mentoría", premium: isPremiumFeature(FEATURES.RECOMMENDATIONS) },
-    { href: "/progreso", label: "Progreso", premium: isPremiumFeature(FEATURES.PROGRESS) },
+    { href: "/progreso", label: "Career Path", premium: isPremiumFeature(FEATURES.PROGRESS) },
   ];
 
   return (

@@ -25,7 +25,7 @@ const steps = [
   {
     number: 4,
     icon: TrendingUp,
-    title: 'Medí tu progreso',
+    title: 'Construí tu Career Path',
     description: 'Con Premium, recibí mentoría personalizada y objetivos adaptados a tu carrera.',
   },
 ];
