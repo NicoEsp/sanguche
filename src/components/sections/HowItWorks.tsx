@@ -22,8 +22,8 @@ const steps = [
   },
   {
     icon: Trophy,
-    title: "Progreso",
-    description: "Mide tu evolución y mantén el foco en tus objetivos de carrera",
+    title: "Career Path",
+    description: "Construí tu Career Path con objetivos concretos y pasos para avanzar",
     color: "text-secondary-foreground"
   }
 ];

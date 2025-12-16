@@ -86,7 +86,7 @@ export function MentoriaHero({ mentoriaCompleted, lastMentoriaDate }: MentoriaHe
                 ¡Excelente trabajo en tu mentoría!
               </h2>
               <p className="text-muted-foreground text-lg">
-                Ahora es momento de poner en práctica lo conversado. Completa tus ejercicios y enfócate en tu progreso.
+                Ahora es momento de poner en práctica lo conversado. Completa tus ejercicios y enfócate en tu Career Path.
               </p>
             </div>
             
@@ -111,7 +111,7 @@ export function MentoriaHero({ mentoriaCompleted, lastMentoriaDate }: MentoriaHe
               className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3 text-lg"
             >
               <TrendingUp className="mr-2 h-5 w-5" />
-              Ver mi Progreso
+              Ver mi Career Path
             </Button>
           </div>
         </CardContent>

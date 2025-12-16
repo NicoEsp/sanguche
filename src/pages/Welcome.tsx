@@ -83,7 +83,7 @@ export default function Welcome() {
                     <li>Evalúa tus habilidades actuales</li>
                     <li>Recibe recomendaciones personalizadas</li>
                     <li>Accede a recursos exclusivos</li>
-                    <li>Sigue tu progreso en tiempo real</li>
+                    <li>Construí tu Career Path personalizado</li>
                   </ul>
                 </div>
               </div>

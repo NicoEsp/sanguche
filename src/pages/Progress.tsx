@@ -571,7 +571,7 @@ export default function Progress() {
   }
   return <>
       <Seo 
-        title="Progreso — ProductPrepa" 
+        title="Career Path — ProductPrepa" 
         description="Construí y visualizá tu Career Path personalizado con tus objetivos prioritarios." 
         canonical="/progreso" 
       />
@@ -580,14 +580,9 @@ export default function Progress() {
           <header className="space-y-4">
             <div className="flex flex-col gap-4">
               <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="w-fit text-primary border-primary/40 bg-primary/5">
-                    Premium exclusivo
-                  </Badge>
-                  <Badge variant="outline" className="w-fit text-cyan-600 border-cyan-500/40 bg-cyan-500/10">
-                    Beta
-                  </Badge>
-                </div>
+                <Badge variant="outline" className="w-fit text-primary border-primary/40 bg-primary/5">
+                  Premium exclusivo
+                </Badge>
                 
                 <div className="flex items-center justify-between gap-4">
                   <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight">

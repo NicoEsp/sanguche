@@ -18,7 +18,7 @@ export function PaywallCard({
   
   const benefits = [
     <>Guía de carrera personalizada diseñada por <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>,
-    "Seguimiento visual de tu progreso y objetivos",
+    "Tu Career Path con objetivos y pasos concretos",
     "Recursos curados según tus áreas de mejora",
     "Roadmap de carrera diseñado a tu medida",
     "Nuevos contenidos y ejercicios cada mes"

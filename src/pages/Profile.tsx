@@ -141,7 +141,7 @@ export default function Profile() {
     <>
       <Seo 
         title="Mi Perfil - ProductPrepa"
-        description="Gestiona tu perfil, revisa tu progreso y mantén el control de tu plan de suscripción"
+        description="Gestiona tu perfil, revisa tu Career Path y mantén el control de tu plan de suscripción"
         canonical="/perfil"
       />
       
@@ -270,9 +270,9 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        {/* Sección 3: Estadísticas de Progreso */}
+        {/* Sección 3: Estadísticas de Career Path */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">Estadísticas de Progreso</h2>
+          <h2 className="text-2xl font-bold mb-4">Estadísticas de Career Path</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <ProfileStats 
               icon={FileText} 
