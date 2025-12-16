@@ -189,7 +189,7 @@ export default function Progress() {
   useEffect(() => {
     if (isFullyLoaded && hasAccess && !hasTrackedPageView.current) {
       hasTrackedPageView.current = true;
-      trackEvent('progress_page_view', {
+      trackEvent('career_path_page_view', {
         has_objectives: canvasObjectives.length > 0,
         objectives_count: canvasObjectives.length,
         completed_count: completedObjectives.length,
