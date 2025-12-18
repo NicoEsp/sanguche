@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, BookOpen, Sparkles, RefreshCcw, Gift } from "lucide-react";
 import { useUserDedicatedResources, ResourceType } from "@/hooks/useUserDedicatedResources";
-import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -28,15 +28,15 @@ const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
 };
 
 export function DedicatedResources() {
-  const { user } = useAuth();
+  const { profile, loading: profileLoading } = useUserProfile();
   const {
     resources: dedicatedResources,
     loading: loadingDedicated,
     refetch: refetchDedicated,
-  } = useUserDedicatedResources(user ? (user as any).profile_id : undefined);
+  } = useUserDedicatedResources(profile?.id);
 
   // Loading state
-  if (loadingDedicated) {
+  if (loadingDedicated || profileLoading) {
     return (
       <Card>
         <CardHeader>
