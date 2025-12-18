@@ -137,12 +137,15 @@ export function useSubscription(options?: UseSubscriptionOptions) {
     };
   }
 
+  // Return undefined for hasActivePremium while loading to distinguish from "definitely not premium"
+  const isStillLoading = loading || authLoading || isError;
+  
   return {
     subscription,
-    loading: loading || authLoading || isError, // Tratar error como loading
-    hasActivePremium: (!loading && !authLoading && !isError) 
-      ? (subscription?.status === 'active' && subscription?.plan === 'premium')
-      : false, // No calcular hasActivePremium si hay error/loading
+    loading: isStillLoading,
+    hasActivePremium: isStillLoading 
+      ? undefined 
+      : (subscription?.status === 'active' && subscription?.plan === 'premium'),
     isTrialing: subscription?.trialEnd ? new Date() < subscription.trialEnd : false,
   };
 }

@@ -52,7 +52,7 @@ export const ProfileAnalysis = memo(function ProfileAnalysis({ result }: Profile
           {result.neutralAreas && result.neutralAreas.length > 0 ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground mb-4">
-                Estas áreas tienen potencial de crecimiento para llevarte al siguiente nivel:
+                En base a los resultados de la evaluación, estas áreas tienen potencial de crecimiento para llevarte al siguiente nivel:
               </p>
               <div className="grid gap-3">
                 {result.neutralAreas?.map((area, index) => (
