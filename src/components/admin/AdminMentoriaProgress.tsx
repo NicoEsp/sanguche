@@ -9,12 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon, Trash2, Edit, Plus } from "lucide-react";
+import { CalendarIcon, Trash2, Edit, Plus, Lock, Unlock } from "lucide-react";
 import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjective, useDeleteUserObjective } from "@/hooks/useUserProgressObjectives";
 import { ProgressObjective, ObjectiveStep } from "@/types/progress";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 
 interface AdminMentoriaProgressProps {
@@ -51,11 +54,38 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
   const [formState, setFormState] = useState<ObjectiveFormState>(emptyForm);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [objectiveToDelete, setObjectiveToDelete] = useState<string | null>(null);
+  const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
 
+  const queryClient = useQueryClient();
   const { data: objectives = [], isLoading } = useUserProgressObjectives(userId);
   const createMutation = useCreateUserObjective();
   const updateMutation = useUpdateUserObjective();
   const deleteMutation = useDeleteUserObjective();
+
+  // Check if Career Path is locked
+  const isCareerPathLocked = objectives.length > 0 && objectives.every(obj => obj.is_locked);
+  const lockedAt = objectives.find(obj => obj.locked_at)?.locked_at;
+
+  // Mutation to unlock Career Path
+  const unlockMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('user_progress_objectives')
+        .update({ is_locked: false, locked_at: null })
+        .eq('user_id', userId)
+        .eq('is_locked', true);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-progress-objectives', userId] });
+      toast.success('Career Path reabierto exitosamente');
+      setUnlockDialogOpen(false);
+    },
+    onError: () => {
+      toast.error('Error al reabrir el Career Path');
+    }
+  });
 
   const openCreateDialog = () => {
     setFormState(emptyForm);
@@ -195,6 +225,31 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
 
   return (
     <div className="space-y-6">
+      {/* Locked Career Path Banner */}
+      {isCareerPathLocked && (
+        <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-center gap-3">
+            <Lock className="h-5 w-5 text-amber-600" />
+            <div>
+              <p className="font-medium text-amber-800">Career Path Cerrado</p>
+              {lockedAt && (
+                <p className="text-sm text-amber-600">
+                  Cerrado el {format(new Date(lockedAt), "dd/MM/yyyy 'a las' HH:mm", { locale: es })}
+                </p>
+              )}
+            </div>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => setUnlockDialogOpen(true)}
+            className="border-amber-300 text-amber-700 hover:bg-amber-100"
+          >
+            <Unlock className="h-4 w-4 mr-2" />
+            Reabrir Career Path
+          </Button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Gestión de Objetivos</h2>
@@ -589,6 +644,28 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de confirmación de reabrir Career Path */}
+      <AlertDialog open={unlockDialogOpen} onOpenChange={setUnlockDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Reabrir Career Path?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esto permitirá al usuario volver a editar y modificar sus objetivos. 
+              Los objetivos actuales se mantendrán pero ya no estarán bloqueados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => unlockMutation.mutate()}
+              disabled={unlockMutation.isPending}
+            >
+              {unlockMutation.isPending ? "Reabriendo..." : "Reabrir"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
