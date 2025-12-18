@@ -41,7 +41,7 @@ const AdminResources = lazy(() => import("./pages/admin/AdminResources"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminRecommendations = lazy(() => import("./pages/admin/AdminRecommendations"));
 const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
-const AdminProgressObjectives = lazy(() => import("./pages/admin/AdminProgressObjectives"));
+
 const AdminMentoriaDetail = lazy(() => import("./pages/admin/AdminMentoriaDetail"));
 const AdminStarterPack = lazy(() => import("./pages/admin/AdminStarterPack"));
 const AdminExercises = lazy(() => import("./pages/admin/AdminExercises"));
@@ -84,7 +84,7 @@ const App = () => (
                   <Route path="mentoria" element={<AdminRecommendations />} />
                   <Route path="mentoria/:userId" element={<AdminMentoriaDetail />} />
                   <Route path="ejercicios" element={<AdminExercises />} />
-                  <Route path="objetivos" element={<AdminProgressObjectives />} />
+                  
                   <Route path="recursos" element={<AdminResources />} />
                   <Route path="starterpack" element={<AdminStarterPack />} />
                   <Route path="configuracion" element={<AdminSettings />} />

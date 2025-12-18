@@ -125,6 +125,35 @@ export type Database = {
         }
         Relationships: []
       }
+      dismissed_recommended_objectives: {
+        Row: {
+          dismissed_at: string | null
+          id: string
+          objective_key: string
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string | null
+          id?: string
+          objective_key: string
+          user_id: string
+        }
+        Update: {
+          dismissed_at?: string | null
+          id?: string
+          objective_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dismissed_recommended_objectives_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -787,6 +816,7 @@ export type Database = {
       clean_old_rate_limits: { Args: never; Returns: undefined }
       create_admin_user: { Args: { admin_user_id: string }; Returns: boolean }
       ensure_user_defaults: { Args: never; Returns: undefined }
+      get_profile_id_for_auth: { Args: never; Returns: string }
       has_active_premium: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       is_admin_jwt: { Args: { check_user_id?: string }; Returns: boolean }

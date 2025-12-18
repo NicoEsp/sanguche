@@ -15,9 +15,9 @@ import { cn } from "@/lib/utils";
 import { useSubscription } from "@/hooks/useSubscription";
 import { PaywallCard } from "@/components/PaywallCard";
 import { Seo } from "@/components/Seo";
-import { Calendar, CheckCircle2, FileText, Loader2, Lock, Plus, Save, Sparkles, Trash2 } from "lucide-react";
+import { Calendar, CheckCircle2, FileText, Loader2, Lock, Plus, Save, Sparkles, Trash2, X } from "lucide-react";
 import { CanvasStage, ProgressObjective } from "@/types/progress";
-import { useProgressObjectives } from "@/hooks/useProgressObjectives";
+import { useRecommendedObjectives, GeneratedObjective } from "@/hooks/useRecommendedObjectives";
 import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjective, useDeleteUserObjective } from "@/hooks/useUserProgressObjectives";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -118,7 +118,7 @@ export default function Progress() {
   const hasTrackedPageView = useRef(false);
   
   // Fetch data from DB
-  const { data: suggestedObjectives = [], isLoading: loadingSuggested } = useProgressObjectives();
+  const { recommendedObjectives, isLoading: loadingRecommended, dismissObjective, isDismissing } = useRecommendedObjectives();
   const { data: userObjectives = [], isLoading: loadingUser } = useUserProgressObjectives(profileId);
   
   // Mutations
@@ -143,7 +143,7 @@ export default function Progress() {
     useSensor(KeyboardSensor)
   );
   
-  const isLoadingData = loadingSuggested || loadingUser;
+  const isLoadingData = loadingRecommended || loadingUser;
   const isFullyLoaded = !subscriptionLoading && !profileLoading && !isLoadingData;
   const hasAccess = isDemoMode || hasActivePremium;
   
@@ -159,13 +159,6 @@ export default function Progress() {
   );
   const customObjectiveLimitReached = customObjectivesCreatedCount >= MAX_CUSTOM_OBJECTIVES;
   const remainingCustomSlots = Math.max(0, MAX_CUSTOM_OBJECTIVES - customObjectivesCreatedCount);
-  
-  // Filtrar objetivos sugeridos que ya están en el canvas
-  const availableSuggestedObjectives = useMemo(() => {
-    return suggestedObjectives.filter(suggested => 
-      !userObjectives.some(user => user.objective_id === suggested.id)
-    );
-  }, [suggestedObjectives, userObjectives]);
   
   // Canvas objectives (mentor + custom)
   const canvasObjectives = useMemo(() => [...mentorObjectives, ...customObjectives], [mentorObjectives, customObjectives]);
@@ -218,33 +211,36 @@ export default function Progress() {
     const draggedId = active.id as string;
     const targetTimeframe = over.id as CanvasStage;
 
-    // Check if it's a suggested objective
-    const suggestedObj = suggestedObjectives.find(obj => obj.id === draggedId);
-    if (suggestedObj) {
-      // Check for duplicate
-      const alreadyAssigned = userObjectives.some(obj => obj.objective_id === suggestedObj.id);
+    // Check if it's a recommended objective (by key)
+    const recommendedObj = recommendedObjectives.find(obj => obj.key === draggedId);
+    if (recommendedObj) {
+      // Check for duplicate by title
+      const alreadyAssigned = userObjectives.some(obj => obj.title === recommendedObj.title);
       if (alreadyAssigned) {
         toast.error('Este objetivo ya está en tu canvas');
         return;
       }
 
-      // Create custom objective from suggested
+      // Create custom objective from recommended
       createUserObjective.mutate({
         userId: profileId,
-        title: suggestedObj.title,
-        summary: suggestedObj.summary,
-        type: suggestedObj.type,
+        title: recommendedObj.title,
+        summary: recommendedObj.summary,
+        type: recommendedObj.type,
         timeframe: targetTimeframe,
-        steps: suggestedObj.steps ?? [],
-        dueDate: getObjectiveDueDate(suggestedObj),
-        objectiveId: suggestedObj.id,
+        steps: recommendedObj.steps.map((step, idx) => ({
+          id: `step-${Date.now()}-${idx}`,
+          title: step.title,
+          completed: false,
+        })),
       });
 
       // Track objective added
       trackEvent('objective_added_to_canvas', {
-        source: 'suggested',
+        source: 'recommended',
         timeframe: targetTimeframe,
-        objective_title: suggestedObj.title,
+        objective_title: recommendedObj.title,
+        domain: recommendedObj.domainKey,
         method: 'drag'
       });
       return;
@@ -263,7 +259,7 @@ export default function Progress() {
     }
 
     // Mentor objectives cannot be dragged (handled by disabled prop)
-  }, [profileId, isMapLocked, suggestedObjectives, userObjectives, createUserObjective, customObjectives, updateUserObjective, trackEvent]);
+  }, [profileId, isMapLocked, recommendedObjectives, userObjectives, createUserObjective, customObjectives, updateUserObjective, trackEvent]);
 
   const toggleStep = useCallback((objective: UserProgressObjective, stepId: string) => {
     if (!profileId) return;
@@ -518,37 +514,44 @@ export default function Progress() {
     handleDialogChange(false);
   }, [customObjectiveLimitReached, customState, profileId, isMapLocked, createUserObjective, handleDialogChange, trackEvent]);
 
-  // Quick add handler for mobile
-  const handleQuickAdd = useCallback((objective: AvailableObjective, timeframe: CanvasStage = 'now') => {
+  // Quick add handler for mobile - works with recommended objectives
+  const handleQuickAddRecommended = useCallback((objective: GeneratedObjective, timeframe: CanvasStage = 'now') => {
     if (!profileId || isMapLocked) return;
     
-    const suggestedObj = suggestedObjectives.find(obj => obj.id === objective.id);
-    if (suggestedObj) {
-      const alreadyAssigned = userObjectives.some(obj => obj.objective_id === suggestedObj.id);
-      if (alreadyAssigned) {
-        toast.error('Este objetivo ya está en tu canvas');
-        return;
-      }
-
-      createUserObjective.mutate({
-        userId: profileId,
-        title: suggestedObj.title,
-        summary: suggestedObj.summary,
-        type: suggestedObj.type,
-        timeframe,
-        steps: suggestedObj.steps ?? [],
-        dueDate: getObjectiveDueDate(suggestedObj),
-        objectiveId: suggestedObj.id,
-      });
-      
-      trackEvent('objective_added_to_canvas', {
-        source: 'suggested',
-        timeframe,
-        objective_title: suggestedObj.title,
-        method: 'quick_add_mobile'
-      });
+    // Check for duplicate by title
+    const alreadyAssigned = userObjectives.some(obj => obj.title === objective.title);
+    if (alreadyAssigned) {
+      toast.error('Este objetivo ya está en tu canvas');
+      return;
     }
-  }, [profileId, isMapLocked, suggestedObjectives, userObjectives, createUserObjective, trackEvent]);
+
+    createUserObjective.mutate({
+      userId: profileId,
+      title: objective.title,
+      summary: objective.summary,
+      type: objective.type,
+      timeframe,
+      steps: objective.steps.map((step, idx) => ({
+        id: `step-${Date.now()}-${idx}`,
+        title: step.title,
+        completed: false,
+      })),
+    });
+    
+    trackEvent('objective_added_to_canvas', {
+      source: 'recommended',
+      timeframe,
+      objective_title: objective.title,
+      domain: objective.domainKey,
+      method: 'quick_add_mobile'
+    });
+  }, [profileId, isMapLocked, userObjectives, createUserObjective, trackEvent]);
+
+  // Dismiss recommended objective handler
+  const handleDismissRecommended = useCallback(async (objectiveKey: string) => {
+    if (isDismissing) return;
+    await dismissObjective(objectiveKey);
+  }, [isDismissing, dismissObjective]);
 
   // Mostrar loading mientras carga
   if ((subscriptionLoading || profileLoading || isLoadingData) && !isDemoMode) {
@@ -848,13 +851,15 @@ export default function Progress() {
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              <ObjectiveAvailableColumn 
-                title="💡 Sugeridos por ProductPrepa" 
-                description="Tomamos tus áreas de mejora para proponerte objetivos concretos." 
-                objectives={availableSuggestedObjectives} 
+              <RecommendedObjectivesColumn 
+                title="✨ Recomendados para ti" 
+                description="Objetivos personalizados basados en tu autoevaluación." 
+                objectives={recommendedObjectives} 
                 draggingId={draggingId}
-                onQuickAdd={handleQuickAdd}
+                onQuickAdd={handleQuickAddRecommended}
+                onDismiss={handleDismissRecommended}
                 isMapLocked={isMapLocked}
+                isDismissing={isDismissing}
               />
               <ObjectiveAvailableColumn 
                 title="👨‍🏫 Derivados de mentorías" 
@@ -1254,6 +1259,147 @@ const DraggableObjectiveCard = memo(function DraggableObjectiveCard({ objective,
           >
             <Plus className="h-4 w-4 mr-2" />
             Agregar a En Foco
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+});
+
+// Recommended Objectives Column with dismiss functionality
+interface RecommendedObjectivesColumnProps {
+  title: string;
+  description: string;
+  objectives: GeneratedObjective[];
+  draggingId: string | null;
+  onQuickAdd: (objective: GeneratedObjective, timeframe?: CanvasStage) => void;
+  onDismiss: (objectiveKey: string) => void;
+  isMapLocked?: boolean;
+  isDismissing: boolean;
+}
+
+const RecommendedObjectivesColumn = memo(function RecommendedObjectivesColumn({ 
+  title, description, objectives, draggingId, onQuickAdd, onDismiss, isMapLocked, isDismissing 
+}: RecommendedObjectivesColumnProps) {
+  return (
+    <Card className="border-dashed h-full border-primary/30 bg-primary/5">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          {title}
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </CardHeader>
+      <CardContent>
+        <ScrollArea className="h-[280px] md:h-[360px] lg:h-[400px] pr-4">
+          <div className="space-y-4">
+            {objectives.map(objective => (
+              <DraggableRecommendedCard
+                key={objective.key}
+                objective={objective}
+                draggingId={draggingId}
+                onQuickAdd={onQuickAdd}
+                onDismiss={onDismiss}
+                isMapLocked={isMapLocked}
+                isDismissing={isDismissing}
+              />
+            ))}
+
+            {objectives.length === 0 && (
+              <div className="border border-dashed rounded-lg p-6 text-center text-sm text-muted-foreground">
+                No hay objetivos recomendados. Completá tu autoevaluación para recibir sugerencias personalizadas.
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  );
+});
+
+interface DraggableRecommendedCardProps {
+  objective: GeneratedObjective;
+  draggingId: string | null;
+  onQuickAdd: (objective: GeneratedObjective, timeframe?: CanvasStage) => void;
+  onDismiss: (objectiveKey: string) => void;
+  isMapLocked?: boolean;
+  isDismissing: boolean;
+}
+
+const DraggableRecommendedCard = memo(function DraggableRecommendedCard({ 
+  objective, draggingId, onQuickAdd, onDismiss, isMapLocked, isDismissing 
+}: DraggableRecommendedCardProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: objective.key,
+    disabled: false,
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={cn(
+        "group border rounded-xl p-4 bg-background/80 hover:border-primary/50 transition-colors shadow-sm",
+        draggingId === objective.key && "border-primary bg-primary/10",
+        isDragging && "opacity-50",
+        "cursor-grab active:cursor-grabbing"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-0">
+              <Sparkles className="h-3 w-3 mr-1" />
+              Recomendado
+            </Badge>
+          </div>
+          <h3 className="font-medium leading-tight">{objective.title}</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+            {objective.summary}
+          </p>
+          <p className="text-xs text-primary/70 mt-1">
+            Basado en: {objective.domainLabel}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDismiss(objective.key);
+          }}
+          disabled={isDismissing}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+        <Badge variant="secondary">{objective.type}</Badge>
+        <Badge variant="outline" className="border-dashed">
+          {objective.steps.length} pasos
+        </Badge>
+      </div>
+      
+      {/* Mobile quick add button */}
+      {!isMapLocked && (
+        <div className="md:hidden mt-3">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="w-full"
+            onClick={(e) => {
+              e.stopPropagation();
+              onQuickAdd(objective, objective.suggestedTimeframe);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Agregar a {objective.suggestedTimeframe === 'now' ? 'En Foco' : objective.suggestedTimeframe === 'soon' ? 'Próximos' : 'Visión'}
           </Button>
         </div>
       )}
