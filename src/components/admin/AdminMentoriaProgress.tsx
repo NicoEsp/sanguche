@@ -9,13 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon, Trash2, Edit, Plus, BookOpen } from "lucide-react";
+import { CalendarIcon, Trash2, Edit, Plus } from "lucide-react";
 import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjective, useDeleteUserObjective } from "@/hooks/useUserProgressObjectives";
 import { ProgressObjective, ObjectiveStep } from "@/types/progress";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { AssignObjectiveDialog } from "@/components/admin/AssignObjectiveDialog";
+
 
 interface AdminMentoriaProgressProps {
   userId: string;
@@ -47,7 +47,7 @@ const emptyForm: ObjectiveFormState = {
 export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
   const [activeTab, setActiveTab] = useState<"list" | "timeline">("list");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  
   const [formState, setFormState] = useState<ObjectiveFormState>(emptyForm);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [objectiveToDelete, setObjectiveToDelete] = useState<string | null>(null);
@@ -199,19 +199,13 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
         <div>
           <h2 className="text-2xl font-bold">Gestión de Objetivos</h2>
           <p className="text-muted-foreground">
-            Crea objetivos custom o asigna desde el catálogo global
+            Crea objetivos personalizados para este usuario
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setAssignDialogOpen(true)}>
-            <BookOpen className="h-4 w-4 mr-2" />
-            Asignar desde Catálogo
-          </Button>
-          <Button onClick={openCreateDialog}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Objetivo Custom
-          </Button>
-        </div>
+        <Button onClick={openCreateDialog}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nuevo Objetivo Custom
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
@@ -451,13 +445,6 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* Dialog para asignar desde catálogo */}
-      <AssignObjectiveDialog
-        open={assignDialogOpen}
-        onOpenChange={setAssignDialogOpen}
-        userId={userId}
-      />
 
       {/* Dialog de crear/editar */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

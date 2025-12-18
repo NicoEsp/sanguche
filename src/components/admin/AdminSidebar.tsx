@@ -21,7 +21,6 @@ import {
   Shield,
   FileText,
   LineChart,
-  Flag,
   Rocket,
   BookOpen
 } from 'lucide-react';
@@ -32,7 +31,6 @@ const adminNavItems = [
   { title: 'Evaluaciones', url: '/admin/evaluaciones', icon: ClipboardList },
   { title: 'Gestión Mentorías', url: '/admin/mentoria', icon: Target, matchPrefix: '/admin/mentoria' },
   { title: 'Ejercicios', url: '/admin/ejercicios', icon: BookOpen },
-  { title: 'Objetivos', url: '/admin/objetivos', icon: Flag },
   { title: 'Recursos', url: '/admin/recursos', icon: FileText },
   { title: 'Starter Pack', url: '/admin/starterpack', icon: Rocket },
 ];
