@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { useSubscription } from "@/hooks/useSubscription";
 import { PaywallCard } from "@/components/PaywallCard";
 import { Seo } from "@/components/Seo";
-import { Calendar, CheckCircle2, FileText, Loader2, Lock, Plus, Save, Sparkles, Trash2, X } from "lucide-react";
+import { Calendar, CheckCircle2, FileText, HelpCircle, Loader2, Lock, Plus, Save, Sparkles, Trash2, X } from "lucide-react";
 import { CanvasStage, ProgressObjective } from "@/types/progress";
 import { useRecommendedObjectives, GeneratedObjective } from "@/hooks/useRecommendedObjectives";
 import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjective, useDeleteUserObjective } from "@/hooks/useUserProgressObjectives";
@@ -1362,9 +1362,24 @@ const DraggableRecommendedCard = memo(function DraggableRecommendedCard({
           <p className="text-xs text-muted-foreground leading-relaxed mt-1">
             {objective.summary}
           </p>
-          <p className="text-xs text-primary/70 mt-1">
-            Basado en: {objective.domainLabel}
-          </p>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="text-xs text-primary/70 mt-1 cursor-help inline-flex items-center gap-1">
+                  <span>Basado en: {objective.domainLabel}</span>
+                  <HelpCircle className="h-3 w-3" />
+                </p>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <p className="text-sm">
+                  {objective.reason === "gap" 
+                    ? `Tu puntuación en "${objective.domainLabel}" fue menor a 3. Esta es un área clave donde trabajar puede impactar significativamente en tu crecimiento profesional.`
+                    : `Tu puntuación en "${objective.domainLabel}" fue de 3-4. Tienes una base sólida, pero hay oportunidad de llevarla al siguiente nivel.`
+                  }
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <Button
           variant="ghost"
