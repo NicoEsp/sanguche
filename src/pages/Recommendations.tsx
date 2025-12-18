@@ -2,7 +2,7 @@ import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { PaywallCard } from "@/components/PaywallCard";
-import { isFeatureAvailable, FEATURES, isMentoriaContentAvailable, isMentoriaAdvancedContentAvailable } from "@/utils/features";
+import { isFeatureAvailable, FEATURES, isMentoriaAdvancedContentAvailable } from "@/utils/features";
 import { useSubscription } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -11,10 +11,7 @@ import { useEffect, useMemo } from "react";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { MentoriaHero } from "@/components/mentoria/MentoriaHero";
 import { ProfileAnalysis } from "@/components/mentoria/ProfileAnalysis";
-import { PersonalizedRecommendations } from "@/components/mentoria/PersonalizedRecommendations";
 import { DedicatedResources } from "@/components/mentoria/DedicatedResources";
-import { LockedRecommendations } from "@/components/mentoria/LockedRecommendations";
-import { LockedResources } from "@/components/mentoria/LockedResources";
 import { UserExercises } from "@/components/mentoria/UserExercises";
 import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -59,15 +56,6 @@ export default function Recommendations() {
     () => isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium),
     [hasActivePremium]
   );
-  
-  const hasMentoriaAccess = useMemo(
-    () => isMentoriaContentAvailable(
-      hasActivePremium, 
-      profile?.mentoria_completed || false, 
-      isAdmin
-    ),
-    [hasActivePremium, profile?.mentoria_completed, isAdmin]
-  );
 
   const hasAdvancedAccess = useMemo(
     () => isMentoriaAdvancedContentAvailable(
@@ -91,7 +79,8 @@ export default function Recommendations() {
 
   const isFullyLoaded = !subscriptionLoading && !profileLoading && !assessmentLoading;
 
-  if (subscriptionLoading || assessmentLoading || profileLoading) {
+  // Show loading while subscription status is being determined (hasActivePremium === undefined)
+  if (subscriptionLoading || assessmentLoading || profileLoading || hasActivePremium === undefined) {
     return (
       <>
         <Seo
@@ -168,72 +157,9 @@ export default function Recommendations() {
             {/* Profile Analysis - Always visible for premium users */}
             <ProfileAnalysis result={assessmentResult} />
             
-            {/* Mentoria Content - Available for premium users */}
-            {hasMentoriaAccess ? (
-              <>
-                {/* Personalized Recommendations - Always available for premium */}
-                <PersonalizedRecommendations 
-                  neutralAreas={assessmentResult.neutralAreas} 
-                  mentoriaCompleted={profile?.mentoria_completed || false}
-                />
-                
-                {/* Advanced Resources - Only after mentoria */}
-                {hasAdvancedAccess ? (
-                  <DedicatedResources 
-                    neutralAreas={assessmentResult.neutralAreas} 
-                    mentoriaCompleted={profile?.mentoria_completed || false}
-                  />
-                ) : (
-                  <>
-                    <LockedResources neutralAreas={assessmentResult.neutralAreas} />
-                    
-                    {/* Advanced Content Alert */}
-                    <Alert className="border-primary/50 bg-primary/5">
-                      <AlertTriangle className="h-4 w-4 text-primary" />
-                      <AlertDescription className="text-foreground">
-                        <div className="space-y-2">
-                          <p><strong>Desbloquea recursos adicionales con tu mentoría 1:1</strong></p>
-                          <div className="text-sm">
-                            <p>✅ Recomendaciones personalizadas disponibles</p>
-                            <p>⏳ Agenda tu mentoría para acceder a:</p>
-                            <ul className="ml-4 mt-1 space-y-1">
-                              <li>• Recursos curados específicos</li>
-                              <li>• Plan de desarrollo avanzado</li>
-                              <li>• Material exclusivo post-mentoría</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  </>
-                )}
-              </>
-            ) : (
-              <div className="space-y-6">
-                {/* Locked Recommendations Preview */}
-                <LockedRecommendations neutralAreas={assessmentResult.neutralAreas} />
-                
-                {/* Locked Resources Preview */}
-                <LockedResources neutralAreas={assessmentResult.neutralAreas} />
-                
-                {/* Progress Alert */}
-                <Alert className="border-primary/50 bg-primary/5">
-                  <AlertTriangle className="h-4 w-4 text-primary" />
-                  <AlertDescription className="text-foreground">
-                    <div className="space-y-2">
-                      <p><strong>¡Obtén acceso completo con Premium!</strong></p>
-                      <div className="text-sm">
-                        <p>⏳ Suscríbete a Premium para desbloquear:</p>
-                        <ul className="ml-4 mt-1 space-y-1">
-                          <li>• Recomendaciones personalizadas</li>
-                          <li>• Acceso a mentoría 1:1</li>
-                          <li>• Recursos curados específicos</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              </div>
+            {/* Dedicated Resources - Only DB resources from mentor */}
+            {hasAdvancedAccess && (
+              <DedicatedResources />
             )}
           </div>
         )}
