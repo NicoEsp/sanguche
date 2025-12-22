@@ -88,7 +88,9 @@ const StarterPackLead = () => {
                 ))}
               </div>
             ) : (
-              <StepperRoute steps={steps} audience="lead" />
+              <>
+                <StepperRoute steps={steps} audience="lead" showComingSoon={stepperResources.length === 0} />
+              </>
             )}
           </div>
         </section>
