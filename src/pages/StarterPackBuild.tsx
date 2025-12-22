@@ -88,7 +88,9 @@ const StarterPackBuild = () => {
                 ))}
               </div>
             ) : (
-              <StepperRoute steps={steps} audience="build" />
+              <>
+                <StepperRoute steps={steps} audience="build" showComingSoon={stepperResources.length === 0} />
+              </>
             )}
           </div>
         </section>

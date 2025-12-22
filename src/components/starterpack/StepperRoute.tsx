@@ -1,3 +1,4 @@
+import React from 'react';
 import { StepperStep, Audience } from '@/types/starterpack';
 import { useAssessmentData } from '@/hooks/useAssessmentData';
 import { useResourceAccess } from '@/hooks/useStarterPackResources';
@@ -14,9 +15,10 @@ import { useState } from 'react';
 interface StepperRouteProps {
   steps: StepperStep[];
   audience: Audience;
+  showComingSoon?: boolean;
 }
 
-export function StepperRoute({ steps, audience }: StepperRouteProps) {
+export function StepperRoute({ steps, audience, showComingSoon = false }: StepperRouteProps) {
   const { hasAssessment } = useAssessmentData();
   const { getDownloadUrl, canAccess, isAuthenticated } = useResourceAccess();
   const { markAsDownloaded, isDownloaded } = useResourceProgress();
@@ -67,22 +69,24 @@ export function StepperRoute({ steps, audience }: StepperRouteProps) {
       
       <div className="space-y-6">
         {steps.map((step, index) => {
+          // Check if we should show "Coming Soon" banner after assessment step
+          const showComingSoonBanner = showComingSoon && index === 0 && steps.length === 2;
           const isAssessmentComplete = step.isAssessmentStep && hasAssessment;
           const isResourceDownloaded = step.resource && isDownloaded(step.resource.slug);
           const isStepComplete = isAssessmentComplete || isResourceDownloaded;
           const isDownloading = step.resource && downloadingSlug === step.resource.slug;
           
           return (
-            <div 
-              key={step.number} 
-              id={`step-${step.number}`}
-              className="relative flex gap-4 scroll-mt-24"
-            >
+            <React.Fragment key={step.number}>
+              <div 
+                id={`step-${step.number}`}
+                className="relative flex gap-4 scroll-mt-24"
+              >
               {/* Step number circle */}
               <div className={cn(
                 "relative z-10 w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold transition-all",
                 step.isPremiumStep 
-                  ? "bg-amber-500/10 text-amber-600 border-2 border-amber-500/30"
+                  ? "bg-background ring-4 ring-background text-amber-600 border-2 border-amber-500/30"
                   : isStepComplete
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground border-2 border-border"
@@ -172,6 +176,19 @@ export function StepperRoute({ steps, audience }: StepperRouteProps) {
                 )}
               </div>
             </div>
+            
+            {/* Coming Soon Banner - shown after assessment step when no resources */}
+            {showComingSoonBanner && (
+              <div className="relative flex gap-4 ml-16">
+                <div className="flex-1 p-6 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 text-center">
+                  <h3 className="text-lg font-semibold text-primary mb-2">🚧 Próximamente</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Estamos preparando recursos increíbles para este camino. ¡Volvé pronto!
+                  </p>
+                </div>
+              </div>
+            )}
+            </React.Fragment>
           );
         })}
       </div>
