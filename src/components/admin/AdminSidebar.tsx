@@ -22,12 +22,14 @@ import {
   FileText,
   LineChart,
   Rocket,
-  BookOpen
+  BookOpen,
+  CreditCard
 } from 'lucide-react';
 
 const adminNavItems = [
   { title: 'Dashboard', url: '/admin', icon: BarChart3, exact: true },
   { title: 'Usuarios', url: '/admin/usuarios', icon: Users },
+  { title: 'Suscripciones', url: '/admin/suscripciones', icon: CreditCard },
   { title: 'Evaluaciones', url: '/admin/evaluaciones', icon: ClipboardList },
   { title: 'Gestión Mentorías', url: '/admin/mentoria', icon: Target, matchPrefix: '/admin/mentoria' },
   { title: 'Ejercicios', url: '/admin/ejercicios', icon: BookOpen },

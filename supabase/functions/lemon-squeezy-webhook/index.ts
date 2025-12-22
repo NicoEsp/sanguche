@@ -68,10 +68,52 @@ async function verifySignature(request: Request, secret: string): Promise<boolea
   return isValid;
 }
 
+// Helper function to log webhook event
+async function logWebhookEvent(
+  supabase: ReturnType<typeof createClient>,
+  eventName: string,
+  eventData: LemonSqueezyWebhookEvent,
+  userEmail: string | null,
+  userId: string | null,
+  subscriptionId: string | null,
+  customerId: string | null,
+  orderId: string | null,
+  status: 'success' | 'error',
+  errorMessage: string | null,
+  processingTimeMs: number
+) {
+  try {
+    await supabase.from('payment_webhook_logs').insert({
+      event_name: eventName,
+      event_data: eventData,
+      user_email: userEmail,
+      user_id: userId,
+      lemon_squeezy_subscription_id: subscriptionId,
+      lemon_squeezy_customer_id: customerId,
+      lemon_squeezy_order_id: orderId,
+      status,
+      error_message: errorMessage,
+      processing_time_ms: processingTimeMs,
+    });
+  } catch (error) {
+    console.error('Failed to log webhook event:', error);
+  }
+}
+
 serve(async (req) => {
+  const startTime = Date.now();
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  let event: LemonSqueezyWebhookEvent | null = null;
+  let eventName = 'unknown';
+  let userEmail: string | null = null;
+  let userId: string | null = null;
+  let subscriptionId: string | null = null;
+  let customerId: string | null = null;
+  let orderId: string | null = null;
 
   try {
     const webhookSecret = Deno.env.get('LEMON_SQUEEZY_WEBHOOK_SECRET');
@@ -95,24 +137,31 @@ serve(async (req) => {
       );
     }
 
-    const event: LemonSqueezyWebhookEvent = await req.json();
-    console.log('Webhook event received:', event.meta.event_name);
+    event = await req.json();
+    console.log('Webhook event received:', event!.meta.event_name);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const eventName = event.meta.event_name;
-    const subscriptionId = event.data.id;
-    const customerId = event.data.attributes.customer_id?.toString();
-    const orderId = event.data.attributes.order_id?.toString();
-    const status = event.data.attributes.status;
+    eventName = event!.meta.event_name;
+    subscriptionId = event!.data.id;
+    customerId = event!.data.attributes.customer_id?.toString();
+    orderId = event!.data.attributes.order_id?.toString();
+    const status = event!.data.attributes.status;
 
     // Get user email from webhook event
-    const userEmail = event.data.attributes.user_email || event.data.attributes.customer_email;
+    userEmail = event!.data.attributes.user_email || event!.data.attributes.customer_email || null;
 
     if (!userEmail) {
       console.error('No user email in webhook event');
+      
+      // Log the failed event
+      await logWebhookEvent(
+        supabase, eventName, event!, null, null, subscriptionId, customerId, orderId,
+        'error', 'No user email provided', Date.now() - startTime
+      );
+      
       return new Response(
         JSON.stringify({ error: 'No user email provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -122,13 +171,19 @@ serve(async (req) => {
     // Find or create user profile by email
     console.log('Finding or creating user for email:', userEmail);
     
-    let userId: string;
     try {
-      const userName = event.data.attributes.user_name || null;
+      const userName = event!.data.attributes.user_name || null;
       userId = await findOrCreateUser(userEmail, userName, supabase);
       console.log('User profile ready:', userId);
     } catch (error) {
       console.error('Failed to find or create user:', error);
+      
+      // Log the failed event
+      await logWebhookEvent(
+        supabase, eventName, event!, userEmail, null, subscriptionId, customerId, orderId,
+        'error', `Failed to process user account: ${error}`, Date.now() - startTime
+      );
+      
       return new Response(
         JSON.stringify({ error: 'Failed to process user account' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -154,8 +209,8 @@ serve(async (req) => {
 
       case 'subscription_created':
         console.log('Processing subscription_created event');
-        const renews_at = event.data.attributes.renews_at;
-        const trial_ends_at = event.data.attributes.trial_ends_at;
+        const renews_at = event!.data.attributes.renews_at;
+        const trial_ends_at = event!.data.attributes.trial_ends_at;
         
         await supabase
           .from('user_subscriptions')
@@ -184,8 +239,8 @@ serve(async (req) => {
           .from('user_subscriptions')
           .update({
             status: status === 'active' ? 'active' : 'inactive',
-            current_period_end: event.data.attributes.renews_at
-              ? new Date(event.data.attributes.renews_at).toISOString()
+            current_period_end: event!.data.attributes.renews_at
+              ? new Date(event!.data.attributes.renews_at).toISOString()
               : null,
             updated_at: new Date().toISOString(),
           })
@@ -210,8 +265,8 @@ serve(async (req) => {
           .from('user_subscriptions')
           .update({
             status: 'active',
-            current_period_end: event.data.attributes.renews_at
-              ? new Date(event.data.attributes.renews_at).toISOString()
+            current_period_end: event!.data.attributes.renews_at
+              ? new Date(event!.data.attributes.renews_at).toISOString()
               : null,
             updated_at: new Date().toISOString(),
           })
@@ -222,6 +277,12 @@ serve(async (req) => {
         console.log(`Unhandled event type: ${eventName}`);
     }
 
+    // Log successful event
+    await logWebhookEvent(
+      supabase, eventName, event!, userEmail, userId, subscriptionId, customerId, orderId,
+      'success', null, Date.now() - startTime
+    );
+
     return new Response(
       JSON.stringify({ received: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -229,6 +290,22 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error processing webhook:', error);
+    
+    // Try to log the error if we have a supabase client
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      
+      await logWebhookEvent(
+        supabase, eventName, event || {} as LemonSqueezyWebhookEvent, userEmail, userId, 
+        subscriptionId, customerId, orderId,
+        'error', `Error processing webhook: ${error}`, Date.now() - startTime
+      );
+    } catch (logError) {
+      console.error('Failed to log error event:', logError);
+    }
+    
     return new Response(
       JSON.stringify({ error: 'Error procesando webhook' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

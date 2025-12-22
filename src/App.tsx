@@ -37,6 +37,7 @@ const SkeletonMentoria = lazy(() => import("./components/skeletons/SkeletonMento
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminSubscriptions = lazy(() => import("./pages/admin/AdminSubscriptions"));
 const AdminResources = lazy(() => import("./pages/admin/AdminResources"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminRecommendations = lazy(() => import("./pages/admin/AdminRecommendations"));
@@ -80,6 +81,7 @@ const App = () => (
                 >
                   <Route index element={<AdminDashboard />} />
                   <Route path="usuarios" element={<AdminUsers />} />
+                  <Route path="suscripciones" element={<AdminSubscriptions />} />
                   <Route path="evaluaciones" element={<AdminAssessments />} />
                   <Route path="mentoria" element={<AdminRecommendations />} />
                   <Route path="mentoria/:userId" element={<AdminMentoriaDetail />} />
