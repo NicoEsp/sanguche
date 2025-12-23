@@ -100,9 +100,10 @@ export default function Welcome() {
               </div>
 
               <div className="pt-4 border-t">
-                <p className="text-xs text-center text-muted-foreground">¿Necesitas ayuda? Contáctanos a nicoproducto@hey.com{" "}
-                  <a href="mailto:soporte@productprepa.com" className="text-primary hover:underline">
-                    soporte@productprepa.com
+                <p className="text-xs text-center text-muted-foreground">
+                  ¿Necesitas ayuda? Contáctanos a{" "}
+                  <a href="mailto:nicoproducto@hey.com" className="text-primary hover:underline">
+                    nicoproducto@hey.com
                   </a>
                 </p>
               </div>
@@ -186,8 +187,8 @@ export default function Welcome() {
             <div className="pt-4 border-t">
               <p className="text-xs text-center text-muted-foreground">
                 ¿Necesitas ayuda? Contáctanos a{" "}
-                <a href="mailto:soporte@productprepa.com" className="text-primary hover:underline">
-                  soporte@productprepa.com
+                <a href="mailto:nicoproducto@hey.com" className="text-primary hover:underline">
+                  nicoproducto@hey.com
                 </a>
               </p>
             </div>
