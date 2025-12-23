@@ -68,15 +68,15 @@ export function ExerciseDetailDialog({ exercise, open, onOpenChange }: ExerciseD
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[95vh] flex flex-col overflow-hidden">
+          <DialogHeader className="flex-shrink-0">
             <div className="flex items-start justify-between gap-4">
               <DialogTitle className="flex-1">{exercise.exercise_title}</DialogTitle>
               <Badge>{statusLabels[exercise.status]}</Badge>
             </div>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="flex-1 overflow-y-auto space-y-6 py-4 pr-2">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-muted-foreground" />
@@ -143,27 +143,27 @@ export function ExerciseDetailDialog({ exercise, open, onOpenChange }: ExerciseD
                 </div>
               </>
             )}
+          </div>
 
-            <div className="flex justify-between gap-2 pt-4">
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeleteAlert(true)}
-                disabled={!canEdit}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Eliminar
+          <div className="flex-shrink-0 border-t pt-4 flex justify-between gap-2">
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteAlert(true)}
+              disabled={!canEdit}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Eliminar
+            </Button>
+
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cerrar
               </Button>
-
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => onOpenChange(false)}>
-                  Cerrar
+              {canReview && (
+                <Button onClick={handleMarkAsReviewed} disabled={updateExercise.isPending}>
+                  {updateExercise.isPending ? "Guardando..." : "Marcar como Revisado"}
                 </Button>
-                {canReview && (
-                  <Button onClick={handleMarkAsReviewed} disabled={updateExercise.isPending}>
-                    {updateExercise.isPending ? "Guardando..." : "Marcar como Revisado"}
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </DialogContent>
