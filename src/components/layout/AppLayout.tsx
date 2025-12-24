@@ -1,11 +1,11 @@
 import { ReactNode, useState } from "react";
-import { Link } from "react-router-dom";
 import { Twitter, Linkedin } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { AppSidebar } from "./AppSidebar";
 import { MobileNav } from "./MobileNav";
+import { LandingHeader } from "./LandingHeader";
 import { FeedbackFooterCta } from "@/components/feedback/FeedbackFooterCta";
 import { cn } from "@/lib/utils";
 
@@ -23,24 +23,32 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Mobile Navigation */}
-      {isMobile && <MobileNav />}
-      
-      {/* Desktop Sidebar */}
-      {!isMobile && (
-        <AppSidebar 
-          collapsed={sidebarCollapsed} 
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
-        />
+      {/* Navigation based on authentication */}
+      {isAuthenticated ? (
+        <>
+          {/* Mobile Navigation */}
+          {isMobile && <MobileNav />}
+          
+          {/* Desktop Sidebar */}
+          {!isMobile && (
+            <AppSidebar 
+              collapsed={sidebarCollapsed} 
+              onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
+            />
+          )}
+        </>
+      ) : (
+        /* Public Landing Header */
+        <LandingHeader />
       )}
 
       {/* Main content wrapper */}
       <div className={cn(
         "flex-1 flex flex-col transition-all duration-300",
-        !isMobile && (sidebarCollapsed ? "ml-16" : "ml-64")
+        isAuthenticated && !isMobile && (sidebarCollapsed ? "ml-16" : "ml-64")
       )}>
-        {/* Desktop Header - Simple branding only */}
-        {!isMobile && (
+        {/* Desktop Header for authenticated users - Simple branding only */}
+        {isAuthenticated && !isMobile && (
           <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
             <div className="container flex h-14 items-center">
               <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-3 py-2 shadow-sm">
