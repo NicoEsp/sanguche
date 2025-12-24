@@ -24,12 +24,6 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 
 const navItems = [
   { 
-    href: "/starter-pack", 
-    label: "Starter Pack", 
-    icon: Rocket,
-    premium: false 
-  },
-  { 
     href: "/autoevaluacion", 
     label: "Autoevaluación", 
     icon: CheckSquare,
@@ -40,6 +34,12 @@ const navItems = [
     label: "Áreas de Mejora", 
     icon: Target,
     premium: false 
+  },
+  { 
+    href: "/mentoria", 
+    label: "Mentoría", 
+    icon: BookOpen,
+    premium: isPremiumFeature(FEATURES.RECOMMENDATIONS) 
   },
   { 
     href: "/progreso", 
@@ -54,11 +54,14 @@ const navItems = [
     premium: true,
     comingSoon: true
   },
+];
+
+const extraItems = [
   { 
-    href: "/mentoria", 
-    label: "Mentoría", 
-    icon: BookOpen,
-    premium: isPremiumFeature(FEATURES.RECOMMENDATIONS) 
+    href: "/starterpack", 
+    label: "Starter Pack", 
+    icon: Rocket,
+    premium: false 
   },
 ];
 
@@ -77,8 +80,8 @@ export function MobileNav() {
   const displayName = profile?.name || metadataName || user?.email?.split('@')[0] || 'Usuario';
 
   const isActive = (path: string) => {
-    if (path === "/starter-pack") {
-      return location.pathname.startsWith("/starter-pack");
+    if (path === "/starterpack") {
+      return location.pathname.startsWith("/starterpack");
     }
     return location.pathname === path;
   };
@@ -145,6 +148,33 @@ export function MobileNav() {
                       </Link>
                     );
                   })}
+                  
+                  {/* Extras Section */}
+                  <div className="mt-4 pt-4 border-t">
+                    <span className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Extras
+                    </span>
+                    <div className="mt-2">
+                      {extraItems.map((item) => {
+                        const active = isActive(item.href);
+                        return (
+                          <Link
+                            key={item.href}
+                            to={item.href}
+                            onClick={() => setIsOpen(false)}
+                            className={cn(
+                              "flex items-center gap-3 px-3 py-3 rounded-lg transition-colors",
+                              active && "bg-primary/10 text-primary font-medium",
+                              !active && "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            )}
+                          >
+                            <item.icon className={cn("h-5 w-5", active && "text-primary")} />
+                            <span className="flex-1">{item.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </nav>
 
                 {/* User section */}
