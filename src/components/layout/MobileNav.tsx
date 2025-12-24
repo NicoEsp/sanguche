@@ -4,6 +4,7 @@ import {
   Menu, 
   Rocket, 
   CheckSquare, 
+  Target,
   TrendingUp, 
   GraduationCap, 
   BookOpen, 
@@ -32,6 +33,12 @@ const navItems = [
     href: "/autoevaluacion", 
     label: "Autoevaluación", 
     icon: CheckSquare,
+    premium: false 
+  },
+  { 
+    href: "/mejoras", 
+    label: "Áreas de Mejora", 
+    icon: Target,
     premium: false 
   },
   { 
