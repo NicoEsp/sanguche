@@ -578,7 +578,7 @@ export default function Progress() {
         description="Construí y visualizá tu Career Path personalizado con tus objetivos prioritarios." 
         canonical="/progreso" 
       />
-      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 animate-fade-in">
         <div ref={exportRef} className="container py-10 space-y-8">
           <header className="space-y-4">
             <div className="flex flex-col gap-4">
