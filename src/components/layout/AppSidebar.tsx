@@ -29,12 +29,6 @@ import {
 
 const navItems = [
   { 
-    href: "/starter-pack", 
-    label: "Starter Pack", 
-    icon: Rocket,
-    premium: false 
-  },
-  { 
     href: "/autoevaluacion", 
     label: "Autoevaluación", 
     icon: CheckSquare,
@@ -45,6 +39,12 @@ const navItems = [
     label: "Áreas de Mejora", 
     icon: Target,
     premium: false 
+  },
+  { 
+    href: "/mentoria", 
+    label: "Mentoría", 
+    icon: BookOpen,
+    premium: isPremiumFeature(FEATURES.RECOMMENDATIONS) 
   },
   { 
     href: "/progreso", 
@@ -59,11 +59,14 @@ const navItems = [
     premium: true,
     comingSoon: true
   },
+];
+
+const extraItems = [
   { 
-    href: "/mentoria", 
-    label: "Mentoría", 
-    icon: BookOpen,
-    premium: isPremiumFeature(FEATURES.RECOMMENDATIONS) 
+    href: "/starterpack", 
+    label: "Starter Pack", 
+    icon: Rocket,
+    premium: false 
   },
 ];
 
@@ -86,8 +89,8 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const displayName = profile?.name || metadataName || user?.email?.split('@')[0] || 'Usuario';
 
   const isActive = (path: string) => {
-    if (path === "/starter-pack") {
-      return location.pathname.startsWith("/starter-pack");
+    if (path === "/starterpack") {
+      return location.pathname.startsWith("/starterpack");
     }
     return location.pathname === path;
   };
@@ -200,6 +203,21 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               {navItems.map((item) => (
                 <NavItem key={item.href} item={item} />
               ))}
+            </div>
+            
+            {/* Extras Section */}
+            <div className="mt-6">
+              <Separator className="mb-4" />
+              {!collapsed && (
+                <span className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Extras
+                </span>
+              )}
+              <div className="space-y-1 mt-2">
+                {extraItems.map((item) => (
+                  <NavItem key={item.href} item={item} />
+                ))}
+              </div>
             </div>
           </nav>
 
