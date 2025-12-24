@@ -353,7 +353,7 @@ export default function Assessment() {
         description="Evalúa tu nivel de seniority en Product Management."
         canonical="/autoevaluacion"
       />
-      <section className="container py-6 sm:py-10 px-4 sm:px-6">
+      <section className="container py-6 sm:py-10 px-4 sm:px-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <h1 className="text-2xl sm:text-3xl font-semibold">Autoevaluación de seniority</h1>
           {hasAssessment && (
