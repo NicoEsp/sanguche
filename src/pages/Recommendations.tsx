@@ -123,7 +123,7 @@ export default function Recommendations() {
         description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
         canonical="/mentoria"
       />
-      <section className="container py-10 space-y-8">
+      <section className="container py-10 space-y-8 animate-fade-in">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-foreground">Mentoría personalizada</h1>
           <p className="text-lg text-muted-foreground">
