@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAssessmentData } from './useAssessmentData';
 import { useSubscription } from './useSubscription';
+
+const FADE_DURATION = 300; // ms - debe coincidir con la animación en tailwind
 
 /**
  * Hook que maneja la redirección automática en Home según el estado del usuario (V3):
@@ -18,6 +20,7 @@ export function useHomeRedirect() {
   const { hasAssessment, loading: assessmentLoading } = useAssessmentData();
   const { hasActivePremium, loading: subscriptionLoading } = useSubscription();
   const hasRedirectedRef = useRef(false);
+  const [isFading, setIsFading] = useState(false);
   
   useEffect(() => {
     // Solo ejecutar una vez por sesión de componente
@@ -38,17 +41,24 @@ export function useHomeRedirect() {
       setSearchParams(searchParams, { replace: true });
     }
     
-    // Lógica de redirección según V3:
+    // Iniciar fade-out antes de navegar
+    setIsFading(true);
+    
+    // Determinar destino
+    let destination: string;
     if (!hasAssessment) {
-      // Usuario sin evaluación → Autoevaluación
-      navigate('/autoevaluacion', { replace: true });
+      destination = '/autoevaluacion';
     } else if (hasActivePremium) {
-      // Premium con evaluación → Career Path
-      navigate('/progreso', { replace: true });
+      destination = '/progreso';
     } else {
-      // Free con evaluación → Áreas de Mejora
-      navigate('/mejoras', { replace: true });
+      destination = '/mejoras';
     }
+    
+    // Navegar después del fade-out
+    setTimeout(() => {
+      navigate(destination, { replace: true });
+    }, FADE_DURATION);
+    
   }, [
     authLoading, 
     assessmentLoading, 
@@ -66,5 +76,5 @@ export function useHomeRedirect() {
   const isLoading = authLoading || assessmentLoading || subscriptionLoading;
   const isRedirecting = isAuthenticated && (isLoading || !hasRedirectedRef.current);
 
-  return { isRedirecting };
+  return { isRedirecting, isFading };
 }

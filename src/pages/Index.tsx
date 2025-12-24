@@ -16,7 +16,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 
 const Index = () => {
   // Hook para redirigir usuarios autenticados según su estado (V3)
-  const { isRedirecting } = useHomeRedirect();
+  const { isRedirecting, isFading } = useHomeRedirect();
   
   const {
     isAuthenticated
@@ -26,7 +26,7 @@ const Index = () => {
 
   // Mostrar loading mientras se determina a dónde redirigir al usuario autenticado
   if (isRedirecting) {
-    return <LoadingScreen />;
+    return <LoadingScreen isFading={isFading} />;
   }
 
   const premiumBenefits = [

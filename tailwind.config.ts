@@ -110,12 +110,21 @@ export default {
 						transform: 'translateY(100vh) rotate(360deg)',
 						opacity: '0.5'
 					}
+				},
+				'fade-out': {
+					'0%': {
+						opacity: '1'
+					},
+					'100%': {
+						opacity: '0'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'fall': 'fall 2.5s ease-in forwards'
+				'fall': 'fall 2.5s ease-in forwards',
+				'fade-out': 'fade-out 0.3s ease-out forwards'
 			}
 		}
 	},
