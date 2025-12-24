@@ -60,4 +60,11 @@ export function useHomeRedirect() {
     setSearchParams,
     navigate
   ]);
+
+  // Determinar si está en proceso de redirección
+  // Solo mostramos loading si está autenticado y algo está cargando o aún no se ha redirigido
+  const isLoading = authLoading || assessmentLoading || subscriptionLoading;
+  const isRedirecting = isAuthenticated && (isLoading || !hasRedirectedRef.current);
+
+  return { isRedirecting };
 }
