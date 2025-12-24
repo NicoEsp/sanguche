@@ -12,16 +12,23 @@ import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
 import { usePricing } from "@/hooks/usePricing";
 import { useHomeRedirect } from '@/hooks/useHomeRedirect';
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 const Index = () => {
   // Hook para redirigir usuarios autenticados según su estado (V3)
-  useHomeRedirect();
+  const { isRedirecting } = useHomeRedirect();
   
   const {
     isAuthenticated
   } = useAuth();
   const { trackEvent } = useMixpanelTracking();
   const { formatted, loading: pricingLoading } = usePricing();
+
+  // Mostrar loading mientras se determina a dónde redirigir al usuario autenticado
+  if (isRedirecting) {
+    return <LoadingScreen />;
+  }
+
   const premiumBenefits = [
     <>Acceso a guía de carrera personalizada diseñada por <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>,
     "Tu Career Path con objetivos y pasos concretos",
