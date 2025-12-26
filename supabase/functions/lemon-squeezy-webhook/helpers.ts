@@ -4,12 +4,69 @@ export async function findOrCreateUser(email: string, name: string | null, supab
   console.log(`[findOrCreateUser] Starting for email: ${email}`);
   
   try {
-    // 1. Check if user exists in auth by listing all users and finding by email
-    console.log('[findOrCreateUser] Checking if user exists in auth...');
-    const { data: existingAuthUser } = await supabase.auth.admin.listUsers();
-    let authUser = existingAuthUser?.users?.find((u: any) => u.email === email);
+    // 1. FIRST: Check if profile already exists by email (most reliable for existing users)
+    console.log('[findOrCreateUser] Checking if profile exists by email...');
+    const { data: existingProfile, error: profileCheckError } = await supabase
+      .from('profiles')
+      .select('id, user_id')
+      .eq('email', email)
+      .maybeSingle();
     
-    // If user doesn't exist in auth, try to create them
+    if (profileCheckError) {
+      console.error('[findOrCreateUser] Error checking profile by email:', profileCheckError);
+      // Don't throw, continue with auth check
+    }
+    
+    if (existingProfile) {
+      console.log(`[findOrCreateUser] Found existing profile by email: ${existingProfile.id}`);
+      return existingProfile.id;
+    }
+    
+    // 2. Profile not found by email, check auth with pagination
+    console.log('[findOrCreateUser] Profile not found, checking auth with pagination...');
+    let authUser = null;
+    let page = 1;
+    const perPage = 50;
+    
+    while (!authUser) {
+      const { data: authPage, error: listError } = await supabase.auth.admin.listUsers({
+        page: page,
+        perPage: perPage
+      });
+      
+      if (listError) {
+        console.error(`[findOrCreateUser] Error listing users page ${page}:`, listError);
+        break;
+      }
+      
+      if (!authPage?.users?.length) {
+        console.log('[findOrCreateUser] No more users to check');
+        break;
+      }
+      
+      authUser = authPage.users.find((u: any) => u.email === email);
+      
+      if (authUser) {
+        console.log(`[findOrCreateUser] Found auth user on page ${page}: ${authUser.id}`);
+        break;
+      }
+      
+      // If we got fewer users than perPage, we've reached the end
+      if (authPage.users.length < perPage) {
+        console.log('[findOrCreateUser] Reached last page of users');
+        break;
+      }
+      
+      page++;
+      
+      // Safety limit to prevent infinite loops
+      if (page > 100) {
+        console.error('[findOrCreateUser] Exceeded max pages, stopping search');
+        break;
+      }
+    }
+    
+    // 3. If user doesn't exist in auth, create them
     if (!authUser) {
       console.log('[findOrCreateUser] User not in auth, creating...');
       
@@ -21,11 +78,26 @@ export async function findOrCreateUser(email: string, name: string | null, supab
         user_metadata: { name: name || email.split('@')[0] }
       });
       
-      // Handle email_exists error (race condition - user was created between check and create)
+      // Handle email_exists error (race condition)
       if (createError?.code === 'email_exists') {
-        console.log('[findOrCreateUser] Race condition: user exists, re-fetching...');
-        const { data: refetchedUsers } = await supabase.auth.admin.listUsers();
-        authUser = refetchedUsers?.users?.find((u: any) => u.email === email);
+        console.log('[findOrCreateUser] Race condition: user exists, searching again with pagination...');
+        
+        // Search again with pagination
+        let retryPage = 1;
+        while (!authUser && retryPage <= 100) {
+          const { data: retryAuthPage } = await supabase.auth.admin.listUsers({
+            page: retryPage,
+            perPage: perPage
+          });
+          
+          if (!retryAuthPage?.users?.length) break;
+          
+          authUser = retryAuthPage.users.find((u: any) => u.email === email);
+          if (authUser) break;
+          if (retryAuthPage.users.length < perPage) break;
+          
+          retryPage++;
+        }
         
         if (!authUser) {
           console.error('[findOrCreateUser] User exists but could not be retrieved after race condition');
@@ -46,7 +118,7 @@ export async function findOrCreateUser(email: string, name: string | null, supab
     
     console.log(`[findOrCreateUser] Auth user ready: ${authUser.id}`);
     
-    // 2. Check if profile exists for this auth user
+    // 4. Check if profile exists for this auth user
     const { data: profile, error: profileFetchError } = await supabase
       .from('profiles')
       .select('id')
@@ -63,7 +135,7 @@ export async function findOrCreateUser(email: string, name: string | null, supab
       return profile.id;
     }
     
-    // 3. Profile doesn't exist, create it
+    // 5. Profile doesn't exist, create it
     console.log('[findOrCreateUser] Creating profile for auth user...');
     const { data: newProfile, error: profileCreateError } = await supabase
       .from('profiles')
@@ -82,7 +154,7 @@ export async function findOrCreateUser(email: string, name: string | null, supab
     
     console.log(`[findOrCreateUser] Profile created successfully: ${newProfile.id}`);
     
-    // 4. Generate password reset link (optional, don't fail if this errors)
+    // 6. Generate password reset link (optional, don't fail if this errors)
     try {
       await supabase.auth.admin.generateLink({
         type: 'recovery',
@@ -91,7 +163,6 @@ export async function findOrCreateUser(email: string, name: string | null, supab
       console.log('[findOrCreateUser] Password reset link generated');
     } catch (resetError) {
       console.error('[findOrCreateUser] Error generating reset link (non-fatal):', resetError);
-      // Don't throw - user can request password reset manually
     }
     
     return newProfile.id;
