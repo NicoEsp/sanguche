@@ -685,6 +685,7 @@ export type Database = {
           locked_at: string | null
           mentor_notes: string | null
           objective_id: string | null
+          position: number | null
           source: string
           status: string
           steps: Json
@@ -705,6 +706,7 @@ export type Database = {
           locked_at?: string | null
           mentor_notes?: string | null
           objective_id?: string | null
+          position?: number | null
           source: string
           status?: string
           steps?: Json
@@ -725,6 +727,7 @@ export type Database = {
           locked_at?: string | null
           mentor_notes?: string | null
           objective_id?: string | null
+          position?: number | null
           source?: string
           status?: string
           steps?: Json
