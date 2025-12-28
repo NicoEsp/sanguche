@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { useSubscription } from "@/hooks/useSubscription";
 import { PaywallCard } from "@/components/PaywallCard";
 import { Seo } from "@/components/Seo";
-import { Calendar, CheckCircle2, FileText, HelpCircle, Loader2, Lock, Plus, Save, Sparkles, Trash2, X } from "lucide-react";
+import { Calendar, CheckCircle2, FileText, GripVertical, HelpCircle, Loader2, Lock, Plus, Save, Sparkles, Trash2, X } from "lucide-react";
 import { CanvasStage, ProgressObjective } from "@/types/progress";
 import { useRecommendedObjectives, GeneratedObjective } from "@/hooks/useRecommendedObjectives";
 import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjective, useDeleteUserObjective } from "@/hooks/useUserProgressObjectives";
@@ -249,17 +249,38 @@ export default function Progress() {
     // Check if it's a custom objective
     const customObj = customObjectives.find(obj => obj.id === draggedId);
     if (customObj && customObj.timeframe !== targetTimeframe) {
-      // Update timeframe
-      updateUserObjective.mutate({
-        id: customObj.id,
-        userId: profileId,
-        updates: { timeframe: targetTimeframe },
-      });
+      // Optimistic update - update cache immediately
+      const previousObjectives = queryClient.getQueryData<UserProgressObjective[]>(['user-progress-objectives', profileId]);
+      
+      queryClient.setQueryData<UserProgressObjective[]>(
+        ['user-progress-objectives', profileId],
+        (old) => old?.map(obj => 
+          obj.id === customObj.id 
+            ? { ...obj, timeframe: targetTimeframe } 
+            : obj
+        ) ?? []
+      );
+
+      // Perform actual mutation
+      updateUserObjective.mutate(
+        {
+          id: customObj.id,
+          userId: profileId,
+          updates: { timeframe: targetTimeframe },
+        },
+        {
+          onError: () => {
+            // Revert on error
+            queryClient.setQueryData(['user-progress-objectives', profileId], previousObjectives);
+            toast.error('Error al mover el objetivo. Intenta nuevamente.');
+          },
+        }
+      );
       return;
     }
 
     // Mentor objectives cannot be dragged (handled by disabled prop)
-  }, [profileId, isMapLocked, recommendedObjectives, userObjectives, createUserObjective, customObjectives, updateUserObjective, trackEvent]);
+  }, [profileId, isMapLocked, recommendedObjectives, userObjectives, createUserObjective, customObjectives, updateUserObjective, trackEvent, queryClient]);
 
   const toggleStep = useCallback((objective: UserProgressObjective, stepId: string) => {
     if (!profileId) return;
@@ -282,14 +303,39 @@ export default function Progress() {
       });
     }
 
-    updateUserObjective.mutate({
-      id: objective.id,
-      userId: profileId,
-      updates: {
-        steps: updatedSteps,
-        status: allCompleted ? 'completed' : 'in-progress',
+    // Optimistic update - update cache immediately for instant feedback
+    const previousObjectives = queryClient.getQueryData<UserProgressObjective[]>(['user-progress-objectives', profileId]);
+    
+    queryClient.setQueryData<UserProgressObjective[]>(
+      ['user-progress-objectives', profileId],
+      (old) => old?.map(obj => 
+        obj.id === objective.id 
+          ? { 
+              ...obj, 
+              steps: updatedSteps,
+              status: allCompleted ? 'completed' : 'in-progress',
+            } 
+          : obj
+      ) ?? []
+    );
+
+    updateUserObjective.mutate(
+      {
+        id: objective.id,
+        userId: profileId,
+        updates: {
+          steps: updatedSteps,
+          status: allCompleted ? 'completed' : 'in-progress',
+        },
       },
-    });
+      {
+        onError: () => {
+          // Revert on error
+          queryClient.setQueryData(['user-progress-objectives', profileId], previousObjectives);
+          toast.error('Error al actualizar. Intenta nuevamente.');
+        },
+      }
+    );
 
     // Celebration toast when objective is completed
     if (allCompleted && isCompletingStep) {
@@ -297,7 +343,7 @@ export default function Progress() {
         description: `Excelente trabajo con "${objective.title}"`,
       });
     }
-  }, [profileId, updateUserObjective, trackEvent]);
+  }, [profileId, updateUserObjective, trackEvent, queryClient]);
 
   const handleDeleteCustom = useCallback((id: string) => {
     if (!profileId || isMapLocked) return;
@@ -736,15 +782,34 @@ export default function Progress() {
                 
                 <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3">
-                    <DialogTrigger asChild>
-                      <Button
-                        disabled={customObjectiveLimitReached || isMapLocked}
-                        className="w-full sm:w-auto"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Objetivo personalizado
-                      </Button>
-                    </DialogTrigger>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex w-full sm:w-auto">
+                            <DialogTrigger asChild>
+                              <Button
+                                disabled={customObjectiveLimitReached || isMapLocked}
+                                className={cn(
+                                  "w-full sm:w-auto",
+                                  (customObjectiveLimitReached || isMapLocked) && "cursor-not-allowed"
+                                )}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Objetivo personalizado
+                              </Button>
+                            </DialogTrigger>
+                          </span>
+                        </TooltipTrigger>
+                        {(customObjectiveLimitReached || isMapLocked) && (
+                          <TooltipContent>
+                            {isMapLocked 
+                              ? "Tu Career Path está guardado. Contactanos para editarlo."
+                              : `Llegaste al límite de ${MAX_CUSTOM_OBJECTIVES} objetivos personalizados.`
+                            }
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                     {!customObjectiveLimitReached && !isMapLocked && (
                       <p className="text-xs text-muted-foreground sm:text-right">
                         Te quedan {remainingCustomSlots} objetivo{remainingCustomSlots === 1 ? '' : 's'} personalizado{remainingCustomSlots === 1 ? '' : 's'}.
@@ -1018,13 +1083,19 @@ const CanvasObjectiveCard = memo(function CanvasObjectiveCard({ objective, toggl
       className={cn(
         "relative rounded-2xl border bg-background/80 backdrop-blur p-3 md:p-5 shadow-sm",
         "transition-all duration-200",
-        "h-full flex flex-col",
+        "h-full flex flex-col min-h-[320px]",
         complete && "border-emerald-400/60 shadow-[0_0_0_1px_rgba(16,185,129,0.25)]",
-        isDragging && "opacity-50",
-        !isMentor && !isMapLocked && "cursor-grab active:cursor-grabbing"
+        isDragging && "opacity-50 scale-[1.02] shadow-lg",
+        !isMentor && !isMapLocked && "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md",
+        (isMentor || isMapLocked) && "cursor-not-allowed"
       )}
     >
-      <div className="flex flex-wrap items-center gap-2 mb-2">
+      {/* Header con badges - altura fija */}
+      <div className="flex flex-wrap items-center gap-2 mb-2 min-h-[28px]">
+        {/* Grip icon para elementos arrastrables */}
+        {!isMentor && !isMapLocked && (
+          <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0 -ml-1" />
+        )}
         <Badge variant="outline" className="bg-primary/10 border-primary/30 text-primary text-xs">
           {objective.type}
         </Badge>
@@ -1057,11 +1128,12 @@ const CanvasObjectiveCard = memo(function CanvasObjectiveCard({ objective, toggl
         )}
       </div>
 
-      <div className="space-y-1 mb-3">
-        <h3 className="font-semibold text-base md:text-lg leading-tight">
+      {/* Título y descripción - altura mínima para consistencia */}
+      <div className="space-y-1 mb-3 min-h-[72px]">
+        <h3 className="font-semibold text-base md:text-lg leading-tight line-clamp-2">
           {objective.title}
         </h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
           {objective.summary}
         </p>
       </div>
@@ -1102,26 +1174,36 @@ const CanvasObjectiveCard = memo(function CanvasObjectiveCard({ objective, toggl
           </div>
         )}
 
+        {/* Checklist - siempre al final con mt-auto */}
         {objective.steps.length > 0 && (
-          <div className="mt-5 space-y-3">
+          <div className="mt-auto pt-4 space-y-3">
             <p className="text-sm font-medium">Checklist de avance</p>
             <div className="space-y-2">
               {objective.steps.map(step => (
                 <label
                   key={step.id}
                   className={cn(
-                    "flex items-start gap-3 rounded-lg border px-3 py-2 text-sm",
-                    "transition-colors",
-                    step.completed ? "bg-emerald-500/10 border-emerald-400/50" : "hover:bg-muted/60",
-                    "cursor-pointer"
+                    "flex items-center gap-3 rounded-lg border text-sm",
+                    "px-3 py-2.5 md:px-3 md:py-2",
+                    "min-h-[44px] md:min-h-0",
+                    "transition-colors touch-manipulation",
+                    step.completed ? "bg-emerald-500/10 border-emerald-400/50" : "hover:bg-muted/60 active:bg-muted",
+                    "cursor-pointer select-none"
                   )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleStep(objective, step.id);
+                  }}
                 >
                   <Checkbox
                     checked={step.completed}
                     onCheckedChange={() => toggleStep(objective, step.id)}
-                    className="mt-0.5"
+                    className="h-5 w-5 md:h-4 md:w-4 flex-shrink-0"
                   />
-                  <span className={cn(step.completed && "line-through text-muted-foreground")}>
+                  <span className={cn(
+                    "flex-1",
+                    step.completed && "line-through text-muted-foreground"
+                  )}>
                     {step.title}
                   </span>
                 </label>
@@ -1211,18 +1293,24 @@ const DraggableObjectiveCard = memo(function DraggableObjectiveCard({ objective,
       {...attributes}
       {...listeners}
       className={cn(
-        "group border rounded-xl p-4 bg-background/80 hover:border-primary/50 transition-colors shadow-sm",
+        "group border rounded-xl p-4 bg-background/80 transition-all shadow-sm",
         draggingId === objective.id && "border-primary bg-primary/10",
-        isDragging && "opacity-50",
-        !locked && "cursor-grab active:cursor-grabbing"
+        isDragging && "opacity-50 scale-[1.02] shadow-lg",
+        !locked && "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md",
+        locked && "cursor-not-allowed opacity-75"
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="font-medium leading-tight">{objective.title}</h3>
-          <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-            {objective.summary}
-          </p>
+        <div className="flex items-start gap-2 flex-1">
+          {!locked && (
+            <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0 mt-0.5" />
+          )}
+          <div className="flex-1">
+            <h3 className="font-medium leading-tight">{objective.title}</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+              {objective.summary}
+            </p>
+          </div>
         </div>
         {objective.source === 'custom' && onDelete && (
           <Button
@@ -1344,24 +1432,26 @@ const DraggableRecommendedCard = memo(function DraggableRecommendedCard({
       {...attributes}
       {...listeners}
       className={cn(
-        "group border rounded-xl p-4 bg-background/80 hover:border-primary/50 transition-colors shadow-sm",
+        "group border rounded-xl p-4 bg-background/80 transition-all shadow-sm",
         draggingId === objective.key && "border-primary bg-primary/10",
-        isDragging && "opacity-50",
-        "cursor-grab active:cursor-grabbing"
+        isDragging && "opacity-50 scale-[1.02] shadow-lg",
+        "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md"
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-0">
-              <Sparkles className="h-3 w-3 mr-1" />
-              Recomendado
-            </Badge>
-          </div>
-          <h3 className="font-medium leading-tight">{objective.title}</h3>
-          <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-            {objective.summary}
-          </p>
+        <div className="flex items-start gap-2 flex-1">
+          <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-0">
+                <Sparkles className="h-3 w-3 mr-1" />
+                Recomendado
+              </Badge>
+            </div>
+            <h3 className="font-medium leading-tight">{objective.title}</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+              {objective.summary}
+            </p>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1380,6 +1470,7 @@ const DraggableRecommendedCard = memo(function DraggableRecommendedCard({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          </div>
         </div>
         <Button
           variant="ghost"
@@ -1394,7 +1485,7 @@ const DraggableRecommendedCard = memo(function DraggableRecommendedCard({
           <X className="h-4 w-4" />
         </Button>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground ml-6">
         <Badge variant="secondary">{objective.type}</Badge>
         <Badge variant="outline" className="border-dashed">
           {objective.steps.length} pasos
