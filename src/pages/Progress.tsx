@@ -22,7 +22,9 @@ import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjecti
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DndContext, DragEndEvent, DragStartEvent, useDraggable, useDroppable, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent, DragOverlay, useDraggable, useDroppable, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { UserProgressObjective } from "@/hooks/useUserProgressObjectives";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -128,10 +130,13 @@ export default function Progress() {
   
   // UI state
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [activeObjective, setActiveObjective] = useState<UserProgressObjective | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [customState, setCustomState] = useState<AddCustomObjectiveState>(initialCustomState);
   const [isLockDialogOpen, setIsLockDialogOpen] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [recentlyDroppedId, setRecentlyDroppedId] = useState<string | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
   
   // Check if map is locked
@@ -163,7 +168,7 @@ export default function Progress() {
   // Canvas objectives (mentor + custom)
   const canvasObjectives = useMemo(() => [...mentorObjectives, ...customObjectives], [mentorObjectives, customObjectives]);
   const objectivesByStage = useMemo<StageObjectivesMap>(() => {
-    return canvasObjectives.reduce<StageObjectivesMap>((acc, objective) => {
+    const result = canvasObjectives.reduce<StageObjectivesMap>((acc, objective) => {
       acc[objective.timeframe].push(objective);
       return acc;
     }, {
@@ -171,6 +176,11 @@ export default function Progress() {
       soon: [],
       later: []
     });
+    // Sort each stage by position
+    result.now.sort((a, b) => a.position - b.position);
+    result.soon.sort((a, b) => a.position - b.position);
+    result.later.sort((a, b) => a.position - b.position);
+    return result;
   }, [canvasObjectives]);
   const { completedObjectives, completionRate } = useMemo(() => {
     const completed = canvasObjectives.filter(obj => isCompleted(obj));
@@ -199,17 +209,28 @@ export default function Progress() {
 
   // DnD handlers
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    setDraggingId(event.active.id as string);
+    const id = event.active.id as string;
+    setDraggingId(id);
+    // Find objective for DragOverlay
+    const obj = canvasObjectives.find(o => o.id === id);
+    setActiveObjective(obj ?? null);
+  }, [canvasObjectives]);
+
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { over } = event;
+    setOverId(over?.id as string ?? null);
   }, []);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     setDraggingId(null);
+    setActiveObjective(null);
+    setOverId(null);
 
     if (!over || !profileId || isMapLocked) return;
 
     const draggedId = active.id as string;
-    const targetTimeframe = over.id as CanvasStage;
+    const targetId = over.id as string;
 
     // Check if it's a recommended objective (by key)
     const recommendedObj = recommendedObjectives.find(obj => obj.key === draggedId);
@@ -220,6 +241,9 @@ export default function Progress() {
         toast.error('Este objetivo ya está en tu canvas');
         return;
       }
+
+      // Determine target timeframe
+      const targetTimeframe = ['now', 'soon', 'later'].includes(targetId) ? targetId as CanvasStage : 'now';
 
       // Create custom objective from recommended
       createUserObjective.mutate({
@@ -246,41 +270,107 @@ export default function Progress() {
       return;
     }
 
-    // Check if it's a custom objective
-    const customObj = customObjectives.find(obj => obj.id === draggedId);
-    if (customObj && customObj.timeframe !== targetTimeframe) {
-      // Optimistic update - update cache immediately
-      const previousObjectives = queryClient.getQueryData<UserProgressObjective[]>(['user-progress-objectives', profileId]);
-      
-      queryClient.setQueryData<UserProgressObjective[]>(
-        ['user-progress-objectives', profileId],
-        (old) => old?.map(obj => 
-          obj.id === customObj.id 
-            ? { ...obj, timeframe: targetTimeframe } 
-            : obj
-        ) ?? []
-      );
+    // Check if dropped on a column (timeframe change)
+    if (['now', 'soon', 'later'].includes(targetId)) {
+      const customObj = customObjectives.find(obj => obj.id === draggedId);
+      if (customObj && customObj.timeframe !== targetId) {
+        // Calculate position at end of target column
+        const targetStageObjectives = objectivesByStage[targetId as CanvasStage];
+        const newPosition = targetStageObjectives.length;
 
-      // Perform actual mutation
-      updateUserObjective.mutate(
-        {
-          id: customObj.id,
-          userId: profileId,
-          updates: { timeframe: targetTimeframe },
-        },
-        {
-          onError: () => {
-            // Revert on error
-            queryClient.setQueryData(['user-progress-objectives', profileId], previousObjectives);
-            toast.error('Error al mover el objetivo. Intenta nuevamente.');
+        // Optimistic update - update cache immediately
+        const previousObjectives = queryClient.getQueryData<UserProgressObjective[]>(['user-progress-objectives', profileId]);
+        
+        queryClient.setQueryData<UserProgressObjective[]>(
+          ['user-progress-objectives', profileId],
+          (old) => old?.map(obj => 
+            obj.id === customObj.id 
+              ? { ...obj, timeframe: targetId as CanvasStage, position: newPosition } 
+              : obj
+          ) ?? []
+        );
+
+        // Perform actual mutation
+        updateUserObjective.mutate(
+          {
+            id: customObj.id,
+            userId: profileId,
+            updates: { timeframe: targetId, position: newPosition },
           },
-        }
-      );
+          {
+            onError: () => {
+              // Revert on error
+              queryClient.setQueryData(['user-progress-objectives', profileId], previousObjectives);
+              toast.error('Error al mover el objetivo. Intenta nuevamente.');
+            },
+          }
+        );
+
+        // Trigger drop animation
+        setRecentlyDroppedId(draggedId);
+        setTimeout(() => setRecentlyDroppedId(null), 300);
+        return;
+      }
       return;
     }
 
-    // Mentor objectives cannot be dragged (handled by disabled prop)
-  }, [profileId, isMapLocked, recommendedObjectives, userObjectives, createUserObjective, customObjectives, updateUserObjective, trackEvent, queryClient]);
+    // Check if dropped on another objective (reordering within same column)
+    const activeObj = canvasObjectives.find(o => o.id === draggedId);
+    const overObj = canvasObjectives.find(o => o.id === targetId);
+    
+    if (activeObj && overObj && activeObj.timeframe === overObj.timeframe) {
+      const isMentorObj = activeObj.source === 'mentor';
+      if (isMentorObj) return; // Can't reorder mentor objectives
+
+      const stageObjectives = objectivesByStage[activeObj.timeframe];
+      const oldIndex = stageObjectives.findIndex(o => o.id === draggedId);
+      const newIndex = stageObjectives.findIndex(o => o.id === targetId);
+      
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        const reorderedObjectives = arrayMove(stageObjectives, oldIndex, newIndex);
+        
+        // Optimistic update with new positions
+        const previousObjectives = queryClient.getQueryData<UserProgressObjective[]>(['user-progress-objectives', profileId]);
+        
+        queryClient.setQueryData<UserProgressObjective[]>(
+          ['user-progress-objectives', profileId],
+          (old) => {
+            if (!old) return old;
+            return old.map(obj => {
+              const newIdx = reorderedObjectives.findIndex(r => r.id === obj.id);
+              if (newIdx !== -1) {
+                return { ...obj, position: newIdx };
+              }
+              return obj;
+            });
+          }
+        );
+
+        // Persist new positions
+        const updates = reorderedObjectives.map((obj, idx) => ({
+          id: obj.id,
+          position: idx,
+        }));
+
+        // Update all positions in parallel
+        Promise.all(
+          updates.map(({ id, position }) =>
+            supabase
+              .from('user_progress_objectives')
+              .update({ position })
+              .eq('id', id)
+          )
+        ).catch(() => {
+          queryClient.setQueryData(['user-progress-objectives', profileId], previousObjectives);
+          toast.error('Error al reordenar. Intenta nuevamente.');
+        });
+
+        // Trigger drop animation
+        setRecentlyDroppedId(draggedId);
+        setTimeout(() => setRecentlyDroppedId(null), 300);
+      }
+    }
+  }, [profileId, isMapLocked, recommendedObjectives, userObjectives, createUserObjective, customObjectives, updateUserObjective, trackEvent, queryClient, canvasObjectives, objectivesByStage]);
 
   const toggleStep = useCallback((objective: UserProgressObjective, stepId: string) => {
     if (!profileId) return;
@@ -747,7 +837,7 @@ export default function Progress() {
             </Alert>
           )}
 
-          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
             <section>
               <div className="relative">
                 <div className="absolute inset-x-10 -top-10 h-40 bg-primary/10 blur-3xl rounded-full pointer-events-none" />
@@ -763,12 +853,34 @@ export default function Progress() {
                         onDeleteCustom={handleDeleteCustom} 
                         isMapLocked={isMapLocked}
                         showEmptyState={canvasObjectives.length === 0 && stage.key === 'now'}
+                        recentlyDroppedId={recentlyDroppedId}
                       />
                     ))}
                   </div>
                 </div>
               </div>
             </section>
+
+            {/* DragOverlay for visual preview */}
+            <DragOverlay dropAnimation={{
+              duration: 200,
+              easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+            }}>
+              {activeObjective ? (
+                <div className="rounded-2xl border-2 border-primary bg-background/95 p-4 shadow-2xl ring-2 ring-primary/50 scale-105 max-w-[300px]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline" className="bg-primary/10 border-primary/30 text-primary text-xs">
+                      {activeObjective.type}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {activeObjective.source === 'mentor' ? 'Mentoría' : 'Personalizado'}
+                    </Badge>
+                  </div>
+                  <p className="font-semibold text-sm line-clamp-1">{activeObjective.title}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{activeObjective.summary}</p>
+                </div>
+              ) : null}
+            </DragOverlay>
 
           {!isMapLocked && (
             <section className="space-y-6">
@@ -968,7 +1080,7 @@ export default function Progress() {
     </>;
 }
 
-// Canvas Stage Column with droppable
+// Canvas Stage Column with droppable and sortable
 interface CanvasStageColumnProps {
   stage: StageConfig;
   objectives: UserProgressObjective[];
@@ -977,10 +1089,12 @@ interface CanvasStageColumnProps {
   onDeleteCustom: (id: string) => void;
   isMapLocked: boolean;
   showEmptyState?: boolean;
+  recentlyDroppedId?: string | null;
 }
 
-const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, draggingId, toggleStep, onDeleteCustom, isMapLocked, showEmptyState }: CanvasStageColumnProps) {
+const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, draggingId, toggleStep, onDeleteCustom, isMapLocked, showEmptyState, recentlyDroppedId }: CanvasStageColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.key });
+  const objectiveIds = useMemo(() => objectives.map(o => o.id), [objectives]);
 
   return (
     <div
@@ -991,12 +1105,20 @@ const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, d
         "grid grid-rows-[auto_1fr]",
         "border-t md:border-t-0 md:border-l",
         "transition-all duration-200",
-        draggingId && "border-primary/60 bg-primary/5",
-        isOver && "ring-2 ring-primary ring-inset bg-primary/10",
+        draggingId && "border-primary/60",
         stage.key === "now" && "md:border-l-0 border-t-0",
         `bg-gradient-to-b ${stage.gradient}`
       )}
     >
+      {/* Drop zone indicator */}
+      {isOver && draggingId && (
+        <div className="absolute inset-2 border-2 border-dashed border-primary/60 rounded-xl bg-primary/5 pointer-events-none z-10 flex items-center justify-center">
+          <div className="bg-primary/20 backdrop-blur-sm rounded-lg px-4 py-2">
+            <span className="text-sm font-medium text-primary">Soltar aquí</span>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -1012,67 +1134,72 @@ const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, d
       </div>
 
       <ScrollArea className="h-full pr-2">
-        <div className="grid grid-cols-1 gap-4 auto-rows-fr">
-          {/* Enhanced empty state for first-time users */}
-          {showEmptyState && objectives.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center py-12 px-6 text-center">
-              <div className="rounded-full bg-primary/10 p-4 mb-4">
-                <Sparkles className="h-8 w-8 text-primary" />
+        <SortableContext items={objectiveIds} strategy={verticalListSortingStrategy}>
+          <div className="grid grid-cols-1 gap-4 auto-rows-fr">
+            {/* Enhanced empty state for first-time users */}
+            {showEmptyState && objectives.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center py-12 px-6 text-center">
+                <div className="rounded-full bg-primary/10 p-4 mb-4">
+                  <Sparkles className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">
+                  ¡Empezá a construir tu Career Path!
+                </h3>
+                <p className="text-muted-foreground max-w-md mb-4 text-sm">
+                  Arrastrá objetivos desde las secciones de abajo hacia las columnas según tu prioridad.
+                </p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="animate-bounce">👇</span>
+                  <span>Explorá los objetivos disponibles</span>
+                </div>
               </div>
-              <h3 className="text-lg font-semibold mb-2">
-                ¡Empezá a construir tu Career Path!
-              </h3>
-              <p className="text-muted-foreground max-w-md mb-4 text-sm">
-                Arrastrá objetivos desde las secciones de abajo hacia las columnas según tu prioridad.
-              </p>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span className="animate-bounce">👇</span>
-                <span>Explorá los objetivos disponibles</span>
+            )}
+
+            {objectives.length === 0 && !showEmptyState && (
+              <div className="border border-dashed rounded-xl p-6 text-center text-muted-foreground text-sm">
+                Arrastrá objetivos aquí para planificar tu camino.
               </div>
-            </div>
-          )}
+            )}
 
-          {objectives.length === 0 && !showEmptyState && (
-            <div className="border border-dashed rounded-xl p-6 text-center text-muted-foreground text-sm">
-              Arrastrá objetivos aquí para planificar tu camino.
-            </div>
-          )}
-
-          {objectives.map(objective => (
-            <CanvasObjectiveCard
-              key={objective.id}
-              objective={objective}
-              toggleStep={toggleStep}
-              onDeleteCustom={onDeleteCustom}
-              isMapLocked={isMapLocked}
-            />
-          ))}
-        </div>
+            {objectives.map(objective => (
+              <SortableCanvasCard
+                key={objective.id}
+                objective={objective}
+                toggleStep={toggleStep}
+                onDeleteCustom={onDeleteCustom}
+                isMapLocked={isMapLocked}
+                isRecentlyDropped={recentlyDroppedId === objective.id}
+              />
+            ))}
+          </div>
+        </SortableContext>
       </ScrollArea>
     </div>
   );
 });
 
-interface CanvasObjectiveCardProps {
+interface SortableCanvasCardProps {
   objective: UserProgressObjective;
   toggleStep: (obj: UserProgressObjective, stepId: string) => void;
   onDeleteCustom: (id: string) => void;
   isMapLocked: boolean;
+  isRecentlyDropped?: boolean;
 }
 
-const CanvasObjectiveCard = memo(function CanvasObjectiveCard({ objective, toggleStep, onDeleteCustom, isMapLocked }: CanvasObjectiveCardProps) {
+const SortableCanvasCard = memo(function SortableCanvasCard({ objective, toggleStep, onDeleteCustom, isMapLocked, isRecentlyDropped }: SortableCanvasCardProps) {
   const isMentor = objective.source === 'mentor';
   const complete = isCompleted(objective);
   const completedSteps = objective.steps.filter(step => step.completed).length;
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: objective.id,
     disabled: isMentor || isMapLocked,
   });
 
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined;
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   return (
     <div
@@ -1085,7 +1212,8 @@ const CanvasObjectiveCard = memo(function CanvasObjectiveCard({ objective, toggl
         "transition-all duration-200",
         "h-full flex flex-col min-h-[320px]",
         complete && "border-emerald-400/60 shadow-[0_0_0_1px_rgba(16,185,129,0.25)]",
-        isDragging && "opacity-50 scale-[1.02] shadow-lg",
+        isDragging && "opacity-50 scale-[1.02] shadow-lg z-50",
+        isRecentlyDropped && "animate-drop-in",
         !isMentor && !isMapLocked && "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md",
         (isMentor || isMapLocked) && "cursor-not-allowed"
       )}
@@ -1150,7 +1278,10 @@ const CanvasObjectiveCard = memo(function CanvasObjectiveCard({ objective, toggl
             size="icon"
             variant="ghost"
             className="h-7 w-7 md:h-8 md:w-8 text-muted-foreground ml-auto"
-            onClick={() => onDeleteCustom(objective.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteCustom(objective.id);
+            }}
             title="Eliminar objetivo"
           >
             <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
