@@ -849,7 +849,8 @@ export default function Progress() {
                         key={stage.key} 
                         stage={stage} 
                         objectives={objectivesByStage[stage.key]} 
-                        draggingId={draggingId} 
+                        draggingId={draggingId}
+                        overId={overId}
                         toggleStep={toggleStep} 
                         onDeleteCustom={handleDeleteCustom} 
                         isMapLocked={isMapLocked}
@@ -1086,6 +1087,7 @@ interface CanvasStageColumnProps {
   stage: StageConfig;
   objectives: UserProgressObjective[];
   draggingId: string | null;
+  overId: string | null;
   toggleStep: (obj: UserProgressObjective, stepId: string) => void;
   onDeleteCustom: (id: string) => void;
   isMapLocked: boolean;
@@ -1093,7 +1095,7 @@ interface CanvasStageColumnProps {
   recentlyDroppedId?: string | null;
 }
 
-const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, draggingId, toggleStep, onDeleteCustom, isMapLocked, showEmptyState, recentlyDroppedId }: CanvasStageColumnProps) {
+const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, draggingId, overId, toggleStep, onDeleteCustom, isMapLocked, showEmptyState, recentlyDroppedId }: CanvasStageColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.key });
   const objectiveIds = useMemo(() => objectives.map(o => o.id), [objectives]);
 
@@ -1162,7 +1164,7 @@ const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, d
               </div>
             )}
 
-            {objectives.map(objective => (
+            {objectives.map((objective, index) => (
               <SortableCanvasCard
                 key={objective.id}
                 objective={objective}
@@ -1170,6 +1172,10 @@ const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, d
                 onDeleteCustom={onDeleteCustom}
                 isMapLocked={isMapLocked}
                 isRecentlyDropped={recentlyDroppedId === objective.id}
+                overId={overId}
+                draggingId={draggingId}
+                objectiveIndex={index}
+                allObjectives={objectives}
               />
             ))}
           </div>
@@ -1185,6 +1191,10 @@ interface SortableCanvasCardProps {
   onDeleteCustom: (id: string) => void;
   isMapLocked: boolean;
   isRecentlyDropped?: boolean;
+  overId: string | null;
+  draggingId: string | null;
+  objectiveIndex: number;
+  allObjectives: UserProgressObjective[];
 }
 
 // Custom animate layout changes for smooth sibling displacement
@@ -1196,10 +1206,21 @@ const animateLayoutChanges: AnimateLayoutChanges = (args) => {
   return true;
 };
 
-const SortableCanvasCard = memo(function SortableCanvasCard({ objective, toggleStep, onDeleteCustom, isMapLocked, isRecentlyDropped }: SortableCanvasCardProps) {
+const SortableCanvasCard = memo(function SortableCanvasCard({ 
+  objective, 
+  toggleStep, 
+  onDeleteCustom, 
+  isMapLocked, 
+  isRecentlyDropped,
+  overId,
+  draggingId,
+  objectiveIndex,
+  allObjectives
+}: SortableCanvasCardProps) {
   const isMentor = objective.source === 'mentor';
   const complete = isCompleted(objective);
   const completedSteps = objective.steps.filter(step => step.completed).length;
+  const [isShaking, setIsShaking] = useState(false);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: objective.id,
@@ -1211,6 +1232,31 @@ const SortableCanvasCard = memo(function SortableCanvasCard({ objective, toggleS
     },
   });
 
+  // Calculate insertion indicator position
+  const isTargetedByDrag = overId === objective.id && draggingId !== objective.id && draggingId !== null;
+  const draggedIndex = draggingId ? allObjectives.findIndex(o => o.id === draggingId) : -1;
+  const isDragFromSameColumn = draggedIndex !== -1;
+  const showIndicator = isTargetedByDrag && isDragFromSameColumn && !isMentor && !isMapLocked;
+  // Indicator goes on top if dragged item comes from below, bottom if from above
+  const indicatorPosition = draggedIndex > objectiveIndex ? 'top' : 'bottom';
+
+  // Handle blocked element attempt
+  const handleBlockedAttempt = useCallback(() => {
+    if (!isShaking && (isMentor || isMapLocked)) {
+      setIsShaking(true);
+      if (isMentor) {
+        toast.info('Este objetivo fue asignado por tu mentor y no puede moverse', {
+          duration: 2000,
+        });
+      } else if (isMapLocked) {
+        toast.info('El mapa está bloqueado. Contacta a tu mentor para editarlo', {
+          duration: 2000,
+        });
+      }
+      setTimeout(() => setIsShaking(false), 400);
+    }
+  }, [isShaking, isMentor, isMapLocked]);
+
   // Use CSS.Translate for better performance on vertical movements
   // Disable transition on dragged element so it follows cursor instantly
   const style = {
@@ -1219,23 +1265,36 @@ const SortableCanvasCard = memo(function SortableCanvasCard({ objective, toggleS
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className={cn(
-        "relative rounded-2xl border bg-background/80 backdrop-blur p-3 md:p-5 shadow-sm",
-        "h-full flex flex-col min-h-[320px]",
-        "transform-gpu", // GPU acceleration for smoother animations
-        complete && "border-emerald-400/60 shadow-[0_0_0_1px_rgba(16,185,129,0.25)]",
-        isDragging && "opacity-50 scale-[1.02] shadow-lg z-50",
-        !isDragging && "transition-all duration-200 ease-out", // Smooth transition only when not dragging
-        isRecentlyDropped && "animate-drop-in",
-        !isMentor && !isMapLocked && "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md",
-        (isMentor || isMapLocked) && "cursor-not-allowed"
+    <div className="relative">
+      {/* Top insertion indicator */}
+      {showIndicator && indicatorPosition === 'top' && (
+        <div className="absolute -top-2 left-2 right-2 h-1 bg-primary rounded-full animate-pulse shadow-sm shadow-primary/30 z-20" />
       )}
-    >
+      
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        onPointerDown={(e) => {
+          if (isMentor || isMapLocked) {
+            handleBlockedAttempt();
+            e.preventDefault();
+          }
+        }}
+        className={cn(
+          "relative rounded-2xl border bg-background/80 backdrop-blur p-3 md:p-5 shadow-sm",
+          "h-full flex flex-col min-h-[320px]",
+          "transform-gpu", // GPU acceleration for smoother animations
+          complete && "border-emerald-400/60 shadow-[0_0_0_1px_rgba(16,185,129,0.25)]",
+          isDragging && "opacity-50 scale-[1.02] shadow-lg z-50",
+          !isDragging && "transition-all duration-200 ease-out", // Smooth transition only when not dragging
+          isRecentlyDropped && "animate-drop-in",
+          isShaking && "animate-shake",
+          !isMentor && !isMapLocked && "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md",
+          (isMentor || isMapLocked) && "cursor-not-allowed"
+        )}
+      >
       {/* Header con badges - altura fija */}
       <div className="flex flex-wrap items-center gap-2 mb-2 min-h-[28px]">
         {/* Grip icon para elementos arrastrables */}
@@ -1361,6 +1420,12 @@ const SortableCanvasCard = memo(function SortableCanvasCard({ objective, toggleS
           </div>
         )}
       </div>
+      </div>
+      
+      {/* Bottom insertion indicator */}
+      {showIndicator && indicatorPosition === 'bottom' && (
+        <div className="absolute -bottom-2 left-2 right-2 h-1 bg-primary rounded-full animate-pulse shadow-sm shadow-primary/30 z-20" />
+      )}
     </div>
   );
 });
