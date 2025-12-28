@@ -23,7 +23,8 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent, DragOverlay, useDraggable, useDroppable, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove, defaultAnimateLayoutChanges } from "@dnd-kit/sortable";
+import type { AnimateLayoutChanges } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { UserProgressObjective } from "@/hooks/useUserProgressObjectives";
 import { toast } from "sonner";
@@ -1186,6 +1187,15 @@ interface SortableCanvasCardProps {
   isRecentlyDropped?: boolean;
 }
 
+// Custom animate layout changes for smooth sibling displacement
+const animateLayoutChanges: AnimateLayoutChanges = (args) => {
+  const { isSorting, wasDragging } = args;
+  if (isSorting || wasDragging) {
+    return defaultAnimateLayoutChanges(args);
+  }
+  return true;
+};
+
 const SortableCanvasCard = memo(function SortableCanvasCard({ objective, toggleStep, onDeleteCustom, isMapLocked, isRecentlyDropped }: SortableCanvasCardProps) {
   const isMentor = objective.source === 'mentor';
   const complete = isCompleted(objective);
@@ -1194,11 +1204,18 @@ const SortableCanvasCard = memo(function SortableCanvasCard({ objective, toggleS
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: objective.id,
     disabled: isMentor || isMapLocked,
+    animateLayoutChanges,
+    transition: {
+      duration: 200,
+      easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    },
   });
 
+  // Use CSS.Translate for better performance on vertical movements
+  // Disable transition on dragged element so it follows cursor instantly
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: CSS.Translate.toString(transform),
+    transition: isDragging ? undefined : transition,
   };
 
   return (
@@ -1209,10 +1226,11 @@ const SortableCanvasCard = memo(function SortableCanvasCard({ objective, toggleS
       {...listeners}
       className={cn(
         "relative rounded-2xl border bg-background/80 backdrop-blur p-3 md:p-5 shadow-sm",
-        "transition-all duration-200",
         "h-full flex flex-col min-h-[320px]",
+        "transform-gpu", // GPU acceleration for smoother animations
         complete && "border-emerald-400/60 shadow-[0_0_0_1px_rgba(16,185,129,0.25)]",
         isDragging && "opacity-50 scale-[1.02] shadow-lg z-50",
+        !isDragging && "transition-all duration-200 ease-out", // Smooth transition only when not dragging
         isRecentlyDropped && "animate-drop-in",
         !isMentor && !isMapLocked && "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md",
         (isMentor || isMapLocked) && "cursor-not-allowed"
