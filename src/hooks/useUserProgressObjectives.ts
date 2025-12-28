@@ -203,16 +203,8 @@ export function useUpdateUserObjective() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['user-progress-objectives', variables.userId] });
-      toast.success('Objetivo actualizado');
-    },
-    onError: (error: Error) => {
-      if (import.meta.env.DEV) {
-        console.error('Error updating objective:', error);
-      }
-      toast.error('No se pudo actualizar el objetivo. Intenta nuevamente.');
-    },
+    // Note: onSuccess/onError are handled at call site for optimistic updates
+    // The realtime subscription will keep the cache in sync
   });
 }
 
