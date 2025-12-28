@@ -17,7 +17,7 @@ const StarterPackHome = () => {
         description="Recursos curados y guía paso a paso para quienes comienzan en Product Management o dan el salto a liderar equipos de producto." 
         canonical="/starterpack" 
       />
-      <main className="min-h-screen bg-background">
+      <main className="min-h-screen bg-background animate-fade-in">
         <div className="container py-6 px-4 sm:px-6">
           <StarterPackBreadcrumb
             items={[
