@@ -22,7 +22,8 @@ import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjecti
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent, DragOverlay, useDraggable, useDroppable, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent, DragOverlay, useDraggable, useDroppable, PointerSensor, KeyboardSensor, TouchSensor, useSensor, useSensors, closestCenter, MeasuringStrategy } from "@dnd-kit/core";
+import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove, defaultAnimateLayoutChanges } from "@dnd-kit/sortable";
 import type { AnimateLayoutChanges } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -144,8 +145,10 @@ export default function Progress() {
   const isMapLocked = userObjectives.length > 0 && userObjectives.every(obj => obj.is_locked);
   
   // DnD sensors
+  // DnD sensors - PointerSensor for desktop, TouchSensor for mobile with delay to prevent scroll conflicts
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(KeyboardSensor)
   );
   
@@ -838,7 +841,19 @@ export default function Progress() {
             </Alert>
           )}
 
-          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+          <DndContext 
+            sensors={sensors} 
+            collisionDetection={closestCenter}
+            modifiers={[restrictToWindowEdges]}
+            measuring={{
+              droppable: {
+                strategy: MeasuringStrategy.Always,
+              },
+            }}
+            onDragStart={handleDragStart} 
+            onDragOver={handleDragOver} 
+            onDragEnd={handleDragEnd}
+          >
             <section>
               <div className="relative">
                 <div className="absolute inset-x-10 -top-10 h-40 bg-primary/10 blur-3xl rounded-full pointer-events-none" />
