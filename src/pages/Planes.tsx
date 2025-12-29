@@ -253,8 +253,7 @@ export default function Planes() {
                 badge="30 usuarios activos"
                 features={[
                   "Todo lo incluido en el plan gratuito",
-                  "Sesión mensual 1:1 con NicoProducto",
-                  <>Guía de carrera personalizada por <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>,
+                  <>Sesión mensual 1:1 con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>,
                   "Tu Career Path con objetivos concretos",
                   "Recursos curados según tus áreas de mejora",
                   "Nuevos contenidos cada mes"
@@ -275,7 +274,7 @@ export default function Planes() {
                 badge="Nuevo"
                 features={[
                   "Todo lo incluido en Premium",
-                  "Acceso completo a Cursos",
+                  <><strong>Acceso completo a Cursos</strong></>,
                   "Feedback personalizado en ejercicios",
                   "Acceso prioritario a nuevos contenidos",
                   "Canal directo de comunicación"
