@@ -3,20 +3,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Lemon Squeezy variant IDs for each plan
+// Lemon Squeezy variant IDs for each plan (from lemon-squeezy-checkout)
 const VARIANT_IDS = {
-  premium: '706339',
-  repremium: '711015',
-  curso_estrategia: '711014',
-  cursos_all: '711016',
+  premium: '1071322',
+  repremium: '1170898',
+  curso_estrategia: '1170897',
+  cursos_all: '1170900',
 };
 
-// Fallback prices in case API fails
+// Fallback prices in case API fails (all in ARS)
 const FALLBACK_PRICES = {
-  premium: { amount: 50000, formatted: '$ 50.000', currency: 'ARS' },
-  repremium: { amount: 1999, formatted: 'USD 19,99', currency: 'USD' },
-  curso_estrategia: { amount: 49, formatted: 'USD 49', currency: 'USD' },
-  cursos_all: { amount: 99, formatted: 'USD 99', currency: 'USD' },
+  premium: { amount: 5000000, formatted: '$ 50.000', currency: 'ARS' },
+  repremium: { amount: 1999900, formatted: '$ 19.999', currency: 'ARS' },
+  curso_estrategia: { amount: 4900000, formatted: '$ 49.000', currency: 'ARS' },
+  cursos_all: { amount: 9900000, formatted: '$ 99.000', currency: 'ARS' },
 };
 
 // In-memory cache
@@ -30,22 +30,15 @@ interface VariantPricing {
   currency: string;
 }
 
-function formatPrice(priceInCents: number, currency: string): string {
-  if (currency === 'ARS') {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(priceInCents / 100);
-  }
-  
-  // For USD
-  const dollars = priceInCents / 100;
-  if (Number.isInteger(dollars)) {
-    return `USD ${dollars}`;
-  }
-  return `USD ${dollars.toFixed(2).replace('.', ',')}`;
+function formatPrice(priceInCents: number): string {
+  // All prices are in ARS cents
+  const amount = priceInCents / 100;
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
 }
 
 async function fetchVariantPrice(variantId: string, apiKey: string): Promise<VariantPricing | null> {
@@ -65,12 +58,13 @@ async function fetchVariantPrice(variantId: string, apiKey: string): Promise<Var
 
     const data = await response.json();
     const priceInCents = data.data?.attributes?.price || 0;
-    const currency = priceInCents >= 10000 ? 'ARS' : 'USD'; // Simple heuristic: ARS prices are much higher
+    
+    console.log(`Variant ${variantId} price:`, priceInCents, 'cents');
     
     return {
       amount: priceInCents,
-      formatted: formatPrice(priceInCents, currency),
-      currency,
+      formatted: formatPrice(priceInCents),
+      currency: 'ARS', // Store is configured in ARS
     };
   } catch (error) {
     console.error(`Error fetching variant ${variantId}:`, error);

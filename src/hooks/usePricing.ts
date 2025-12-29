@@ -18,12 +18,12 @@ interface PricingData {
   source: string;
 }
 
-// Fallback prices if API fails
+// Fallback prices if API fails (all in ARS)
 const FALLBACK_PRICES = {
-  premium: { amount: 50000, formatted: '$ 50.000', currency: 'ARS' },
-  repremium: { amount: 1999, formatted: 'USD 19,99', currency: 'USD' },
-  curso_estrategia: { amount: 49, formatted: 'USD 49', currency: 'USD' },
-  cursos_all: { amount: 99, formatted: 'USD 99', currency: 'USD' },
+  premium: { amount: 5000000, formatted: '$ 50.000', currency: 'ARS' },
+  repremium: { amount: 1999900, formatted: '$ 19.999', currency: 'ARS' },
+  curso_estrategia: { amount: 4900000, formatted: '$ 49.000', currency: 'ARS' },
+  cursos_all: { amount: 9900000, formatted: '$ 99.000', currency: 'ARS' },
 };
 
 export function usePricing() {
