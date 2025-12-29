@@ -47,7 +47,12 @@ function PlanCard({
     <Card className={`relative flex flex-col h-full ${isHighlighted ? 'border-primary bg-primary/5' : ''}`}>
       {badge && (
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-          <Badge className="bg-primary text-primary-foreground px-3 py-1">{badge}</Badge>
+          <Badge 
+            variant={badge === "Nuevo" ? "nuevo" : "default"} 
+            className="px-3 py-1 shadow-sm"
+          >
+            {badge}
+          </Badge>
         </div>
       )}
       <CardHeader className="text-center pb-4">
