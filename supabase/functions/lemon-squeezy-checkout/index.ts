@@ -7,13 +7,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Variant configuration for all products
+const VARIANT_CONFIG: Record<string, { variantId: string; purchaseType: 'subscription' | 'one_time' }> = {
+  'premium': { variantId: '1071322', purchaseType: 'subscription' },
+  'repremium': { variantId: '1170898', purchaseType: 'subscription' },
+  'curso_estrategia': { variantId: '1170897', purchaseType: 'one_time' },
+  'cursos_all': { variantId: '1170900', purchaseType: 'one_time' },
+};
+
+type PlanType = keyof typeof VARIANT_CONFIG;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { userId, email } = await req.json();
+    const { userId, email, plan = 'premium' } = await req.json();
+    
+    // Validate plan
+    if (!VARIANT_CONFIG[plan as PlanType]) {
+      console.error('[Checkout] Invalid plan requested:', plan);
+      return new Response(
+        JSON.stringify({ error: 'Plan inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const config = VARIANT_CONFIG[plan as PlanType];
+    console.log('[Checkout] Plan requested:', plan, 'Variant:', config.variantId, 'Type:', config.purchaseType);
     
     // SECURITY: Must have either userId or email
     if ((!userId && !email) || (email && typeof email !== 'string')) {
@@ -165,14 +187,12 @@ serve(async (req) => {
     }
     // If no userId, we're using the email provided (anonymous checkout)
 
-    // Lemon Squeezy Variant ID for Premium Plan
-    const variantId = '1071322';
-
     // Generar un checkout_intent_id único para tracking
     const checkoutIntentId = crypto.randomUUID();
 
     console.log('[Checkout Intent] Generated ID:', checkoutIntentId);
     console.log('[Checkout Intent] Email:', checkoutEmail);
+    console.log('[Checkout Intent] Plan:', plan);
 
     // Create Lemon Squeezy checkout
     const checkoutData = {
@@ -182,14 +202,16 @@ serve(async (req) => {
           checkout_data: {
             email: checkoutEmail,
             name: userName,
-          custom: {
-            anonymous_checkout: String(isAnonymousCheckout),
-            checkout_intent_id: checkoutIntentId,
-            created_at: new Date().toISOString()
-          }
-        },
-        product_options: {
-          redirect_url: `${req.headers.get('origin')}/welcome?success=true&anonymous=${String(isAnonymousCheckout)}&intent=${checkoutIntentId}&email=${encodeURIComponent(checkoutEmail)}`
+            custom: {
+              anonymous_checkout: String(isAnonymousCheckout),
+              checkout_intent_id: checkoutIntentId,
+              plan: plan,
+              purchase_type: config.purchaseType,
+              created_at: new Date().toISOString()
+            }
+          },
+          product_options: {
+            redirect_url: `${req.headers.get('origin')}/welcome?success=true&anonymous=${String(isAnonymousCheckout)}&intent=${checkoutIntentId}&email=${encodeURIComponent(checkoutEmail!)}&plan=${plan}`
           }
         },
         relationships: {
@@ -202,7 +224,7 @@ serve(async (req) => {
           variant: {
             data: {
               type: 'variants',
-              id: variantId
+              id: config.variantId
             }
           }
         }
@@ -210,9 +232,10 @@ serve(async (req) => {
     };
 
     console.log('Creating Lemon Squeezy checkout session for user');
-    console.log('[Checkout Request] Variant ID:', variantId);
+    console.log('[Checkout Request] Variant ID:', config.variantId);
     console.log('[Checkout Request] Email:', checkoutEmail);
     console.log('[Checkout Request] Is anonymous:', isAnonymousCheckout);
+    console.log('[Checkout Request] Plan:', plan);
 
     // Crear AbortController para timeout de 15 segundos
     const controller = new AbortController();
@@ -251,7 +274,7 @@ serve(async (req) => {
     if (!response.ok) {
       console.error('[Lemon Squeezy API Error] Status:', response.status, response.statusText);
       console.error('[Lemon Squeezy API Error] Request was for email:', checkoutEmail);
-      console.error('[Lemon Squeezy API Error] Variant ID:', variantId);
+      console.error('[Lemon Squeezy API Error] Variant ID:', config.variantId);
       
       const errorText = await response.text();
       console.error('[Lemon Squeezy API Error] Response body:', errorText);

@@ -8,11 +8,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-signature',
 };
 
+// Mapping from variant ID to plan configuration
+const VARIANT_TO_PLAN: Record<string, { plan: string; purchaseType: 'subscription' | 'one_time' }> = {
+  '1071322': { plan: 'premium', purchaseType: 'subscription' },
+  '1170898': { plan: 'repremium', purchaseType: 'subscription' },
+  '1170897': { plan: 'curso_estrategia', purchaseType: 'one_time' },
+  '1170900': { plan: 'cursos_all', purchaseType: 'one_time' },
+};
+
 interface LemonSqueezyWebhookEvent {
   meta: {
     event_name: string;
     custom_data?: {
       user_id?: string;
+      plan?: string;
+      purchase_type?: string;
     };
   };
   data: {
@@ -22,6 +32,10 @@ interface LemonSqueezyWebhookEvent {
       status: string;
       customer_id: number;
       order_id: number;
+      variant_id?: number;
+      first_order_item?: {
+        variant_id?: number;
+      };
       renews_at?: string;
       ends_at?: string;
       trial_ends_at?: string;
@@ -100,6 +114,18 @@ async function logWebhookEvent(
   }
 }
 
+// Helper to extract variant ID from event
+function extractVariantId(event: LemonSqueezyWebhookEvent): string | null {
+  // Try multiple locations where variant_id might be
+  const variantId = 
+    event.data.attributes.variant_id?.toString() ||
+    event.data.attributes.first_order_item?.variant_id?.toString() ||
+    null;
+  
+  console.log('[Webhook] Extracted variant_id:', variantId);
+  return variantId;
+}
+
 serve(async (req) => {
   const startTime = Date.now();
   
@@ -139,6 +165,7 @@ serve(async (req) => {
 
     event = await req.json();
     console.log('Webhook event received:', event!.meta.event_name);
+    console.log('Event data type:', event!.data.type);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -149,6 +176,13 @@ serve(async (req) => {
     customerId = event!.data.attributes.customer_id?.toString();
     orderId = event!.data.attributes.order_id?.toString();
     const status = event!.data.attributes.status;
+
+    // Extract variant ID to determine plan
+    const variantId = extractVariantId(event!);
+    const planConfig = variantId ? VARIANT_TO_PLAN[variantId] : null;
+    
+    console.log('[Webhook] Variant ID:', variantId);
+    console.log('[Webhook] Plan config:', planConfig);
 
     // Get user email from webhook event
     userEmail = event!.data.attributes.user_email || event!.data.attributes.customer_email || null;
@@ -194,17 +228,45 @@ serve(async (req) => {
     switch (eventName) {
       case 'order_created':
         console.log('Processing order_created event');
-        await supabase
-          .from('user_subscriptions')
-          .upsert({
-            user_id: userId,
-            lemon_squeezy_order_id: orderId,
-            lemon_squeezy_customer_id: customerId,
-            updated_at: new Date().toISOString(),
-          }, { 
-            onConflict: 'user_id',
-            ignoreDuplicates: false 
-          });
+        
+        // For one-time purchases, activate the plan immediately
+        if (planConfig?.purchaseType === 'one_time') {
+          console.log('[Webhook] One-time purchase detected, activating plan:', planConfig.plan);
+          
+          await supabase
+            .from('user_subscriptions')
+            .upsert({
+              user_id: userId,
+              plan: planConfig.plan,
+              status: 'active',
+              purchase_type: 'one_time',
+              lemon_squeezy_variant_id: variantId,
+              lemon_squeezy_order_id: orderId,
+              lemon_squeezy_customer_id: customerId,
+              // No current_period_end for one-time purchases (permanent access)
+              current_period_end: null,
+              updated_at: new Date().toISOString(),
+            }, { 
+              onConflict: 'user_id',
+              ignoreDuplicates: false 
+            });
+            
+          console.log('[Webhook] One-time purchase activated successfully');
+        } else {
+          // For subscriptions, just record the order (subscription_created will handle activation)
+          await supabase
+            .from('user_subscriptions')
+            .upsert({
+              user_id: userId,
+              lemon_squeezy_order_id: orderId,
+              lemon_squeezy_customer_id: customerId,
+              lemon_squeezy_variant_id: variantId,
+              updated_at: new Date().toISOString(),
+            }, { 
+              onConflict: 'user_id',
+              ignoreDuplicates: false 
+            });
+        }
         break;
 
       case 'subscription_created':
@@ -212,14 +274,20 @@ serve(async (req) => {
         const renews_at = event!.data.attributes.renews_at;
         const trial_ends_at = event!.data.attributes.trial_ends_at;
         
+        // Determine plan from variant or default to premium
+        const subscriptionPlan = planConfig?.plan || 'premium';
+        console.log('[Webhook] Subscription plan:', subscriptionPlan);
+        
         await supabase
           .from('user_subscriptions')
           .upsert({
             user_id: userId,
-            plan: 'premium',
+            plan: subscriptionPlan,
             status: 'active',
+            purchase_type: 'subscription',
             lemon_squeezy_subscription_id: subscriptionId,
             lemon_squeezy_customer_id: customerId,
+            lemon_squeezy_variant_id: variantId,
             current_period_end: renews_at 
               ? new Date(renews_at).toISOString()
               : null,

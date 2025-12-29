@@ -7,6 +7,8 @@ interface UseSubscriptionOptions {
   skip?: boolean;
 }
 
+export type SubscriptionPlan = 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all';
+
 export function useSubscription(options?: UseSubscriptionOptions) {
   const { user, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
@@ -17,10 +19,11 @@ export function useSubscription(options?: UseSubscriptionOptions) {
     queryFn: async () => {
       if (!user) {
         return {
-          plan: 'free' as const,
+          plan: 'free' as SubscriptionPlan,
           status: 'active' as const,
           trialEnd: null,
           current_period_end: null,
+          purchase_type: 'subscription' as const,
         };
       }
 
@@ -50,18 +53,20 @@ export function useSubscription(options?: UseSubscriptionOptions) {
           console.warn('[useSubscription] No subscription found, defaulting to free');
         }
         return {
-          plan: 'free' as const,
+          plan: 'free' as SubscriptionPlan,
           status: 'active' as const,
           trialEnd: null,
           current_period_end: null,
+          purchase_type: 'subscription' as const,
         };
       }
 
       return {
-        plan: data.plan,
+        plan: data.plan as SubscriptionPlan,
         status: data.status,
         trialEnd: data.trial_end ? new Date(data.trial_end) : null,
         current_period_end: data.current_period_end ? new Date(data.current_period_end) : null,
+        purchase_type: 'subscription' as const,
       };
     },
     enabled: !!user && !options?.skip,
@@ -126,13 +131,18 @@ export function useSubscription(options?: UseSubscriptionOptions) {
   if (options?.skip) {
     return {
       subscription: {
-        plan: 'premium' as const,
+        plan: 'premium' as SubscriptionPlan,
         status: 'active' as const,
         trialEnd: null,
         current_period_end: null,
+        purchase_type: 'subscription' as const,
       },
       loading: false,
       hasActivePremium: true,
+      hasActiveRePremium: false,
+      hasCursoEstrategia: false,
+      hasCursosAll: false,
+      hasAnyPaidPlan: true,
       isTrialing: false,
     };
   }
@@ -140,12 +150,28 @@ export function useSubscription(options?: UseSubscriptionOptions) {
   // Return undefined for hasActivePremium while loading to distinguish from "definitely not premium"
   const isStillLoading = loading || authLoading || isError;
   
+  const plan = subscription?.plan;
+  const isActive = subscription?.status === 'active';
+  
   return {
     subscription,
     loading: isStillLoading,
+    plan,
     hasActivePremium: isStillLoading 
       ? undefined 
-      : (subscription?.status === 'active' && subscription?.plan === 'premium'),
+      : (isActive && plan === 'premium'),
+    hasActiveRePremium: isStillLoading
+      ? undefined
+      : (isActive && plan === 'repremium'),
+    hasCursoEstrategia: isStillLoading
+      ? undefined
+      : (isActive && plan === 'curso_estrategia'),
+    hasCursosAll: isStillLoading
+      ? undefined
+      : (isActive && plan === 'cursos_all'),
+    hasAnyPaidPlan: isStillLoading
+      ? undefined
+      : (isActive && ['premium', 'repremium', 'curso_estrategia', 'cursos_all'].includes(plan || '')),
     isTrialing: subscription?.trialEnd ? new Date() < subscription.trialEnd : false,
   };
 }
