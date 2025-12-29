@@ -10,7 +10,8 @@ import {
   LogOut, 
   Shield,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CreditCard
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -225,6 +226,26 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           <div className="border-t p-3">
             {isAuthenticated ? (
               <div className="space-y-1">
+                {/* Planes link */}
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/planes"
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                        "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                        isActive("/planes") && "bg-primary/10 text-primary font-medium"
+                      )}
+                    >
+                      <CreditCard className="h-5 w-5 shrink-0" />
+                      {!collapsed && <span>Planes</span>}
+                    </Link>
+                  </TooltipTrigger>
+                  {collapsed && (
+                    <TooltipContent side="right">Planes</TooltipContent>
+                  )}
+                </Tooltip>
+
                 {/* Profile link */}
                 <Tooltip delayDuration={0}>
                   <TooltipTrigger asChild>
@@ -237,17 +258,11 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                       )}
                     >
                       <User className="h-5 w-5 shrink-0" />
-                      {!collapsed && (
-                        <span className="truncate">
-                          {profileLoading ? "Cargando..." : displayName}
-                        </span>
-                      )}
+                      {!collapsed && <span>Mi Perfil</span>}
                     </Link>
                   </TooltipTrigger>
                   {collapsed && (
-                    <TooltipContent side="right">
-                      {profileLoading ? "Cargando..." : displayName}
-                    </TooltipContent>
+                    <TooltipContent side="right">Mi Perfil</TooltipContent>
                   )}
                 </Tooltip>
 
