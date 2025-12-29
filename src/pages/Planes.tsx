@@ -309,7 +309,7 @@ export default function Planes() {
                 name="Estrategia de Producto para principiantes"
                 price={pricingLoading ? "..." : curso_estrategia.formatted}
                 priceLabel="(pago único)"
-                description="Para principiantes que quieren dominar estrategia de producto"
+                description="Curso para principiantes que quieren dominar la Estrategia de Producto"
                 icon={<BookOpen className="w-6 h-6 text-primary" />}
                 badge="Nuevo"
                 features={[
