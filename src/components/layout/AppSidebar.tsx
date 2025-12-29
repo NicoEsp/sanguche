@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { isPremiumFeature, FEATURES } from "@/utils/features";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useState } from "react";
+import { useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
@@ -27,6 +27,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { 
@@ -81,6 +83,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const { user, isAuthenticated, isAdmin, signOut, isLoading, isSigningOut } = useAuth();
   const shouldLoadProfile = isAuthenticated && !isLoading;
   const { profile, loading: profileLoading } = useUserProfile({ skip: !shouldLoadProfile });
+  const queryClient = useQueryClient();
   
   const metadataName = (() => {
     const possibleName = user?.user_metadata?.name;
@@ -96,11 +99,72 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
     return location.pathname === path;
   };
 
+  // Prefetch de datos según la ruta para carga instantánea
+  const prefetchRouteData = useCallback((route: string) => {
+    if (!user?.id) return;
+    
+    const userId = user.id;
+    const profileId = profile?.id;
+    
+    switch (route) {
+      case '/autoevaluacion':
+      case '/mejoras':
+      case '/mentoria':
+        // Prefetch assessment data
+        queryClient.prefetchQuery({
+          queryKey: ['assessment', userId],
+          queryFn: async () => {
+            const { data } = await supabase
+              .from('assessments')
+              .select('*')
+              .eq('user_id', userId)
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            return data;
+          },
+          staleTime: 5 * 60 * 1000,
+        });
+        break;
+        
+      case '/progreso':
+        // Prefetch progress objectives
+        if (profileId) {
+          queryClient.prefetchQuery({
+            queryKey: ['user-progress-objectives', profileId],
+            queryFn: async () => {
+              const { data } = await supabase
+                .from('user_progress_objectives')
+                .select('*')
+                .eq('user_id', profileId)
+                .order('created_at', { ascending: false });
+              return data || [];
+            },
+            staleTime: 2 * 60 * 1000,
+          });
+          
+          queryClient.prefetchQuery({
+            queryKey: ['recommended-objectives', profileId],
+            queryFn: async () => {
+              const { data } = await supabase
+                .from('dismissed_recommended_objectives')
+                .select('objective_key')
+                .eq('user_id', profileId);
+              return data?.map(d => d.objective_key) || [];
+            },
+            staleTime: 2 * 60 * 1000,
+          });
+        }
+        break;
+    }
+  }, [user?.id, profile?.id, queryClient]);
+
   const NavItem = ({ item }: { item: typeof navItems[0] }) => {
     const active = isActive(item.href);
     const content = (
       <Link
         to={item.comingSoon ? "#" : item.href}
+        onMouseEnter={() => !item.comingSoon && prefetchRouteData(item.href)}
         className={cn(
           "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
           "hover:bg-muted/50",
