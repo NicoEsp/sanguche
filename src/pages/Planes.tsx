@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Crown, BookOpen, Sparkles } from "lucide-react";
+import { Check, Star, Crown, BookOpen, Sparkles, X } from "lucide-react";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -345,6 +346,124 @@ export default function Planes() {
                 ctaLink={hasCursosAll ? "/mentoria" : undefined}
                 isCurrentPlan={hasCursosAll}
               />
+            </div>
+          </div>
+        </section>
+
+        {/* Comparison Table */}
+        <section className="py-12 px-4">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Comparativa de Planes</h2>
+            
+            <div className="overflow-x-auto rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-[280px] font-semibold">Características</TableHead>
+                    <TableHead className="text-center font-semibold">Gratuito</TableHead>
+                    <TableHead className="text-center font-semibold bg-primary/10">Premium</TableHead>
+                    <TableHead className="text-center font-semibold">RePremium</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {/* Autoevaluación */}
+                  <TableRow className="bg-muted/30">
+                    <TableCell colSpan={4} className="font-semibold text-primary">Autoevaluación</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Autoevaluación completa de habilidades PM</TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Identificación de áreas de mejora</TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                  </TableRow>
+                  
+                  {/* Recursos */}
+                  <TableRow className="bg-muted/30">
+                    <TableCell colSpan={4} className="font-semibold text-primary">Recursos</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Recursos introductorios</TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>PDFs y guías gratuitas</TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Recursos curados según tus áreas de mejora</TableCell>
+                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
+                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Acceso prioritario a nuevos contenidos</TableCell>
+                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
+                    <TableCell className="text-center bg-primary/5"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                  </TableRow>
+                  
+                  {/* Mentoría */}
+                  <TableRow className="bg-muted/30">
+                    <TableCell colSpan={4} className="font-semibold text-primary">Mentoría</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Sesión mensual 1:1 con NicoProducto</TableCell>
+                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
+                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Tu Career Path con objetivos concretos</TableCell>
+                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
+                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Feedback personalizado en ejercicios</TableCell>
+                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
+                    <TableCell className="text-center bg-primary/5"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Canal directo de comunicación</TableCell>
+                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
+                    <TableCell className="text-center bg-primary/5"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                  </TableRow>
+                  
+                  {/* Cursos */}
+                  <TableRow className="bg-muted/30">
+                    <TableCell colSpan={4} className="font-semibold text-primary">Cursos</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Acceso completo a todos los Cursos</TableCell>
+                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
+                    <TableCell className="text-center bg-primary/5"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
+                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
+                  </TableRow>
+                  
+                  {/* Precio */}
+                  <TableRow className="bg-muted/30">
+                    <TableCell colSpan={4} className="font-semibold text-primary">Precio</TableCell>
+                  </TableRow>
+                  <TableRow className="font-semibold">
+                    <TableCell>Precio mensual</TableCell>
+                    <TableCell className="text-center">$0</TableCell>
+                    <TableCell className="text-center bg-primary/5">{premium?.formatted || "$ 50.000"}/mes</TableCell>
+                    <TableCell className="text-center">{repremium?.formatted || "$ 19.999"}/mes</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
           </div>
         </section>
