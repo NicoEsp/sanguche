@@ -521,7 +521,7 @@ function generateProfileCTA(
   if (brechasCriticas >= 3) {
     return {
       text: "Podés avanzar más rápido con acompañamiento personalizado.",
-      route: "/premium"
+      route: "/planes"
     };
   }
 
@@ -529,7 +529,7 @@ function generateProfileCTA(
   if (isBalanced && fortalezas >= 3) {
     return {
       text: "La mentoría puede ayudarte a definir cuál debería ser ese \"siguiente paso\".",
-      route: "/premium"
+      route: "/planes"
     };
   }
 
@@ -538,13 +538,13 @@ function generateProfileCTA(
     if (nivel === "Senior" || nivel === "Lead" || nivel === "Head") {
       return {
         text: "El plan Premium te permite trabajar sobre esas áreas complementarias de forma concreta y enfocada.",
-        route: "/premium"
+        route: "/planes"
       };
     } else {
       // Especializado + Junior/Mid
       return {
         text: "El plan Premium te puede ayudar a construir ese perfil más balanceado, paso a paso.",
-        route: "/premium"
+        route: "/planes"
       };
     }
   }
@@ -553,7 +553,7 @@ function generateProfileCTA(
   if (promedio >= 4.0) {
     return {
       text: "La mentoría puede ayudarte a convertir esa base en un diferencial estratégico.",
-      route: "/premium"
+      route: "/planes"
     };
   }
 
@@ -561,13 +561,13 @@ function generateProfileCTA(
   if (promedio >= 3.5) {
     return {
       text: "Con el plan Premium podés acelerar ese proceso con foco y acompañamiento.",
-      route: "/premium"
+      route: "/planes"
     };
   }
 
   // Resto (< 3.5)
   return {
     text: "La mentoría puede ayudarte a ordenar ese camino y avanzar con claridad.",
-    route: "/premium"
+    route: "/planes"
   };
 }

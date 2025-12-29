@@ -33,9 +33,9 @@ export function StarterPackCTA({ variant = 'default' }: StarterPackCTAProps) {
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link to="/premium">
+              <Link to="/planes">
                 <Crown className="w-5 h-5 mr-2" />
-                Ver Premium
+                Ver Planes
               </Link>
             </Button>
           </div>

@@ -261,9 +261,9 @@ export default function Profile() {
 
             {subscription?.plan === 'free' && (
               <Button asChild>
-                <Link to="/premium">
+                <Link to="/planes">
                   <Crown className="h-4 w-4 mr-2" />
-                  Actualizar a Premium
+                  Ver planes
                 </Link>
               </Button>
             )}

@@ -94,8 +94,8 @@ export default function Welcome() {
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
                 
-                <Button onClick={() => navigate('/premium')} variant="outline" size="lg" className="w-full">
-                  Ver Premium
+                <Button onClick={() => navigate('/planes')} variant="outline" size="lg" className="w-full">
+                  Ver Planes
                 </Button>
               </div>
 

@@ -153,7 +153,7 @@ export function ResourceCard({ resource, accessState, onDownload }: ResourceCard
             className="w-full text-amber-600 border-amber-500/30 hover:bg-amber-500/10"
             asChild
           >
-            <Link to="/premium">
+            <Link to="/planes">
               <Lock className="w-4 h-4 mr-2" />
               Desbloquear con Premium
             </Link>
