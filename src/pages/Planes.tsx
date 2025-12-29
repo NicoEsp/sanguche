@@ -15,7 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { usePricing } from "@/hooks/usePricing";
 
 interface PlanCardProps {
-  name: string;
+  name: React.ReactNode;
   price: string;
   priceLabel: string;
   description: string;
@@ -313,7 +313,7 @@ export default function Planes() {
             <div className="grid md:grid-cols-2 gap-6">
               {/* Curso Estrategia */}
               <PlanCard
-                name="Estrategia de Producto para principiantes"
+                name={<>Estrategia de Producto<br />para principiantes</>}
                 price={pricingLoading ? "..." : curso_estrategia.formatted}
                 priceLabel="(pago único)"
                 description="Curso para principiantes que quieren dominar la Estrategia de Producto"
