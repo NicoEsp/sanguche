@@ -54,9 +54,10 @@ export function useAssessmentData(): AssessmentData {
       return null;
     },
     enabled: !!user,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutos - assessment casi nunca cambia
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // Usar cache si existe
   });
 
   useEffect(() => {

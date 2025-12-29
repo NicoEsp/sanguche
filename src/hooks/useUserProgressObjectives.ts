@@ -39,6 +39,10 @@ export function useUserProgressObjectives(userId: string | undefined) {
       return data as unknown as UserProgressObjective[];
     },
     enabled: !!userId,
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // Realtime maneja updates
   });
 
   // Setup realtime subscription with optimistic updates

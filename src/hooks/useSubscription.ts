@@ -70,14 +70,11 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       };
     },
     enabled: !!user && !options?.skip,
-    staleTime: 60 * 1000, // 60 segundos - reduce carga en servidor
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: 'always',
-    refetchInterval: 30 * 1000, // Polling cada 30s
-    retry: 3, // Reintentar 3 veces en caso de error
-    retryDelay: 500, // 500ms entre reintentos
-    refetchOnReconnect: true, // Refetch al reconectar red
+    staleTime: 2 * 60 * 1000, // 2 minutos - suscripción no cambia frecuentemente
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // Usar cache existente - realtime maneja updates
+    retry: 2,
   });
 
   // Real-time subscription
