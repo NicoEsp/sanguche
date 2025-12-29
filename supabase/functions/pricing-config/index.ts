@@ -3,6 +3,81 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Lemon Squeezy variant IDs for each plan
+const VARIANT_IDS = {
+  premium: '706339',
+  repremium: '711015',
+  curso_estrategia: '711014',
+  cursos_all: '711016',
+};
+
+// Fallback prices in case API fails
+const FALLBACK_PRICES = {
+  premium: { amount: 50000, formatted: '$ 50.000', currency: 'ARS' },
+  repremium: { amount: 1999, formatted: 'USD 19,99', currency: 'USD' },
+  curso_estrategia: { amount: 49, formatted: 'USD 49', currency: 'USD' },
+  cursos_all: { amount: 99, formatted: 'USD 99', currency: 'USD' },
+};
+
+// In-memory cache
+let cachedPricing: any = null;
+let cacheTimestamp = 0;
+const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+
+interface VariantPricing {
+  amount: number;
+  formatted: string;
+  currency: string;
+}
+
+function formatPrice(priceInCents: number, currency: string): string {
+  if (currency === 'ARS') {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(priceInCents / 100);
+  }
+  
+  // For USD
+  const dollars = priceInCents / 100;
+  if (Number.isInteger(dollars)) {
+    return `USD ${dollars}`;
+  }
+  return `USD ${dollars.toFixed(2).replace('.', ',')}`;
+}
+
+async function fetchVariantPrice(variantId: string, apiKey: string): Promise<VariantPricing | null> {
+  try {
+    const response = await fetch(`https://api.lemonsqueezy.com/v1/variants/${variantId}`, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/vnd.api+json',
+        'Content-Type': 'application/vnd.api+json',
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch variant ${variantId}:`, response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const priceInCents = data.data?.attributes?.price || 0;
+    const currency = priceInCents >= 10000 ? 'ARS' : 'USD'; // Simple heuristic: ARS prices are much higher
+    
+    return {
+      amount: priceInCents,
+      formatted: formatPrice(priceInCents, currency),
+      currency,
+    };
+  } catch (error) {
+    console.error(`Error fetching variant ${variantId}:`, error);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -12,26 +87,68 @@ Deno.serve(async (req) => {
   try {
     console.log('Pricing config requested');
 
-    // Get pricing from environment variables with defaults
-    const currency = Deno.env.get('PRICING_CURRENCY') || 'ARS';
-    const amount = parseInt(Deno.env.get('PRICING_AMOUNT') || '50000');
+    const now = Date.now();
+    
+    // Return cached data if still valid
+    if (cachedPricing && (now - cacheTimestamp) < CACHE_DURATION_MS) {
+      console.log('Returning cached pricing');
+      return new Response(
+        JSON.stringify(cachedPricing),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=300'
+          }
+        }
+      );
+    }
 
-    // Format the price
-    const formatted = new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
+    const apiKey = Deno.env.get('LEMON_SQUEEZY_API_KEY');
+    
+    if (!apiKey) {
+      console.warn('LEMON_SQUEEZY_API_KEY not set, using fallback prices');
+      return new Response(
+        JSON.stringify({
+          plans: FALLBACK_PRICES,
+          lastUpdated: new Date().toISOString(),
+          source: 'fallback'
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+    }
 
-    const response = {
-      currency,
-      amount,
-      formatted,
-      lastUpdated: new Date().toISOString()
+    // Fetch all variant prices in parallel
+    const [premium, repremium, cursoEstrategia, cursosAll] = await Promise.all([
+      fetchVariantPrice(VARIANT_IDS.premium, apiKey),
+      fetchVariantPrice(VARIANT_IDS.repremium, apiKey),
+      fetchVariantPrice(VARIANT_IDS.curso_estrategia, apiKey),
+      fetchVariantPrice(VARIANT_IDS.cursos_all, apiKey),
+    ]);
+
+    const plans = {
+      premium: premium || FALLBACK_PRICES.premium,
+      repremium: repremium || FALLBACK_PRICES.repremium,
+      curso_estrategia: cursoEstrategia || FALLBACK_PRICES.curso_estrategia,
+      cursos_all: cursosAll || FALLBACK_PRICES.cursos_all,
     };
 
-    console.log('Returning pricing:', response);
+    const response = {
+      plans,
+      lastUpdated: new Date().toISOString(),
+      source: 'lemonsqueezy'
+    };
+
+    // Update cache
+    cachedPricing = response;
+    cacheTimestamp = now;
+
+    console.log('Returning pricing from Lemon Squeezy:', JSON.stringify(plans, null, 2));
 
     return new Response(
       JSON.stringify(response),
@@ -39,16 +156,22 @@ Deno.serve(async (req) => {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0'
+          'Cache-Control': 'public, max-age=300'
         }
       }
     );
   } catch (error) {
     console.error('Error in pricing-config:', error);
+    
+    // Return fallback on error
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        plans: FALLBACK_PRICES,
+        lastUpdated: new Date().toISOString(),
+        source: 'fallback',
+        error: error.message
+      }),
       {
-        status: 500,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json'

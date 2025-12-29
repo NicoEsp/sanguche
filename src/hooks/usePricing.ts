@@ -1,12 +1,30 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-interface PricingData {
-  currency: string;
+interface PlanPricing {
   amount: number;
   formatted: string;
-  lastUpdated: string;
+  currency: string;
 }
+
+interface PricingData {
+  plans: {
+    premium: PlanPricing;
+    repremium: PlanPricing;
+    curso_estrategia: PlanPricing;
+    cursos_all: PlanPricing;
+  };
+  lastUpdated: string;
+  source: string;
+}
+
+// Fallback prices if API fails
+const FALLBACK_PRICES = {
+  premium: { amount: 50000, formatted: '$ 50.000', currency: 'ARS' },
+  repremium: { amount: 1999, formatted: 'USD 19,99', currency: 'USD' },
+  curso_estrategia: { amount: 49, formatted: 'USD 49', currency: 'USD' },
+  cursos_all: { amount: 99, formatted: 'USD 99', currency: 'USD' },
+};
 
 export function usePricing() {
   const { data, isLoading, error } = useQuery({
@@ -21,23 +39,20 @@ export function usePricing() {
       
       return data;
     },
-    staleTime: 60000, // 1 minute
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
     retry: 2
   });
-
-  // Fallback values for when API fails
-  const fallbackAmount = 50000;
-  const fallbackFormatted = '$ 50.000';
 
   if (!data && import.meta.env.DEV && error) {
     console.warn('[Pricing] Using fallback values due to API error');
   }
 
   return {
-    amount: data?.amount ?? fallbackAmount,
-    currency: data?.currency ?? 'ARS',
-    formatted: data?.formatted ?? fallbackFormatted,
+    premium: data?.plans?.premium ?? FALLBACK_PRICES.premium,
+    repremium: data?.plans?.repremium ?? FALLBACK_PRICES.repremium,
+    curso_estrategia: data?.plans?.curso_estrategia ?? FALLBACK_PRICES.curso_estrategia,
+    cursos_all: data?.plans?.cursos_all ?? FALLBACK_PRICES.cursos_all,
     loading: isLoading,
     error
   };
