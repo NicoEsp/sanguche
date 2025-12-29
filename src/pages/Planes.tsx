@@ -306,7 +306,7 @@ export default function Planes() {
             <div className="grid md:grid-cols-2 gap-6">
               {/* Curso Estrategia */}
               <PlanCard
-                name="Curso: Estrategia de Producto para principiantes"
+                name="Estrategia de Producto para principiantes"
                 price={pricingLoading ? "..." : curso_estrategia.formatted}
                 priceLabel="(pago único)"
                 description="Para principiantes que quieren dominar estrategia de producto"
