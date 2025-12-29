@@ -22,7 +22,7 @@ const Index = () => {
     isAuthenticated
   } = useAuth();
   const { trackEvent } = useMixpanelTracking();
-  const { formatted, loading: pricingLoading } = usePricing();
+  const { premium, loading: pricingLoading } = usePricing();
 
   // Mostrar loading mientras se determina a dónde redirigir al usuario autenticado
   if (isRedirecting) {
@@ -212,7 +212,7 @@ const Index = () => {
                     {pricingLoading ? (
                       <span className="inline-block animate-pulse">Cargando...</span>
                     ) : (
-                      <>{formatted} <span className="text-base font-normal text-muted-foreground">/mes</span></>
+                      <>{premium.formatted} <span className="text-base font-normal text-muted-foreground">/mes</span></>
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">Cancela cuando quieras</p>

@@ -98,7 +98,7 @@ export default function Planes() {
   const { trackEvent } = useMixpanelTracking();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { formatted } = usePricing();
+  const { premium, repremium, curso_estrategia, cursos_all, loading: pricingLoading } = usePricing();
 
   // Track page view
   useEffect(() => {
@@ -245,7 +245,7 @@ export default function Planes() {
               {/* Premium Plan */}
               <PlanCard
                 name="Plan Premium"
-                price={formatted}
+                price={pricingLoading ? "..." : premium.formatted}
                 priceLabel="/mes"
                 description="Pensado para quienes quieren crecer en serio"
                 icon={<Star className="w-6 h-6 text-primary" />}
@@ -268,7 +268,7 @@ export default function Planes() {
               {/* RePremium Plan */}
               <PlanCard
                 name="Plan RePremium"
-                price="USD 19,99"
+                price={pricingLoading ? "..." : repremium.formatted}
                 priceLabel="/mes"
                 description="Para quienes buscan el máximo acompañamiento"
                 icon={<Crown className="w-6 h-6 text-amber-500" />}
@@ -307,7 +307,7 @@ export default function Planes() {
               {/* Curso Estrategia */}
               <PlanCard
                 name="Curso Estrategia"
-                price="USD 49"
+                price={pricingLoading ? "..." : curso_estrategia.formatted}
                 priceLabel="(pago único)"
                 description="Para principiantes que quieren dominar estrategia de producto"
                 icon={<BookOpen className="w-6 h-6 text-primary" />}
@@ -327,7 +327,7 @@ export default function Planes() {
               {/* Todos los Cursos */}
               <PlanCard
                 name="Todos los Cursos"
-                price="USD 99"
+                price={pricingLoading ? "..." : cursos_all.formatted}
                 priceLabel="(pago único)"
                 description="Acceso completo a todos los cursos disponibles"
                 icon={<Sparkles className="w-6 h-6 text-amber-500" />}

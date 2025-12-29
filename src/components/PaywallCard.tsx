@@ -14,7 +14,7 @@ export function PaywallCard({
   title = "Preparate aún más para dar el salto",
   feature = "esta funcionalidad"
 }: PaywallCardProps) {
-  const { formatted, loading } = usePricing();
+  const { premium, loading } = usePricing();
   
   const benefits = [
     <>Guía de carrera personalizada diseñada por <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>,
@@ -56,7 +56,7 @@ export function PaywallCard({
               {loading ? (
                 <span className="inline-block animate-pulse">Cargando...</span>
               ) : (
-                <>{formatted} <span className="text-base font-normal text-muted-foreground">/mes</span></>
+                <>{premium.formatted} <span className="text-base font-normal text-muted-foreground">/mes</span></>
               )}
             </div>
             <p className="text-sm text-muted-foreground">
