@@ -314,7 +314,7 @@ export default function Planes() {
                 badge="Nuevo"
                 features={[
                   "Fundamentos de estrategia de producto",
-                  "Frameworks de priorización",
+                  "Frameworks para empezar",
                   "Ejercicios prácticos",
                   "Acceso de por vida",
                   "Actualizaciones incluidas"
@@ -335,10 +335,9 @@ export default function Planes() {
                 badge="Mejor valor"
                 features={[
                   "Acceso a todos los cursos actuales",
-                  "Cursos futuros incluidos",
+                  "Cursos futuros incluidos por un único valor",
                   "Certificados de finalización",
-                  "Acceso de por vida",
-                  "Comunidad exclusiva"
+                  "Acceso de por vida"
                 ]}
                 plan="cursos_all"
                 ctaText={hasCursosAll ? "Acceder a cursos" : "Comprar bundle"}
