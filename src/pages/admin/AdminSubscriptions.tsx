@@ -369,7 +369,7 @@ function WebhookLogsTable() {
           </DialogHeader>
           {selectedLog && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">Fecha:</span>
                   <p className="font-medium">
@@ -429,16 +429,16 @@ export default function AdminSubscriptions() {
   const { data: stats, isLoading: statsLoading } = useSubscriptionStats();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Suscripciones y Pagos</h1>
-        <p className="text-muted-foreground">
-          Gestiona las suscripciones y revisa el historial de webhooks de LemonSqueezy
+        <h1 className="text-xl font-bold sm:text-2xl">Suscripciones y Pagos</h1>
+        <p className="text-sm text-muted-foreground">
+          Gestiona suscripciones y webhooks de LemonSqueezy
         </p>
       </div>
 
       {/* KPIs */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {statsLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <Card key={i}>
@@ -482,9 +482,9 @@ export default function AdminSubscriptions() {
 
       {/* Tabs */}
       <Tabs defaultValue="subscriptions" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="subscriptions">Suscripciones</TabsTrigger>
-          <TabsTrigger value="webhooks">Historial Webhooks</TabsTrigger>
+        <TabsList className="w-full justify-start overflow-x-auto flex-nowrap">
+          <TabsTrigger value="subscriptions" className="shrink-0 text-xs sm:text-sm">Suscripciones</TabsTrigger>
+          <TabsTrigger value="webhooks" className="shrink-0 text-xs sm:text-sm">Webhooks</TabsTrigger>
         </TabsList>
         <TabsContent value="subscriptions">
           <Card>

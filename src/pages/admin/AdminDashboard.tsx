@@ -43,16 +43,16 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard de Administración</h1>
-          <p className="text-muted-foreground mt-2">
-            Métricas y análisis en tiempo real del sistema ProductPrepa
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Dashboard de Administración</h1>
+          <p className="text-sm text-muted-foreground mt-1 sm:mt-2">
+            Métricas y análisis en tiempo real
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {lastUpdated && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground hidden sm:block">
               Actualizado: {lastUpdated.toLocaleTimeString('es-ES', { 
                 hour: '2-digit', 
                 minute: '2-digit' 
@@ -65,14 +65,14 @@ export default function AdminDashboard() {
             onClick={refetch}
             disabled={refreshing}
           >
-            <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
-            {refreshing ? 'Actualizando...' : 'Actualizar'}
+            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            <span className="hidden sm:inline ml-2">{refreshing ? 'Actualizando...' : 'Actualizar'}</span>
           </Button>
         </div>
       </div>
 
       {/* KPIs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Usuarios Totales</CardTitle>
@@ -121,7 +121,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Secondary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Evaluaciones</CardTitle>
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Financial Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Resumen Financiero</CardTitle>
@@ -234,7 +234,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -376,7 +376,7 @@ export default function AdminDashboard() {
           <CardDescription>Métricas clave del sistema</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
             <div className="text-center p-4 bg-muted/50 rounded-lg">
               <div className="text-2xl font-bold text-primary">{analytics.assessmentsToday}</div>
               <p className="text-sm text-muted-foreground">Evaluaciones hoy</p>
