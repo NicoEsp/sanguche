@@ -39,7 +39,7 @@ export function StepperRoute({ steps, audience, showComingSoon = false }: Steppe
 
     // Check if user needs premium
     if (resource.access_type === 'premium' && !canAccess(resource)) {
-      navigate('/premium');
+      navigate('/planes');
       return;
     }
 
@@ -168,9 +168,9 @@ export function StepperRoute({ steps, audience, showComingSoon = false }: Steppe
                 
                 {step.isPremiumStep && (
                   <Button variant="outline" size="sm" asChild>
-                    <Link to="/premium" className="inline-flex items-center gap-2">
+                    <Link to="/planes" className="inline-flex items-center gap-2">
                       <Crown className="w-4 h-4" />
-                      Ver Premium
+                      Ver Planes
                     </Link>
                   </Button>
                 )}

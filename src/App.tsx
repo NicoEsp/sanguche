@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
+import { Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -18,7 +19,7 @@ const Assessment = lazy(() => import("./pages/Assessment"));
 const SkillGaps = lazy(() => import("./pages/SkillGaps"));
 const Recommendations = lazy(() => import("./pages/Recommendations"));
 const Progress = lazy(() => import("./pages/Progress"));
-const Premium = lazy(() => import("./pages/Premium"));
+const Planes = lazy(() => import("./pages/Planes"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Welcome = lazy(() => import("./pages/Welcome"));
@@ -96,7 +97,8 @@ const App = () => (
                     <Routes>
                       <Route path="/" element={<Index />} />
                       <Route path="/auth" element={<Auth />} />
-                      <Route path="/premium" element={<Premium />} />
+                      <Route path="/planes" element={<Planes />} />
+                      <Route path="/premium" element={<Navigate to="/planes" replace />} />
                       <Route path="/welcome" element={<Welcome />} />
                       <Route path="/starterpack" element={<StarterPackHome />} />
                       <Route path="/starterpack/build" element={<StarterPackBuild />} />

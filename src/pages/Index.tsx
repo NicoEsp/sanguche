@@ -67,8 +67,8 @@ const Index = () => {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-base px-8 py-6" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'hero_premium' })}>
-              <Link to="/premium">Ver funciones premium</Link>
+            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-base px-8 py-6" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'hero_planes' })}>
+              <Link to="/planes">Ver planes</Link>
             </Button>
           </div>
           
