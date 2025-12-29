@@ -52,16 +52,18 @@ function PlanCard({
       <CardHeader className="text-center pb-4">
         <div className="flex items-center justify-center gap-2 mb-2">
           {icon}
-          <CardTitle className="text-xl">{name}</CardTitle>
+          <CardTitle className="text-xl min-h-[56px] flex items-center justify-center text-center">
+            {name}
+          </CardTitle>
         </div>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription className="min-h-[48px]">{description}</CardDescription>
         <div className="mt-3">
           <span className="text-3xl font-bold">{price}</span>
           <span className="text-sm text-muted-foreground ml-1">{priceLabel}</span>
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
-        <ul className="space-y-2 flex-1">
+        <ul className="space-y-2 flex-1 min-h-[160px]">
           {features.map((feature, index) => (
             <li key={index} className="flex items-start gap-2">
               <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
@@ -347,26 +349,7 @@ export default function Planes() {
           </div>
         </section>
 
-        {/* Social Proof */}
-        <section className="py-8 px-4">
-          <div className="max-w-4xl mx-auto">
-            <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-              <CardContent className="p-6 md:p-8">
-                <div className="flex flex-col md:flex-row gap-6 items-center">
-                  <div className="flex-shrink-0">
-                    <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
-                      <Star className="w-8 h-8 text-primary" />
-                    </div>
-                  </div>
-                  <div className="text-center md:text-left">
-                    <p className="text-lg italic mb-4">&quot;ProductPrepa me ayudó a identificar exactamente en qué trabajar y donde hacer foco. La mentoría mensual con Nico me dió claridad además de ordenar mis próximos pasos.&quot;</p>
-                    <p className="font-semibold">— Mariel, Product Manager</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
+        {/* Social Proof - Hidden for now */}
 
         {/* FAQ/Help Section */}
         <section className="py-8 px-4 mb-8">
