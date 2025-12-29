@@ -311,6 +311,7 @@ export default function Planes() {
                 priceLabel="(pago único)"
                 description="Para principiantes que quieren dominar estrategia de producto"
                 icon={<BookOpen className="w-6 h-6 text-primary" />}
+                badge="Nuevo"
                 features={[
                   "Fundamentos de estrategia de producto",
                   "Frameworks de priorización",
