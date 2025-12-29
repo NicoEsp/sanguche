@@ -232,9 +232,10 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                     <Link
                       to="/planes"
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                        "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                        isActive("/planes") && "bg-primary/10 text-primary font-medium"
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+                        "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium",
+                        "hover:from-primary/90 hover:to-primary/70 hover:shadow-md",
+                        isActive("/planes") && "ring-2 ring-primary/30"
                       )}
                     >
                       <CreditCard className="h-5 w-5 shrink-0" />
