@@ -146,6 +146,19 @@ export default {
 				'0%, 100%': { transform: 'translateX(0)' },
 				'10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-2px)' },
 				'20%, 40%, 60%, 80%': { transform: 'translateX(2px)' }
+			},
+			'drop-settle': {
+				'0%': { 
+					transform: 'scale(1.03)', 
+					boxShadow: '0 10px 25px rgba(0,0,0,0.15)' 
+				},
+				'60%': { 
+					transform: 'scale(0.98)' 
+				},
+				'100%': { 
+					transform: 'scale(1)', 
+					boxShadow: 'none' 
+				}
 			}
 			},
 		animation: {
@@ -155,7 +168,8 @@ export default {
 			'fade-out': 'fade-out 0.3s ease-out forwards',
 			'fade-in': 'fade-in 0.3s ease-out forwards',
 			'drop-in': 'drop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-			'shake': 'shake 0.4s ease-in-out'
+			'shake': 'shake 0.4s ease-in-out',
+			'drop-settle': 'drop-settle 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
 		}
 		}
 	},
