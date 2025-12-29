@@ -462,6 +462,38 @@ export default function Planes() {
                     <TableCell className="text-center bg-primary/5">{premium?.formatted || "$ 50.000"}/mes</TableCell>
                     <TableCell className="text-center">{repremium?.formatted || "$ 19.999"}/mes</TableCell>
                   </TableRow>
+                  <TableRow>
+                    <TableCell></TableCell>
+                    <TableCell className="text-center py-4">
+                      {!user ? (
+                        <Button asChild variant="outline" size="sm">
+                          <Link to="/auth">Comenzar gratis</Link>
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" disabled>
+                          Plan actual
+                        </Button>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center bg-primary/5 py-4">
+                      {hasActivePremium ? (
+                        <Button variant="secondary" size="sm" disabled>
+                          Plan actual
+                        </Button>
+                      ) : (
+                        <LemonSqueezyCheckout plan="premium" buttonText="Elegir Premium" />
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center py-4">
+                      {hasActiveRePremium ? (
+                        <Button variant="secondary" size="sm" disabled>
+                          Plan actual
+                        </Button>
+                      ) : (
+                        <LemonSqueezyCheckout plan="repremium" buttonText="Elegir RePremium" />
+                      )}
+                    </TableCell>
+                  </TableRow>
                 </TableBody>
               </Table>
             </div>
