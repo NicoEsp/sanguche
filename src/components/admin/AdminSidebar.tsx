@@ -66,7 +66,7 @@ export function AdminSidebar() {
     <Sidebar className={collapsed ? "w-14" : "w-64"} collapsible="icon">
       <SidebarContent>
         {/* Logo/Brand */}
-        <div className="px-4 py-[18px] border-b border-sidebar-border">
+        <div className="px-4 h-[73px] flex items-center border-b border-sidebar-border">
           <div className="flex items-center gap-2">
             <Shield className="h-8 w-8 text-primary" />
             {!collapsed && (
