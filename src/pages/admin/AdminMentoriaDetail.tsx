@@ -52,45 +52,45 @@ export default function AdminMentoriaDetail() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="space-y-6">
+    <div className="container mx-auto py-4 sm:py-8 px-0 sm:px-4">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header con info del usuario */}
-        <div className="flex items-start justify-between">
-          <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-2">
             <Button 
               variant="ghost" 
               size="sm"
               onClick={() => navigate('/admin/mentoria')}
-              className="mb-2"
+              className="-ml-2"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
-            <div className="flex items-center gap-3">
-              <Crown className="h-6 w-6 text-primary" />
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Crown className="h-5 w-5 text-primary sm:h-6 sm:w-6 shrink-0" />
+              <div className="min-w-0">
+                <h1 className="text-xl font-bold tracking-tight sm:text-3xl truncate">
                   {selectedUser.name || 'Usuario sin nombre'}
                 </h1>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-0.5 sm:text-sm truncate">
                   {selectedUser.user_id}
                 </p>
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Badge variant="default">Premium</Badge>
-            <Badge variant={selectedUser.mentoria_completed ? 'default' : 'secondary'}>
+          <div className="flex gap-2 flex-wrap pl-7 sm:pl-0">
+            <Badge variant="default" className="text-xs">Premium</Badge>
+            <Badge variant={selectedUser.mentoria_completed ? 'default' : 'secondary'} className="text-xs">
               {selectedUser.mentoria_completed ? '✓ Completada' : '⏳ Pendiente'}
             </Badge>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <p className="text-muted-foreground">
-            Usuario premium desde: {new Date(selectedUser.user_subscriptions.created_at).toLocaleDateString('es-ES', {
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 pl-7 sm:pl-0">
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Premium desde: {new Date(selectedUser.user_subscriptions.created_at).toLocaleDateString('es-ES', {
               year: 'numeric',
-              month: 'long',
+              month: 'short',
               day: 'numeric'
             })}
           </p>
@@ -127,27 +127,28 @@ export default function AdminMentoriaDetail() {
                   setUpdatingMentoria(false);
                 }
               }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-xs sm:text-sm"
             >
               {updatingMentoria ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
-              Marcar como Completada
+              <span className="hidden sm:inline">Marcar como Completada</span>
+              <span className="sm:hidden">Completar</span>
             </Button>
           )}
         </div>
 
         {/* Tabs de contenido */}
         <Tabs defaultValue="ejercicios" className="w-full">
-          <TabsList>
-            <TabsTrigger value="ejercicios">🎯 Ejercicios</TabsTrigger>
-            <TabsTrigger value="objetivos">📈 Objetivos</TabsTrigger>
-            <TabsTrigger value="oportunidades" disabled>
-              📊 Áreas de Oportunidad
+          <TabsList className="w-full justify-start overflow-x-auto flex-nowrap">
+            <TabsTrigger value="ejercicios" className="shrink-0 text-xs sm:text-sm">🎯 Ejercicios</TabsTrigger>
+            <TabsTrigger value="objetivos" className="shrink-0 text-xs sm:text-sm">📈 Objetivos</TabsTrigger>
+            <TabsTrigger value="oportunidades" disabled className="shrink-0 text-xs sm:text-sm">
+              📊 Áreas
             </TabsTrigger>
-            <TabsTrigger value="recursos">
+            <TabsTrigger value="recursos" className="shrink-0 text-xs sm:text-sm">
               📚 Recursos
             </TabsTrigger>
           </TabsList>

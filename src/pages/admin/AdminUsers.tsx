@@ -418,12 +418,12 @@ export default function AdminUsers() {
   }
 
   return (
-    <div className="space-y-6">
-        <div className="flex justify-between items-start">
+    <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Gestión de Usuarios</h1>
-          <p className="text-muted-foreground mt-2">
-            Administra usuarios, suscripciones y permisos del sistema
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Gestión de Usuarios</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Administra usuarios, suscripciones y permisos
           </p>
         </div>
         <div className="flex gap-2">
@@ -433,36 +433,36 @@ export default function AdminUsers() {
             disabled={refreshing}
             size="sm"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Actualizando...' : 'Actualizar'}
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline ml-2">{refreshing ? 'Actualizando...' : 'Actualizar'}</span>
           </Button>
-          <Button onClick={exportUsers} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar CSV
+          <Button onClick={exportUsers} variant="outline" size="sm">
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline ml-2">Exportar CSV</span>
           </Button>
         </div>
       </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Total Usuarios</p>
-                <p className="text-2xl font-bold">{users.length}</p>
+              <User className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium truncate">Total Usuarios</p>
+                <p className="text-xl sm:text-2xl font-bold">{users.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2">
-              <Crown className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Premium</p>
-                <p className="text-2xl font-bold">
+              <Crown className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium truncate">Premium</p>
+                <p className="text-xl sm:text-2xl font-bold">
                   {users.filter(u => u.subscription?.plan === 'premium').length}
                 </p>
               </div>
@@ -471,12 +471,12 @@ export default function AdminUsers() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Administradores</p>
-                <p className="text-2xl font-bold">
+              <Shield className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium truncate">Admins</p>
+                <p className="text-xl sm:text-2xl font-bold">
                   {users.filter(u => u.role === 'admin').length}
                 </p>
               </div>
@@ -485,12 +485,12 @@ export default function AdminUsers() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Este Mes</p>
-                <p className="text-2xl font-bold">
+              <UserPlus className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-medium truncate">Este Mes</p>
+                <p className="text-xl sm:text-2xl font-bold">
                   {getUsersThisMonth(users)}
                 </p>
               </div>
@@ -526,7 +526,7 @@ export default function AdminUsers() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
             {/* Registros semana anterior */}
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-3">
@@ -562,16 +562,16 @@ export default function AdminUsers() {
       </Card>
 
         <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nombre o email..."
+                  placeholder="Buscar..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -579,7 +579,7 @@ export default function AdminUsers() {
               </div>
             </div>
             <Select value={planFilter} onValueChange={setPlanFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Filtrar por plan" />
               </SelectTrigger>
               <SelectContent>
@@ -593,147 +593,231 @@ export default function AdminUsers() {
       </Card>
 
         <Card>
-        <CardHeader>
-          <CardTitle>Lista de Usuarios ({filteredUsers.length})</CardTitle>
-          <CardDescription>
-            Gestiona usuarios y sus permisos en el sistema
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-base sm:text-lg">Lista de Usuarios ({filteredUsers.length})</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Gestiona usuarios y sus permisos
           </CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">
-              <p className="text-destructive">{error}</p>
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 sm:p-4 mb-4">
+              <p className="text-destructive text-sm">{error}</p>
             </div>
           )}
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Usuario</TableHead>
-                <TableHead>Plan</TableHead>
-                <TableHead>Rol</TableHead>
-                <TableHead>Mentoría</TableHead>
-                <TableHead>Fecha Registro</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{user.name || 'Sin nombre'}</span>
-                        {user.hasOptionalAnswers && (
-                          <Badge 
-                            variant="outline" 
-                            className="text-[10px] px-1.5 py-0 h-4 border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-950/30 dark:text-purple-300"
-                            title="Completó preguntas opcionales (Growth / IA)"
-                          >
-                            🟣 Opcional
-                          </Badge>
+          {/* Vista Desktop - Tabla */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Usuario</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Rol</TableHead>
+                  <TableHead>Mentoría</TableHead>
+                  <TableHead>Fecha Registro</TableHead>
+                  <TableHead>Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{user.name || 'Sin nombre'}</span>
+                          {user.hasOptionalAnswers && (
+                            <Badge 
+                              variant="outline" 
+                              className="text-[10px] px-1.5 py-0 h-4 border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-950/30 dark:text-purple-300"
+                              title="Completó preguntas opcionales (Growth / IA)"
+                            >
+                              🟣 Opcional
+                            </Badge>
+                          )}
+                        </div>
+                        {user.email && (
+                          <span className="text-xs text-muted-foreground ml-6">{user.email}</span>
                         )}
                       </div>
-                      {user.email && (
-                        <span className="text-xs text-muted-foreground ml-6">{user.email}</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.subscription?.plan === 'premium' ? 'default' : 'secondary'}>
-                      {user.subscription?.plan === 'premium' ? 'Premium' : 'Gratuito'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.role === 'admin' ? 'destructive' : 'outline'}>
-                      {user.role === 'admin' ? 'Admin' : 'Usuario'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {user.subscription?.plan === 'premium' && (
-                      <Badge variant={user.mentoria_completed ? 'default' : 'secondary'}>
-                        {user.mentoria_completed ? '✓ Completada' : '⏳ Pendiente'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={user.subscription?.plan === 'premium' ? 'default' : 'secondary'}>
+                        {user.subscription?.plan === 'premium' ? 'Premium' : 'Gratuito'}
                       </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(user.created_at).toLocaleDateString('es-ES')}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2 flex-wrap">
-                      {user.subscription?.plan === 'free' && (
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={user.role === 'admin' ? 'destructive' : 'outline'}>
+                        {user.role === 'admin' ? 'Admin' : 'Usuario'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {user.subscription?.plan === 'premium' && (
+                        <Badge variant={user.mentoria_completed ? 'default' : 'secondary'}>
+                          {user.mentoria_completed ? '✓ Completada' : '⏳ Pendiente'}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(user.created_at).toLocaleDateString('es-ES')}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2 flex-wrap">
+                        {user.subscription?.plan === 'free' && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => setUpgradeModalUser({
+                              id: user.id,
+                              name: user.name,
+                              email: user.email,
+                              currentPlan: user.subscription?.plan || 'free'
+                            })}
+                            className="text-xs"
+                          >
+                            <ArrowUp className="w-3 h-3 mr-1" />
+                            Upgrade a Premium
+                          </Button>
+                        )}
                         <Button
-                          variant="default"
+                          variant="outline"
                           size="sm"
-                          onClick={() => setUpgradeModalUser({
+                          onClick={() => toggleAdminRole(user.id, user.role || 'user')}
+                          className="text-xs"
+                        >
+                          {user.role === 'admin' ? 'Quitar Admin' : 'Hacer Admin'}
+                        </Button>
+                        {user.subscription?.plan === 'premium' && (
+                          <Button
+                            variant={user.mentoria_completed ? 'outline' : 'default'}
+                            size="sm"
+                            onClick={() => toggleMentoriaStatus(user.id, user.mentoria_completed)}
+                            className="text-xs"
+                            title={user.mentoria_completed ? 
+                              'Bloquear recomendaciones y recursos personalizados' : 
+                              'Desbloquear recomendaciones y recursos personalizados'
+                            }
+                          >
+                            {user.mentoria_completed ? '🔒 Bloquear Contenido' : '🔓 Desbloquear Contenido'}
+                          </Button>
+                        )}
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setDeleteDialogUser({
                             id: user.id,
                             name: user.name,
-                            email: user.email,
-                            currentPlan: user.subscription?.plan || 'free'
+                            email: user.email
                           })}
                           className="text-xs"
+                          title="Eliminar usuario permanentemente"
                         >
-                          <ArrowUp className="w-3 h-3 mr-1" />
-                          Upgrade a Premium
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Eliminar
                         </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleAdminRole(user.id, user.role || 'user')}
-                        className="text-xs"
-                      >
-                        {user.role === 'admin' ? 'Quitar Admin' : 'Hacer Admin'}
-                      </Button>
-                      {user.subscription?.plan === 'premium' && (
-                        <Button
-                          variant={user.mentoria_completed ? 'outline' : 'default'}
-                          size="sm"
-                          onClick={() => toggleMentoriaStatus(user.id, user.mentoria_completed)}
-                          className="text-xs"
-                          title={user.mentoria_completed ? 
-                            'Bloquear recomendaciones y recursos personalizados' : 
-                            'Desbloquear recomendaciones y recursos personalizados'
-                          }
-                        >
-                          {user.mentoria_completed ? '🔒 Bloquear Contenido' : '🔓 Desbloquear Contenido'}
-                        </Button>
-                      )}
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setDeleteDialogUser({
-                          id: user.id,
-                          name: user.name,
-                          email: user.email
-                        })}
-                        className="text-xs"
-                        title="Eliminar usuario permanentemente"
-                      >
-                        <Trash2 className="w-3 h-3 mr-1" />
-                        Eliminar
-                      </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Vista Mobile - Cards */}
+          <div className="md:hidden space-y-3">
+            {paginatedUsers.map((user) => (
+              <Card key={user.id} className="p-3">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{user.name || 'Sin nombre'}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </div>
+                  <div className="flex gap-1 shrink-0 flex-wrap justify-end">
+                    <Badge variant={user.subscription?.plan === 'premium' ? 'default' : 'secondary'} className="text-[10px] h-5">
+                      {user.subscription?.plan === 'premium' ? 'Premium' : 'Free'}
+                    </Badge>
+                    {user.role === 'admin' && (
+                      <Badge variant="destructive" className="text-[10px] h-5">Admin</Badge>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3 text-xs text-muted-foreground">
+                  <span>{new Date(user.created_at).toLocaleDateString('es-ES')}</span>
+                  {user.subscription?.plan === 'premium' && (
+                    <span>{user.mentoria_completed ? '✓ Mentoría' : '⏳ Pendiente'}</span>
+                  )}
+                  {user.hasOptionalAnswers && <span>🟣 Opcional</span>}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleAdminRole(user.id, user.role || 'user')}
+                    className="text-xs h-8 flex-1 min-w-[100px]"
+                  >
+                    {user.role === 'admin' ? 'Quitar Admin' : 'Hacer Admin'}
+                  </Button>
+                  {user.subscription?.plan === 'free' && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setUpgradeModalUser({
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        currentPlan: user.subscription?.plan || 'free'
+                      })}
+                      className="text-xs h-8 flex-1 min-w-[100px]"
+                    >
+                      <ArrowUp className="w-3 h-3 mr-1" /> Premium
+                    </Button>
+                  )}
+                  {user.subscription?.plan === 'premium' && (
+                    <Button
+                      variant={user.mentoria_completed ? 'outline' : 'default'}
+                      size="sm"
+                      onClick={() => toggleMentoriaStatus(user.id, user.mentoria_completed)}
+                      className="text-xs h-8 flex-1 min-w-[100px]"
+                    >
+                      {user.mentoria_completed ? '🔒 Bloquear' : '🔓 Desbloquear'}
+                    </Button>
+                  )}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setDeleteDialogUser({
+                      id: user.id,
+                      name: user.name,
+                      email: user.email
+                    })}
+                    className="text-xs h-8"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
 
           {filteredUsers.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No se encontraron usuarios</p>
+              <p className="text-muted-foreground text-sm">No se encontraron usuarios</p>
             </div>
           )}
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-4 border-t">
-              <p className="text-sm text-muted-foreground">
-                Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredUsers.length)} de {filteredUsers.length} usuarios
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 border-t mt-4">
+              <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
+                {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredUsers.length)} de {filteredUsers.length}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -742,8 +826,8 @@ export default function AdminUsers() {
                 >
                   Anterior
                 </Button>
-                <span className="text-sm text-muted-foreground">
-                  Página {currentPage} de {totalPages}
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  {currentPage}/{totalPages}
                 </span>
                 <Button
                   variant="outline"
