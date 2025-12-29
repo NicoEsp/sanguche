@@ -8,13 +8,23 @@ import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { EmailCaptureDialog } from "./EmailCaptureDialog";
 import { usePricing } from "@/hooks/usePricing";
 
+export type PlanType = 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all';
+
 interface LemonSqueezyCheckoutProps {
+  plan?: PlanType;
+  buttonText?: string;
   onSuccess?: () => void;
   onError?: (error: string) => void;
   onCheckoutStart?: () => void;
 }
 
-export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: LemonSqueezyCheckoutProps) {
+export function LemonSqueezyCheckout({ 
+  plan = 'premium',
+  buttonText,
+  onSuccess, 
+  onError, 
+  onCheckoutStart 
+}: LemonSqueezyCheckoutProps) {
   const [loading, setLoading] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const { toast } = useToast();
@@ -35,7 +45,7 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
     });
     
     trackEvent('checkout_started', { 
-      plan: 'premium', 
+      plan, 
       price: amount, 
       provider: 'lemon_squeezy',
       is_anonymous: !user
@@ -45,7 +55,8 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
       const { data, error } = await supabase.functions.invoke('lemon-squeezy-checkout', {
         body: { 
           userId: user?.id,
-          email: email
+          email: email,
+          plan
         }
       });
 
@@ -57,7 +68,8 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
         trackEvent('checkout_redirect', { 
           checkout_url: data.checkoutUrl, 
           provider: 'lemon_squeezy',
-          is_anonymous: !user
+          is_anonymous: !user,
+          plan
         });
         window.location.href = data.checkoutUrl;
       } else {
@@ -75,6 +87,7 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
           provider: 'lemon_squeezy',
           is_anonymous: !user,
           user_email: user?.email || email,
+          plan,
           timestamp: new Date().toISOString()
         });
         
@@ -92,6 +105,7 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
           is_anonymous: !user,
           error_type: error instanceof Error ? error.name : 'unknown',
           user_email: user?.email || email,
+          plan,
           timestamp: new Date().toISOString()
         });
         
@@ -124,6 +138,22 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
     handleCheckout(email);
   };
 
+  // Default button text based on plan
+  const getDefaultButtonText = () => {
+    switch (plan) {
+      case 'premium':
+        return `Suscribirse por ${formatted}/mes`;
+      case 'repremium':
+        return `Suscribirse a RePremium`;
+      case 'curso_estrategia':
+        return `Comprar Curso`;
+      case 'cursos_all':
+        return `Comprar Todos los Cursos`;
+      default:
+        return `Comprar`;
+    }
+  };
+
   return (
     <>
       <Button 
@@ -138,7 +168,7 @@ export function LemonSqueezyCheckout({ onSuccess, onError, onCheckoutStart }: Le
             Redirigiendo a checkout...
           </>
         ) : (
-          `Suscribirse por ${formatted}/mes`
+          buttonText || getDefaultButtonText()
         )}
       </Button>
       

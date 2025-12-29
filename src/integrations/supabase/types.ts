@@ -799,7 +799,9 @@ export type Database = {
           lemon_squeezy_customer_id: string | null
           lemon_squeezy_order_id: string | null
           lemon_squeezy_subscription_id: string | null
+          lemon_squeezy_variant_id: string | null
           plan: Database["public"]["Enums"]["subscription_plan"]
+          purchase_type: string | null
           status: Database["public"]["Enums"]["subscription_status"]
           trial_end: string | null
           updated_at: string
@@ -812,7 +814,9 @@ export type Database = {
           lemon_squeezy_customer_id?: string | null
           lemon_squeezy_order_id?: string | null
           lemon_squeezy_subscription_id?: string | null
+          lemon_squeezy_variant_id?: string | null
           plan?: Database["public"]["Enums"]["subscription_plan"]
+          purchase_type?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
           trial_end?: string | null
           updated_at?: string
@@ -825,7 +829,9 @@ export type Database = {
           lemon_squeezy_customer_id?: string | null
           lemon_squeezy_order_id?: string | null
           lemon_squeezy_subscription_id?: string | null
+          lemon_squeezy_variant_id?: string | null
           plan?: Database["public"]["Enums"]["subscription_plan"]
+          purchase_type?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
           trial_end?: string | null
           updated_at?: string
@@ -915,7 +921,12 @@ export type Database = {
       progress_objective_access_level: "free" | "premium"
       resource_access_level: "public" | "authenticated" | "premium"
       resource_visibility: "public" | "conditional"
-      subscription_plan: "free" | "premium"
+      subscription_plan:
+        | "free"
+        | "premium"
+        | "repremium"
+        | "curso_estrategia"
+        | "cursos_all"
       subscription_status: "active" | "inactive" | "cancelled"
     }
     CompositeTypes: {
@@ -1048,7 +1059,13 @@ export const Constants = {
       progress_objective_access_level: ["free", "premium"],
       resource_access_level: ["public", "authenticated", "premium"],
       resource_visibility: ["public", "conditional"],
-      subscription_plan: ["free", "premium"],
+      subscription_plan: [
+        "free",
+        "premium",
+        "repremium",
+        "curso_estrategia",
+        "cursos_all",
+      ],
       subscription_status: ["active", "inactive", "cancelled"],
     },
   },
