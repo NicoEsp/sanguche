@@ -34,9 +34,10 @@ export function useUserProfile(options: UseUserProfileOptions = {}) {
       return data;
     },
     enabled: !!user && !skip,
-    staleTime: 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    staleTime: 2 * 60 * 1000, // 2 minutos - perfil no cambia frecuentemente
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // Usar cache si existe
   });
 
   useEffect(() => {

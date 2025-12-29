@@ -57,7 +57,10 @@ export function useRecommendedObjectives(): UseRecommendedObjectivesReturn {
       return data.map(d => d.objective_key);
     },
     enabled: !!profileId,
-    staleTime: 60 * 1000,
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Dismiss mutation

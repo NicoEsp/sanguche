@@ -31,9 +31,10 @@ const StarterPackBuild = lazy(() => import("./pages/StarterPackBuild"));
 const StarterPackLead = lazy(() => import("./pages/StarterPackLead"));
 
 // Skeleton components for better perceived performance
-const SkeletonProgress = lazy(() => import("./components/skeletons/SkeletonProgress"));
-const SkeletonAssessment = lazy(() => import("./components/skeletons/SkeletonAssessment"));
-const SkeletonMentoria = lazy(() => import("./components/skeletons/SkeletonMentoria"));
+// Skeletons cargados directamente (son críticos para UX y pequeños)
+import SkeletonProgress from "./components/skeletons/SkeletonProgress";
+import SkeletonAssessment from "./components/skeletons/SkeletonAssessment";
+import SkeletonMentoria from "./components/skeletons/SkeletonMentoria";
 
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -48,15 +49,15 @@ const AdminMentoriaDetail = lazy(() => import("./pages/admin/AdminMentoriaDetail
 const AdminStarterPack = lazy(() => import("./pages/admin/AdminStarterPack"));
 const AdminExercises = lazy(() => import("./pages/admin/AdminExercises"));
 
-// QueryClient configuration tuned for freshness-first experience
+// QueryClient optimizado para velocidad con cache inteligente
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 0, // Consider cached data stale immediately so refetch can trigger
-      gcTime: 5 * 60 * 1000, // Keep cache lightweight to avoid stale screens
-      refetchOnWindowFocus: true,
-      refetchOnMount: true,
-      retry: 1, // Only one retry on error
+      staleTime: 30 * 1000, // 30 segundos - evita refetches innecesarios
+      gcTime: 10 * 60 * 1000, // 10 minutos de cache
+      refetchOnWindowFocus: false, // Deshabilitado - realtime maneja actualizaciones
+      refetchOnMount: false, // Usar cache si está disponible
+      retry: 1,
     },
   },
 });
