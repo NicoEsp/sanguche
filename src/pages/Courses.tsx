@@ -1,9 +1,8 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, ArrowRight, Sparkles } from "lucide-react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Seo } from "@/components/Seo";
-import { CourseCard, CoursePaywall } from "@/components/courses";
+import { CourseCard } from "@/components/courses";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCourses } from "@/hooks/useCourses";
@@ -26,7 +25,7 @@ export default function Courses() {
   // Full skeleton during loading to prevent layout flashes
   if (isLoading) {
     return (
-      <AppLayout>
+      <>
         <Seo
           title="Cursos - ProductPrepa"
           description="Aprende habilidades de producto con cursos cortos y prácticos."
@@ -49,12 +48,12 @@ export default function Courses() {
             ))}
           </div>
         </div>
-      </AppLayout>
+      </>
     );
   }
 
   return (
-    <AppLayout>
+    <>
       <Seo
         title="Cursos - ProductPrepa"
         description="Aprende habilidades de producto con cursos cortos y prácticos. Videos de menos de 10 minutos con ejercicios aplicables."
@@ -78,7 +77,7 @@ export default function Courses() {
         </div>
 
         {/* Empty state - no courses */}
-        {!isLoading && (!courses || courses.length === 0) && (
+        {(!courses || courses.length === 0) && (
           <div className="text-center py-16 space-y-4">
             <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center">
               <BookOpen className="h-8 w-8 text-muted-foreground" />
@@ -100,7 +99,7 @@ export default function Courses() {
         )}
 
         {/* Courses grid */}
-        {!isLoading && courses && courses.length > 0 && (
+        {courses && courses.length > 0 && (
           <>
             {!hasAccess && (
               <div className="bg-muted/30 border border-border/50 rounded-lg p-4 flex items-center justify-between">
@@ -128,6 +127,6 @@ export default function Courses() {
           </>
         )}
       </div>
-    </AppLayout>
+    </>
   );
 }

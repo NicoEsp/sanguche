@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Clock, CheckCircle2, PlayCircle } from "lucide-react";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -21,7 +20,6 @@ import { Mixpanel } from "@/lib/mixpanel";
 
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
   const { data: course, isLoading: courseLoading } = useCourse(slug || "");
   const { hasAccess, isLoading: accessLoading } = useCourseAccess(slug);
   const { lessonsWithProgress, progressStats, isLoading: progressLoading } = useCourseProgress(
@@ -76,51 +74,47 @@ export default function CourseDetail() {
   // Loading state
   if (isLoading) {
     return (
-      <AppLayout>
-        <div className="container max-w-6xl py-8 space-y-8">
-          <Skeleton className="h-8 w-48" />
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4">
-              <Skeleton className="aspect-video rounded-xl" />
-              <Skeleton className="h-6 w-3/4" />
-              <Skeleton className="h-4 w-full" />
-            </div>
-            <div className="space-y-4">
-              <Skeleton className="h-48 rounded-lg" />
-              <Skeleton className="h-48 rounded-lg" />
-            </div>
+      <div className="container max-w-6xl py-8 space-y-8">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-4">
+            <Skeleton className="aspect-video rounded-xl" />
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-48 rounded-lg" />
+            <Skeleton className="h-48 rounded-lg" />
           </div>
         </div>
-      </AppLayout>
+      </div>
     );
   }
 
   // Not found
   if (!course) {
     return (
-      <AppLayout>
-        <div className="container max-w-6xl py-8 text-center">
-          <h1 className="text-2xl font-bold mb-4">Curso no encontrado</h1>
-          <Link to="/cursos">
-            <Button>Volver a cursos</Button>
-          </Link>
-        </div>
-      </AppLayout>
+      <div className="container max-w-6xl py-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">Curso no encontrado</h1>
+        <Link to="/cursos">
+          <Button>Volver a cursos</Button>
+        </Link>
+      </div>
     );
   }
 
   // No access - show paywall
   if (!hasAccess) {
     return (
-      <AppLayout>
+      <>
         <Seo title={`${course.title} - ProductPrepa`} description={course.description || ""} />
         <CoursePaywall courseTitle={course.title} />
-      </AppLayout>
+      </>
     );
   }
 
   return (
-    <AppLayout>
+    <>
       <Seo
         title={`${course.title} - ProductPrepa`}
         description={course.description || ""}
@@ -241,6 +235,6 @@ export default function CourseDetail() {
           </div>
         </div>
       </div>
-    </AppLayout>
+    </>
   );
 }
