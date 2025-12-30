@@ -7,6 +7,7 @@ import { AppSidebar } from "./AppSidebar";
 import { MobileNav } from "./MobileNav";
 import { LandingHeader } from "./LandingHeader";
 import { FeedbackFooterCta } from "@/components/feedback/FeedbackFooterCta";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -20,6 +21,26 @@ export function AppLayout({ children }: { children: ReactNode }) {
     const possibleName = user?.user_metadata?.name;
     return typeof possibleName === "string" ? possibleName : undefined;
   })();
+
+  // Show skeleton during auth loading to prevent layout flashing
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
+          <div className="container flex h-14 items-center">
+            <Skeleton className="h-8 w-32" />
+          </div>
+        </header>
+        <div className="flex-1 flex">
+          {!isMobile && <Skeleton className="w-64 h-screen shrink-0" />}
+          <main className="flex-1 p-8 space-y-4">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-32 w-full max-w-2xl" />
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
