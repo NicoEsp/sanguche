@@ -25,6 +25,10 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Welcome = lazy(() => import("./pages/Welcome"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+// Courses pages
+const Courses = lazy(() => import("./pages/Courses"));
+const CourseDetail = lazy(() => import("./pages/CourseDetail"));
+
 // Starter Pack pages
 const StarterPackHome = lazy(() => import("./pages/StarterPackHome"));
 const StarterPackBuild = lazy(() => import("./pages/StarterPackBuild"));
@@ -104,6 +108,16 @@ const App = () => (
                       <Route path="/starterpack" element={<StarterPackHome />} />
                       <Route path="/starterpack/build" element={<StarterPackBuild />} />
                       <Route path="/starterpack/lead" element={<StarterPackLead />} />
+                      <Route path="/cursos" element={
+                        <ProtectedRoute>
+                          <Courses />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/cursos/:slug" element={
+                        <ProtectedRoute>
+                          <CourseDetail />
+                        </ProtectedRoute>
+                      } />
                       <Route path="/perfil" element={
                         <ProtectedRoute>
                           <Profile />
