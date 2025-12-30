@@ -60,7 +60,7 @@ const navItems = [
     label: "Cursos", 
     icon: GraduationCap,
     premium: true,
-    comingSoon: true
+    isNew: true
   },
 ];
 
@@ -163,26 +163,24 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
     const active = isActive(item.href);
     const content = (
       <Link
-        to={item.comingSoon ? "#" : item.href}
-        onMouseEnter={() => !item.comingSoon && prefetchRouteData(item.href)}
+        to={item.href}
+        onMouseEnter={() => prefetchRouteData(item.href)}
         className={cn(
           "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
           "hover:bg-muted/50",
           active && "bg-primary/10 text-primary font-medium",
-          !active && "text-muted-foreground hover:text-foreground",
-          item.comingSoon && "opacity-50 cursor-not-allowed pointer-events-none"
+          !active && "text-muted-foreground hover:text-foreground"
         )}
-        onClick={(e) => item.comingSoon && e.preventDefault()}
       >
         <item.icon className={cn("h-5 w-5 shrink-0", active && "text-primary")} />
         {!collapsed && (
           <>
             <span className="flex-1 truncate">{item.label}</span>
-            {item.premium && !item.comingSoon && (
+            {item.premium && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Premium</Badge>
             )}
-            {item.comingSoon && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Próximamente</Badge>
+            {'isNew' in item && item.isNew && (
+              <Badge className="text-[10px] px-1.5 py-0 bg-green-500/90 text-white border-0">Nuevo</Badge>
             )}
           </>
         )}
@@ -195,11 +193,11 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           <TooltipTrigger asChild>{content}</TooltipTrigger>
           <TooltipContent side="right" className="flex items-center gap-2">
             {item.label}
-            {item.premium && !item.comingSoon && (
+            {item.premium && (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Premium</Badge>
             )}
-            {item.comingSoon && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Próximamente</Badge>
+            {'isNew' in item && item.isNew && (
+              <Badge className="text-[10px] px-1.5 py-0 bg-green-500/90 text-white border-0">Nuevo</Badge>
             )}
           </TooltipContent>
         </Tooltip>
