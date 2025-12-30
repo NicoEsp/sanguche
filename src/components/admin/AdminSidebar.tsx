@@ -26,6 +26,8 @@ import {
   CreditCard
 } from 'lucide-react';
 
+import { GraduationCap } from 'lucide-react';
+
 const adminNavItems = [
   { title: 'Dashboard', url: '/admin', icon: BarChart3, exact: true },
   { title: 'Usuarios', url: '/admin/usuarios', icon: Users },
@@ -33,6 +35,7 @@ const adminNavItems = [
   { title: 'Evaluaciones', url: '/admin/evaluaciones', icon: ClipboardList },
   { title: 'Gestión Mentorías', url: '/admin/mentoria', icon: Target, matchPrefix: '/admin/mentoria' },
   { title: 'Ejercicios', url: '/admin/ejercicios', icon: BookOpen },
+  { title: 'Cursos', url: '/admin/cursos', icon: GraduationCap, matchPrefix: '/admin/cursos' },
   { title: 'Recursos', url: '/admin/recursos', icon: FileText },
   { title: 'Starter Pack', url: '/admin/starterpack', icon: Rocket },
 ];
