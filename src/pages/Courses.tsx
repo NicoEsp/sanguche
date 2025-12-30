@@ -16,10 +16,42 @@ export default function Courses() {
 
   const isLoading = coursesLoading || accessLoading;
 
-  // Track page view
+  // Track page view only when not loading
   useEffect(() => {
-    Mixpanel.track("course_view", { page: "catalog" });
-  }, []);
+    if (!isLoading) {
+      Mixpanel.track("course_view", { page: "catalog" });
+    }
+  }, [isLoading]);
+
+  // Full skeleton during loading to prevent layout flashes
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <Seo
+          title="Cursos - ProductPrepa"
+          description="Aprende habilidades de producto con cursos cortos y prácticos."
+          canonical="/cursos"
+        />
+        <div className="container max-w-6xl py-8 space-y-8">
+          <div className="space-y-4">
+            <Skeleton className="h-5 w-20" />
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-6 w-96 max-w-full" />
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="space-y-4">
+                <Skeleton className="aspect-video rounded-lg" />
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -44,20 +76,6 @@ export default function Courses() {
             Cada curso incluye ejercicios para aplicar lo aprendido.
           </p>
         </div>
-
-        {/* Loading state */}
-        {isLoading && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="space-y-4">
-                <Skeleton className="aspect-video rounded-lg" />
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* Empty state - no courses */}
         {!isLoading && (!courses || courses.length === 0) && (

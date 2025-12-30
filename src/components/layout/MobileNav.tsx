@@ -52,7 +52,7 @@ const navItems = [
     label: "Cursos", 
     icon: GraduationCap,
     premium: true,
-    comingSoon: true
+    isNew: true
   },
 ];
 
@@ -122,28 +122,21 @@ export function MobileNav() {
                     return (
                       <Link
                         key={item.href}
-                        to={item.comingSoon ? "#" : item.href}
-                        onClick={(e) => {
-                          if (item.comingSoon) {
-                            e.preventDefault();
-                          } else {
-                            setIsOpen(false);
-                          }
-                        }}
+                        to={item.href}
+                        onClick={() => setIsOpen(false)}
                         className={cn(
                           "flex items-center gap-3 px-3 py-3 rounded-lg transition-colors",
                           active && "bg-primary/10 text-primary font-medium",
-                          !active && "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                          item.comingSoon && "opacity-50 cursor-not-allowed"
+                          !active && "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         )}
                       >
                         <item.icon className={cn("h-5 w-5", active && "text-primary")} />
                         <span className="flex-1">{item.label}</span>
-                        {item.premium && !item.comingSoon && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Premium</Badge>
+                        {item.isNew && (
+                          <Badge className="text-[10px] px-1.5 py-0 bg-primary text-primary-foreground">Nuevo</Badge>
                         )}
-                        {item.comingSoon && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">Próximamente</Badge>
+                        {item.premium && !item.isNew && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Premium</Badge>
                         )}
                       </Link>
                     );
