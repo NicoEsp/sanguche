@@ -5,6 +5,7 @@ type CourseAccessResult = {
   hasAccess: boolean;
   isLoading: boolean;
   reason: "authenticated" | "no_subscription" | "wrong_plan" | "has_access";
+  plan: string | null;
 };
 
 export function useCourseAccess(courseSlug?: string): CourseAccessResult {
@@ -12,20 +13,19 @@ export function useCourseAccess(courseSlug?: string): CourseAccessResult {
   const { subscription, loading: subLoading } = useSubscription();
 
   const isLoading = authLoading || subLoading;
+  const plan = subscription?.plan ?? null;
 
   if (!user) {
-    return { hasAccess: false, isLoading, reason: "authenticated" };
+    return { hasAccess: false, isLoading, reason: "authenticated", plan };
   }
 
   if (!subscription) {
-    return { hasAccess: false, isLoading, reason: "no_subscription" };
+    return { hasAccess: false, isLoading, reason: "no_subscription", plan };
   }
-
-  const plan = subscription.plan;
 
   // cursos_all and repremium have access to all courses
   if (plan === "cursos_all" || plan === "repremium") {
-    return { hasAccess: true, isLoading, reason: "has_access" };
+    return { hasAccess: true, isLoading, reason: "has_access", plan };
   }
 
   // curso_estrategia only has access to the estrategia course
@@ -34,10 +34,11 @@ export function useCourseAccess(courseSlug?: string): CourseAccessResult {
     return { 
       hasAccess, 
       isLoading, 
-      reason: hasAccess ? "has_access" : "wrong_plan" 
+      reason: hasAccess ? "has_access" : "wrong_plan",
+      plan
     };
   }
 
   // free and premium don't have course access
-  return { hasAccess: false, isLoading, reason: "wrong_plan" };
+  return { hasAccess: false, isLoading, reason: "wrong_plan", plan };
 }
