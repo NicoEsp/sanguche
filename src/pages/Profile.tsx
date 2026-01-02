@@ -41,7 +41,9 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  Star
+  Star,
+  RefreshCw,
+  ShoppingBag
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -209,6 +211,28 @@ export default function Profile() {
                 </Badge>
               )}
 
+              {subscription?.status === 'active' && subscription?.plan === 'premium' && (
+                <Badge 
+                  variant="outline" 
+                  className={subscription.isOneTimePurchase 
+                    ? "bg-purple-500/10 text-purple-700 dark:text-purple-400" 
+                    : "bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                  }
+                >
+                  {subscription.isOneTimePurchase ? (
+                    <>
+                      <ShoppingBag className="h-3 w-3 mr-1" />
+                      Compra única
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Suscripción mensual
+                    </>
+                  )}
+                </Badge>
+              )}
+
               {profile?.mentoria_completed && (
                 <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-400">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -217,13 +241,16 @@ export default function Profile() {
               )}
             </div>
 
-            {subscription?.plan === 'premium' && subscription?.status === 'active' && subscription?.current_period_end && (
+            {subscription?.plan === 'premium' && subscription?.status === 'active' && (
               <p className="text-sm text-muted-foreground">
-                {formatNextBillingDate()}
+                {subscription.isOneTimePurchase 
+                  ? "Acceso permanente" 
+                  : formatNextBillingDate()
+                }
               </p>
             )}
 
-            {subscription?.plan === 'premium' && subscription?.status === 'active' && (
+            {subscription?.plan === 'premium' && subscription?.status === 'active' && !subscription?.isOneTimePurchase && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
