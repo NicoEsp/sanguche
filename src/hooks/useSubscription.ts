@@ -35,6 +35,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
           status,
           trial_end,
           current_period_end,
+          purchase_type,
           profiles!inner(user_id)
         `)
         .eq('profiles.user_id', user.id)
@@ -58,15 +59,20 @@ export function useSubscription(options?: UseSubscriptionOptions) {
           trialEnd: null,
           current_period_end: null,
           purchase_type: 'subscription' as const,
+          isOneTimePurchase: false,
         };
       }
 
+      // Get actual purchase_type from DB, default to 'subscription' for backwards compatibility
+      const purchaseType = data.purchase_type || 'subscription';
+      
       return {
         plan: data.plan as SubscriptionPlan,
         status: data.status,
         trialEnd: data.trial_end ? new Date(data.trial_end) : null,
         current_period_end: data.current_period_end ? new Date(data.current_period_end) : null,
-        purchase_type: 'subscription' as const,
+        purchase_type: purchaseType as 'subscription' | 'one_time',
+        isOneTimePurchase: purchaseType === 'one_time',
       };
     },
     enabled: !!user && !options?.skip,
@@ -133,6 +139,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
         trialEnd: null,
         current_period_end: null,
         purchase_type: 'subscription' as const,
+        isOneTimePurchase: false,
       },
       loading: false,
       hasActivePremium: true,
@@ -141,6 +148,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       hasCursosAll: false,
       hasAnyPaidPlan: true,
       isTrialing: false,
+      isOneTimePurchase: false,
     };
   }
 
@@ -170,5 +178,6 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       ? undefined
       : (isActive && ['premium', 'repremium', 'curso_estrategia', 'cursos_all'].includes(plan || '')),
     isTrialing: subscription?.trialEnd ? new Date() < subscription.trialEnd : false,
+    isOneTimePurchase: subscription?.isOneTimePurchase ?? false,
   };
 }
