@@ -17,6 +17,8 @@ const badgeVariants = cva(
         outline: "text-foreground",
         nuevo:
           "border-2 border-pink-500 bg-pink-500 text-white font-bold hover:bg-pink-600",
+        founder:
+          "border-2 border-amber-500 bg-gradient-to-r from-amber-500 to-yellow-400 text-white font-bold shadow-sm",
       },
     },
     defaultVariants: {

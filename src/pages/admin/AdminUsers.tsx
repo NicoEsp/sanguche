@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, UserPlus, Crown, User, Shield, Download, RefreshCw, ArrowUp, Trash2, Calendar, TrendingUp, TrendingDown, FileText } from 'lucide-react';
+import { Loader2, Search, UserPlus, Crown, User, Shield, Download, RefreshCw, ArrowUp, Trash2, Calendar, TrendingUp, TrendingDown, FileText, Star } from 'lucide-react';
 import { SkeletonAdminTable } from '@/components/skeletons/SkeletonAdminTable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -22,6 +22,7 @@ interface UserProfile {
   user_id: string;
   created_at: string;
   mentoria_completed: boolean;
+  is_founder?: boolean;
   email?: string;
   subscription?: {
     plan: string;
@@ -102,7 +103,7 @@ export default function AdminUsers() {
       setError(null);
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, name, user_id, created_at, mentoria_completed')
+        .select('id, name, user_id, created_at, mentoria_completed, is_founder')
         .order('created_at', { ascending: false });
 
       if (profilesError) throw profilesError;
@@ -192,6 +193,7 @@ export default function AdminUsers() {
           user_id: profile.user_id,
           created_at: profile.created_at,
           mentoria_completed: profile.mentoria_completed,
+          is_founder: profile.is_founder,
           email: emailMap.get(profile.user_id) || '',
           subscription: subscription || { plan: 'free', status: 'active' },
           role: userRole?.role || 'user',
@@ -366,6 +368,29 @@ export default function AdminUsers() {
       setError(errorMsg);
       toast.error(errorMsg);
       if (import.meta.env.DEV) console.error('Error updating mentoria status:', err);
+    }
+  }
+
+  async function toggleFounderStatus(userId: string, currentStatus: boolean) {
+    if (!isAdmin) {
+      toast.error('No tienes permisos para realizar esta acción');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_founder: !currentStatus })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast.success(`Usuario ${!currentStatus ? 'marcado como' : 'removido de'} Founder`);
+    } catch (err) {
+      const errorMsg = 'Error modificando estado de Founder';
+      setError(errorMsg);
+      toast.error(errorMsg);
+      if (import.meta.env.DEV) console.error('Error updating founder status:', err);
     }
   }
 
@@ -703,6 +728,16 @@ export default function AdminUsers() {
                           </Button>
                         )}
                         <Button
+                          variant={user.is_founder ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => toggleFounderStatus(user.id, user.is_founder || false)}
+                          className={cn("text-xs", user.is_founder && "bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500")}
+                          title={user.is_founder ? 'Quitar badge Founder' : 'Otorgar badge Founder'}
+                        >
+                          <Star className="w-3 h-3 mr-1" />
+                          {user.is_founder ? 'Founder' : 'Dar Founder'}
+                        </Button>
+                        <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => setDeleteDialogUser({
@@ -740,6 +775,9 @@ export default function AdminUsers() {
                     <Badge variant={user.subscription?.plan === 'premium' ? 'default' : 'secondary'} className="text-[10px] h-5">
                       {user.subscription?.plan === 'premium' ? 'Premium' : 'Free'}
                     </Badge>
+                    {user.is_founder && (
+                      <Badge variant="founder" className="text-[10px] h-5">Founder</Badge>
+                    )}
                     {user.role === 'admin' && (
                       <Badge variant="destructive" className="text-[10px] h-5">Admin</Badge>
                     )}
@@ -788,6 +826,15 @@ export default function AdminUsers() {
                       {user.mentoria_completed ? '🔒 Bloquear' : '🔓 Desbloquear'}
                     </Button>
                   )}
+                  <Button
+                    variant={user.is_founder ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => toggleFounderStatus(user.id, user.is_founder || false)}
+                    className={cn("text-xs h-8", user.is_founder && "bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500")}
+                  >
+                    <Star className="w-3 h-3 mr-1" />
+                    {user.is_founder ? 'Founder' : 'Founder'}
+                  </Button>
                   <Button
                     variant="destructive"
                     size="sm"

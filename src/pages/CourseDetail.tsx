@@ -13,6 +13,7 @@ import {
   CourseCTA,
   CoursePaywall,
 } from "@/components/courses";
+import { LessonNotes } from "@/components/courses/LessonNotes";
 import { useCourse } from "@/hooks/useCourse";
 import { useCourseProgress } from "@/hooks/useCourseProgress";
 import { useCourseAccess } from "@/hooks/useCourseAccess";
@@ -156,12 +157,15 @@ export default function CourseDetail() {
           {/* Video player */}
           <div className="lg:col-span-2 space-y-6">
             {activeLesson ? (
-              <VideoPlayer
-                lesson={activeLesson}
-                courseSlug={course.slug}
-                isCompleted={activeLesson.isCompleted}
-                onComplete={handleLessonComplete}
-              />
+              <>
+                <VideoPlayer
+                  lesson={activeLesson}
+                  courseSlug={course.slug}
+                  isCompleted={activeLesson.isCompleted}
+                  onComplete={handleLessonComplete}
+                />
+                <LessonNotes lessonId={activeLesson.id} />
+              </>
             ) : (
               <div className="aspect-video bg-muted rounded-xl flex items-center justify-center">
                 <div className="text-center">

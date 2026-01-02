@@ -287,6 +287,48 @@ export type Database = {
           },
         ]
       }
+      lesson_notes: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          lesson_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          lesson_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          lesson_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_notes_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "course_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_webhook_logs: {
         Row: {
           created_at: string | null
@@ -345,6 +387,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          is_founder: boolean | null
           last_mentoria_date: string | null
           mentoria_completed: boolean
           name: string | null
@@ -355,6 +398,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_founder?: boolean | null
           last_mentoria_date?: string | null
           mentoria_completed?: boolean
           name?: string | null
@@ -365,6 +409,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_founder?: boolean | null
           last_mentoria_date?: string | null
           mentoria_completed?: boolean
           name?: string | null

@@ -40,7 +40,8 @@ import {
   Crown,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  Star
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -193,6 +194,13 @@ export default function Profile() {
                   'Free'
                 )}
               </Badge>
+
+              {profile?.is_founder && (
+                <Badge variant="founder" className="text-base px-3 py-1">
+                  <Star className="h-4 w-4 mr-1" />
+                  Founder
+                </Badge>
+              )}
               
               {subscription?.status === 'active' && (
                 <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400">
