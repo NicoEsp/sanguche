@@ -1,17 +1,49 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, ArrowRight, Sparkles } from "lucide-react";
+import { BookOpen, ArrowRight, Sparkles, CheckCircle } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { CourseCard } from "@/components/courses";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCourses } from "@/hooks/useCourses";
 import { useCourseAccess } from "@/hooks/useCourseAccess";
 import { Mixpanel } from "@/lib/mixpanel";
+import sanguche from "@/assets/sanguche-build.png";
+
+const getPlanMessage = (plan: string | null) => {
+  switch (plan) {
+    case 'curso_estrategia':
+      return {
+        planName: 'Curso: Estrategia de Producto para principiantes',
+        prefix: 'con la compra de',
+        singular: true
+      };
+    case 'cursos_all':
+      return {
+        planName: 'Todos los Cursos',
+        prefix: 'con la compra de',
+        singular: false
+      };
+    case 'repremium':
+      return {
+        planName: 'Todos los Cursos incluido',
+        prefix: 'Acceso a',
+        suffix: 'con tu plan RePremium',
+        singular: false
+      };
+    default:
+      return {
+        planName: 'tu plan',
+        prefix: 'con',
+        singular: false
+      };
+  }
+};
 
 export default function Courses() {
   const { data: courses, isLoading: coursesLoading } = useCourses();
-  const { hasAccess, isLoading: accessLoading } = useCourseAccess();
+  const { hasAccess, isLoading: accessLoading, plan } = useCourseAccess();
 
   const isLoading = coursesLoading || accessLoading;
 
@@ -52,6 +84,8 @@ export default function Courses() {
     );
   }
 
+  const planMessage = getPlanMessage(plan);
+
   return (
     <>
       <Seo
@@ -78,24 +112,65 @@ export default function Courses() {
 
         {/* Empty state - no courses */}
         {(!courses || courses.length === 0) && (
-          <div className="text-center py-16 space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-              <BookOpen className="h-8 w-8 text-muted-foreground" />
+          hasAccess ? (
+            // Special screen for buyers
+            <div className="text-center py-16 space-y-6">
+              <img 
+                src={sanguche} 
+                alt="Cocinando tu Sanguche" 
+                className="mx-auto h-48 w-auto object-contain"
+              />
+              <div className="space-y-3">
+                <h2 className="text-2xl font-bold text-foreground">
+                  ¡Ya tienes acceso!
+                </h2>
+                <p className="text-lg text-muted-foreground max-w-lg mx-auto">
+                  Estamos terminando de cocinar tu Sanguche especial 🥪
+                </p>
+              </div>
+              
+              <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 px-4 py-2">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Acceso garantizado
+              </Badge>
+              
+              <p className="text-muted-foreground max-w-md mx-auto">
+                {planMessage.prefix} <span className="font-medium text-foreground">{planMessage.planName}</span>
+                {planMessage.suffix && ` ${planMessage.suffix}`}.
+              </p>
+              
+              <p className="text-sm text-muted-foreground">
+                Te notificaremos cuando {planMessage.singular ? 'esté listo' : 'estén listos'}.
+              </p>
+
+              <Link to="/starter-pack">
+                <Button variant="outline" className="mt-4">
+                  Explorar Starter Pack
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
             </div>
-            <h2 className="text-xl font-semibold text-foreground">
-              Próximamente
-            </h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Estamos preparando cursos increíbles para ti. 
-              Serás notificado cuando estén disponibles.
-            </p>
-            <Link to="/planes">
-              <Button variant="outline" className="mt-4">
-                Ver planes disponibles
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
-          </div>
+          ) : (
+            // Generic empty state for non-buyers
+            <div className="text-center py-16 space-y-4">
+              <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                <BookOpen className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h2 className="text-xl font-semibold text-foreground">
+                Próximamente
+              </h2>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Estamos preparando cursos increíbles para ti. 
+                Serás notificado cuando estén disponibles.
+              </p>
+              <Link to="/planes">
+                <Button variant="outline" className="mt-4">
+                  Ver planes disponibles
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
+          )
         )}
 
         {/* Courses grid */}
