@@ -1,11 +1,17 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// Helper function for controlled delays
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function findOrCreateUser(email: string, name: string | null, supabase: any) {
+  const startTime = Date.now();
   console.log(`[findOrCreateUser] Starting for email: ${email}`);
   
   try {
     // 1. FIRST: Check if profile already exists by email (most reliable for existing users)
-    console.log('[findOrCreateUser] Checking if profile exists by email...');
+    console.log('[findOrCreateUser] Step 1: Checking if profile exists by email...');
     const { data: existingProfile, error: profileCheckError } = await supabase
       .from('profiles')
       .select('id, user_id')
@@ -18,17 +24,18 @@ export async function findOrCreateUser(email: string, name: string | null, supab
     }
     
     if (existingProfile) {
-      console.log(`[findOrCreateUser] Found existing profile by email: ${existingProfile.id}`);
+      console.log(`[findOrCreateUser] Found existing profile by email: ${existingProfile.id} (took ${Date.now() - startTime}ms)`);
       return existingProfile.id;
     }
     
     // 2. Profile not found by email, check auth with pagination
-    console.log('[findOrCreateUser] Profile not found, checking auth with pagination...');
+    console.log('[findOrCreateUser] Step 2: Profile not found, checking auth with pagination...');
     let authUser = null;
     let page = 1;
     const perPage = 50;
+    const maxPages = 100;
     
-    while (!authUser) {
+    while (!authUser && page <= maxPages) {
       const { data: authPage, error: listError } = await supabase.auth.admin.listUsers({
         page: page,
         perPage: perPage
@@ -58,17 +65,11 @@ export async function findOrCreateUser(email: string, name: string | null, supab
       }
       
       page++;
-      
-      // Safety limit to prevent infinite loops
-      if (page > 100) {
-        console.error('[findOrCreateUser] Exceeded max pages, stopping search');
-        break;
-      }
     }
     
     // 3. If user doesn't exist in auth, create them
     if (!authUser) {
-      console.log('[findOrCreateUser] User not in auth, creating...');
+      console.log('[findOrCreateUser] Step 3: User not in auth, creating...');
       
       const temporaryPassword = generateSecurePassword();
       const { data: newAuthData, error: createError } = await supabase.auth.admin.createUser({
@@ -80,11 +81,30 @@ export async function findOrCreateUser(email: string, name: string | null, supab
       
       // Handle email_exists error (race condition)
       if (createError?.code === 'email_exists') {
-        console.log('[findOrCreateUser] Race condition: user exists, searching again with pagination...');
+        console.log('[findOrCreateUser] Race condition detected: user was just created by another request');
+        console.log('[findOrCreateUser] Waiting 500ms for propagation before retrying...');
         
-        // Search again with pagination
+        // Wait for database propagation
+        await delay(500);
+        
+        // First, try to find the profile again (it might have been created)
+        const { data: retryProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+        
+        if (retryProfile) {
+          console.log(`[findOrCreateUser] Found profile after delay: ${retryProfile.id} (took ${Date.now() - startTime}ms)`);
+          return retryProfile.id;
+        }
+        
+        // Profile not found, search auth again with limited pagination
+        console.log('[findOrCreateUser] Profile not found after delay, searching auth...');
         let retryPage = 1;
-        while (!authUser && retryPage <= 100) {
+        const maxRetryPages = 20; // Reduced pages for retry to avoid timeout
+        
+        while (!authUser && retryPage <= maxRetryPages) {
           const { data: retryAuthPage } = await supabase.auth.admin.listUsers({
             page: retryPage,
             perPage: perPage
@@ -93,14 +113,17 @@ export async function findOrCreateUser(email: string, name: string | null, supab
           if (!retryAuthPage?.users?.length) break;
           
           authUser = retryAuthPage.users.find((u: any) => u.email === email);
-          if (authUser) break;
+          if (authUser) {
+            console.log(`[findOrCreateUser] Found auth user after retry on page ${retryPage}: ${authUser.id}`);
+            break;
+          }
           if (retryAuthPage.users.length < perPage) break;
           
           retryPage++;
         }
         
         if (!authUser) {
-          console.error('[findOrCreateUser] User exists but could not be retrieved after race condition');
+          console.error(`[findOrCreateUser] User exists but could not be retrieved after race condition (searched ${retryPage} pages)`);
           throw new Error('User exists but could not be retrieved');
         }
       } else if (createError) {
@@ -108,6 +131,7 @@ export async function findOrCreateUser(email: string, name: string | null, supab
         throw new Error(`Failed to create user account: ${createError.message}`);
       } else {
         authUser = newAuthData.user;
+        console.log(`[findOrCreateUser] Created new auth user: ${authUser.id}`);
       }
     }
     
@@ -116,7 +140,7 @@ export async function findOrCreateUser(email: string, name: string | null, supab
       throw new Error('No auth user available');
     }
     
-    console.log(`[findOrCreateUser] Auth user ready: ${authUser.id}`);
+    console.log(`[findOrCreateUser] Step 4: Auth user ready: ${authUser.id}`);
     
     // 4. Check if profile exists for this auth user
     const { data: profile, error: profileFetchError } = await supabase
@@ -131,12 +155,12 @@ export async function findOrCreateUser(email: string, name: string | null, supab
     }
     
     if (profile) {
-      console.log(`[findOrCreateUser] Profile exists: ${profile.id}`);
+      console.log(`[findOrCreateUser] Profile exists: ${profile.id} (took ${Date.now() - startTime}ms)`);
       return profile.id;
     }
     
     // 5. Profile doesn't exist, create it
-    console.log('[findOrCreateUser] Creating profile for auth user...');
+    console.log('[findOrCreateUser] Step 5: Creating profile for auth user...');
     const { data: newProfile, error: profileCreateError } = await supabase
       .from('profiles')
       .insert({
@@ -152,7 +176,7 @@ export async function findOrCreateUser(email: string, name: string | null, supab
       throw new Error(`Failed to create profile: ${profileCreateError.message}`);
     }
     
-    console.log(`[findOrCreateUser] Profile created successfully: ${newProfile.id}`);
+    console.log(`[findOrCreateUser] Profile created successfully: ${newProfile.id} (took ${Date.now() - startTime}ms)`);
     
     // 6. Generate password reset link (optional, don't fail if this errors)
     try {
@@ -168,7 +192,7 @@ export async function findOrCreateUser(email: string, name: string | null, supab
     return newProfile.id;
     
   } catch (error) {
-    console.error('[findOrCreateUser] Unexpected error:', error);
+    console.error(`[findOrCreateUser] Unexpected error (took ${Date.now() - startTime}ms):`, error);
     throw error;
   }
 }

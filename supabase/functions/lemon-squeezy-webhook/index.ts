@@ -126,6 +126,37 @@ function extractVariantId(event: LemonSqueezyWebhookEvent): string | null {
   return variantId;
 }
 
+// Helper to log structured event summary
+function logEventSummary(
+  phase: 'START' | 'END',
+  eventName: string,
+  data: {
+    email?: string | null;
+    variantId?: string | null;
+    plan?: string | null;
+    purchaseType?: string | null;
+    result?: 'success' | 'error';
+    errorMessage?: string | null;
+    processingTimeMs?: number;
+  }
+) {
+  const timestamp = new Date().toISOString();
+  if (phase === 'START') {
+    console.log(`[Webhook][${timestamp}] ========== START: ${eventName} ==========`);
+    console.log(`[Webhook] Email: ${data.email || 'N/A'}`);
+    console.log(`[Webhook] Variant ID: ${data.variantId || 'N/A'}`);
+    console.log(`[Webhook] Plan: ${data.plan || 'N/A'}`);
+    console.log(`[Webhook] Purchase Type: ${data.purchaseType || 'N/A'}`);
+  } else {
+    console.log(`[Webhook][${timestamp}] Result: ${data.result?.toUpperCase()}`);
+    if (data.errorMessage) {
+      console.log(`[Webhook] Error: ${data.errorMessage}`);
+    }
+    console.log(`[Webhook] Processing time: ${data.processingTimeMs}ms`);
+    console.log(`[Webhook] ========== END: ${eventName} ==========`);
+  }
+}
+
 serve(async (req) => {
   const startTime = Date.now();
   
@@ -140,11 +171,13 @@ serve(async (req) => {
   let subscriptionId: string | null = null;
   let customerId: string | null = null;
   let orderId: string | null = null;
+  let variantId: string | null = null;
+  let planConfig: { plan: string; purchaseType: 'subscription' | 'one_time' } | null = null;
 
   try {
     const webhookSecret = Deno.env.get('LEMON_SQUEEZY_WEBHOOK_SECRET');
     if (!webhookSecret) {
-      console.error('LEMON_SQUEEZY_WEBHOOK_SECRET not configured');
+      console.error('[Webhook] LEMON_SQUEEZY_WEBHOOK_SECRET not configured');
       return new Response(
         JSON.stringify({ error: 'Webhook secret not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -156,7 +189,7 @@ serve(async (req) => {
     const isValid = await verifySignature(clonedRequest, webhookSecret);
     
     if (!isValid) {
-      console.error('Invalid webhook signature');
+      console.error('[Webhook] Invalid webhook signature');
       return new Response(
         JSON.stringify({ error: 'Invalid signature' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -164,8 +197,6 @@ serve(async (req) => {
     }
 
     event = await req.json();
-    console.log('Webhook event received:', event!.meta.event_name);
-    console.log('Event data type:', event!.data.type);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -178,17 +209,28 @@ serve(async (req) => {
     const status = event!.data.attributes.status;
 
     // Extract variant ID to determine plan
-    const variantId = extractVariantId(event!);
-    const planConfig = variantId ? VARIANT_TO_PLAN[variantId] : null;
-    
-    console.log('[Webhook] Variant ID:', variantId);
-    console.log('[Webhook] Plan config:', planConfig);
+    variantId = extractVariantId(event!);
+    planConfig = variantId ? VARIANT_TO_PLAN[variantId] : null;
 
     // Get user email from webhook event
     userEmail = event!.data.attributes.user_email || event!.data.attributes.customer_email || null;
 
+    // Log structured event summary at start
+    logEventSummary('START', eventName, {
+      email: userEmail,
+      variantId,
+      plan: planConfig?.plan,
+      purchaseType: planConfig?.purchaseType,
+    });
+
     if (!userEmail) {
-      console.error('No user email in webhook event');
+      console.error('[Webhook] No user email in webhook event');
+      
+      logEventSummary('END', eventName, {
+        result: 'error',
+        errorMessage: 'No user email provided',
+        processingTimeMs: Date.now() - startTime,
+      });
       
       // Log the failed event
       await logWebhookEvent(
@@ -203,14 +245,20 @@ serve(async (req) => {
     }
 
     // Find or create user profile by email
-    console.log('Finding or creating user for email:', userEmail);
+    console.log(`[Webhook] Finding or creating user for email: ${userEmail}`);
     
     try {
       const userName = event!.data.attributes.user_name || null;
       userId = await findOrCreateUser(userEmail, userName, supabase);
-      console.log('User profile ready:', userId);
+      console.log(`[Webhook] User profile ready: ${userId}`);
     } catch (error) {
-      console.error('Failed to find or create user:', error);
+      console.error('[Webhook] Failed to find or create user:', error);
+      
+      logEventSummary('END', eventName, {
+        result: 'error',
+        errorMessage: `Failed to process user account: ${error}`,
+        processingTimeMs: Date.now() - startTime,
+      });
       
       // Log the failed event
       await logWebhookEvent(
@@ -227,7 +275,7 @@ serve(async (req) => {
     // Handle different event types
     switch (eventName) {
       case 'order_created':
-        console.log('Processing order_created event');
+        console.log(`[Webhook] Processing order_created - Plan: ${planConfig?.plan || 'unknown'}, Type: ${planConfig?.purchaseType || 'unknown'}`);
         
         // For one-time purchases, activate the plan immediately
         if (planConfig?.purchaseType === 'one_time') {
@@ -270,7 +318,7 @@ serve(async (req) => {
         break;
 
       case 'subscription_created':
-        console.log('Processing subscription_created event');
+        console.log(`[Webhook] Processing subscription_created - Plan: ${planConfig?.plan || 'premium'}`);
         const renews_at = event!.data.attributes.renews_at;
         const trial_ends_at = event!.data.attributes.trial_ends_at;
         
@@ -302,7 +350,7 @@ serve(async (req) => {
         break;
 
       case 'subscription_updated':
-        console.log('Processing subscription_updated event');
+        console.log(`[Webhook] Processing subscription_updated - Status: ${status}`);
         await supabase
           .from('user_subscriptions')
           .update({
@@ -317,7 +365,7 @@ serve(async (req) => {
 
       case 'subscription_cancelled':
       case 'subscription_expired':
-        console.log(`Processing ${eventName} event`);
+        console.log(`[Webhook] Processing ${eventName} - Subscription ID: ${subscriptionId}`);
         await supabase
           .from('user_subscriptions')
           .update({
@@ -328,7 +376,7 @@ serve(async (req) => {
         break;
 
       case 'subscription_payment_success':
-        console.log('Processing subscription_payment_success event');
+        console.log(`[Webhook] Processing subscription_payment_success - Subscription ID: ${subscriptionId}`);
         await supabase
           .from('user_subscriptions')
           .update({
@@ -342,10 +390,16 @@ serve(async (req) => {
         break;
 
       default:
-        console.log(`Unhandled event type: ${eventName}`);
+        console.log(`[Webhook] Unhandled event type: ${eventName}`);
     }
 
-    // Log successful event
+    // Log structured event summary at end
+    logEventSummary('END', eventName, {
+      result: 'success',
+      processingTimeMs: Date.now() - startTime,
+    });
+
+    // Log successful event to database
     await logWebhookEvent(
       supabase, eventName, event!, userEmail, userId, subscriptionId, customerId, orderId,
       'success', null, Date.now() - startTime
@@ -357,7 +411,13 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    console.error('[Webhook] Error processing webhook:', error);
+    
+    logEventSummary('END', eventName, {
+      result: 'error',
+      errorMessage: `${error}`,
+      processingTimeMs: Date.now() - startTime,
+    });
     
     // Try to log the error if we have a supabase client
     try {
@@ -371,7 +431,7 @@ serve(async (req) => {
         'error', `Error processing webhook: ${error}`, Date.now() - startTime
       );
     } catch (logError) {
-      console.error('Failed to log error event:', logError);
+      console.error('[Webhook] Failed to log error event:', logError);
     }
     
     return new Response(
