@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,9 +27,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, Eye, BookOpen, Video, CalendarClock, CircleDashed, CheckCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, BookOpen, Video, CalendarClock, CircleDashed, CheckCircle, CalendarIcon } from 'lucide-react';
 import {
   useAdminCourses,
   useCreateCourse,
@@ -35,6 +43,7 @@ import {
   useDeleteCourse,
 } from '@/hooks/useAdminCourses';
 import { Course, CourseStatus } from '@/types/courses';
+import { cn } from '@/lib/utils';
 
 function generateSlug(title: string): string {
   return title
@@ -56,6 +65,7 @@ interface CourseFormData {
   duration_minutes: string;
   order_index: string;
   status: CourseStatus;
+  publish_at: Date | undefined;
 }
 
 const defaultFormData: CourseFormData = {
@@ -67,6 +77,7 @@ const defaultFormData: CourseFormData = {
   duration_minutes: '',
   order_index: '0',
   status: 'draft',
+  publish_at: undefined,
 };
 
 const statusConfig: Record<CourseStatus, { label: string; variant: 'default' | 'secondary' | 'outline'; icon: typeof CircleDashed }> = {
@@ -104,6 +115,7 @@ const AdminCourses = () => {
       duration_minutes: course.duration_minutes?.toString() || '',
       order_index: course.order_index.toString(),
       status: course.status || (course.is_published ? 'published' : 'draft'),
+      publish_at: course.publish_at ? new Date(course.publish_at) : undefined,
     });
     setIsDialogOpen(true);
   };
@@ -126,7 +138,10 @@ const AdminCourses = () => {
       duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
       order_index: parseInt(formData.order_index) || 0,
       status: formData.status,
-      is_published: formData.status === 'published', // Keep backward compatibility
+      is_published: formData.status === 'published',
+      publish_at: formData.status === 'coming_soon' && formData.publish_at 
+        ? formData.publish_at.toISOString() 
+        : null,
     };
 
     if (editingCourse) {
@@ -255,10 +270,17 @@ const AdminCourses = () => {
                         {course.duration_minutes ? `${course.duration_minutes} min` : '-'}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={config.variant} className={courseStatus === 'coming_soon' ? 'border-amber-500 text-amber-600 dark:text-amber-400' : ''}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {config.label}
-                        </Badge>
+                        <div className="space-y-1">
+                          <Badge variant={config.variant} className={courseStatus === 'coming_soon' ? 'border-amber-500 text-amber-600 dark:text-amber-400' : ''}>
+                            <StatusIcon className="h-3 w-3 mr-1" />
+                            {config.label}
+                          </Badge>
+                          {courseStatus === 'coming_soon' && course.publish_at && (
+                            <p className="text-xs text-muted-foreground">
+                              📅 {format(new Date(course.publish_at), "d MMM yyyy", { locale: es })}
+                            </p>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">{course.order_index}</TableCell>
                       <TableCell className="text-right">
@@ -383,7 +405,14 @@ const AdminCourses = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Estado</Label>
-                <Select value={formData.status} onValueChange={(value: CourseStatus) => setFormData({ ...formData, status: value })}>
+                <Select 
+                  value={formData.status} 
+                  onValueChange={(value: CourseStatus) => setFormData({ 
+                    ...formData, 
+                    status: value,
+                    publish_at: value !== 'coming_soon' ? undefined : formData.publish_at 
+                  })}
+                >
                   <SelectTrigger id="status">
                     <SelectValue />
                   </SelectTrigger>
@@ -411,6 +440,53 @@ const AdminCourses = () => {
               </div>
             </div>
 
+            {/* Scheduled publishing date picker - only shown when status is coming_soon */}
+            {formData.status === 'coming_soon' && (
+              <div className="space-y-2">
+                <Label>Fecha de lanzamiento programada (opcional)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.publish_at && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.publish_at 
+                        ? format(formData.publish_at, "PPP", { locale: es }) 
+                        : "Seleccionar fecha..."
+                      }
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.publish_at}
+                      onSelect={(date) => setFormData({ ...formData, publish_at: date })}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+                <p className="text-xs text-muted-foreground">
+                  El curso se publicará automáticamente en esta fecha (revisión cada hora).
+                </p>
+                {formData.publish_at && (
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setFormData({ ...formData, publish_at: undefined })}
+                    className="text-xs"
+                  >
+                    Quitar fecha programada
+                  </Button>
+                )}
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={handleCloseDialog}>
                 Cancelar

@@ -11,6 +11,7 @@ export interface Course {
   is_published: boolean;
   status: CourseStatus;
   order_index: number;
+  publish_at: string | null;
   created_at: string;
   updated_at: string;
 }
