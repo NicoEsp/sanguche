@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Clock, PlayCircle, Lock, CheckCircle2 } from "lucide-react";
+import { Clock, PlayCircle, Lock, CheckCircle2, CalendarClock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -13,44 +13,66 @@ interface CourseCardProps {
 
 export function CourseCard({ course, hasAccess, progress }: CourseCardProps) {
   const isCompleted = progress?.isCompleted;
+  const isComingSoon = course.status === "coming_soon";
 
-  return (
-    <Link to={`/cursos/${course.slug}`}>
-      <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm h-full">
-        {/* Thumbnail */}
-        <div className="relative aspect-video bg-muted overflow-hidden">
-          {course.thumbnail_url ? (
-            <img
-              src={course.thumbnail_url}
-              alt={course.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-              <PlayCircle className="h-16 w-16 text-primary/40" />
+  const cardContent = (
+    <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm h-full">
+      {/* Thumbnail */}
+      <div className="relative aspect-video bg-muted overflow-hidden">
+        {course.thumbnail_url ? (
+          <img
+            src={course.thumbnail_url}
+            alt={course.title}
+            className={`w-full h-full object-cover transition-transform duration-500 ${
+              isComingSoon ? "opacity-80" : "group-hover:scale-105"
+            }`}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+            <PlayCircle className="h-16 w-16 text-primary/40" />
+          </div>
+        )}
+        
+        {/* Overlay for coming soon courses */}
+        {isComingSoon && (
+          <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <CalendarClock className="h-8 w-8 text-amber-500" />
+              <span className="text-sm font-medium text-amber-600 dark:text-amber-400">Próximamente</span>
             </div>
-          )}
-          
-          {/* Overlay for locked courses */}
-          {!hasAccess && (
-            <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center">
-              <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                <Lock className="h-8 w-8" />
-                <span className="text-sm font-medium">Requiere suscripción</span>
-              </div>
+          </div>
+        )}
+        
+        {/* Overlay for locked courses */}
+        {!hasAccess && !isComingSoon && (
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+              <Lock className="h-8 w-8" />
+              <span className="text-sm font-medium">Requiere suscripción</span>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Completed badge */}
-          {isCompleted && (
-            <div className="absolute top-3 right-3">
-              <Badge className="bg-green-500/90 text-white border-0">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Completado
-              </Badge>
-            </div>
-          )}
-        </div>
+        {/* Coming soon badge */}
+        {isComingSoon && (
+          <div className="absolute top-3 left-3">
+            <Badge className="bg-amber-500/90 text-white border-0">
+              <CalendarClock className="h-3 w-3 mr-1" />
+              Próximamente
+            </Badge>
+          </div>
+        )}
+
+        {/* Completed badge */}
+        {isCompleted && !isComingSoon && (
+          <div className="absolute top-3 right-3">
+            <Badge className="bg-green-500/90 text-white border-0">
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Completado
+            </Badge>
+          </div>
+        )}
+      </div>
 
         <CardContent className="p-5">
           {/* Title */}
@@ -76,7 +98,7 @@ export function CourseCard({ course, hasAccess, progress }: CourseCardProps) {
           </div>
 
           {/* Progress bar */}
-          {hasAccess && progress && progress.totalLessons > 0 && (
+          {hasAccess && progress && progress.totalLessons > 0 && !isComingSoon && (
             <div className="mt-4 space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{progress.completedLessons} de {progress.totalLessons} lecciones</span>
@@ -87,6 +109,12 @@ export function CourseCard({ course, hasAccess, progress }: CourseCardProps) {
           )}
         </CardContent>
       </Card>
-    </Link>
   );
+
+  // If coming soon, don't link anywhere
+  if (isComingSoon) {
+    return <div className="cursor-default">{cardContent}</div>;
+  }
+
+  return <Link to={`/cursos/${course.slug}`}>{cardContent}</Link>;
 }

@@ -226,6 +226,7 @@ export type Database = {
           order_index: number | null
           outcome: string | null
           slug: string
+          status: Database["public"]["Enums"]["course_status"]
           thumbnail_url: string | null
           title: string
           updated_at: string | null
@@ -239,6 +240,7 @@ export type Database = {
           order_index?: number | null
           outcome?: string | null
           slug: string
+          status?: Database["public"]["Enums"]["course_status"]
           thumbnail_url?: string | null
           title: string
           updated_at?: string | null
@@ -252,6 +254,7 @@ export type Database = {
           order_index?: number | null
           outcome?: string | null
           slug?: string
+          status?: Database["public"]["Enums"]["course_status"]
           thumbnail_url?: string | null
           title?: string
           updated_at?: string | null
@@ -1145,6 +1148,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      course_status: "draft" | "coming_soon" | "published"
       progress_objective_access_level: "free" | "premium"
       resource_access_level: "public" | "authenticated" | "premium"
       resource_visibility: "public" | "conditional"
@@ -1283,6 +1287,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      course_status: ["draft", "coming_soon", "published"],
       progress_objective_access_level: ["free", "premium"],
       resource_access_level: ["public", "authenticated", "premium"],
       resource_visibility: ["public", "conditional"],

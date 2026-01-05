@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Clock, CheckCircle2, PlayCircle } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle2, PlayCircle, CalendarClock } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import {
   LessonItem,
   VideoPlayer,
@@ -110,6 +111,95 @@ export default function CourseDetail() {
       <>
         <Seo title={`${course.title} - ProductPrepa`} description={course.description || ""} />
         <CoursePaywall courseTitle={course.title} />
+      </>
+    );
+  }
+
+  // Coming soon - show preview without lessons
+  if (course.status === "coming_soon") {
+    return (
+      <>
+        <Seo
+          title={`${course.title} - ProductPrepa`}
+          description={course.description || ""}
+          canonical={`/cursos/${course.slug}`}
+        />
+
+        <div className="container max-w-4xl py-8 space-y-6">
+          {/* Back button */}
+          <Link
+            to="/cursos"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver a cursos
+          </Link>
+
+          {/* Coming soon header */}
+          <div className="text-center space-y-4 py-8">
+            <Badge className="bg-amber-500/90 text-white border-0 text-sm px-4 py-1">
+              <CalendarClock className="h-4 w-4 mr-2" />
+              Próximamente
+            </Badge>
+            
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              {course.title}
+            </h1>
+            
+            {course.description && (
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                {course.description}
+              </p>
+            )}
+          </div>
+
+          {/* Thumbnail */}
+          {course.thumbnail_url && (
+            <div className="relative aspect-video rounded-xl overflow-hidden bg-muted">
+              <img
+                src={course.thumbnail_url}
+                alt={course.title}
+                className="w-full h-full object-cover opacity-80"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+            </div>
+          )}
+
+          {/* Info card */}
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardContent className="p-6 text-center space-y-4">
+              <CalendarClock className="h-12 w-12 text-amber-500 mx-auto" />
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">
+                  Este curso estará disponible próximamente
+                </h3>
+                <p className="text-muted-foreground">
+                  Estamos preparando el contenido. Te notificaremos cuando esté listo.
+                </p>
+              </div>
+              
+              {/* Outcome preview */}
+              {course.outcome && (
+                <div className="pt-4 border-t border-border/50">
+                  <h4 className="font-medium text-foreground mb-2">
+                    Al finalizar este curso podrás:
+                  </h4>
+                  <p className="text-muted-foreground">{course.outcome}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Back to courses */}
+          <div className="text-center pt-4">
+            <Link to="/cursos">
+              <Button variant="outline">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Ver otros cursos
+              </Button>
+            </Link>
+          </div>
+        </div>
       </>
     );
   }

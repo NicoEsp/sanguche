@@ -1,3 +1,5 @@
+export type CourseStatus = 'draft' | 'coming_soon' | 'published';
+
 export interface Course {
   id: string;
   slug: string;
@@ -7,6 +9,7 @@ export interface Course {
   thumbnail_url: string | null;
   duration_minutes: number | null;
   is_published: boolean;
+  status: CourseStatus;
   order_index: number;
   created_at: string;
   updated_at: string;
