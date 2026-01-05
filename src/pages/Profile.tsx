@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserProfile } from '@/hooks/useUserProfile';
-import { useSubscription } from '@/hooks/useSubscription';
-import { useProfileStats } from '@/hooks/useProfileStats';
+import { useProfileCompositeData } from '@/hooks/useProfileCompositeData';
 import { useUserProgressObjectives } from '@/hooks/useUserProgressObjectives';
 import { useMyExercises } from '@/hooks/useUserExercises';
+import { useAssessmentData } from '@/hooks/useAssessmentData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 import { ProfileStats } from '@/components/profile/ProfileStats';
 import { EditNameDialog } from '@/components/profile/EditNameDialog';
 import { Seo } from '@/components/Seo';
@@ -43,24 +43,23 @@ import {
   Loader2,
   Star,
   RefreshCw,
-  ShoppingBag
+  ShoppingBag,
+  Sparkles,
+  GraduationCap
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export default function Profile() {
   const { user, signOut, isSigningOut } = useAuth();
-  const { profile, loading: profileLoading } = useUserProfile();
-  const { subscription, loading: subscriptionLoading } = useSubscription();
-  const stats = useProfileStats();
+  const { data: compositeData, loading } = useProfileCompositeData();
+  const { profile, subscription, assessmentsCount, lastAssessmentDate } = compositeData;
+  const { result } = useAssessmentData();
   const { data: objectives, isLoading: objectivesLoading } = useUserProgressObjectives(profile?.id || null);
   const { data: exercises, isLoading: exercisesLoading } = useMyExercises();
   const [editNameOpen, setEditNameOpen] = useState(false);
-  const [refetchKey, setRefetchKey] = useState(0);
   const [isCanceling, setIsCanceling] = useState(false);
   const { toast } = useToast();
-
-  const loading = profileLoading || subscriptionLoading;
 
   const handleCancelSubscription = async () => {
     setIsCanceling(true);
@@ -126,6 +125,62 @@ export default function Profile() {
     return `Próximo cobro: ${date} - USD 9,99/mes`;
   };
 
+  const formatLastAssessmentDate = () => {
+    if (!lastAssessmentDate) return 'Sin evaluación';
+    return format(new Date(lastAssessmentDate), 'dd/MM/yyyy', { locale: es });
+  };
+
+  // Calculate stats from composite data
+  const activeObjectivesCount = objectives?.filter(o => o.status !== 'completed').length || 0;
+  const gapsCount = result?.gaps?.length || 0;
+  const pendingExercisesCount = exercises?.filter(e => 
+    ['assigned', 'in_progress'].includes(e.status || '')
+  ).length || 0;
+  const completedExercisesCount = exercises?.filter(e => 
+    ['submitted', 'reviewed'].includes(e.status || '')
+  ).length || 0;
+
+  // Helper to get plan badge
+  const getPlanBadge = () => {
+    const plan = subscription?.plan;
+    
+    if (plan === 'repremium') {
+      return (
+        <Badge variant="repremium" className="text-base px-3 py-1">
+          <Sparkles className="h-4 w-4 mr-1" />
+          RePremium
+        </Badge>
+      );
+    }
+    
+    if (plan === 'cursos_all') {
+      return (
+        <Badge variant="cursosAll" className="text-base px-3 py-1">
+          <GraduationCap className="h-4 w-4 mr-1" />
+          Acceso a todos los Cursos
+        </Badge>
+      );
+    }
+    
+    if (plan === 'premium' || plan === 'curso_estrategia') {
+      return (
+        <Badge variant="default" className="text-base px-3 py-1">
+          <Crown className="h-4 w-4 mr-1" />
+          Premium
+        </Badge>
+      );
+    }
+    
+    return (
+      <Badge variant="secondary" className="text-base px-3 py-1">
+        Free
+      </Badge>
+    );
+  };
+
+  // Check if user has any "other badges"
+  const hasOtherBadges = profile?.is_founder;
+
   if (loading) {
     return (
       <div className="container py-8 space-y-8">
@@ -182,28 +237,10 @@ export default function Profile() {
             <CardTitle>Plan y Suscripción</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Primary badges row: Plan + Status chips */}
             <div className="flex flex-wrap items-center gap-3">
-              <Badge 
-                variant={subscription?.plan === 'premium' ? 'default' : 'secondary'}
-                className="text-base px-3 py-1"
-              >
-                {subscription?.plan === 'premium' ? (
-                  <>
-                    <Crown className="h-4 w-4 mr-1" />
-                    Premium
-                  </>
-                ) : (
-                  'Free'
-                )}
-              </Badge>
+              {getPlanBadge()}
 
-              {profile?.is_founder && (
-                <Badge variant="founder" className="text-base px-3 py-1">
-                  <Star className="h-4 w-4 mr-1" />
-                  Founder
-                </Badge>
-              )}
-              
               {subscription?.status === 'active' && (
                 <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400">
                   <CheckCircle className="h-3 w-3 mr-1" />
@@ -211,7 +248,7 @@ export default function Profile() {
                 </Badge>
               )}
 
-              {subscription?.status === 'active' && subscription?.plan === 'premium' && (
+              {subscription?.status === 'active' && ['premium', 'repremium', 'curso_estrategia', 'cursos_all'].includes(subscription?.plan || '') && (
                 <Badge 
                   variant="outline" 
                   className={subscription.isOneTimePurchase 
@@ -241,7 +278,25 @@ export default function Profile() {
               )}
             </div>
 
-            {subscription?.plan === 'premium' && subscription?.status === 'active' && (
+            {/* Other badges section */}
+            {hasOtherBadges && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground font-medium">Otras Badges obtenidas</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {profile?.is_founder && (
+                      <Badge variant="founder" className="text-sm px-3 py-1">
+                        <Star className="h-3 w-3 mr-1" />
+                        Founder
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {subscription?.plan !== 'free' && subscription?.status === 'active' && (
               <p className="text-sm text-muted-foreground">
                 {subscription.isOneTimePurchase 
                   ? "Acceso permanente" 
@@ -250,7 +305,7 @@ export default function Profile() {
               </p>
             )}
 
-            {subscription?.plan === 'premium' && subscription?.status === 'active' && !subscription?.isOneTimePurchase && (
+            {subscription?.plan !== 'free' && subscription?.status === 'active' && !subscription?.isOneTimePurchase && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
@@ -312,33 +367,33 @@ export default function Profile() {
             <ProfileStats 
               icon={FileText} 
               label="Evaluaciones completadas" 
-              value={stats.assessmentsCount} 
+              value={assessmentsCount} 
             />
             <ProfileStats 
               icon={Target} 
               label="Objetivos activos" 
-              value={stats.activeObjectivesCount} 
+              value={activeObjectivesCount} 
             />
             <ProfileStats 
               icon={TrendingUp} 
               label="Áreas de mejora" 
-              value={stats.gapsCount}
+              value={gapsCount}
               link="/mejoras"
             />
             <ProfileStats 
               icon={Clock} 
               label="Ejercicios pendientes" 
-              value={stats.pendingExercisesCount} 
+              value={pendingExercisesCount} 
             />
             <ProfileStats 
               icon={CheckCircle2} 
               label="Ejercicios completados" 
-              value={stats.completedExercisesCount} 
+              value={completedExercisesCount} 
             />
             <ProfileStats 
               icon={Calendar} 
               label="Última evaluación" 
-              value={stats.lastAssessmentDate} 
+              value={formatLastAssessmentDate()} 
             />
           </div>
         </div>
@@ -445,7 +500,6 @@ export default function Profile() {
         currentName={profile?.name || null}
         profileId={profile?.id || ''}
         onSuccess={() => {
-          setRefetchKey(prev => prev + 1);
           window.location.reload();
         }}
       />
