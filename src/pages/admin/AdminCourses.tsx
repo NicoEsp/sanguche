@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -28,15 +27,14 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, Eye, BookOpen, Video } from 'lucide-react';
-import { toast } from 'sonner';
+import { Plus, Pencil, Trash2, Eye, BookOpen, Video, CalendarClock, CircleDashed, CheckCircle } from 'lucide-react';
 import {
   useAdminCourses,
   useCreateCourse,
   useUpdateCourse,
   useDeleteCourse,
 } from '@/hooks/useAdminCourses';
-import { Course } from '@/types/courses';
+import { Course, CourseStatus } from '@/types/courses';
 
 function generateSlug(title: string): string {
   return title
@@ -57,7 +55,7 @@ interface CourseFormData {
   thumbnail_url: string;
   duration_minutes: string;
   order_index: string;
-  is_published: boolean;
+  status: CourseStatus;
 }
 
 const defaultFormData: CourseFormData = {
@@ -68,7 +66,13 @@ const defaultFormData: CourseFormData = {
   thumbnail_url: '',
   duration_minutes: '',
   order_index: '0',
-  is_published: false,
+  status: 'draft',
+};
+
+const statusConfig: Record<CourseStatus, { label: string; variant: 'default' | 'secondary' | 'outline'; icon: typeof CircleDashed }> = {
+  draft: { label: 'Borrador', variant: 'secondary', icon: CircleDashed },
+  coming_soon: { label: 'Próximamente', variant: 'outline', icon: CalendarClock },
+  published: { label: 'Publicado', variant: 'default', icon: CheckCircle },
 };
 
 const AdminCourses = () => {
@@ -99,7 +103,7 @@ const AdminCourses = () => {
       thumbnail_url: course.thumbnail_url || '',
       duration_minutes: course.duration_minutes?.toString() || '',
       order_index: course.order_index.toString(),
-      is_published: course.is_published,
+      status: course.status || (course.is_published ? 'published' : 'draft'),
     });
     setIsDialogOpen(true);
   };
@@ -121,7 +125,8 @@ const AdminCourses = () => {
       thumbnail_url: formData.thumbnail_url || null,
       duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
       order_index: parseInt(formData.order_index) || 0,
-      is_published: formData.is_published,
+      status: formData.status,
+      is_published: formData.status === 'published', // Keep backward compatibility
     };
 
     if (editingCourse) {
@@ -148,9 +153,9 @@ const AdminCourses = () => {
 
   const filteredCourses = courses.filter((c) => {
     if (filterStatus === 'all') return true;
-    if (filterStatus === 'published') return c.is_published;
-    if (filterStatus === 'draft') return !c.is_published;
-    return true;
+    // Use status if available, fallback to is_published for backwards compatibility
+    const courseStatus = c.status || (c.is_published ? 'published' : 'draft');
+    return courseStatus === filterStatus;
   });
 
   return (
@@ -175,13 +180,14 @@ const AdminCourses = () => {
           <div className="flex gap-4 items-center">
             <Label>Estado:</Label>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-44">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="published">Publicados</SelectItem>
                 <SelectItem value="draft">Borradores</SelectItem>
+                <SelectItem value="coming_soon">Próximamente</SelectItem>
+                <SelectItem value="published">Publicados</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -221,6 +227,9 @@ const AdminCourses = () => {
                 filteredCourses.map((course) => {
                   const lessonsCount = course.course_lessons?.[0]?.count || 0;
                   const exercisesCount = course.course_exercises?.[0]?.count || 0;
+                  const courseStatus: CourseStatus = course.status || (course.is_published ? 'published' : 'draft');
+                  const config = statusConfig[courseStatus];
+                  const StatusIcon = config.icon;
                   
                   return (
                     <TableRow key={course.id}>
@@ -246,8 +255,9 @@ const AdminCourses = () => {
                         {course.duration_minutes ? `${course.duration_minutes} min` : '-'}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={course.is_published ? 'default' : 'secondary'}>
-                          {course.is_published ? 'Publicado' : 'Borrador'}
+                        <Badge variant={config.variant} className={courseStatus === 'coming_soon' ? 'border-amber-500 text-amber-600 dark:text-amber-400' : ''}>
+                          <StatusIcon className="h-3 w-3 mr-1" />
+                          {config.label}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">{course.order_index}</TableCell>
@@ -350,7 +360,7 @@ const AdminCourses = () => {
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="duration_minutes">Duración (minutos)</Label>
                 <Input
@@ -362,7 +372,7 @@ const AdminCourses = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="order_index">Orden de visualización</Label>
+                <Label htmlFor="order_index">Orden</Label>
                 <Input
                   id="order_index"
                   type="number"
@@ -371,15 +381,34 @@ const AdminCourses = () => {
                   onChange={(e) => setFormData({ ...formData, order_index: e.target.value })}
                 />
               </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Switch
-                id="is_published"
-                checked={formData.is_published}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
-              />
-              <Label htmlFor="is_published">Publicado</Label>
+              <div className="space-y-2">
+                <Label htmlFor="status">Estado</Label>
+                <Select value={formData.status} onValueChange={(value: CourseStatus) => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger id="status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">
+                      <div className="flex items-center gap-2">
+                        <CircleDashed className="h-4 w-4" />
+                        Borrador
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="coming_soon">
+                      <div className="flex items-center gap-2">
+                        <CalendarClock className="h-4 w-4 text-amber-500" />
+                        Próximamente
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="published">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        Publicado
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">

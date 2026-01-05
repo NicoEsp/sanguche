@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Course } from "@/types/courses";
+import type { Course, CourseStatus } from "@/types/courses";
 
 export function useCourses() {
   return useQuery({
@@ -9,7 +9,7 @@ export function useCourses() {
       const { data, error } = await supabase
         .from("courses")
         .select("*")
-        .eq("is_published", true)
+        .in("status", ["coming_soon", "published"] as CourseStatus[])
         .order("order_index", { ascending: true });
 
       if (error) {
@@ -17,7 +17,7 @@ export function useCourses() {
         throw error;
       }
 
-      return data || [];
+      return (data || []) as Course[];
     },
   });
 }
