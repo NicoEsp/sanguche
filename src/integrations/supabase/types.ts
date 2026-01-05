@@ -225,6 +225,7 @@ export type Database = {
           is_published: boolean | null
           order_index: number | null
           outcome: string | null
+          publish_at: string | null
           slug: string
           status: Database["public"]["Enums"]["course_status"]
           thumbnail_url: string | null
@@ -239,6 +240,7 @@ export type Database = {
           is_published?: boolean | null
           order_index?: number | null
           outcome?: string | null
+          publish_at?: string | null
           slug: string
           status?: Database["public"]["Enums"]["course_status"]
           thumbnail_url?: string | null
@@ -253,6 +255,7 @@ export type Database = {
           is_published?: boolean | null
           order_index?: number | null
           outcome?: string | null
+          publish_at?: string | null
           slug?: string
           status?: Database["public"]["Enums"]["course_status"]
           thumbnail_url?: string | null
