@@ -19,6 +19,10 @@ const badgeVariants = cva(
           "border-2 border-pink-500 bg-pink-500 text-white font-bold hover:bg-pink-600",
         founder:
           "border-2 border-amber-500 bg-gradient-to-r from-amber-500 to-yellow-400 text-white font-bold shadow-sm",
+        repremium:
+          "border-2 border-purple-500 bg-gradient-to-r from-purple-600 to-indigo-500 text-white font-bold shadow-sm",
+        cursosAll:
+          "border-2 border-emerald-500 bg-gradient-to-r from-emerald-500 to-teal-400 text-white font-bold shadow-sm",
       },
     },
     defaultVariants: {
