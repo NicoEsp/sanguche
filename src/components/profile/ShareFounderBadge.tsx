@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Star, Copy, Linkedin } from 'lucide-react';
+import { Star, Copy, Linkedin, Share2 } from 'lucide-react';
 
 const LINKEDIN_MESSAGE = `🎉 ¡Obtuve la badge de Founder en ProductPrepa!
 
@@ -46,43 +48,47 @@ export function ShareFounderBadge() {
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Badge 
-          variant="founder" 
-          className="text-sm px-3 py-1 cursor-pointer transition-transform hover:scale-105"
-        >
-          <Star className="h-3 w-3 mr-1" />
-          Founder
-        </Badge>
-      </PopoverTrigger>
-      <PopoverContent className="w-80" align="start">
-        <div className="space-y-3">
-          <h4 className="font-semibold">🎉 ¡Comparte tu badge de Founder!</h4>
-          <p className="text-sm text-muted-foreground line-clamp-4">
-            "Soy parte de los primeros usuarios que apoyaron a ProductPrepa desde su etapa inicial. Esta plataforma me ha ayudado a crecer..."
+    <div className="flex items-center gap-2">
+      <Badge 
+        variant="founder" 
+        className="text-sm px-3 py-1"
+      >
+        <Star className="h-3 w-3 mr-1" />
+        Founder
+      </Badge>
+      
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-7 px-2">
+            <Share2 className="h-4 w-4" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>🎉 ¡Comparte tu badge de Founder!</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            "Soy parte de los primeros usuarios que apoyaron a ProductPrepa desde su etapa inicial. Esta plataforma me ha ayudado a crecer y mejorar mis habilidades y conocimientos como Product Manager..."
           </p>
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-2">
             <Button 
               variant="outline" 
-              size="sm" 
               className="flex-1"
               onClick={handleCopyText}
             >
-              <Copy className="h-3 w-3 mr-1" />
+              <Copy className="h-4 w-4 mr-2" />
               Copiar texto
             </Button>
             <Button 
-              size="sm" 
               className="flex-1"
               onClick={handleShareLinkedIn}
             >
-              <Linkedin className="h-3 w-3 mr-1" />
+              <Linkedin className="h-4 w-4 mr-2" />
               LinkedIn
             </Button>
           </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
