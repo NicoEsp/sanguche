@@ -1,7 +1,6 @@
-import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 interface UseSubscriptionOptions {
   skip?: boolean;
@@ -9,9 +8,9 @@ interface UseSubscriptionOptions {
 
 export type SubscriptionPlan = 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all';
 
+// OPTIMIZED: Removed duplicate realtime subscription - AuthContext handles all realtime updates
 export function useSubscription(options?: UseSubscriptionOptions) {
   const { user, isLoading: authLoading } = useAuth();
-  const queryClient = useQueryClient();
 
   // Use React Query for subscription data
   const { data: subscription, isLoading: loading, isError } = useQuery({
@@ -45,11 +44,10 @@ export function useSubscription(options?: UseSubscriptionOptions) {
         if (import.meta.env.DEV) {
           console.error('[useSubscription] Query error:', error);
         }
-        throw error; // Marca como error para retry
+        throw error;
       }
 
       if (!data) {
-        // Si no hay data después de ensure_user_defaults, default a free
         if (import.meta.env.DEV) {
           console.warn('[useSubscription] No subscription found, defaulting to free');
         }
@@ -63,7 +61,6 @@ export function useSubscription(options?: UseSubscriptionOptions) {
         };
       }
 
-      // Get actual purchase_type from DB, default to 'subscription' for backwards compatibility
       const purchaseType = data.purchase_type || 'subscription';
       
       return {
@@ -76,59 +73,12 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       };
     },
     enabled: !!user && !options?.skip,
-    staleTime: 2 * 60 * 1000, // 2 minutos - suscripción no cambia frecuentemente
+    staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false, // Usar cache existente - realtime maneja updates
+    refetchOnMount: false,
     retry: 2,
   });
-
-  // Real-time subscription
-  useEffect(() => {
-    if (!user || options?.skip) return;
-
-    let active = true;
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-
-    const subscribe = async () => {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!active || !profile?.id) return;
-
-      const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const channelName = `user-subscription-${profile.id}-${uniqueSuffix}`;
-
-      channel = supabase
-        .channel(channelName)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'user_subscriptions',
-            filter: `user_id=eq.${profile.id}`,
-          },
-          () => {
-            queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
-            queryClient.invalidateQueries({ queryKey: ['user-composite-data', user.id] });
-          }
-        )
-        .subscribe();
-    };
-
-    subscribe();
-
-    return () => {
-      active = false;
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, [user, queryClient, options?.skip]);
 
   // Handle skip option
   if (options?.skip) {
@@ -152,7 +102,6 @@ export function useSubscription(options?: UseSubscriptionOptions) {
     };
   }
 
-  // Return undefined for hasActivePremium while loading to distinguish from "definitely not premium"
   const isStillLoading = loading || authLoading || isError;
   
   const plan = subscription?.plan;

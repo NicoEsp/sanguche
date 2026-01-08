@@ -59,7 +59,7 @@ const AdminCourseDetail = lazy(() => import("./pages/admin/AdminCourseDetail"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30 * 1000, // 30 segundos - evita refetches innecesarios
+      staleTime: 2 * 60 * 1000, // 2 minutos - datos frescos con realtime para updates
       gcTime: 10 * 60 * 1000, // 10 minutos de cache
       refetchOnWindowFocus: false, // Deshabilitado - realtime maneja actualizaciones
       refetchOnMount: false, // Usar cache si está disponible
