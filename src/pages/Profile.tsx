@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { ProfileStats } from '@/components/profile/ProfileStats';
 import { EditNameDialog } from '@/components/profile/EditNameDialog';
+import { ShareFounderBadge } from '@/components/profile/ShareFounderBadge';
 import { Seo } from '@/components/Seo';
 import { 
   AlertDialog,
@@ -285,12 +286,7 @@ export default function Profile() {
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground font-medium">Otras Badges obtenidas</p>
                   <div className="flex flex-wrap items-center gap-2">
-                    {profile?.is_founder && (
-                      <Badge variant="founder" className="text-sm px-3 py-1">
-                        <Star className="h-3 w-3 mr-1" />
-                        Founder
-                      </Badge>
-                    )}
+                    {profile?.is_founder && <ShareFounderBadge />}
                   </div>
                 </div>
               </>
