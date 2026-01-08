@@ -42,11 +42,12 @@ export function useUserExercises(userId: string | null) {
 }
 
 // Hook para usuario: obtener sus propios ejercicios
+// OPTIMIZED: Added staleTime/gcTime, fixed .single() to .maybeSingle()
 export function useMyExercises() {
   const { user } = useAuth();
   
   return useQuery({
-    queryKey: ['my-exercises'],
+    queryKey: ['my-exercises', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
@@ -54,7 +55,7 @@ export function useMyExercises() {
         .from('profiles')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
       if (!profile) return [];
       
@@ -67,7 +68,11 @@ export function useMyExercises() {
       if (error) throw error;
       return data as UserExercise[];
     },
-    enabled: !!user
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
 

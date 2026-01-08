@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
 export type ResourceType = 'article' | 'podcast' | 'video' | 'course' | 'tool' | 'community' | 'other';
@@ -45,19 +45,15 @@ export interface CreateDedicatedResourceData {
   created_by_admin: string;
 }
 
+// OPTIMIZED: Migrated from useState/useCallback to React Query for proper caching
 export function useUserDedicatedResources(userId?: string) {
-  const [resources, setResources] = useState<DedicatedResource[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchResources = useCallback(async () => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
+  const { data: resources = [], isLoading: loading, error } = useQuery({
+    queryKey: ['user-dedicated-resources', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      
       const { data, error } = await supabase
         .from('user_dedicated_resources')
         .select('*')
@@ -65,20 +61,16 @@ export function useUserDedicatedResources(userId?: string) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setResources((data || []) as DedicatedResource[]);
-      setError(null);
-    } catch (err) {
-      if (import.meta.env.DEV) console.error('Error fetching dedicated resources:', err);
-      setError('Error al cargar recursos dedicados');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+      return (data || []) as DedicatedResource[];
+    },
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
 
-  useEffect(() => {
-    fetchResources();
-  }, [fetchResources]);
-
+  // Realtime subscription for updates
   useEffect(() => {
     if (!userId) return;
 
@@ -96,7 +88,7 @@ export function useUserDedicatedResources(userId?: string) {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          fetchResources();
+          queryClient.invalidateQueries({ queryKey: ['user-dedicated-resources', userId] });
         }
       )
       .subscribe();
@@ -104,9 +96,14 @@ export function useUserDedicatedResources(userId?: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, fetchResources]);
+  }, [userId, queryClient]);
 
-  return { resources, loading, error, refetch: fetchResources };
+  return { 
+    resources, 
+    loading, 
+    error: error?.message || null, 
+    refetch: () => queryClient.invalidateQueries({ queryKey: ['user-dedicated-resources', userId] })
+  };
 }
 
 export function useCreateDedicatedResource() {

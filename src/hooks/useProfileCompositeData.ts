@@ -1,7 +1,6 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect } from 'react';
 import { SubscriptionPlan } from './useSubscription';
 
 export interface ProfileCompositeData {
@@ -24,9 +23,9 @@ export interface ProfileCompositeData {
   lastAssessmentDate: string | null;
 }
 
+// OPTIMIZED: Removed duplicate realtime subscription - AuthContext handles all realtime updates
 export function useProfileCompositeData() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ['user-composite-data', user?.id],
@@ -109,36 +108,8 @@ export function useProfileCompositeData() {
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: 'always',
+    refetchOnMount: false, // Use cache - realtime handles updates via AuthContext
   });
-
-  // Real-time subscription for profile and subscription changes
-  useEffect(() => {
-    if (!user) return;
-
-    const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const channelName = `profile-composite-${user.id}-${uniqueSuffix}`;
-
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'profiles',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['user-composite-data', user.id] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, queryClient]);
 
   return {
     data: data || {

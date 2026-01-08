@@ -7,8 +7,9 @@ export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // OPTIMIZED: Added staleTime/gcTime for better caching
   const progressQuery = useQuery({
-    queryKey: ["course-progress", courseId],
+    queryKey: ["course-progress", courseId, user?.id],
     queryFn: async (): Promise<UserCourseProgress[]> => {
       if (!user) return [];
 
@@ -28,6 +29,9 @@ export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []
       return data || [];
     },
     enabled: !!user && !!courseId && lessons.length > 0,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Calculate progress stats
