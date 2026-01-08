@@ -35,56 +35,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { isAdmin, isValidating: isAdminValidating } = useServerAdminValidation(user);
 
   // Prefetch critical data when user authenticates - OPTIMIZED: Single composite query
+  // Uses same structure as useProfileCompositeData hook for cache compatibility
   useEffect(() => {
     if (user && !isLoading) {
-      // Single composite query to fetch all user data at once
       queryClient.prefetchQuery({
         queryKey: ['user-composite-data', user.id],
         queryFn: async () => {
-          const { data } = await supabase
+          // Fetch profile with subscription in single query
+          const { data: profileData } = await supabase
             .from('profiles')
             .select(`
               id, 
               name, 
               user_id, 
               mentoria_completed,
-              user_subscriptions(*),
-              assessments(assessment_result, assessment_values, created_at)
+              last_mentoria_date,
+              is_founder,
+              user_subscriptions(plan, status, current_period_end, purchase_type)
             `)
             .eq('user_id', user.id)
-            .order('assessments(created_at)', { ascending: false })
-            .limit(1, { foreignTable: 'assessments' })
             .maybeSingle();
 
-          return data;
-        },
-      });
+          // Fetch assessments count
+          const { data: assessmentsData } = await supabase
+            .from('assessments')
+            .select('id, updated_at')
+            .eq('user_id', profileData?.id || '')
+            .order('updated_at', { ascending: false })
+            .limit(100);
 
-      // Cache individual queries from composite data for backwards compatibility
-      queryClient.prefetchQuery({
-        queryKey: ['user-profile', user.id],
-        queryFn: async () => {
-          const compositeData = queryClient.getQueryData(['user-composite-data', user.id]) as any;
-          if (compositeData) {
-            return {
-              id: compositeData.id,
-              name: compositeData.name,
-              user_id: compositeData.user_id,
-              mentoria_completed: compositeData.mentoria_completed,
-            };
-          }
-          return null;
-        },
-      });
+          // Transform to ProfileCompositeData format
+          const subscriptionData = profileData?.user_subscriptions;
+          const purchaseType = subscriptionData?.purchase_type || 'subscription';
 
-      // NOTE: Subscription prefetch removed to avoid cache conflicts
-      // useSubscription hook is now the single source of truth for subscription data
-
-      queryClient.prefetchQuery({
-        queryKey: ['assessment-data-check', user.id],
-        queryFn: async () => {
-          const compositeData = queryClient.getQueryData(['user-composite-data', user.id]) as any;
-          return compositeData?.assessments?.[0] || null;
+          return {
+            profile: profileData ? {
+              id: profileData.id,
+              name: profileData.name,
+              user_id: profileData.user_id || '',
+              mentoria_completed: profileData.mentoria_completed,
+              last_mentoria_date: profileData.last_mentoria_date,
+              is_founder: profileData.is_founder,
+            } : null,
+            subscription: subscriptionData ? {
+              plan: subscriptionData.plan,
+              status: subscriptionData.status,
+              current_period_end: subscriptionData.current_period_end 
+                ? new Date(subscriptionData.current_period_end) 
+                : null,
+              purchase_type: purchaseType,
+              isOneTimePurchase: purchaseType === 'one_time',
+            } : {
+              plan: 'free',
+              status: 'active',
+              current_period_end: null,
+              purchase_type: 'subscription',
+              isOneTimePurchase: false,
+            },
+            assessmentsCount: assessmentsData?.length || 0,
+            lastAssessmentDate: assessmentsData?.[0]?.updated_at || null,
+          };
         },
       });
     }
@@ -182,19 +192,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Bootstrap: asegurar datos base existen
         if (currentUser) {
-          setTimeout(async () => {
+          (async () => {
             try {
               await supabase.rpc('ensure_user_defaults');
-              // Invalidar queries para refrescar con datos garantizados
-              queryClient.invalidateQueries({ queryKey: ['user-profile', currentUser.id] });
-              queryClient.invalidateQueries({ queryKey: ['subscription', currentUser.id] });
-              queryClient.invalidateQueries({ queryKey: ['user-composite-data', currentUser.id] });
             } catch (error) {
               if (import.meta.env.DEV) {
                 console.error('[AuthContext] Error ensuring user defaults:', error);
               }
             }
-          }, 0);
+          })();
         }
 
         if (event === 'SIGNED_OUT') {
@@ -214,18 +220,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Bootstrap inicial si ya está logueado
       if (currentUser) {
-        setTimeout(async () => {
+        (async () => {
           try {
             await supabase.rpc('ensure_user_defaults');
-            queryClient.invalidateQueries({ queryKey: ['user-profile', currentUser.id] });
-            queryClient.invalidateQueries({ queryKey: ['subscription', currentUser.id] });
-            queryClient.invalidateQueries({ queryKey: ['user-composite-data', currentUser.id] });
           } catch (error) {
             if (import.meta.env.DEV) {
               console.error('[AuthContext] Error ensuring user defaults:', error);
             }
           }
-        }, 0);
+        })();
       }
     });
 

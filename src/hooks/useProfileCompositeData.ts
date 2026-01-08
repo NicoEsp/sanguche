@@ -109,7 +109,7 @@ export function useProfileCompositeData() {
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: 'always',
   });
 
   // Real-time subscription for profile and subscription changes
