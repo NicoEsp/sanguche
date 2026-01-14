@@ -116,11 +116,7 @@ const App = () => (
                       <Route path="/starterpack" element={<StarterPackHome />} />
                       <Route path="/starterpack/build" element={<StarterPackBuild />} />
                       <Route path="/starterpack/lead" element={<StarterPackLead />} />
-                      <Route path="/preguntas" element={
-                        <ProtectedRoute>
-                          <Descargables />
-                        </ProtectedRoute>
-                      } />
+                      <Route path="/preguntas" element={<Descargables />} />
                       <Route path="/cursos" element={
                         <ProtectedRoute>
                           <Courses />

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Download, Eye, FileText, FileCheck, BookOpen, Loader2 } from 'lucide-react';
 import { DownloadableResource, DownloadableType } from '@/types/downloads';
 import { getDownloadUrl } from '@/hooks/useDownloadableResources';
+import { useAuth } from '@/contexts/AuthContext';
 
 const typeIcons: Record<DownloadableType, typeof FileText> = {
   pdf: FileText,
@@ -29,10 +31,16 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   
   const Icon = typeIcons[resource.type] || FileText;
 
   const handlePreview = async () => {
+    if (!isAuthenticated) {
+      navigate('/auth', { state: { from: { pathname: '/preguntas' } } });
+      return;
+    }
     setIsLoading(true);
     const url = await getDownloadUrl(resource);
     if (url) {
@@ -43,6 +51,10 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
   };
 
   const handleDownload = async () => {
+    if (!isAuthenticated) {
+      navigate('/auth', { state: { from: { pathname: '/preguntas' } } });
+      return;
+    }
     setIsLoading(true);
     const url = await getDownloadUrl(resource);
     if (url) {
