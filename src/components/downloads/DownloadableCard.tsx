@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Download, Eye, FileText, FileCheck, BookOpen, Loader2 } from 'lucide-react';
+import { Download, Eye, FileText, FileCheck, BookOpen, Loader2, Lock } from 'lucide-react';
 import { DownloadableResource, DownloadableType } from '@/types/downloads';
 import { getDownloadUrl } from '@/hooks/useDownloadableResources';
 import { useAuth } from '@/contexts/AuthContext';
@@ -100,6 +100,12 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
               Descargar
             </Button>
           </div>
+          {!isAuthenticated && (
+            <p className="text-sm text-muted-foreground mt-3 flex items-center gap-1.5">
+              <Lock className="h-3.5 w-3.5" />
+              Inicia sesión para descargar
+            </p>
+          )}
         </CardContent>
       </Card>
 

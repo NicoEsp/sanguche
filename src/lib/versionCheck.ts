@@ -6,6 +6,13 @@ const VERSION_KEY = 'appVersion';
 
 export async function ensureLatestVersion(reloadOnChange = true): Promise<boolean> {
   try {
+    // Limpiar parámetro ?_v= si existe en la URL (de recargas anteriores)
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('_v')) {
+      url.searchParams.delete('_v');
+      window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+    }
+
     const response = await fetch('/version.json', {
       cache: 'no-store',
       headers: {
@@ -14,7 +21,9 @@ export async function ensureLatestVersion(reloadOnChange = true): Promise<boolea
     });
 
     if (!response.ok) {
-      console.warn('Could not fetch version info');
+      if (import.meta.env.DEV) {
+        console.warn('Could not fetch version info');
+      }
       return false;
     }
 
@@ -22,15 +31,19 @@ export async function ensureLatestVersion(reloadOnChange = true): Promise<boolea
     const currentVersion = localStorage.getItem(VERSION_KEY);
     const newVersion = versionInfo.version;
 
-    console.log('Version check:', { currentVersion, newVersion });
+    if (import.meta.env.DEV) {
+      console.log('Version check:', { currentVersion, newVersion });
+    }
 
     if (currentVersion && currentVersion !== newVersion) {
-      console.log('New version detected, reloading...');
+      if (import.meta.env.DEV) {
+        console.log('New version detected, reloading...');
+      }
       localStorage.setItem(VERSION_KEY, newVersion);
       
       if (reloadOnChange) {
-        // Force reload with cache-busting query parameter
-        window.location.replace(`${window.location.pathname}?_v=${newVersion}`);
+        // Usar reload() en lugar de agregar parámetro para URLs más limpias
+        window.location.reload();
         return true;
       }
     } else if (!currentVersion) {
@@ -40,7 +53,9 @@ export async function ensureLatestVersion(reloadOnChange = true): Promise<boolea
 
     return false;
   } catch (error) {
-    console.error('Error checking version:', error);
+    if (import.meta.env.DEV) {
+      console.error('Error checking version:', error);
+    }
     return false;
   }
 }
