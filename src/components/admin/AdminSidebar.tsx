@@ -23,7 +23,8 @@ import {
   LineChart,
   Rocket,
   BookOpen,
-  CreditCard
+  CreditCard,
+  FileDown
 } from 'lucide-react';
 
 import { GraduationCap } from 'lucide-react';
@@ -38,6 +39,7 @@ const adminNavItems = [
   { title: 'Cursos', url: '/admin/cursos', icon: GraduationCap, matchPrefix: '/admin/cursos' },
   { title: 'Recursos', url: '/admin/recursos', icon: FileText },
   { title: 'Starter Pack', url: '/admin/starterpack', icon: Rocket },
+  { title: 'Descargables', url: '/admin/descargables', icon: FileDown },
 ];
 
 const generalNavItems = [

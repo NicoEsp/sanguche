@@ -56,6 +56,7 @@ const AdminMentoriaDetail = lazy(() => import("./pages/admin/AdminMentoriaDetail
 const AdminStarterPack = lazy(() => import("./pages/admin/AdminStarterPack"));
 const AdminExercises = lazy(() => import("./pages/admin/AdminExercises"));
 const AdminCourses = lazy(() => import("./pages/admin/AdminCourses"));
+const AdminDescargables = lazy(() => import("./pages/admin/AdminDescargables"));
 const AdminCourseDetail = lazy(() => import("./pages/admin/AdminCourseDetail"));
 
 // QueryClient optimizado para velocidad con cache inteligente
@@ -101,6 +102,7 @@ const App = () => (
                   <Route path="cursos/:courseId" element={<AdminCourseDetail />} />
                   <Route path="recursos" element={<AdminResources />} />
                   <Route path="starterpack" element={<AdminStarterPack />} />
+                  <Route path="descargables" element={<AdminDescargables />} />
                   <Route path="configuracion" element={<AdminSettings />} />
                 </Route>
                 <Route path="/*" element={
