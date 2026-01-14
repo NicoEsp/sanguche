@@ -5,7 +5,8 @@ import {
   Target,
   TrendingUp, 
   GraduationCap, 
-  BookOpen, 
+  BookOpen,
+  FileDown,
   User, 
   LogOut, 
   Shield,
@@ -70,6 +71,13 @@ const extraItems = [
     label: "Starter Pack", 
     icon: Rocket,
     premium: false 
+  },
+  { 
+    href: "/preguntas", 
+    label: "Descargables", 
+    icon: FileDown,
+    premium: false,
+    isNew: true
   },
 ];
 

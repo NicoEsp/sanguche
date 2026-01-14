@@ -293,6 +293,54 @@ export type Database = {
           },
         ]
       }
+      downloadable_resources: {
+        Row: {
+          bucket_name: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          file_path: string
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          slug: string
+          thumbnail_url: string | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_name?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          file_path: string
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          slug: string
+          thumbnail_url?: string | null
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_name?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          file_path?: string
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          slug?: string
+          thumbnail_url?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lesson_notes: {
         Row: {
           content: string
