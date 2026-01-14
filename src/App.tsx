@@ -34,6 +34,9 @@ const StarterPackHome = lazy(() => import("./pages/StarterPackHome"));
 const StarterPackBuild = lazy(() => import("./pages/StarterPackBuild"));
 const StarterPackLead = lazy(() => import("./pages/StarterPackLead"));
 
+// Descargables
+const Descargables = lazy(() => import("./pages/Descargables"));
+
 // Skeleton components for better perceived performance
 // Skeletons cargados directamente (son críticos para UX y pequeños)
 import SkeletonProgress from "./components/skeletons/SkeletonProgress";
@@ -111,6 +114,11 @@ const App = () => (
                       <Route path="/starterpack" element={<StarterPackHome />} />
                       <Route path="/starterpack/build" element={<StarterPackBuild />} />
                       <Route path="/starterpack/lead" element={<StarterPackLead />} />
+                      <Route path="/preguntas" element={
+                        <ProtectedRoute>
+                          <Descargables />
+                        </ProtectedRoute>
+                      } />
                       <Route path="/cursos" element={
                         <ProtectedRoute>
                           <Courses />

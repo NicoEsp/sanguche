@@ -7,7 +7,8 @@ import {
   Target,
   TrendingUp, 
   GraduationCap, 
-  BookOpen, 
+  BookOpen,
+  FileDown,
   User, 
   LogOut, 
   Shield,
@@ -62,6 +63,13 @@ const extraItems = [
     label: "Starter Pack", 
     icon: Rocket,
     premium: false 
+  },
+  { 
+    href: "/preguntas", 
+    label: "Descargables", 
+    icon: FileDown,
+    premium: false,
+    isNew: true
   },
 ];
 
@@ -163,6 +171,9 @@ export function MobileNav() {
                           >
                             <item.icon className={cn("h-5 w-5", active && "text-primary")} />
                             <span className="flex-1">{item.label}</span>
+                            {'isNew' in item && item.isNew && (
+                              <Badge className="text-[10px] px-1.5 py-0 bg-green-500/90 text-white border-0">Nuevo</Badge>
+                            )}
                           </Link>
                         );
                       })}

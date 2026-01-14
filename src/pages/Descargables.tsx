@@ -1,0 +1,51 @@
+import { FileDown } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Seo } from '@/components/Seo';
+import { useDownloadableResources } from '@/hooks/useDownloadableResources';
+import { DownloadableCard } from '@/components/downloads/DownloadableCard';
+
+export default function Descargables() {
+  const { data: resources, isLoading, error } = useDownloadableResources();
+
+  return (
+    <>
+      <Seo
+        title="Preguntas de Producto para hacerte — ProductPrepa"
+        description="Un documento de disparadores para reflexionar sobre tu producto, tu equipo y cómo estás en tu rol actualmente."
+        url="/preguntas"
+        image="/social-image.png"
+      />
+
+      <div className="container max-w-4xl py-8 space-y-8">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <FileDown className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold">Descargables</h1>
+            <Badge className="bg-green-500/90 text-white">Nuevo</Badge>
+          </div>
+          <p className="text-muted-foreground">
+            Recursos exclusivos para Product Managers. Descarga documentos, templates y guías.
+          </p>
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+        ) : error ? (
+          <p className="text-destructive">Error al cargar los recursos</p>
+        ) : resources?.length === 0 ? (
+          <p className="text-muted-foreground">No hay recursos disponibles</p>
+        ) : (
+          <div className="space-y-4">
+            {resources?.map((resource) => (
+              <DownloadableCard key={resource.id} resource={resource} />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
