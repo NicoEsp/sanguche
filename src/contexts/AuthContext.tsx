@@ -425,6 +425,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       'Email rate limit exceeded': 'Demasiados intentos. Espera unos minutos e intenta nuevamente.',
       'Password is too weak': 'La contraseña es muy débil. Usa al menos 6 caracteres.',
       'User not found': 'No se encontró una cuenta con este email.',
+      // Recovery/OTP errors
+      'otp_expired': 'El enlace ha expirado. Los enlaces de recuperación son válidos por 1 hora.',
+      'Token has expired or is invalid': 'El enlace ha expirado o ya fue usado. Cada enlace solo puede usarse una vez.',
+      'flow_state_expired': 'El enlace ha expirado. Solicita uno nuevo.',
+      'Invalid Refresh Token: Already Used': 'Este enlace ya fue usado. Cada enlace de recuperación solo puede usarse una vez.',
+      'Invalid Refresh Token: Refresh Token Not Found': 'Enlace inválido o ya usado. Solicita uno nuevo.',
     };
 
     return errorMessages[message] || 'Hubo un error, intenta nuevamente en unos minutos.';
