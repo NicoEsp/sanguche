@@ -77,8 +77,8 @@ export default function Auth() {
     if (mode === 'update-password' && !isRecoveryReady && !session) {
       recoveryTimeoutRef.current = setTimeout(() => {
         toast({
-          title: "Enlace expirado",
-          description: "El enlace de recuperación ha expirado o es inválido. Solicita uno nuevo.",
+          title: "Enlace no válido",
+          description: "Este enlace ya fue usado o ha expirado. Cada enlace de recuperación solo puede usarse una vez. Solicita uno nuevo.",
           variant: "destructive",
         });
         setMode('reset');
