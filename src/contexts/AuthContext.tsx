@@ -190,6 +190,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentUser);
         setIsLoading(false);
 
+        // Detectar flujo de recovery - emitir evento para que Auth.tsx pueda procesar
+        if (event === 'PASSWORD_RECOVERY') {
+          window.dispatchEvent(new CustomEvent('supabase:password_recovery'));
+        }
+
         // Bootstrap: asegurar datos base existen
         if (currentUser) {
           (async () => {
