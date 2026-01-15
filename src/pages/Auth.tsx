@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { Loader2, Eye, EyeOff, Mail, ArrowLeft, RefreshCw, KeyRound } from 'lucide-react';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 
@@ -58,12 +59,16 @@ export default function Auth() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
-  const { signIn, signUp, resetPassword, resendConfirmation, updatePassword, isLoading, isAuthenticated } = useAuth();
+  const [isRecoveryReady, setIsRecoveryReady] = useState(false);
+  const recoveryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { signIn, signUp, resetPassword, resendConfirmation, updatePassword, isLoading, isAuthenticated, session } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { trackEvent } = useMixpanelTracking();
+  const { toast } = useToast();
 
   // Detectar token de recovery en URL hash (viene del email de Supabase)
+  // IMPORTANTE: NO limpiar el hash aquí - Supabase necesita procesarlo primero
   useEffect(() => {
     const hash = window.location.hash;
     if (hash) {
@@ -73,11 +78,58 @@ export default function Auth() {
       
       if (type === 'recovery' && accessToken) {
         setMode('update-password');
-        // Limpiar el hash de la URL para mejor UX
-        window.history.replaceState(null, '', window.location.pathname);
+        // NO limpiar hash - Supabase SDK lo procesará automáticamente
+        // y emitirá el evento PASSWORD_RECOVERY cuando esté listo
       }
     }
   }, []);
+
+  // Escuchar cuando Supabase confirma que el token fue procesado
+  useEffect(() => {
+    const handleRecovery = () => {
+      setIsRecoveryReady(true);
+      // Ahora sí es seguro limpiar el hash
+      window.history.replaceState(null, '', window.location.pathname);
+      // Limpiar timeout si existía
+      if (recoveryTimeoutRef.current) {
+        clearTimeout(recoveryTimeoutRef.current);
+        recoveryTimeoutRef.current = null;
+      }
+    };
+
+    window.addEventListener('supabase:password_recovery', handleRecovery);
+    return () => window.removeEventListener('supabase:password_recovery', handleRecovery);
+  }, []);
+
+  // Verificar si ya hay sesión de recovery activa (por si el evento ya pasó)
+  useEffect(() => {
+    if (mode === 'update-password' && session && !isRecoveryReady) {
+      setIsRecoveryReady(true);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, [mode, session, isRecoveryReady]);
+
+  // Timeout para tokens inválidos o expirados
+  useEffect(() => {
+    if (mode === 'update-password' && !isRecoveryReady && !session) {
+      recoveryTimeoutRef.current = setTimeout(() => {
+        toast({
+          title: "Enlace expirado",
+          description: "El enlace de recuperación ha expirado o es inválido. Solicita uno nuevo.",
+          variant: "destructive",
+        });
+        setMode('reset');
+        // Limpiar hash por si quedó
+        window.history.replaceState(null, '', window.location.pathname);
+      }, 10000); // 10 segundos
+
+      return () => {
+        if (recoveryTimeoutRef.current) {
+          clearTimeout(recoveryTimeoutRef.current);
+        }
+      };
+    }
+  }, [mode, isRecoveryReady, session, toast]);
 
   // Redirigir usuarios autenticados (excepto si están actualizando contraseña)
   useEffect(() => {
@@ -426,84 +478,95 @@ export default function Auth() {
             )}
 
             {mode === 'update-password' && (
-              <form onSubmit={updatePasswordForm.handleSubmit(onUpdatePasswordSubmit)} className="space-y-4">
-                <div className="flex justify-center mb-4">
-                  <div className="rounded-full bg-primary/10 p-3">
-                    <KeyRound className="h-8 w-8 text-primary" />
+              <>
+                {!isRecoveryReady && !session ? (
+                  <div className="flex flex-col items-center gap-4 py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">
+                      Verificando enlace de recuperación...
+                    </p>
                   </div>
-                </div>
+                ) : (
+                  <form onSubmit={updatePasswordForm.handleSubmit(onUpdatePasswordSubmit)} className="space-y-4">
+                    <div className="flex justify-center mb-4">
+                      <div className="rounded-full bg-primary/10 p-3">
+                        <KeyRound className="h-8 w-8 text-primary" />
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">Nueva Contraseña</Label>
-                  <div className="relative">
-                    <Input
-                      id="new-password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••"
-                      {...updatePasswordForm.register('password')}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={togglePasswordVisibility}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                    <div className="space-y-2">
+                      <Label htmlFor="new-password">Nueva Contraseña</Label>
+                      <div className="relative">
+                        <Input
+                          id="new-password"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="••••••"
+                          {...updatePasswordForm.register('password')}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={togglePasswordVisibility}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      {updatePasswordForm.formState.errors.password && (
+                        <p className="text-sm text-destructive">
+                          {updatePasswordForm.formState.errors.password.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-new-password">Confirmar Nueva Contraseña</Label>
+                      <div className="relative">
+                        <Input
+                          id="confirm-new-password"
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          placeholder="••••••"
+                          {...updatePasswordForm.register('confirmPassword')}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={toggleConfirmPasswordVisibility}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      {updatePasswordForm.formState.errors.confirmPassword && (
+                        <p className="text-sm text-destructive">
+                          {updatePasswordForm.formState.errors.confirmPassword.message}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Actualizando...
+                        </>
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        'Actualizar Contraseña'
                       )}
                     </Button>
-                  </div>
-                  {updatePasswordForm.formState.errors.password && (
-                    <p className="text-sm text-destructive">
-                      {updatePasswordForm.formState.errors.password.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-new-password">Confirmar Nueva Contraseña</Label>
-                  <div className="relative">
-                    <Input
-                      id="confirm-new-password"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      placeholder="••••••"
-                      {...updatePasswordForm.register('confirmPassword')}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={toggleConfirmPasswordVisibility}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                  {updatePasswordForm.formState.errors.confirmPassword && (
-                    <p className="text-sm text-destructive">
-                      {updatePasswordForm.formState.errors.confirmPassword.message}
-                    </p>
-                  )}
-                </div>
-                
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Actualizando...
-                    </>
-                  ) : (
-                    'Actualizar Contraseña'
-                  )}
-                </Button>
-              </form>
+                  </form>
+                )}
+              </>
             )}
 
             {mode === 'email-verification' && (
