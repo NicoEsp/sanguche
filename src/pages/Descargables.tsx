@@ -4,9 +4,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Seo } from '@/components/Seo';
 import { useDownloadableResources } from '@/hooks/useDownloadableResources';
 import { DownloadableCard } from '@/components/downloads/DownloadableCard';
+import { AssessmentInviteBanner } from '@/components/downloads/AssessmentInviteBanner';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAssessmentData } from '@/hooks/useAssessmentData';
 
 export default function Descargables() {
   const { data: resources, isLoading, error } = useDownloadableResources();
+  const { user } = useAuth();
+  const { hasAssessment, loading: assessmentLoading } = useAssessmentData();
+
+  // Show banner if user is logged in and hasn't completed assessment
+  const showAssessmentBanner = user && !assessmentLoading && !hasAssessment;
 
   return (
     <>
@@ -45,6 +53,8 @@ export default function Descargables() {
             ))}
           </div>
         )}
+
+        {showAssessmentBanner && <AssessmentInviteBanner />}
       </div>
     </>
   );
