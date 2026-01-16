@@ -14,7 +14,7 @@ export function AssessmentInviteBanner() {
   };
 
   return (
-    <div className="rounded-lg border border-primary/20 bg-primary/5 p-6">
+    <div className="rounded-lg border border-primary/20 bg-primary/5 p-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="flex-shrink-0 p-3 rounded-full bg-primary/10">
           <Target className="h-6 w-6 text-primary" />
