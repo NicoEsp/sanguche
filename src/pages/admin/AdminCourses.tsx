@@ -1,13 +1,23 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import {
   Table,
   TableBody,
@@ -37,6 +47,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { Plus, Pencil, Trash2, Eye, BookOpen, Video, CalendarClock, CircleDashed, CheckCircle, CalendarIcon, Upload, X, ImageIcon } from 'lucide-react';
 import {
   useAdminCourses,
@@ -58,17 +69,48 @@ function generateSlug(title: string): string {
     .trim();
 }
 
-interface CourseFormData {
-  title: string;
-  slug: string;
-  description: string;
-  outcome: string;
-  thumbnail_url: string;
-  duration_minutes: string;
-  order_index: string;
-  status: CourseStatus;
-  publish_at: Date | undefined;
-}
+// Zod validation schema
+const courseSchema = z.object({
+  title: z.string()
+    .trim()
+    .min(3, "El título debe tener al menos 3 caracteres")
+    .max(200, "El título no puede exceder 200 caracteres"),
+  slug: z.string()
+    .trim()
+    .min(3, "El slug debe tener al menos 3 caracteres")
+    .max(100, "El slug no puede exceder 100 caracteres")
+    .regex(/^[a-z0-9-]+$/, "El slug solo puede contener letras minúsculas, números y guiones"),
+  description: z.string()
+    .max(1000, "La descripción no puede exceder 1000 caracteres")
+    .optional()
+    .or(z.literal('')),
+  outcome: z.string()
+    .max(500, "El resultado esperado no puede exceder 500 caracteres")
+    .optional()
+    .or(z.literal('')),
+  thumbnail_url: z.string()
+    .refine((val) => val === '' || val.startsWith('http://') || val.startsWith('https://'), {
+      message: "Debe ser una URL válida (http:// o https://)"
+    })
+    .optional()
+    .or(z.literal('')),
+  duration_minutes: z.string()
+    .refine((val) => val === '' || (!isNaN(Number(val)) && Number(val) >= 0 && Number(val) <= 600), {
+      message: "La duración debe ser un número entre 0 y 600 minutos"
+    })
+    .optional()
+    .or(z.literal('')),
+  order_index: z.string()
+    .refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+      message: "El orden debe ser un número mayor o igual a 0"
+    }),
+  status: z.enum(['draft', 'coming_soon', 'published'], {
+    required_error: "Selecciona un estado"
+  }),
+  publish_at: z.date().optional(),
+});
+
+type CourseFormData = z.infer<typeof courseSchema>;
 
 const defaultFormData: CourseFormData = {
   title: '',
@@ -97,7 +139,6 @@ const AdminCourses = () => {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-  const [formData, setFormData] = useState<CourseFormData>(defaultFormData);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   
   // Thumbnail upload states
@@ -106,15 +147,23 @@ const AdminCourses = () => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // React Hook Form with Zod validation
+  const form = useForm<CourseFormData>({
+    resolver: zodResolver(courseSchema),
+    defaultValues: defaultFormData,
+  });
+
   const handleOpenCreate = () => {
     setEditingCourse(null);
-    setFormData(defaultFormData);
+    form.reset(defaultFormData);
+    setSelectedThumbnail(null);
+    setThumbnailPreview(null);
     setIsDialogOpen(true);
   };
 
   const handleOpenEdit = (course: Course) => {
     setEditingCourse(course);
-    setFormData({
+    form.reset({
       title: course.title,
       slug: course.slug,
       description: course.description || '',
@@ -125,13 +174,15 @@ const AdminCourses = () => {
       status: course.status || (course.is_published ? 'published' : 'draft'),
       publish_at: course.publish_at ? new Date(course.publish_at) : undefined,
     });
+    setSelectedThumbnail(null);
+    setThumbnailPreview(null);
     setIsDialogOpen(true);
   };
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingCourse(null);
-    setFormData(defaultFormData);
+    form.reset(defaultFormData);
     setSelectedThumbnail(null);
     setThumbnailPreview(null);
   };
@@ -151,7 +202,7 @@ const AdminCourses = () => {
       }
       setSelectedThumbnail(file);
       setThumbnailPreview(URL.createObjectURL(file));
-      setFormData({ ...formData, thumbnail_url: '' }); // Clear URL if file is selected
+      form.setValue('thumbnail_url', ''); // Clear URL if file is selected
     }
   };
 
@@ -163,17 +214,15 @@ const AdminCourses = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    let thumbnail_url = formData.thumbnail_url || null;
+  const onSubmit = async (data: CourseFormData) => {
+    let thumbnail_url = data.thumbnail_url || null;
     
     // Upload thumbnail if a file was selected
     if (selectedThumbnail) {
       try {
         setIsUploading(true);
         const ext = selectedThumbnail.name.split('.').pop();
-        const fileName = `${formData.slug}-${Date.now()}.${ext}`;
+        const fileName = `${data.slug}-${Date.now()}.${ext}`;
         
         const { error: uploadError } = await supabase.storage
           .from('course-thumbnails')
@@ -181,11 +230,11 @@ const AdminCourses = () => {
         
         if (uploadError) throw uploadError;
         
-        const { data: { publicUrl } } = supabase.storage
+        const { data: publicUrlData } = supabase.storage
           .from('course-thumbnails')
           .getPublicUrl(fileName);
         
-        thumbnail_url = publicUrl;
+        thumbnail_url = publicUrlData.publicUrl;
         toast.success('Imagen subida correctamente');
       } catch (error) {
         console.error('Error uploading thumbnail:', error);
@@ -198,17 +247,17 @@ const AdminCourses = () => {
     }
     
     const courseData = {
-      title: formData.title,
-      slug: formData.slug,
-      description: formData.description || null,
-      outcome: formData.outcome || null,
+      title: data.title,
+      slug: data.slug,
+      description: data.description || null,
+      outcome: data.outcome || null,
       thumbnail_url,
-      duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
-      order_index: parseInt(formData.order_index) || 0,
-      status: formData.status,
-      is_published: formData.status === 'published',
-      publish_at: formData.status === 'coming_soon' && formData.publish_at 
-        ? formData.publish_at.toISOString() 
+      duration_minutes: data.duration_minutes ? parseInt(data.duration_minutes) : null,
+      order_index: parseInt(data.order_index) || 0,
+      status: data.status,
+      is_published: data.status === 'published',
+      publish_at: data.status === 'coming_soon' && data.publish_at 
+        ? data.publish_at.toISOString() 
         : null,
     };
 
@@ -220,12 +269,11 @@ const AdminCourses = () => {
     handleCloseDialog();
   };
 
-  const handleTitleChange = (title: string) => {
-    setFormData({
-      ...formData,
-      title,
-      slug: editingCourse ? formData.slug : generateSlug(title),
-    });
+  const handleTitleChange = (value: string) => {
+    form.setValue('title', value, { shouldValidate: true });
+    if (!editingCourse) {
+      form.setValue('slug', generateSlug(value), { shouldValidate: true });
+    }
   };
 
   const handleDelete = (course: Course) => {
@@ -240,6 +288,9 @@ const AdminCourses = () => {
     const courseStatus = c.status || (c.is_published ? 'published' : 'draft');
     return courseStatus === filterStatus;
   });
+
+  const watchedStatus = form.watch('status');
+  const watchedThumbnailUrl = form.watch('thumbnail_url');
 
   return (
     <div className="space-y-6">
@@ -396,247 +447,319 @@ const AdminCourses = () => {
               {editingCourse ? 'Editar Curso' : 'Nuevo Curso'}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="title">Título *</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => handleTitleChange(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="slug">Slug *</Label>
-                <Input
-                  id="slug"
-                  value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Descripción</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="outcome">Resultado esperado</Label>
-              <Textarea
-                id="outcome"
-                value={formData.outcome}
-                onChange={(e) => setFormData({ ...formData, outcome: e.target.value })}
-                rows={2}
-                placeholder="¿Qué aprenderá el estudiante al completar este curso?"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <Label>Thumbnail del Curso</Label>
-              <div className="flex gap-4">
-                {/* Preview */}
-                <div className="flex-shrink-0 w-32 h-20 rounded-md border border-dashed border-muted-foreground/30 overflow-hidden bg-muted/20 flex items-center justify-center">
-                  {thumbnailPreview || formData.thumbnail_url ? (
-                    <img 
-                      src={thumbnailPreview || formData.thumbnail_url} 
-                      alt="Thumbnail preview" 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Título *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field}
+                          onChange={(e) => handleTitleChange(e.target.value)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
-                
-                {/* Upload controls */}
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleThumbnailFileChange}
-                      className="hidden"
-                      id="thumbnail-upload"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Subir imagen
-                    </Button>
-                    {selectedThumbnail && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRemoveThumbnail}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                />
+                <FormField
+                  control={form.control}
+                  name="slug"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Slug *</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descripción</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} rows={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="outcome"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Resultado esperado</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        {...field} 
+                        rows={2}
+                        placeholder="¿Qué aprenderá el estudiante al completar este curso?"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-3">
+                <Label>Thumbnail del Curso</Label>
+                <div className="flex gap-4">
+                  {/* Preview */}
+                  <div className="flex-shrink-0 w-32 h-20 rounded-md border border-dashed border-muted-foreground/30 overflow-hidden bg-muted/20 flex items-center justify-center">
+                    {thumbnailPreview || watchedThumbnailUrl ? (
+                      <img 
+                        src={thumbnailPreview || watchedThumbnailUrl} 
+                        alt="Thumbnail preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
                     )}
                   </div>
-                  {selectedThumbnail && (
-                    <p className="text-xs text-muted-foreground truncate">
-                      {selectedThumbnail.name}
-                    </p>
-                  )}
                   
-                  {/* Divider */}
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="flex-1 border-t" />
-                    <span>o usar URL</span>
-                    <div className="flex-1 border-t" />
-                  </div>
-                  
-                  {/* URL input */}
-                  <Input
-                    id="thumbnail_url"
-                    type="url"
-                    value={formData.thumbnail_url}
-                    onChange={(e) => {
-                      setFormData({ ...formData, thumbnail_url: e.target.value });
-                      if (e.target.value) {
-                        setSelectedThumbnail(null);
-                        setThumbnailPreview(null);
-                      }
-                    }}
-                    placeholder="https://..."
-                    disabled={!!selectedThumbnail}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Formatos: JPG, PNG, WebP. Máximo 2MB.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="duration_minutes">Duración (minutos)</Label>
-                <Input
-                  id="duration_minutes"
-                  type="number"
-                  min="0"
-                  value={formData.duration_minutes}
-                  onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="order_index">Orden</Label>
-                <Input
-                  id="order_index"
-                  type="number"
-                  min="0"
-                  value={formData.order_index}
-                  onChange={(e) => setFormData({ ...formData, order_index: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Estado</Label>
-                <Select 
-                  value={formData.status} 
-                  onValueChange={(value: CourseStatus) => setFormData({ 
-                    ...formData, 
-                    status: value,
-                    publish_at: value !== 'coming_soon' ? undefined : formData.publish_at 
-                  })}
-                >
-                  <SelectTrigger id="status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="draft">
-                      <div className="flex items-center gap-2">
-                        <CircleDashed className="h-4 w-4" />
-                        Borrador
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="coming_soon">
-                      <div className="flex items-center gap-2">
-                        <CalendarClock className="h-4 w-4 text-amber-500" />
-                        Próximamente
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="published">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        Publicado
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Scheduled publishing date picker - only shown when status is coming_soon */}
-            {formData.status === 'coming_soon' && (
-              <div className="space-y-2">
-                <Label>Fecha de lanzamiento programada (opcional)</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !formData.publish_at && "text-muted-foreground"
+                  {/* Upload controls */}
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleThumbnailFileChange}
+                        className="hidden"
+                        id="thumbnail-upload"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Subir imagen
+                      </Button>
+                      {selectedThumbnail && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemoveThumbnail}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.publish_at 
-                        ? format(formData.publish_at, "PPP", { locale: es }) 
-                        : "Seleccionar fecha..."
-                      }
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={formData.publish_at}
-                      onSelect={(date) => setFormData({ ...formData, publish_at: date })}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                      className="pointer-events-auto"
+                    </div>
+                    {selectedThumbnail && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {selectedThumbnail.name}
+                      </p>
+                    )}
+                    
+                    {/* Divider */}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="flex-1 border-t" />
+                      <span>o usar URL</span>
+                      <div className="flex-1 border-t" />
+                    </div>
+                    
+                    {/* URL input */}
+                    <FormField
+                      control={form.control}
+                      name="thumbnail_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="url"
+                              onChange={(e) => {
+                                field.onChange(e);
+                                if (e.target.value) {
+                                  setSelectedThumbnail(null);
+                                  setThumbnailPreview(null);
+                                }
+                              }}
+                              placeholder="https://..."
+                              disabled={!!selectedThumbnail}
+                              className="h-8 text-sm"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </PopoverContent>
-                </Popover>
+                  </div>
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  El curso se publicará automáticamente en esta fecha (revisión cada hora).
+                  Formatos: JPG, PNG, WebP. Máximo 2MB.
                 </p>
-                {formData.publish_at && (
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setFormData({ ...formData, publish_at: undefined })}
-                    className="text-xs"
-                  >
-                    Quitar fecha programada
-                  </Button>
-                )}
               </div>
-            )}
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={handleCloseDialog}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={createCourse.isPending || updateCourse.isPending || isUploading}>
-                {isUploading ? 'Subiendo imagen...' : editingCourse ? 'Guardar cambios' : 'Crear curso'}
-              </Button>
-            </div>
-          </form>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <FormField
+                  control={form.control}
+                  name="duration_minutes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Duración (minutos)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field}
+                          type="number"
+                          min="0"
+                          max="600"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="order_index"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Orden</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field}
+                          type="number"
+                          min="0"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado</FormLabel>
+                      <Select 
+                        value={field.value} 
+                        onValueChange={(value: CourseStatus) => {
+                          field.onChange(value);
+                          if (value !== 'coming_soon') {
+                            form.setValue('publish_at', undefined);
+                          }
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="draft">
+                            <div className="flex items-center gap-2">
+                              <CircleDashed className="h-4 w-4" />
+                              Borrador
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="coming_soon">
+                            <div className="flex items-center gap-2">
+                              <CalendarClock className="h-4 w-4 text-amber-500" />
+                              Próximamente
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="published">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              Publicado
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Scheduled publishing date picker - only shown when status is coming_soon */}
+              {watchedStatus === 'coming_soon' && (
+                <FormField
+                  control={form.control}
+                  name="publish_at"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fecha de lanzamiento programada (opcional)</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {field.value 
+                                ? format(field.value, "PPP", { locale: es }) 
+                                : "Seleccionar fecha..."
+                              }
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <p className="text-xs text-muted-foreground">
+                        El curso se publicará automáticamente en esta fecha (revisión cada hora).
+                      </p>
+                      {field.value && (
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => field.onChange(undefined)}
+                          className="text-xs"
+                        >
+                          Quitar fecha programada
+                        </Button>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={handleCloseDialog}>
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createCourse.isPending || updateCourse.isPending || isUploading}
+                >
+                  {isUploading ? 'Subiendo imagen...' : editingCourse ? 'Guardar cambios' : 'Crear curso'}
+                </Button>
+              </div>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>
