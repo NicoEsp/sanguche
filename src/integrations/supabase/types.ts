@@ -1076,9 +1076,11 @@ export type Database = {
       }
       user_subscriptions: {
         Row: {
+          admin_notes: string | null
           created_at: string
           current_period_end: string | null
           id: string
+          is_comped: boolean
           lemon_squeezy_customer_id: string | null
           lemon_squeezy_order_id: string | null
           lemon_squeezy_subscription_id: string | null
@@ -1091,9 +1093,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_notes?: string | null
           created_at?: string
           current_period_end?: string | null
           id?: string
+          is_comped?: boolean
           lemon_squeezy_customer_id?: string | null
           lemon_squeezy_order_id?: string | null
           lemon_squeezy_subscription_id?: string | null
@@ -1106,9 +1110,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_notes?: string | null
           created_at?: string
           current_period_end?: string | null
           id?: string
+          is_comped?: boolean
           lemon_squeezy_customer_id?: string | null
           lemon_squeezy_order_id?: string | null
           lemon_squeezy_subscription_id?: string | null
