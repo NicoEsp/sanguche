@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -631,7 +632,7 @@ const AdminCourses = () => {
                   name="order_index"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Orden</FormLabel>
+                      <FormLabel>Posición en la lista</FormLabel>
                       <FormControl>
                         <Input 
                           {...field}
@@ -639,6 +640,9 @@ const AdminCourses = () => {
                           min="0"
                         />
                       </FormControl>
+                      <FormDescription>
+                        Los cursos con número menor aparecen primero
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
