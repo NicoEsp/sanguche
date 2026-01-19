@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
@@ -35,7 +37,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, Eye, BookOpen, Video, CalendarClock, CircleDashed, CheckCircle, CalendarIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, BookOpen, Video, CalendarClock, CircleDashed, CheckCircle, CalendarIcon, Upload, X, ImageIcon } from 'lucide-react';
 import {
   useAdminCourses,
   useCreateCourse,
@@ -97,6 +99,12 @@ const AdminCourses = () => {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [formData, setFormData] = useState<CourseFormData>(defaultFormData);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  
+  // Thumbnail upload states
+  const [selectedThumbnail, setSelectedThumbnail] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleOpenCreate = () => {
     setEditingCourse(null);
@@ -124,17 +132,77 @@ const AdminCourses = () => {
     setIsDialogOpen(false);
     setEditingCourse(null);
     setFormData(defaultFormData);
+    setSelectedThumbnail(null);
+    setThumbnailPreview(null);
+  };
+
+  const handleThumbnailFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Por favor selecciona una imagen válida');
+        return;
+      }
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('La imagen no puede superar los 2MB');
+        return;
+      }
+      setSelectedThumbnail(file);
+      setThumbnailPreview(URL.createObjectURL(file));
+      setFormData({ ...formData, thumbnail_url: '' }); // Clear URL if file is selected
+    }
+  };
+
+  const handleRemoveThumbnail = () => {
+    setSelectedThumbnail(null);
+    setThumbnailPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    let thumbnail_url = formData.thumbnail_url || null;
+    
+    // Upload thumbnail if a file was selected
+    if (selectedThumbnail) {
+      try {
+        setIsUploading(true);
+        const ext = selectedThumbnail.name.split('.').pop();
+        const fileName = `${formData.slug}-${Date.now()}.${ext}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('course-thumbnails')
+          .upload(fileName, selectedThumbnail, { upsert: true });
+        
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('course-thumbnails')
+          .getPublicUrl(fileName);
+        
+        thumbnail_url = publicUrl;
+        toast.success('Imagen subida correctamente');
+      } catch (error) {
+        console.error('Error uploading thumbnail:', error);
+        toast.error('Error al subir la imagen');
+        setIsUploading(false);
+        return;
+      } finally {
+        setIsUploading(false);
+      }
+    }
     
     const courseData = {
       title: formData.title,
       slug: formData.slug,
       description: formData.description || null,
       outcome: formData.outcome || null,
-      thumbnail_url: formData.thumbnail_url || null,
+      thumbnail_url,
       duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
       order_index: parseInt(formData.order_index) || 0,
       status: formData.status,
@@ -371,15 +439,88 @@ const AdminCourses = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="thumbnail_url">URL de Thumbnail</Label>
-              <Input
-                id="thumbnail_url"
-                type="url"
-                value={formData.thumbnail_url}
-                onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
-                placeholder="https://..."
-              />
+            <div className="space-y-3">
+              <Label>Thumbnail del Curso</Label>
+              <div className="flex gap-4">
+                {/* Preview */}
+                <div className="flex-shrink-0 w-32 h-20 rounded-md border border-dashed border-muted-foreground/30 overflow-hidden bg-muted/20 flex items-center justify-center">
+                  {thumbnailPreview || formData.thumbnail_url ? (
+                    <img 
+                      src={thumbnailPreview || formData.thumbnail_url} 
+                      alt="Thumbnail preview" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                  )}
+                </div>
+                
+                {/* Upload controls */}
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleThumbnailFileChange}
+                      className="hidden"
+                      id="thumbnail-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Subir imagen
+                    </Button>
+                    {selectedThumbnail && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveThumbnail}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  {selectedThumbnail && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {selectedThumbnail.name}
+                    </p>
+                  )}
+                  
+                  {/* Divider */}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex-1 border-t" />
+                    <span>o usar URL</span>
+                    <div className="flex-1 border-t" />
+                  </div>
+                  
+                  {/* URL input */}
+                  <Input
+                    id="thumbnail_url"
+                    type="url"
+                    value={formData.thumbnail_url}
+                    onChange={(e) => {
+                      setFormData({ ...formData, thumbnail_url: e.target.value });
+                      if (e.target.value) {
+                        setSelectedThumbnail(null);
+                        setThumbnailPreview(null);
+                      }
+                    }}
+                    placeholder="https://..."
+                    disabled={!!selectedThumbnail}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Formatos: JPG, PNG, WebP. Máximo 2MB.
+              </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
@@ -491,8 +632,8 @@ const AdminCourses = () => {
               <Button type="button" variant="outline" onClick={handleCloseDialog}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={createCourse.isPending || updateCourse.isPending}>
-                {editingCourse ? 'Guardar cambios' : 'Crear curso'}
+              <Button type="submit" disabled={createCourse.isPending || updateCourse.isPending || isUploading}>
+                {isUploading ? 'Subiendo imagen...' : editingCourse ? 'Guardar cambios' : 'Crear curso'}
               </Button>
             </div>
           </form>
