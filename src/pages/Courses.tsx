@@ -43,9 +43,15 @@ const getPlanMessage = (plan: string | null) => {
 
 export default function Courses() {
   const { data: courses, isLoading: coursesLoading } = useCourses();
-  const { hasAccess, isLoading: accessLoading, plan } = useCourseAccess();
+  const { hasAccess: hasGlobalAccess, isLoading: accessLoading, plan } = useCourseAccess();
 
   const isLoading = coursesLoading || accessLoading;
+
+  // Helper to check if user has access to a specific course
+  const getCourseAccess = (course: { is_free?: boolean }) => {
+    if (course.is_free) return true;
+    return hasGlobalAccess;
+  };
 
   // Track page view only when not loading
   useEffect(() => {
@@ -85,6 +91,7 @@ export default function Courses() {
   }
 
   const planMessage = getPlanMessage(plan);
+  const hasAnyAccess = hasGlobalAccess || courses?.some(c => c.is_free);
 
   return (
     <>
@@ -112,7 +119,7 @@ export default function Courses() {
 
         {/* Empty state - no courses */}
         {(!courses || courses.length === 0) && (
-          hasAccess ? (
+          hasGlobalAccess ? (
             // Special screen for buyers
             <div className="text-center py-16 space-y-6">
               <img 
@@ -176,7 +183,7 @@ export default function Courses() {
         {/* Courses grid */}
         {courses && courses.length > 0 && (
           <>
-            {!hasAccess && (
+            {!hasGlobalAccess && (
               <div className="bg-muted/30 border border-border/50 rounded-lg p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <BookOpen className="h-5 w-5 text-muted-foreground" />
@@ -195,7 +202,7 @@ export default function Courses() {
                 <CourseCard
                   key={course.id}
                   course={course}
-                  hasAccess={hasAccess}
+                  hasAccess={getCourseAccess(course)}
                 />
               ))}
             </div>

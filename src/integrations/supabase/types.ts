@@ -222,6 +222,7 @@ export type Database = {
           description: string | null
           duration_minutes: number | null
           id: string
+          is_free: boolean
           is_published: boolean | null
           order_index: number | null
           outcome: string | null
@@ -237,6 +238,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           id?: string
+          is_free?: boolean
           is_published?: boolean | null
           order_index?: number | null
           outcome?: string | null
@@ -252,6 +254,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           id?: string
+          is_free?: boolean
           is_published?: boolean | null
           order_index?: number | null
           outcome?: string | null

@@ -49,7 +49,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Plus, Pencil, Trash2, Eye, BookOpen, Video, CalendarClock, CircleDashed, CheckCircle, CalendarIcon, Upload, X, ImageIcon } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Pencil, Trash2, Eye, BookOpen, Video, CalendarClock, CircleDashed, CheckCircle, CalendarIcon, Upload, X, ImageIcon, Sparkles } from 'lucide-react';
 import {
   useAdminCourses,
   useCreateCourse,
@@ -109,6 +110,7 @@ const courseSchema = z.object({
     required_error: "Selecciona un estado"
   }),
   publish_at: z.date().optional(),
+  is_free: z.boolean(),
 });
 
 type CourseFormData = z.infer<typeof courseSchema>;
@@ -123,6 +125,7 @@ const defaultFormData: CourseFormData = {
   order_index: '0',
   status: 'draft',
   publish_at: undefined,
+  is_free: false,
 };
 
 const statusConfig: Record<CourseStatus, { label: string; variant: 'default' | 'secondary' | 'outline'; icon: typeof CircleDashed }> = {
@@ -174,6 +177,7 @@ const AdminCourses = () => {
       order_index: course.order_index.toString(),
       status: course.status || (course.is_published ? 'published' : 'draft'),
       publish_at: course.publish_at ? new Date(course.publish_at) : undefined,
+      is_free: course.is_free ?? false,
     });
     setSelectedThumbnail(null);
     setThumbnailPreview(null);
@@ -260,6 +264,7 @@ const AdminCourses = () => {
       publish_at: data.status === 'coming_soon' && data.publish_at 
         ? data.publish_at.toISOString() 
         : null,
+      is_free: data.is_free,
     };
 
     if (editingCourse) {
@@ -366,11 +371,19 @@ const AdminCourses = () => {
                   const config = statusConfig[courseStatus];
                   const StatusIcon = config.icon;
                   
-                  return (
-                    <TableRow key={course.id}>
-                      <TableCell className="font-medium max-w-[200px] truncate">
-                        {course.title}
-                      </TableCell>
+                    return (
+                      <TableRow key={course.id}>
+                        <TableCell className="font-medium max-w-[200px]">
+                          <div className="flex flex-col gap-1">
+                            <span className="truncate">{course.title}</span>
+                            {course.is_free && (
+                              <Badge className="w-fit bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                Gratuito
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {course.slug}
                       </TableCell>
@@ -750,6 +763,30 @@ const AdminCourses = () => {
                   )}
                 />
               )}
+
+              {/* Free course checkbox */}
+              <FormField
+                control={form.control}
+                name="is_free"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Curso gratuito
+                      </FormLabel>
+                      <FormDescription>
+                        Los usuarios con cuenta gratuita podrán acceder a este curso sin suscripción.
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
               
               <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={handleCloseDialog}>

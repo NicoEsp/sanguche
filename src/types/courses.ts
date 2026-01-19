@@ -9,6 +9,7 @@ export interface Course {
   thumbnail_url: string | null;
   duration_minutes: number | null;
   is_published: boolean;
+  is_free: boolean;
   status: CourseStatus;
   order_index: number;
   publish_at: string | null;
