@@ -13,6 +13,8 @@ export interface SubscriptionWithProfile {
   trial_end: string | null;
   created_at: string;
   updated_at: string;
+  is_comped: boolean;
+  admin_notes: string | null;
   profiles: {
     id: string;
     name: string | null;
@@ -39,6 +41,7 @@ export interface SubscriptionFilters {
   plan?: 'free' | 'premium' | 'all';
   status?: 'active' | 'inactive' | 'cancelled' | 'all';
   search?: string;
+  comped?: 'all' | 'paid' | 'comped';
 }
 
 export interface WebhookFilters {
@@ -81,6 +84,15 @@ export function useAdminSubscriptions(filters: SubscriptionFilters = {}) {
         );
       }
 
+      // Filter by comped status
+      if (filters.comped && filters.comped !== 'all') {
+        if (filters.comped === 'comped') {
+          results = results.filter(sub => sub.is_comped === true);
+        } else if (filters.comped === 'paid') {
+          results = results.filter(sub => sub.is_comped === false);
+        }
+      }
+
       return results;
     },
   });
@@ -119,12 +131,15 @@ export function useSubscriptionStats() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_subscriptions')
-        .select('plan, status, lemon_squeezy_subscription_id');
+        .select('plan, status, lemon_squeezy_subscription_id, is_comped');
 
       if (error) throw error;
 
       const total = data.length;
-      const premium = data.filter(s => s.plan === 'premium' && s.status === 'active').length;
+      const premiumAll = data.filter(s => s.plan === 'premium' && s.status === 'active');
+      const premium = premiumAll.length;
+      const premiumPaid = premiumAll.filter(s => !s.is_comped).length;
+      const premiumComped = premiumAll.filter(s => s.is_comped).length;
       const free = data.filter(s => s.plan === 'free').length;
       const withLemonSqueezy = data.filter(s => s.lemon_squeezy_subscription_id).length;
       const conversionRate = total > 0 ? ((premium / total) * 100).toFixed(1) : '0';
@@ -132,10 +147,24 @@ export function useSubscriptionStats() {
       return {
         total,
         premium,
+        premiumPaid,
+        premiumComped,
         free,
         withLemonSqueezy,
         conversionRate,
       };
     },
   });
+}
+
+export function useToggleCompedStatus() {
+  return async (subscriptionId: string, isComped: boolean) => {
+    const { error } = await supabase
+      .from('user_subscriptions')
+      .update({ is_comped: isComped })
+      .eq('id', subscriptionId);
+    
+    if (error) throw error;
+    return true;
+  };
 }

@@ -35,7 +35,8 @@ import {
   RefreshCw,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Gift
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -43,11 +44,14 @@ import {
   useAdminSubscriptions, 
   useAdminWebhookLogs, 
   useSubscriptionStats,
+  useToggleCompedStatus,
   WebhookLog,
   SubscriptionFilters,
   WebhookFilters
 } from '@/hooks/useAdminSubscriptions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 function StatCard({ 
   title, 
@@ -81,16 +85,39 @@ function SubscriptionsTable() {
     plan: 'all',
     status: 'all',
     search: '',
+    comped: 'all',
   });
 
   const { data: subscriptions, isLoading, refetch } = useAdminSubscriptions(filters);
+  const toggleComped = useToggleCompedStatus();
+  const queryClient = useQueryClient();
 
-  const getPlanBadge = (plan: string) => {
-    return plan === 'premium' ? (
-      <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30">Premium</Badge>
-    ) : (
-      <Badge variant="secondary">Free</Badge>
-    );
+  const handleToggleComped = async (subscriptionId: string, currentComped: boolean) => {
+    try {
+      await toggleComped(subscriptionId, !currentComped);
+      toast.success(currentComped ? 'Suscripción marcada como pagada' : 'Suscripción marcada como bonificada');
+      queryClient.invalidateQueries({ queryKey: ['admin-subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-subscription-stats'] });
+    } catch (error) {
+      toast.error('Error al actualizar estado bonificado');
+    }
+  };
+
+  const getPlanBadge = (plan: string, isComped: boolean) => {
+    if (plan === 'premium') {
+      return (
+        <div className="flex items-center gap-1">
+          <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30">Premium</Badge>
+          {isComped && (
+            <Badge variant="comped" className="text-[10px]">
+              <Gift className="h-3 w-3 mr-0.5" />
+              Bonif.
+            </Badge>
+          )}
+        </div>
+      );
+    }
+    return <Badge variant="secondary">Free</Badge>;
   };
 
   const getStatusBadge = (status: string) => {
@@ -123,7 +150,7 @@ function SubscriptionsTable() {
           value={filters.plan}
           onValueChange={(value) => setFilters({ ...filters, plan: value as SubscriptionFilters['plan'] })}
         >
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[120px]">
             <SelectValue placeholder="Plan" />
           </SelectTrigger>
           <SelectContent>
@@ -136,7 +163,7 @@ function SubscriptionsTable() {
           value={filters.status}
           onValueChange={(value) => setFilters({ ...filters, status: value as SubscriptionFilters['status'] })}
         >
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[120px]">
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>
@@ -146,13 +173,31 @@ function SubscriptionsTable() {
             <SelectItem value="cancelled">Cancelado</SelectItem>
           </SelectContent>
         </Select>
+        <Select
+          value={filters.comped}
+          onValueChange={(value) => setFilters({ ...filters, comped: value as SubscriptionFilters['comped'] })}
+        >
+          <SelectTrigger className="w-[130px]">
+            <SelectValue placeholder="Tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="paid">Pagados</SelectItem>
+            <SelectItem value="comped">Bonificados</SelectItem>
+          </SelectContent>
+        </Select>
         <Button variant="outline" size="icon" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
 
+      {/* Results count */}
+      <p className="text-sm text-muted-foreground">
+        Mostrando {subscriptions?.length || 0} suscripciones
+      </p>
+
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -161,7 +206,7 @@ function SubscriptionsTable() {
               <TableHead>Estado</TableHead>
               <TableHead>LemonSqueezy ID</TableHead>
               <TableHead>Período</TableHead>
-              <TableHead>Actualizado</TableHead>
+              <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -188,7 +233,7 @@ function SubscriptionsTable() {
                       <div className="text-sm text-muted-foreground">{sub.profiles?.email}</div>
                     </div>
                   </TableCell>
-                  <TableCell>{getPlanBadge(sub.plan)}</TableCell>
+                  <TableCell>{getPlanBadge(sub.plan, sub.is_comped)}</TableCell>
                   <TableCell>{getStatusBadge(sub.status)}</TableCell>
                   <TableCell>
                     {sub.lemon_squeezy_subscription_id ? (
@@ -207,7 +252,17 @@ function SubscriptionsTable() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {format(new Date(sub.updated_at), 'dd MMM yyyy HH:mm', { locale: es })}
+                    {sub.plan === 'premium' && (
+                      <Button
+                        variant={sub.is_comped ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleToggleComped(sub.id, sub.is_comped)}
+                        className="text-xs"
+                      >
+                        <Gift className="h-3 w-3 mr-1" />
+                        {sub.is_comped ? 'Quitar Bonif.' : 'Marcar Bonif.'}
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -438,9 +493,9 @@ export default function AdminSubscriptions() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
         {statsLoading ? (
-          Array.from({ length: 4 }).map((_, i) => (
+          Array.from({ length: 5 }).map((_, i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
                 <Skeleton className="h-4 w-20" />
@@ -453,10 +508,16 @@ export default function AdminSubscriptions() {
         ) : (
           <>
             <StatCard
-              title="Premium Activos"
-              value={stats?.premium || 0}
+              title="Premium Pagados"
+              value={stats?.premiumPaid || 0}
               icon={CreditCard}
-              description="Usuarios con plan premium"
+              description="Usuarios con pago activo"
+            />
+            <StatCard
+              title="Bonificados"
+              value={stats?.premiumComped || 0}
+              icon={Gift}
+              description="Premium sin pago"
             />
             <StatCard
               title="Plan Free"

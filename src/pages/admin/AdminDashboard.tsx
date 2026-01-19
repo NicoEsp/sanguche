@@ -1,11 +1,13 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdminAnalytics } from '@/hooks/useAdminAnalytics';
-import { Loader2, Users, ClipboardList, TrendingUp, Crown, Target, Calendar, DollarSign, RefreshCw } from 'lucide-react';
+import { Loader2, Users, ClipboardList, TrendingUp, Crown, Target, Calendar, DollarSign, RefreshCw, Gift } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { JuniorUsersCard } from '@/components/admin/JuniorUsersCard';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export default function AdminDashboard() {
   const { analytics, loading, error, refreshing, refetch, lastUpdated } = useAdminAnalytics();
@@ -72,7 +74,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* KPIs Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Usuarios Totales</CardTitle>
@@ -86,13 +88,26 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuarios Premium</CardTitle>
+            <CardTitle className="text-sm font-medium">Premium Pagados</CardTitle>
             <Crown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{analytics.premiumUsers}</div>
+            <div className="text-2xl font-bold text-foreground">{analytics.premiumPaidUsers}</div>
             <p className="text-xs text-muted-foreground">
               {analytics.conversionRate.toFixed(1)}% conversión
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Bonificados</CardTitle>
+            <Gift className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{analytics.premiumCompedUsers}</div>
+            <p className="text-xs text-muted-foreground">
+              Premium sin pago
             </p>
           </CardContent>
         </Card>
@@ -195,7 +210,11 @@ export default function AdminDashboard() {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm">Total de Clientes Pagantes</span>
-              <Badge variant="outline">{analytics.premiumUsers}</Badge>
+              <Badge variant="outline">{analytics.premiumPaidUsers}</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm">Bonificados (sin pago)</span>
+              <Badge variant="comped">{analytics.premiumCompedUsers}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -224,9 +243,16 @@ export default function AdminDashboard() {
               </div>
               <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
                 <span className="text-sm font-medium">Día con más registros</span>
-                <span className="text-lg font-semibold">
-                  {Math.max(...analytics.userGrowth.map(day => day.count))}
-                </span>
+                <div className="text-right">
+                  <span className="text-lg font-semibold block">
+                    {analytics.peakDay.count}
+                  </span>
+                  {analytics.peakDay.date && (
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(analytics.peakDay.date), 'dd/MM', { locale: es })}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>

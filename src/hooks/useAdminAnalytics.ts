@@ -8,7 +8,10 @@ interface AdminAnalytics {
   assessmentsToday: number;
   assessmentsThisWeek: number;
   premiumUsers: number;
+  premiumPaidUsers: number;
+  premiumCompedUsers: number;
   userGrowth: Array<{ date: string; count: number }>;
+  peakDay: { count: number; date: string | null };
   skillGapDistribution: Array<{ 
     skill: string; 
     count: number;
@@ -59,7 +62,7 @@ export function useAdminAnalytics() {
 
         const { data: subscriptionsData, error: subscriptionsError } = await supabase
           .from('user_subscriptions')
-          .select('plan, status, user_id, created_at, lemon_squeezy_subscription_id');
+          .select('plan, status, user_id, created_at, lemon_squeezy_subscription_id, is_comped');
 
         if (subscriptionsError) throw subscriptionsError;
 
@@ -90,13 +93,16 @@ export function useAdminAnalytics() {
           s?.plan === 'premium' && s?.status === 'active'
         ) || [];
         const premiumUsers = premiumSubscriptions.length;
+        const premiumPaidUsers = premiumSubscriptions.filter(s => !s.is_comped).length;
+        const premiumCompedUsers = premiumSubscriptions.filter(s => s.is_comped).length;
 
         const monthlyPriceARS = 50000;
-        const mrr = premiumUsers * monthlyPriceARS;
+        // MRR solo cuenta usuarios que pagan (no bonificados)
+        const mrr = premiumPaidUsers * monthlyPriceARS;
         const arr = mrr * 12;
         const arpu = totalUsers > 0 ? mrr / totalUsers : 0;
 
-        const userGrowth = [];
+        const userGrowth: Array<{ date: string; count: number }> = [];
         for (let i = 29; i >= 0; i--) {
           const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
           const dateStr = date.toISOString().split('T')[0];
@@ -105,6 +111,16 @@ export function useAdminAnalytics() {
           ).length || 0;
           userGrowth.push({ date: dateStr, count });
         }
+
+        // Calculate peak day with date
+        const peakDayData = userGrowth.reduce((max, day) => 
+          day.count > max.count ? day : max, 
+          userGrowth[0] || { date: null, count: 0 }
+        );
+        const peakDay = {
+          count: peakDayData?.count || 0,
+          date: peakDayData?.date || null
+        };
 
         const skillGapCounts = new Map<string, number>();
         const skillGapLevels = new Map<string, { currentLevels: number[]; targetLevels: number[] }>();
@@ -246,7 +262,10 @@ export function useAdminAnalytics() {
           assessmentsToday,
           assessmentsThisWeek,
           premiumUsers,
+          premiumPaidUsers,
+          premiumCompedUsers,
           userGrowth,
+          peakDay,
           skillGapDistribution,
           conversionRate,
           mrr,

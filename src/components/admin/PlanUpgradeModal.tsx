@@ -5,8 +5,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Gift } from 'lucide-react';
 
 interface PlanUpgradeModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ interface PlanUpgradeModalProps {
 export function PlanUpgradeModal({ isOpen, onClose, targetUser, onSuccess }: PlanUpgradeModalProps) {
   const [loading, setLoading] = useState(false);
   const [notes, setNotes] = useState('');
+  const [isComped, setIsComped] = useState(false);
   const { user, isAdmin } = useAuth();
 
   const handleUpgrade = async () => {
@@ -49,18 +51,29 @@ export function PlanUpgradeModal({ isOpen, onClose, targetUser, onSuccess }: Pla
 
       if (updateError) throw updateError;
 
+      // Update is_comped status separately
+      if (isComped) {
+        const { error: compedError } = await supabase
+          .from('user_subscriptions')
+          .update({ is_comped: true, admin_notes: notes || null })
+          .eq('user_id', targetUser.id);
+        
+        if (compedError) throw compedError;
+      }
+
       if (import.meta.env.DEV) {
         console.log('Subscription updated via RPC:', data);
       }
 
       toast({
         title: 'Usuario actualizado',
-        description: `${targetUser.name || targetUser.email} ahora tiene plan Premium`,
+        description: `${targetUser.name || targetUser.email} ahora tiene plan Premium${isComped ? ' (bonificado)' : ''}`,
       });
 
       onSuccess();
       onClose();
       setNotes('');
+      setIsComped(false);
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error upgrading user:', error);
       toast({
@@ -94,6 +107,20 @@ export function PlanUpgradeModal({ isOpen, onClose, targetUser, onSuccess }: Pla
           <div>
             <p className="text-sm text-muted-foreground">Nuevo plan:</p>
             <p className="font-medium text-primary">Premium</p>
+          </div>
+
+          <div className="flex items-center space-x-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <Checkbox
+              id="is-comped"
+              checked={isComped}
+              onCheckedChange={(checked) => setIsComped(checked === true)}
+            />
+            <div className="flex items-center gap-2">
+              <Gift className="h-4 w-4 text-yellow-600" />
+              <Label htmlFor="is-comped" className="text-sm cursor-pointer">
+                Marcar como bonificado (sin pago)
+              </Label>
+            </div>
           </div>
 
           <div className="space-y-2">
