@@ -1,6 +1,23 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Fallback prices in case pricing-config fails (amounts in centavos ARS)
+const FALLBACK_PRICES = {
+  premium: { amount: 5000000 },      // $50,000 ARS
+  repremium: { amount: 12000000 },   // $120,000 ARS
+  curso_estrategia: { amount: 4900000 }, // $49,000 ARS (one-time)
+  cursos_all: { amount: 7500000 },   // $75,000 ARS (one-time)
+};
+
+// Plans that contribute to MRR (recurrent subscriptions)
+const RECURRENT_PLANS = ['premium', 'repremium'] as const;
+
+interface PlanBreakdown {
+  paid: number;
+  comped: number;
+  mrr: number; // MRR contribution from this plan
+}
+
 interface AdminAnalytics {
   totalUsers: number;
   activeUsers: number;
@@ -30,6 +47,14 @@ interface AdminAnalytics {
   avgScoreFree: number;
   avgScorePremium: number;
   usersWithOptionalAnswers: number;
+  // New detailed metrics
+  subscriptionsByPlan: {
+    premium: PlanBreakdown;
+    repremium: PlanBreakdown;
+    curso_estrategia: { paid: number };
+    cursos_all: { paid: number };
+  };
+  pricingSource: 'lemonsqueezy' | 'fallback';
 }
 
 export function useAdminAnalytics() {
@@ -48,237 +73,310 @@ export function useAdminAnalytics() {
       }
       setError(null);
 
-        const { data: usersData, error: usersError } = await supabase
-          .from('profiles')
-          .select('id, created_at, user_id');
+      // Fetch pricing from LemonSqueezy in parallel with other data
+      const [pricingResponse, usersResponse, assessmentsResponse, subscriptionsResponse] = await Promise.all([
+        supabase.functions.invoke('pricing-config'),
+        supabase.from('profiles').select('id, created_at, user_id'),
+        supabase.from('assessments').select('id, created_at, assessment_result, user_id'),
+        supabase.from('user_subscriptions').select('plan, status, user_id, created_at, lemon_squeezy_subscription_id, is_comped, purchase_type'),
+      ]);
 
-        if (usersError) throw usersError;
+      // Extract pricing data
+      const pricingData = pricingResponse.data;
+      const prices = pricingData?.plans || FALLBACK_PRICES;
+      const pricingSource: 'lemonsqueezy' | 'fallback' = pricingData?.source === 'lemonsqueezy' ? 'lemonsqueezy' : 'fallback';
 
-        const { data: assessmentsData, error: assessmentsError } = await supabase
-          .from('assessments')
-          .select('id, created_at, assessment_result, user_id');
+      // Convert prices from centavos to pesos
+      const premiumMonthlyPrice = (prices.premium?.amount || FALLBACK_PRICES.premium.amount) / 100;
+      const repremiumMonthlyPrice = (prices.repremium?.amount || FALLBACK_PRICES.repremium.amount) / 100;
 
-        if (assessmentsError) throw assessmentsError;
+      const { data: usersData, error: usersError } = usersResponse;
+      if (usersError) throw usersError;
 
-        const { data: subscriptionsData, error: subscriptionsError } = await supabase
-          .from('user_subscriptions')
-          .select('plan, status, user_id, created_at, lemon_squeezy_subscription_id, is_comped');
+      const { data: assessmentsData, error: assessmentsError } = assessmentsResponse;
+      if (assessmentsError) throw assessmentsError;
 
-        if (subscriptionsError) throw subscriptionsError;
+      const { data: subscriptionsData, error: subscriptionsError } = subscriptionsResponse;
+      if (subscriptionsError) throw subscriptionsError;
 
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-        const totalUsers = usersData?.length || 0;
-        const totalAssessments = assessmentsData?.length || 0;
-        
-        const assessmentsToday = assessmentsData?.filter(a => 
-          a?.created_at && new Date(a.created_at) >= today
-        ).length || 0;
+      const totalUsers = usersData?.length || 0;
+      const totalAssessments = assessmentsData?.length || 0;
+      
+      const assessmentsToday = assessmentsData?.filter(a => 
+        a?.created_at && new Date(a.created_at) >= today
+      ).length || 0;
 
-        const assessmentsThisWeek = assessmentsData?.filter(a => 
-          a?.created_at && new Date(a.created_at) >= weekAgo
-        ).length || 0;
+      const assessmentsThisWeek = assessmentsData?.filter(a => 
+        a?.created_at && new Date(a.created_at) >= weekAgo
+      ).length || 0;
 
-        const activeUserIds = new Set(
-          assessmentsData?.filter(a => a?.created_at && new Date(a.created_at) >= monthAgo)
-            .map(a => a.user_id)
-            .filter(Boolean) || []
-        );
-        const activeUsers = activeUserIds.size;
+      const activeUserIds = new Set(
+        assessmentsData?.filter(a => a?.created_at && new Date(a.created_at) >= monthAgo)
+          .map(a => a.user_id)
+          .filter(Boolean) || []
+      );
+      const activeUsers = activeUserIds.size;
 
-        const premiumSubscriptions = subscriptionsData?.filter(s =>
-          s?.plan === 'premium' && s?.status === 'active'
-        ) || [];
-        const premiumUsers = premiumSubscriptions.length;
-        const premiumPaidUsers = premiumSubscriptions.filter(s => !s.is_comped).length;
-        const premiumCompedUsers = premiumSubscriptions.filter(s => s.is_comped).length;
+      // Count subscriptions by plan with detailed breakdown
+      const subscriptionsByPlan = {
+        premium: { paid: 0, comped: 0, mrr: 0 },
+        repremium: { paid: 0, comped: 0, mrr: 0 },
+        curso_estrategia: { paid: 0 },
+        cursos_all: { paid: 0 },
+      };
 
-        const monthlyPriceARS = 50000;
-        // MRR solo cuenta usuarios que pagan (no bonificados)
-        const mrr = premiumPaidUsers * monthlyPriceARS;
-        const arr = mrr * 12;
-        const arpu = totalUsers > 0 ? mrr / totalUsers : 0;
+      let totalMrr = 0;
+      let totalPaidRecurrentUsers = 0;
 
-        const userGrowth: Array<{ date: string; count: number }> = [];
-        for (let i = 29; i >= 0; i--) {
-          const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
-          const dateStr = date.toISOString().split('T')[0];
-          const count = usersData?.filter(u => 
-            u?.created_at && new Date(u.created_at).toDateString() === date.toDateString()
-          ).length || 0;
-          userGrowth.push({ date: dateStr, count });
+      subscriptionsData?.forEach(sub => {
+        if (sub?.status !== 'active' || sub?.plan === 'free') return;
+
+        const plan = sub.plan as keyof typeof subscriptionsByPlan;
+        const isComped = sub.is_comped === true;
+
+        switch (plan) {
+          case 'premium':
+            if (isComped) {
+              subscriptionsByPlan.premium.comped++;
+            } else {
+              subscriptionsByPlan.premium.paid++;
+              subscriptionsByPlan.premium.mrr += premiumMonthlyPrice;
+              totalMrr += premiumMonthlyPrice;
+              totalPaidRecurrentUsers++;
+            }
+            break;
+          case 'repremium':
+            if (isComped) {
+              subscriptionsByPlan.repremium.comped++;
+            } else {
+              subscriptionsByPlan.repremium.paid++;
+              subscriptionsByPlan.repremium.mrr += repremiumMonthlyPrice;
+              totalMrr += repremiumMonthlyPrice;
+              totalPaidRecurrentUsers++;
+            }
+            break;
+          case 'curso_estrategia':
+            // One-time purchase, no MRR contribution
+            if (!isComped) {
+              subscriptionsByPlan.curso_estrategia.paid++;
+            }
+            break;
+          case 'cursos_all':
+            // One-time purchase, no MRR contribution
+            if (!isComped) {
+              subscriptionsByPlan.cursos_all.paid++;
+            }
+            break;
         }
+      });
 
-        // Calculate peak day with date
-        const peakDayData = userGrowth.reduce((max, day) => 
-          day.count > max.count ? day : max, 
-          userGrowth[0] || { date: null, count: 0 }
-        );
-        const peakDay = {
-          count: peakDayData?.count || 0,
-          date: peakDayData?.date || null
-        };
+      // Total premium users (all plans except free)
+      const premiumUsers = subscriptionsByPlan.premium.paid + subscriptionsByPlan.premium.comped +
+                          subscriptionsByPlan.repremium.paid + subscriptionsByPlan.repremium.comped +
+                          subscriptionsByPlan.curso_estrategia.paid +
+                          subscriptionsByPlan.cursos_all.paid;
+      
+      // Premium paid = only recurrent paying subscribers (for conversion metrics)
+      const premiumPaidUsers = subscriptionsByPlan.premium.paid + subscriptionsByPlan.repremium.paid;
+      const premiumCompedUsers = subscriptionsByPlan.premium.comped + subscriptionsByPlan.repremium.comped;
 
-        const skillGapCounts = new Map<string, number>();
-        const skillGapLevels = new Map<string, { currentLevels: number[]; targetLevels: number[] }>();
-        let totalScores = 0;
-        let totalScoreCount = 0;
-        const scoreRanges = { '1-2': 0, '2-3': 0, '3-4': 0, '4-5': 0 };
-        
-        // Track users with multiple assessments
-        const userAssessmentCounts = new Map<string, number>();
-        
-        // Track scores by subscription type
-        let freeUserScores = 0;
-        let freeUserCount = 0;
-        let premiumUserScores = 0;
-        let premiumUserCount = 0;
+      // Calculate financial metrics
+      const mrr = totalMrr;
+      const arr = mrr * 12;
+      // ARPU = Average Revenue Per (Paying) User - only divide by users who actually pay for recurrent plans
+      const arpu = totalPaidRecurrentUsers > 0 ? mrr / totalPaidRecurrentUsers : 0;
 
-        assessmentsData?.forEach(assessment => {
-          try {
-            const result = assessment.assessment_result as any;
-            const isPremium = premiumSubscriptions.some(sub => sub.user_id === assessment.user_id);
-            
-            if (result?.gaps && Array.isArray(result.gaps)) {
-              result.gaps.forEach((gap: any) => {
-                const domainKey = gap?.domain || gap?.skill || gap?.area || gap?.key;
-                if (domainKey && typeof domainKey === 'string') {
-                  skillGapCounts.set(domainKey, (skillGapCounts.get(domainKey) || 0) + 1);
-                  
-                  // Track levels for this gap
-                  if (!skillGapLevels.has(domainKey)) {
-                    skillGapLevels.set(domainKey, { currentLevels: [], targetLevels: [] });
-                  }
-                  const levels = skillGapLevels.get(domainKey)!;
-                  if (typeof gap.currentLevel === 'number') {
-                    levels.currentLevels.push(gap.currentLevel);
-                  }
-                  if (typeof gap.targetLevel === 'number') {
-                    levels.targetLevels.push(gap.targetLevel);
-                  }
+      const userGrowth: Array<{ date: string; count: number }> = [];
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+        const dateStr = date.toISOString().split('T')[0];
+        const count = usersData?.filter(u => 
+          u?.created_at && new Date(u.created_at).toDateString() === date.toDateString()
+        ).length || 0;
+        userGrowth.push({ date: dateStr, count });
+      }
+
+      // Calculate peak day with date
+      const peakDayData = userGrowth.reduce((max, day) => 
+        day.count > max.count ? day : max, 
+        userGrowth[0] || { date: null, count: 0 }
+      );
+      const peakDay = {
+        count: peakDayData?.count || 0,
+        date: peakDayData?.date || null
+      };
+
+      const skillGapCounts = new Map<string, number>();
+      const skillGapLevels = new Map<string, { currentLevels: number[]; targetLevels: number[] }>();
+      let totalScores = 0;
+      let totalScoreCount = 0;
+      const scoreRanges = { '1-2': 0, '2-3': 0, '3-4': 0, '4-5': 0 };
+      
+      // Track users with multiple assessments
+      const userAssessmentCounts = new Map<string, number>();
+      
+      // Track scores by subscription type
+      let freeUserScores = 0;
+      let freeUserCount = 0;
+      let premiumUserScores = 0;
+      let premiumUserCount = 0;
+
+      // Get premium user IDs for score tracking
+      const premiumUserIds = new Set(
+        subscriptionsData?.filter(s => s?.plan !== 'free' && s?.status === 'active')
+          .map(s => s.user_id)
+          .filter(Boolean) || []
+      );
+
+      assessmentsData?.forEach(assessment => {
+        try {
+          const result = assessment.assessment_result as any;
+          const isPremium = premiumUserIds.has(assessment.user_id);
+          
+          if (result?.gaps && Array.isArray(result.gaps)) {
+            result.gaps.forEach((gap: any) => {
+              const domainKey = gap?.domain || gap?.skill || gap?.area || gap?.key;
+              if (domainKey && typeof domainKey === 'string') {
+                skillGapCounts.set(domainKey, (skillGapCounts.get(domainKey) || 0) + 1);
+                
+                // Track levels for this gap
+                if (!skillGapLevels.has(domainKey)) {
+                  skillGapLevels.set(domainKey, { currentLevels: [], targetLevels: [] });
                 }
-              });
-            }
-            
-            if (result && typeof result.promedioGlobal === 'number') {
-              const score = result.promedioGlobal;
-              totalScores += score;
-              totalScoreCount++;
-              
-              // Distribute into ranges
-              if (score >= 1 && score < 2) scoreRanges['1-2']++;
-              else if (score >= 2 && score < 3) scoreRanges['2-3']++;
-              else if (score >= 3 && score < 4) scoreRanges['3-4']++;
-              else if (score >= 4 && score <= 5) scoreRanges['4-5']++;
-              
-              // Track by subscription type
-              if (isPremium) {
-                premiumUserScores += score;
-                premiumUserCount++;
-              } else {
-                freeUserScores += score;
-                freeUserCount++;
+                const levels = skillGapLevels.get(domainKey)!;
+                if (typeof gap.currentLevel === 'number') {
+                  levels.currentLevels.push(gap.currentLevel);
+                }
+                if (typeof gap.targetLevel === 'number') {
+                  levels.targetLevels.push(gap.targetLevel);
+                }
               }
-            }
+            });
+          }
+          
+          if (result && typeof result.promedioGlobal === 'number') {
+            const score = result.promedioGlobal;
+            totalScores += score;
+            totalScoreCount++;
             
-            // Track re-evaluation rate
+            // Distribute into ranges
+            if (score >= 1 && score < 2) scoreRanges['1-2']++;
+            else if (score >= 2 && score < 3) scoreRanges['2-3']++;
+            else if (score >= 3 && score < 4) scoreRanges['3-4']++;
+            else if (score >= 4 && score <= 5) scoreRanges['4-5']++;
+            
+            // Track by subscription type
+            if (isPremium) {
+              premiumUserScores += score;
+              premiumUserCount++;
+            } else {
+              freeUserScores += score;
+              freeUserCount++;
+            }
+          }
+          
+          // Track re-evaluation rate
+          if (assessment.user_id) {
+            userAssessmentCounts.set(
+              assessment.user_id,
+              (userAssessmentCounts.get(assessment.user_id) || 0) + 1
+            );
+          }
+        } catch (e) {
+          // Skip invalid assessments
+        }
+      });
+
+      const skillGapDistribution = Array.from(skillGapCounts.entries())
+        .map(([skill, count]) => {
+          const levels = skillGapLevels.get(skill);
+          const avgCurrentLevel = levels && levels.currentLevels.length > 0
+            ? levels.currentLevels.reduce((a, b) => a + b, 0) / levels.currentLevels.length
+            : 0;
+          const avgTargetLevel = levels && levels.targetLevels.length > 0
+            ? levels.targetLevels.reduce((a, b) => a + b, 0) / levels.targetLevels.length
+            : 0;
+          
+          return {
+            skill,
+            count,
+            percentage: totalUsers > 0 ? (count / totalUsers) * 100 : 0,
+            avgCurrentLevel,
+            avgTargetLevel
+          };
+        })
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8);
+      
+      // Calculate score distribution
+      const scoreDistribution = Object.entries(scoreRanges).map(([range, count]) => ({
+        range,
+        count,
+        percentage: totalScoreCount > 0 ? (count / totalScoreCount) * 100 : 0
+      }));
+      
+      // Calculate re-evaluation rate
+      const usersWithMultipleAssessments = Array.from(userAssessmentCounts.values())
+        .filter(count => count > 1).length;
+      const reEvaluationRate = totalUsers > 0 
+        ? (usersWithMultipleAssessments / totalUsers) * 100 
+        : 0;
+      
+      // Calculate average scores by type
+      const avgScoreFree = freeUserCount > 0 ? freeUserScores / freeUserCount : 0;
+      const avgScorePremium = premiumUserCount > 0 ? premiumUserScores / premiumUserCount : 0;
+
+      const conversionRate = totalUsers > 0 ? (premiumUsers / totalUsers) * 100 : 0;
+      const averageAssessmentScore = totalScoreCount > 0 ? totalScores / totalScoreCount : 0;
+
+      // Contar usuarios únicos con preguntas opcionales completadas
+      const usersWithOptionalDomains = new Set<string>();
+      assessmentsData?.forEach(assessment => {
+        try {
+          const result = assessment.assessment_result as any;
+          const optionalDomains = result?.optionalDomains;
+          if (optionalDomains && (optionalDomains.growth || optionalDomains.ia_aplicada)) {
             if (assessment.user_id) {
-              userAssessmentCounts.set(
-                assessment.user_id,
-                (userAssessmentCounts.get(assessment.user_id) || 0) + 1
-              );
+              usersWithOptionalDomains.add(assessment.user_id);
             }
-          } catch (e) {
-            // Skip invalid assessments
           }
-        });
+        } catch (e) {
+          // Skip invalid
+        }
+      });
+      const usersWithOptionalAnswers = usersWithOptionalDomains.size;
 
-        const skillGapDistribution = Array.from(skillGapCounts.entries())
-          .map(([skill, count]) => {
-            const levels = skillGapLevels.get(skill);
-            const avgCurrentLevel = levels && levels.currentLevels.length > 0
-              ? levels.currentLevels.reduce((a, b) => a + b, 0) / levels.currentLevels.length
-              : 0;
-            const avgTargetLevel = levels && levels.targetLevels.length > 0
-              ? levels.targetLevels.reduce((a, b) => a + b, 0) / levels.targetLevels.length
-              : 0;
-            
-            return {
-              skill,
-              count,
-              percentage: totalUsers > 0 ? (count / totalUsers) * 100 : 0,
-              avgCurrentLevel,
-              avgTargetLevel
-            };
-          })
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 8);
-        
-        // Calculate score distribution
-        const scoreDistribution = Object.entries(scoreRanges).map(([range, count]) => ({
-          range,
-          count,
-          percentage: totalScoreCount > 0 ? (count / totalScoreCount) * 100 : 0
-        }));
-        
-        // Calculate re-evaluation rate
-        const usersWithMultipleAssessments = Array.from(userAssessmentCounts.values())
-          .filter(count => count > 1).length;
-        const reEvaluationRate = totalUsers > 0 
-          ? (usersWithMultipleAssessments / totalUsers) * 100 
-          : 0;
-        
-        // Calculate average scores by type
-        const avgScoreFree = freeUserCount > 0 ? freeUserScores / freeUserCount : 0;
-        const avgScorePremium = premiumUserCount > 0 ? premiumUserScores / premiumUserCount : 0;
-
-        const conversionRate = totalUsers > 0 ? (premiumUsers / totalUsers) * 100 : 0;
-        const averageAssessmentScore = totalScoreCount > 0 ? totalScores / totalScoreCount : 0;
-
-        // Contar usuarios únicos con preguntas opcionales completadas
-        const usersWithOptionalDomains = new Set<string>();
-        assessmentsData?.forEach(assessment => {
-          try {
-            const result = assessment.assessment_result as any;
-            const optionalDomains = result?.optionalDomains;
-            if (optionalDomains && (optionalDomains.growth || optionalDomains.ia_aplicada)) {
-              if (assessment.user_id) {
-                usersWithOptionalDomains.add(assessment.user_id);
-              }
-            }
-          } catch (e) {
-            // Skip invalid
-          }
-        });
-        const usersWithOptionalAnswers = usersWithOptionalDomains.size;
-
-        const analyticsData: AdminAnalytics = {
-          totalUsers,
-          activeUsers,
-          totalAssessments,
-          assessmentsToday,
-          assessmentsThisWeek,
-          premiumUsers,
-          premiumPaidUsers,
-          premiumCompedUsers,
-          userGrowth,
-          peakDay,
-          skillGapDistribution,
-          conversionRate,
-          mrr,
-          arr,
-          arpu,
-          averageAssessmentScore,
-          recentActivePeriod: "30 días",
-          scoreDistribution,
-          reEvaluationRate,
-          avgScoreFree,
-          avgScorePremium,
-          usersWithOptionalAnswers,
-        };
+      const analyticsData: AdminAnalytics = {
+        totalUsers,
+        activeUsers,
+        totalAssessments,
+        assessmentsToday,
+        assessmentsThisWeek,
+        premiumUsers,
+        premiumPaidUsers,
+        premiumCompedUsers,
+        userGrowth,
+        peakDay,
+        skillGapDistribution,
+        conversionRate,
+        mrr,
+        arr,
+        arpu,
+        averageAssessmentScore,
+        recentActivePeriod: "30 días",
+        scoreDistribution,
+        reEvaluationRate,
+        avgScoreFree,
+        avgScorePremium,
+        usersWithOptionalAnswers,
+        subscriptionsByPlan,
+        pricingSource,
+      };
 
       setAnalytics(analyticsData);
       setLastUpdated(new Date());
