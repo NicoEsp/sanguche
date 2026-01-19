@@ -190,8 +190,13 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Resumen Financiero</CardTitle>
-            <CardDescription>Métricas clave de ingresos</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              Resumen Financiero
+              <Badge variant={analytics.pricingSource === 'lemonsqueezy' ? 'default' : 'outline'} className="text-xs">
+                {analytics.pricingSource === 'lemonsqueezy' ? 'LemonSqueezy' : 'Fallback'}
+              </Badge>
+            </CardTitle>
+            <CardDescription>Métricas clave de ingresos (solo suscripciones recurrentes)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
@@ -203,18 +208,50 @@ export default function AdminDashboard() {
               <Badge variant="secondary">{formatCurrency(arr)}</Badge>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm">ARPU (Avg Revenue Per User)</span>
+              <span className="text-sm">ARPU (por usuario pagante)</span>
               <Badge variant="secondary">
                 {formatCurrency(arpu)}
               </Badge>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm">Total de Clientes Pagantes</span>
-              <Badge variant="outline">{analytics.premiumPaidUsers}</Badge>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm">Bonificados (sin pago)</span>
-              <Badge variant="comped">{analytics.premiumCompedUsers}</Badge>
+            
+            {/* Breakdown by plan */}
+            <div className="pt-2 border-t border-border space-y-2">
+              <span className="text-xs text-muted-foreground font-medium">Desglose por plan:</span>
+              <div className="flex justify-between items-center text-sm">
+                <span>Premium</span>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{analytics.subscriptionsByPlan.premium.paid} pagados</Badge>
+                  {analytics.subscriptionsByPlan.premium.comped > 0 && (
+                    <Badge variant="comped">{analytics.subscriptionsByPlan.premium.comped} bonif.</Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span>RePremium</span>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{analytics.subscriptionsByPlan.repremium.paid} pagados</Badge>
+                  {analytics.subscriptionsByPlan.repremium.comped > 0 && (
+                    <Badge variant="comped">{analytics.subscriptionsByPlan.repremium.comped} bonif.</Badge>
+                  )}
+                </div>
+              </div>
+              {(analytics.subscriptionsByPlan.curso_estrategia.paid > 0 || analytics.subscriptionsByPlan.cursos_all.paid > 0) && (
+                <>
+                  <span className="text-xs text-muted-foreground font-medium pt-1 block">Compras únicas (no MRR):</span>
+                  {analytics.subscriptionsByPlan.curso_estrategia.paid > 0 && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span>Curso Estrategia</span>
+                      <Badge variant="outline">{analytics.subscriptionsByPlan.curso_estrategia.paid}</Badge>
+                    </div>
+                  )}
+                  {analytics.subscriptionsByPlan.cursos_all.paid > 0 && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span>Cursos All</span>
+                      <Badge variant="outline">{analytics.subscriptionsByPlan.cursos_all.paid}</Badge>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
