@@ -23,7 +23,7 @@ import { Mixpanel } from "@/lib/mixpanel";
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { data: course, isLoading: courseLoading } = useCourse(slug || "");
-  const { hasAccess, isLoading: accessLoading } = useCourseAccess(slug);
+  const { hasAccess, isLoading: accessLoading } = useCourseAccess(slug, course);
   const { lessonsWithProgress, progressStats, isLoading: progressLoading } = useCourseProgress(
     course?.id || "",
     course?.lessons || []

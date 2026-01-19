@@ -1,14 +1,15 @@
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/hooks/useAuth";
+import type { Course } from "@/types/courses";
 
 type CourseAccessResult = {
   hasAccess: boolean;
   isLoading: boolean;
-  reason: "authenticated" | "no_subscription" | "wrong_plan" | "has_access";
+  reason: "authenticated" | "no_subscription" | "wrong_plan" | "has_access" | "free_course";
   plan: string | null;
 };
 
-export function useCourseAccess(courseSlug?: string): CourseAccessResult {
+export function useCourseAccess(courseSlug?: string, course?: Course): CourseAccessResult {
   const { user, isLoading: authLoading } = useAuth();
   const { subscription, loading: subLoading } = useSubscription();
 
@@ -17,6 +18,11 @@ export function useCourseAccess(courseSlug?: string): CourseAccessResult {
 
   if (!user) {
     return { hasAccess: false, isLoading, reason: "authenticated", plan };
+  }
+
+  // Free courses are accessible to all authenticated users
+  if (course?.is_free) {
+    return { hasAccess: true, isLoading, reason: "free_course", plan };
   }
 
   if (!subscription) {
