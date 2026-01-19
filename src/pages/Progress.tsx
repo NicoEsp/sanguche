@@ -11,11 +11,15 @@ import { Progress as ProgressBar } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/hooks/useSubscription";
 import { PaywallCard } from "@/components/PaywallCard";
 import { Seo } from "@/components/Seo";
-import { Calendar, CheckCircle2, FileText, GripVertical, HelpCircle, Loader2, Lock, Plus, Save, Sparkles, Trash2, X } from "lucide-react";
+import { CalendarIcon, CheckCircle2, FileText, GripVertical, HelpCircle, Loader2, Lock, Plus, Save, Sparkles, Trash2, X } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { CanvasStage, ProgressObjective } from "@/types/progress";
 import { useRecommendedObjectives, GeneratedObjective } from "@/hooks/useRecommendedObjectives";
 import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjective, useDeleteUserObjective } from "@/hooks/useUserProgressObjectives";
@@ -80,7 +84,7 @@ interface AddCustomObjectiveState {
   summary: string;
   type: string;
   timeframe: CanvasStage;
-  dueDate?: string;
+  dueDate?: Date;
   stepsText: string;
 }
 const initialCustomState: AddCustomObjectiveState = {
@@ -88,7 +92,7 @@ const initialCustomState: AddCustomObjectiveState = {
   summary: "",
   type: "Habilidad técnica",
   timeframe: "soon",
-  dueDate: "",
+  dueDate: undefined,
   stepsText: ""
 };
 const longDateFormatter = new Intl.DateTimeFormat("es-AR", {
@@ -488,7 +492,7 @@ export default function Progress() {
       type: customState.type,
       timeframe: customState.timeframe,
       steps,
-      dueDate: customState.dueDate || undefined,
+      dueDate: customState.dueDate ? customState.dueDate.toISOString().split('T')[0] : undefined,
     });
 
     // Track custom objective created
@@ -852,16 +856,46 @@ export default function Progress() {
                         </div>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="dueDate">Fecha estimada</Label>
-                        <Input
-                          id="dueDate"
-                          type="date"
-                          value={customState.dueDate}
-                          onChange={event => setCustomState(prev => ({
-                            ...prev,
-                            dueDate: event.target.value,
-                          }))}
-                        />
+                        <Label>Fecha estimada</Label>
+                        <div className="flex flex-col gap-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !customState.dueDate && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {customState.dueDate 
+                                  ? format(customState.dueDate, "PPP", { locale: es }) 
+                                  : "Seleccionar fecha..."
+                                }
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarComponent
+                                mode="single"
+                                selected={customState.dueDate}
+                                onSelect={(date) => setCustomState(prev => ({ ...prev, dueDate: date }))}
+                                initialFocus
+                                className="pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          {customState.dueDate && (
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setCustomState(prev => ({ ...prev, dueDate: undefined }))}
+                              className="text-xs w-fit"
+                            >
+                              Quitar fecha
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       <div className="grid gap-2">
                         <Label>Checklist (uno por línea)</Label>
@@ -1205,7 +1239,7 @@ const SortableCanvasCard = memo(function SortableCanvasCard({
       <div className="flex items-center justify-between gap-2 flex-wrap">
         {objective.due_date && (
           <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5" />
+            <CalendarIcon className="h-3.5 w-3.5" />
             {formatDueDate(objective.due_date)}
           </div>
         )}

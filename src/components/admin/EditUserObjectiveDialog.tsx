@@ -1,19 +1,24 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { useUpdateUserObjective } from '@/hooks/useUserProgressObjectives';
-import { Loader2, Calendar } from 'lucide-react';
+import { Loader2, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import type { UserProgressObjective } from '@/hooks/useUserProgressObjectives';
 
 const editSchema = z.object({
   timeframe: z.enum(['now', 'soon', 'later']),
   mentor_notes: z.string().max(1000, 'Las notas no pueden exceder 1000 caracteres').optional(),
-  due_date: z.string().optional(),
+  due_date: z.date().optional(),
   status: z.enum(['not-started', 'in-progress', 'completed']),
 });
 
@@ -38,6 +43,8 @@ export function EditUserObjectiveDialog({
     register,
     handleSubmit,
     reset,
+    control,
+    setValue,
     formState: { errors },
   } = useForm<EditFormData>({
     resolver: zodResolver(editSchema),
@@ -49,8 +56,8 @@ export function EditUserObjectiveDialog({
         timeframe: objective.timeframe as 'now' | 'soon' | 'later',
         mentor_notes: objective.mentor_notes || '',
         due_date: objective.due_date
-          ? new Date(objective.due_date).toISOString().split('T')[0]
-          : '',
+          ? new Date(objective.due_date)
+          : undefined,
         status: objective.status as 'not-started' | 'in-progress' | 'completed',
       });
     }
@@ -65,7 +72,7 @@ export function EditUserObjectiveDialog({
       updates: {
         timeframe: data.timeframe,
         mentor_notes: data.mentor_notes || null,
-        due_date: data.due_date || null,
+        due_date: data.due_date ? data.due_date.toISOString().split('T')[0] : null,
         status: data.status,
       },
     });
@@ -135,16 +142,52 @@ export function EditUserObjectiveDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="due_date">Fecha límite (opcional)</Label>
-            <div className="relative">
-              <input
-                id="due_date"
-                type="date"
-                {...register('due_date')}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm pl-10"
-              />
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            </div>
+            <Label>Fecha límite (opcional)</Label>
+            <Controller
+              name="due_date"
+              control={control}
+              render={({ field }) => (
+                <div className="flex flex-col gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {field.value 
+                          ? format(field.value, "PPP", { locale: es }) 
+                          : "Seleccionar fecha..."
+                        }
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {field.value && (
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setValue('due_date', undefined)}
+                      className="text-xs w-fit"
+                    >
+                      Quitar fecha
+                    </Button>
+                  )}
+                </div>
+              )}
+            />
           </div>
 
           <div className="flex gap-2 justify-end pt-4">

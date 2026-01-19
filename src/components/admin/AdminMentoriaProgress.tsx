@@ -9,7 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, Trash2, Edit, Plus, Lock, Unlock } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjective, useDeleteUserObjective } from "@/hooks/useUserProgressObjectives";
 import { ProgressObjective, ObjectiveStep } from "@/types/progress";
 import { format } from "date-fns";
@@ -31,7 +34,7 @@ interface ObjectiveFormState {
   type: string;
   source: "mentor" | "custom";
   timeframe: "now" | "soon" | "later";
-  dueDate?: string;
+  dueDate?: Date;
   checklist: string;
   mentorNotes: string;
 }
@@ -42,7 +45,7 @@ const emptyForm: ObjectiveFormState = {
   type: "skill",
   source: "custom",
   timeframe: "now",
-  dueDate: "",
+  dueDate: undefined,
   checklist: "",
   mentorNotes: "",
 };
@@ -100,7 +103,7 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
       type: obj.type,
       source: obj.source,
       timeframe: obj.timeframe,
-      dueDate: obj.dueDate || "",
+      dueDate: obj.dueDate ? new Date(obj.dueDate) : undefined,
       checklist: obj.steps.map((s) => s.title).join("\n"),
       mentorNotes: obj.mentorNotes || "",
     });
@@ -135,7 +138,7 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
           timeframe: formState.timeframe,
           steps,
           mentor_notes: formState.mentorNotes || null,
-          due_date: formState.dueDate || null,
+          due_date: formState.dueDate ? formState.dueDate.toISOString().split('T')[0] : null,
         },
       });
       toast.success("Objetivo actualizado");
@@ -148,7 +151,7 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
         type: formState.type,
         timeframe: formState.timeframe,
         steps,
-        dueDate: formState.dueDate || undefined,
+        dueDate: formState.dueDate ? formState.dueDate.toISOString().split('T')[0] : undefined,
       });
       toast.success("Objetivo creado");
     }
@@ -582,16 +585,47 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="dueDate">Fecha límite (opcional)</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={formState.dueDate}
-                onChange={(e) =>
-                  setFormState({ ...formState, dueDate: e.target.value })
-                }
-              />
+            <div className="space-y-2">
+              <Label>Fecha límite (opcional)</Label>
+              <div className="flex flex-col gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formState.dueDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formState.dueDate 
+                        ? format(formState.dueDate, "PPP", { locale: es }) 
+                        : "Seleccionar fecha..."
+                      }
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formState.dueDate}
+                      onSelect={(date) => setFormState({ ...formState, dueDate: date })}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+                {formState.dueDate && (
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setFormState({ ...formState, dueDate: undefined })}
+                    className="text-xs w-fit"
+                  >
+                    Quitar fecha
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div>
