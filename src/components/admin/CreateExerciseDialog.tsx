@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -11,6 +13,8 @@ import { useCreateExercise } from "@/hooks/useUserExercises";
 import { useAuth } from "@/contexts/AuthContext";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 const exerciseSchema = z.object({
   exercise_title: z.string().min(5, "El título debe tener al menos 5 caracteres").max(200),
@@ -123,24 +127,52 @@ export function CreateExerciseDialog({ open, onOpenChange, userId }: CreateExerc
 
           <div className="space-y-2">
             <Label>Fecha de entrega (opcional)</Label>
-            <div className="relative">
-              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Controller
-                name="due_date"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    type="date"
-                    className="pl-10"
-                    value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      field.onChange(value ? new Date(`${value}T00:00:00`) : undefined);
-                    }}
-                  />
-                )}
-              />
-            </div>
+            <Controller
+              name="due_date"
+              control={control}
+              render={({ field }) => (
+                <div className="flex flex-col gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {field.value 
+                          ? format(field.value, "PPP", { locale: es }) 
+                          : "Seleccionar fecha..."
+                        }
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {field.value && (
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setValue('due_date', undefined)}
+                      className="text-xs w-fit"
+                    >
+                      Quitar fecha
+                    </Button>
+                  )}
+                </div>
+              )}
+            />
           </div>
 
           <div className="space-y-2">
