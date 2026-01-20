@@ -16,6 +16,7 @@ const StarterPackHome = () => {
         title="Starter Pack para Product Managers | ProductPrepa" 
         description="Recursos curados y guía paso a paso para quienes comienzan en Product Management o dan el salto a liderar equipos de producto." 
         canonical="/starterpack" 
+        keywords="recursos PM, guía product manager, empezar en producto, starter pack, primeros pasos PM"
       />
       <main className="min-h-screen bg-background animate-fade-in">
         <div className="container py-6 px-4 sm:px-6">

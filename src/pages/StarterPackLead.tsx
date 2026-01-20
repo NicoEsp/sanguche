@@ -43,6 +43,7 @@ const StarterPackLead = () => {
         title="Liderar Equipos - Starter Pack | ProductPrepa"
         description="Guía paso a paso para PMs que buscan dar el salto a roles de liderazgo como Lead PM, GPM o Head of Product."
         canonical="/starterpack/lead"
+        keywords="liderazgo producto, lead PM, head of product, gestión equipos producto, GPM"
       />
       <main className="min-h-screen bg-background animate-fade-in">
         <div className="container py-6 px-4 sm:px-6">

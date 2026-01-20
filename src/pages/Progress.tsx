@@ -569,6 +569,7 @@ export default function Progress() {
         title="Career Path — ProductPrepa" 
         description="Construí y visualizá tu Career Path personalizado con tus objetivos prioritarios." 
         canonical="/progreso" 
+        keywords="career path PM, objetivos carrera, roadmap producto, desarrollo profesional, metas PM"
       />
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/40 animate-fade-in">
         <div ref={exportRef} className="container py-10 space-y-8">

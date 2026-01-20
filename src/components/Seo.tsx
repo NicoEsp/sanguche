@@ -13,6 +13,7 @@ export type SeoProps = {
   twitterSite?: string;
   twitterCreator?: string;
   robots?: string;
+  keywords?: string;
 };
 
 export function Seo({ 
@@ -25,7 +26,8 @@ export function Seo({
   siteName = "ProductPrepa",
   twitterSite = "@nicoproducto",
   twitterCreator = "@nicoproducto",
-  robots
+  robots,
+  keywords
 }: SeoProps) {
   useEffect(() => {
     if (title) document.title = title;
@@ -93,7 +95,18 @@ export function Seo({
     if (twitterImageAlt && imageAlt) twitterImageAlt.setAttribute('content', imageAlt);
     if (twitterSiteTag && twitterSite) twitterSiteTag.setAttribute('content', twitterSite);
     if (twitterCreatorTag && twitterCreator) twitterCreatorTag.setAttribute('content', twitterCreator);
-  }, [title, description, canonical, image, imageAlt, url, siteName, twitterSite, twitterCreator, robots]);
+
+    // Meta keywords tag
+    if (keywords) {
+      let keywordsMeta = document.querySelector('meta[name="keywords"]');
+      if (!keywordsMeta) {
+        keywordsMeta = document.createElement('meta');
+        keywordsMeta.setAttribute('name', 'keywords');
+        document.head.appendChild(keywordsMeta);
+      }
+      keywordsMeta.setAttribute('content', keywords);
+    }
+  }, [title, description, canonical, image, imageAlt, url, siteName, twitterSite, twitterCreator, robots, keywords]);
 
   return null;
 }

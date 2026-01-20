@@ -109,7 +109,7 @@ export default function CourseDetail() {
   if (!hasAccess) {
     return (
       <>
-        <Seo title={`${course.title} - ProductPrepa`} description={course.description || ""} />
+        <Seo title={`${course.title} - ProductPrepa`} description={course.description || ""} keywords={`curso ${course.slug}, product management, formación PM, aprender producto`} />
         <CoursePaywall courseTitle={course.title} />
       </>
     );
@@ -123,6 +123,7 @@ export default function CourseDetail() {
           title={`${course.title} - ProductPrepa`}
           description={course.description || ""}
           canonical={`/cursos/${course.slug}`}
+          keywords={`curso ${course.slug}, product management, formación PM, aprender producto`}
         />
 
         <div className="container max-w-4xl py-8 space-y-6">
@@ -210,6 +211,7 @@ export default function CourseDetail() {
         title={`${course.title} - ProductPrepa`}
         description={course.description || ""}
         canonical={`/cursos/${course.slug}`}
+        keywords={`curso ${course.slug}, product management, formación PM, aprender producto`}
       />
 
       <div className="container max-w-6xl py-8 space-y-6">

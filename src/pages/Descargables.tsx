@@ -23,6 +23,7 @@ export default function Descargables() {
         description="Un documento de disparadores para reflexionar sobre tu producto, tu equipo y cómo estás en tu rol actualmente."
         url="/preguntas"
         image="/social-image.png"
+        keywords="preguntas de producto, framework PM, template producto, reflexión PM, herramientas producto, recursos gratuitos, recursos descargables"
       />
 
       <div className="container max-w-4xl py-8 space-y-8">

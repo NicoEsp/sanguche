@@ -202,6 +202,7 @@ export default function Profile() {
         title="Mi Perfil - ProductPrepa"
         description="Gestiona tu perfil, revisa tu Career Path y mantén el control de tu plan de suscripción"
         canonical="/perfil"
+        keywords="perfil usuario, configuración cuenta, suscripción PM"
       />
       
       <div className="container py-8 space-y-6">

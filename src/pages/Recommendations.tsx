@@ -87,6 +87,7 @@ export default function Recommendations() {
           title="Mentoría personalizada — ProductPrepa"
           description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
           canonical="/mentoria"
+          keywords="mentoría PM, coaching producto, recomendaciones personalizadas, guía producto, mentor PM"
         />
         <div className="container py-10 flex items-center justify-center">
           <div className="text-center">
@@ -105,6 +106,7 @@ export default function Recommendations() {
           title="Mentoría personalizada — ProductPrepa"
           description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
           canonical="/mentoria"
+          keywords="mentoría PM, coaching producto, recomendaciones personalizadas, guía producto, mentor PM"
         />
         <div className="container mx-auto p-6 max-w-6xl">
           <PaywallCard 
@@ -122,6 +124,7 @@ export default function Recommendations() {
         title="Mentoría personalizada — ProductPrepa"
         description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
         canonical="/mentoria"
+        keywords="mentoría PM, coaching producto, recomendaciones personalizadas, guía producto, mentor PM"
       />
       <section className="container py-10 space-y-8 animate-fade-in">
         <div className="text-center space-y-2">

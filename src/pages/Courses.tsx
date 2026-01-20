@@ -68,6 +68,7 @@ export default function Courses() {
           title="Cursos - ProductPrepa"
           description="Aprende habilidades de producto con cursos cortos y prácticos."
           canonical="/cursos"
+          keywords="cursos product management, capacitación PM, videos producto, formación PM, aprender producto, cursos para ser product manager, curso product manager, que hace un product manager"
         />
         <div className="container max-w-6xl py-8 space-y-8">
           <div className="space-y-4">
@@ -99,6 +100,7 @@ export default function Courses() {
         title="Cursos - ProductPrepa"
         description="Aprende habilidades de producto con cursos cortos y prácticos. Videos de menos de 10 minutos con ejercicios aplicables."
         canonical="/cursos"
+        keywords="cursos product management, capacitación PM, videos producto, formación PM, aprender producto, cursos para ser product manager, curso product manager, que hace un product manager"
       />
 
       <div className="container max-w-6xl py-8 space-y-8">
