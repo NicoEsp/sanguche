@@ -59,8 +59,9 @@ serve(async (req) => {
       throw new Error('Subscription not found');
     }
 
-    if (subscription.plan !== 'premium' || subscription.status !== 'active') {
-      throw new Error('No active premium subscription found');
+    const cancelablePlans = ['premium', 'repremium'];
+    if (!cancelablePlans.includes(subscription.plan) || subscription.status !== 'active') {
+      throw new Error('No active subscription found');
     }
 
     if (!subscription.lemon_squeezy_subscription_id) {
