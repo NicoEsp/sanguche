@@ -205,6 +205,39 @@ export default function Planes() {
 
   const isFreePlan = !hasActivePremium && !hasActiveRePremium && !hasCursoEstrategia && !hasCursosAll;
 
+  const planesSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Planes y Precios | ProductPrepa",
+    "description": "Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados.",
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Plan Premium",
+        "price": pricingLoading ? 0 : premium.amount / 100,
+        "priceCurrency": "ARS",
+        "availability": "https://schema.org/InStock",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Mentoría Premium ProductPrepa",
+          "description": "Sesión mensual 1:1, Career Path personalizado, recursos curados"
+        }
+      },
+      {
+        "@type": "Offer",
+        "name": "Plan RePremium",
+        "price": pricingLoading ? 0 : repremium.amount / 100,
+        "priceCurrency": "ARS",
+        "availability": "https://schema.org/InStock",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Mentoría RePremium ProductPrepa",
+          "description": "Todo Premium + acceso a todos los cursos"
+        }
+      }
+    ]
+  };
+
   return (
     <>
       <Seo 
@@ -212,6 +245,7 @@ export default function Planes() {
         description="Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados." 
         canonical="/planes" 
         keywords="precios productprepa, planes suscripción, premium PM, mentoría producto, cursos PM"
+        jsonLd={planesSchema}
       />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">

@@ -14,6 +14,7 @@ export type SeoProps = {
   twitterCreator?: string;
   robots?: string;
   keywords?: string;
+  jsonLd?: object | object[];
 };
 
 export function Seo({ 
@@ -27,7 +28,8 @@ export function Seo({
   twitterSite = "@nicoproducto",
   twitterCreator = "@nicoproducto",
   robots,
-  keywords
+  keywords,
+  jsonLd
 }: SeoProps) {
   useEffect(() => {
     if (title) document.title = title;
@@ -106,7 +108,22 @@ export function Seo({
       }
       keywordsMeta.setAttribute('content', keywords);
     }
-  }, [title, description, canonical, image, imageAlt, url, siteName, twitterSite, twitterCreator, robots, keywords]);
+
+    // JSON-LD Schema
+    if (jsonLd) {
+      // Remove existing schema if present
+      const existingScript = document.querySelector('script[data-seo-jsonld]');
+      if (existingScript) {
+        existingScript.remove();
+      }
+      
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.setAttribute('data-seo-jsonld', 'true');
+      script.textContent = JSON.stringify(jsonLd);
+      document.head.appendChild(script);
+    }
+  }, [title, description, canonical, image, imageAlt, url, siteName, twitterSite, twitterCreator, robots, keywords, jsonLd]);
 
   return null;
 }

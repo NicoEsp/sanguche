@@ -62,6 +62,26 @@ export default function CourseDetail() {
     }
   }, [progressStats.isCompleted, course]);
 
+  // Build JSON-LD schema for individual course
+  const courseSchema = course ? {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    "name": course.title,
+    "description": course.description || "",
+    "provider": {
+      "@type": "Organization",
+      "name": "ProductPrepa",
+      "sameAs": "https://productprepa.com"
+    },
+    "hasCourseInstance": {
+      "@type": "CourseInstance",
+      "courseMode": "online",
+      "courseWorkload": `PT${course.duration_minutes || 30}M`
+    },
+    ...(course.thumbnail_url && { "image": course.thumbnail_url }),
+    "url": `https://productprepa.com/cursos/${course.slug}`
+  } : undefined;
+
   const activeLesson = lessonsWithProgress.find((l) => l.id === activeLessonId);
 
   // Handle lesson completion
@@ -109,7 +129,12 @@ export default function CourseDetail() {
   if (!hasAccess) {
     return (
       <>
-        <Seo title={`${course.title} - ProductPrepa`} description={course.description || ""} keywords={`curso ${course.slug}, product management, formación PM, aprender producto`} />
+        <Seo 
+          title={`${course.title} - ProductPrepa`} 
+          description={course.description || ""} 
+          keywords={`curso ${course.slug}, product management, formación PM, aprender producto`}
+          jsonLd={courseSchema}
+        />
         <CoursePaywall courseTitle={course.title} />
       </>
     );
@@ -124,6 +149,7 @@ export default function CourseDetail() {
           description={course.description || ""}
           canonical={`/cursos/${course.slug}`}
           keywords={`curso ${course.slug}, product management, formación PM, aprender producto`}
+          jsonLd={courseSchema}
         />
 
         <div className="container max-w-4xl py-8 space-y-6">
@@ -212,6 +238,7 @@ export default function CourseDetail() {
         description={course.description || ""}
         canonical={`/cursos/${course.slug}`}
         keywords={`curso ${course.slug}, product management, formación PM, aprender producto`}
+        jsonLd={courseSchema}
       />
 
       <div className="container max-w-6xl py-8 space-y-6">
