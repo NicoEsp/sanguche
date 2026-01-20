@@ -103,25 +103,43 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const { profile, loading: profileLoading } = useUserProfile({ skip: !shouldLoadProfile });
   const queryClient = useQueryClient();
   
-  // Badge visibility states
-  const [showNewBadges, setShowNewBadges] = useState(true);
-  const [collapsedBadges, setCollapsedBadges] = useState(false);
-  
-  // Hide "Nuevo" badges after 40 seconds
+  // localStorage keys for badge state persistence
+  const STORAGE_KEYS = {
+    NEW_BADGES_HIDDEN: 'sidebar_new_badges_hidden',
+    BADGES_COLLAPSED: 'sidebar_badges_collapsed'
+  };
+
+  // Badge visibility states - initialized from localStorage
+  const [showNewBadges, setShowNewBadges] = useState(() => {
+    const stored = localStorage.getItem(STORAGE_KEYS.NEW_BADGES_HIDDEN);
+    return stored !== 'true';
+  });
+  const [collapsedBadges, setCollapsedBadges] = useState(() => {
+    const stored = localStorage.getItem(STORAGE_KEYS.BADGES_COLLAPSED);
+    return stored === 'true';
+  });
+
+  // Hide "Nuevo" badges after 40 seconds (only if not already hidden)
   useEffect(() => {
+    if (!showNewBadges) return;
+    
     const timer = setTimeout(() => {
       setShowNewBadges(false);
+      localStorage.setItem(STORAGE_KEYS.NEW_BADGES_HIDDEN, 'true');
     }, 40000);
     return () => clearTimeout(timer);
-  }, []);
-  
-  // Collapse Premium/RePremium badges after 60 seconds
+  }, [showNewBadges]);
+
+  // Collapse Premium/RePremium badges after 60 seconds (only if not already collapsed)
   useEffect(() => {
+    if (collapsedBadges) return;
+    
     const timer = setTimeout(() => {
       setCollapsedBadges(true);
+      localStorage.setItem(STORAGE_KEYS.BADGES_COLLAPSED, 'true');
     }, 60000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [collapsedBadges]);
   
   const metadataName = (() => {
     const possibleName = user?.user_metadata?.name;
