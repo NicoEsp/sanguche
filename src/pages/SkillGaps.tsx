@@ -74,7 +74,7 @@ export default function SkillGaps() {
     }
   }, [loading, result, gaps, strengths, neutralAreas, trackEvent]);
   return <>
-      <Seo title="Resultados de tu evaluación — ProductPrepa" description="Revisa tu desempeño completo: fortalezas y áreas de mejora identificadas." canonical="/mejoras" />
+      <Seo title="Resultados de tu evaluación — ProductPrepa" description="Revisa tu desempeño completo: fortalezas y áreas de mejora identificadas." canonical="/mejoras" keywords="gaps de producto, fortalezas PM, áreas de mejora, resultados evaluación, feedback producto" />
       <section className="container py-6 sm:py-10 px-4 sm:px-6 animate-fade-in">
         <h1 className="text-2xl sm:text-3xl font-semibold mb-3">Resultados de tu evaluación</h1>
         {loading && <div className="space-y-4 mb-6">

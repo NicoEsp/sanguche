@@ -41,6 +41,7 @@ const Index = () => {
         title="ProductPrepa — Autoevaluación PM" 
         description="Evalúa tu seniority en Product Management y accede a recomendaciones personalizadas, recursos curados y un roadmap estructurado para crecer en tu carrera." 
         canonical="/" 
+        keywords="product management, autoevaluación PM, seniority, carrera producto, product manager, evaluación profesional, desarrollo PM"
       />
       <main className="min-h-screen bg-background">
         {/* Enhanced Hero Section */}

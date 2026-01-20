@@ -352,6 +352,7 @@ export default function Assessment() {
         title="Autoevaluación PM — ProductPrepa"
         description="Evalúa tu nivel de seniority en Product Management."
         canonical="/autoevaluacion"
+        keywords="evaluación product manager, test seniority PM, assessment producto, nivel PM, diagnóstico carrera"
       />
       <section className="container py-6 sm:py-10 px-4 sm:px-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
