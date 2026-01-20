@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { isPremiumFeature, FEATURES } from "@/utils/features";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
@@ -31,7 +31,16 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-const navItems = [
+interface NavItemType {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  premium: boolean;
+  repremium?: boolean;
+  isNew?: boolean;
+}
+
+const navItems: NavItemType[] = [
   { 
     href: "/autoevaluacion", 
     label: "Autoevaluación", 
@@ -60,17 +69,18 @@ const navItems = [
     href: "/cursos", 
     label: "Cursos", 
     icon: GraduationCap,
-    premium: true,
+    premium: false,
+    repremium: true,
     isNew: true
   },
 ];
 
-const extraItems = [
+const extraItems: NavItemType[] = [
   { 
     href: "/starterpack", 
     label: "Starter Pack", 
     icon: Rocket,
-    premium: false 
+    premium: false
   },
   { 
     href: "/preguntas", 
@@ -92,6 +102,26 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const shouldLoadProfile = isAuthenticated && !isLoading;
   const { profile, loading: profileLoading } = useUserProfile({ skip: !shouldLoadProfile });
   const queryClient = useQueryClient();
+  
+  // Badge visibility states
+  const [showNewBadges, setShowNewBadges] = useState(true);
+  const [collapsedBadges, setCollapsedBadges] = useState(false);
+  
+  // Hide "Nuevo" badges after 40 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowNewBadges(false);
+    }, 40000);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Collapse Premium/RePremium badges after 60 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCollapsedBadges(true);
+    }, 60000);
+    return () => clearTimeout(timer);
+  }, []);
   
   const metadataName = (() => {
     const possibleName = user?.user_metadata?.name;
@@ -169,6 +199,8 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
 
   const NavItem = ({ item }: { item: typeof navItems[0] }) => {
     const active = isActive(item.href);
+    const hasRepremium = 'repremium' in item && item.repremium;
+    
     const content = (
       <Link
         to={item.href}
@@ -185,10 +217,28 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           <>
             <span className="flex-1 truncate">{item.label}</span>
             {item.premium && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Premium</Badge>
+              <Badge 
+                variant="secondary" 
+                className={cn(
+                  "text-[10px] py-0 transition-all duration-300",
+                  collapsedBadges ? "px-1" : "px-1.5"
+                )}
+              >
+                {collapsedBadges ? "P" : "Premium"}
+              </Badge>
             )}
-            {'isNew' in item && item.isNew && (
-              <Badge className="text-[10px] px-1.5 py-0 bg-green-500/90 text-white border-0">Nuevo</Badge>
+            {hasRepremium && (
+              <Badge 
+                className={cn(
+                  "text-[10px] py-0 bg-amber-500/90 text-white border-0 transition-all duration-300",
+                  collapsedBadges ? "px-1" : "px-1.5"
+                )}
+              >
+                {collapsedBadges ? "RP" : "RePremium"}
+              </Badge>
+            )}
+            {'isNew' in item && item.isNew && showNewBadges && (
+              <Badge className="text-[10px] px-1.5 py-0 bg-green-500/90 text-white border-0 transition-opacity duration-300">Nuevo</Badge>
             )}
           </>
         )}
@@ -202,9 +252,27 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           <TooltipContent side="right" className="flex items-center gap-2">
             {item.label}
             {item.premium && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Premium</Badge>
+              <Badge 
+                variant="secondary" 
+                className={cn(
+                  "text-[10px] py-0 transition-all duration-300",
+                  collapsedBadges ? "px-1" : "px-1.5"
+                )}
+              >
+                {collapsedBadges ? "P" : "Premium"}
+              </Badge>
             )}
-            {'isNew' in item && item.isNew && (
+            {hasRepremium && (
+              <Badge 
+                className={cn(
+                  "text-[10px] py-0 bg-amber-500/90 text-white border-0 transition-all duration-300",
+                  collapsedBadges ? "px-1" : "px-1.5"
+                )}
+              >
+                {collapsedBadges ? "RP" : "RePremium"}
+              </Badge>
+            )}
+            {'isNew' in item && item.isNew && showNewBadges && (
               <Badge className="text-[10px] px-1.5 py-0 bg-green-500/90 text-white border-0">Nuevo</Badge>
             )}
           </TooltipContent>

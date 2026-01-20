@@ -299,6 +299,7 @@ export default function Planes() {
                   <>Sesión mensual 1:1 con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>,
                   "Tu Career Path con objetivos concretos",
                   "Recursos curados según tus áreas de mejora",
+                  "Acceso al Starter Pack completo",
                   "Nuevos contenidos cada mes"
                 ]}
                 plan="premium"
