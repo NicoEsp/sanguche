@@ -34,15 +34,6 @@ export function CourseCard({ course, hasAccess, progress }: CourseCardProps) {
           </div>
         )}
         
-        {/* Overlay for coming soon courses */}
-        {isComingSoon && (
-          <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px] flex items-center justify-center">
-            <div className="flex flex-col items-center gap-2">
-              <CalendarClock className="h-8 w-8 text-amber-500" />
-              <span className="text-sm font-medium text-amber-600 dark:text-amber-400">Próximamente</span>
-            </div>
-          </div>
-        )}
 
         {/* Coming soon badge */}
         {isComingSoon && (
