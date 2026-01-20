@@ -293,7 +293,7 @@ export default function Planes() {
                 description="Pensado para quienes quieren crecer en serio"
                 icon={<Star className="w-6 h-6 text-primary" />}
                 isHighlighted={true}
-                badge="30 usuarios activos"
+                badge="+35 usuarios activos"
                 features={[
                   "Todo lo incluido en el plan gratuito",
                   <>Sesión mensual 1:1 con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>,
