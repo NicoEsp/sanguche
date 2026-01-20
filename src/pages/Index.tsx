@@ -54,14 +54,14 @@ const Index = () => {
       "@type": "WebSite",
       "name": "ProductPrepa",
       "url": "https://productprepa.com",
-      "description": "Plataforma integral de desarrollo profesional para Product Managers"
+      "description": "Aprendé Producto en una plataforma que combina Cursos, evaluación de habilidades, tu propio Career Path y mentoría personalizada."
     }
   ];
 
   return <>
       <Seo 
-        title="ProductPrepa — Autoevaluación PM" 
-        description="Evalúa tu seniority en Product Management y accede a recomendaciones personalizadas, recursos curados y un roadmap estructurado para crecer en tu carrera." 
+        title="ProductPrepa - Plataforma para crecer en Producto" 
+        description="Aprendé Producto en una plataforma que combina Cursos, evaluación de habilidades, tu propio Career Path y mentoría personalizada."
         canonical="/" 
         keywords="product management, autoevaluación PM, seniority, carrera producto, product manager, evaluación profesional, desarrollo PM"
         jsonLd={indexSchema}
