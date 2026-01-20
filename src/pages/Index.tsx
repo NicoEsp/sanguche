@@ -36,12 +36,35 @@ const Index = () => {
     "Roadmap de carrera diseñado a tu medida",
     "Nuevos contenidos y ejercicios cada mes"
   ];
+
+  const indexSchema = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "ProductPrepa",
+      "url": "https://productprepa.com",
+      "logo": "https://productprepa.com/favicon.png",
+      "sameAs": [
+        "https://twitter.com/nicoproducto",
+        "https://www.linkedin.com/in/nicolas-espindola/"
+      ]
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "ProductPrepa",
+      "url": "https://productprepa.com",
+      "description": "Plataforma integral de desarrollo profesional para Product Managers"
+    }
+  ];
+
   return <>
       <Seo 
         title="ProductPrepa — Autoevaluación PM" 
         description="Evalúa tu seniority en Product Management y accede a recomendaciones personalizadas, recursos curados y un roadmap estructurado para crecer en tu carrera." 
         canonical="/" 
         keywords="product management, autoevaluación PM, seniority, carrera producto, product manager, evaluación profesional, desarrollo PM"
+        jsonLd={indexSchema}
       />
       <main className="min-h-screen bg-background">
         {/* Enhanced Hero Section */}

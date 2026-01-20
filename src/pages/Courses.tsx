@@ -60,6 +60,29 @@ export default function Courses() {
     }
   }, [isLoading]);
 
+  // Build JSON-LD schema for courses
+  const coursesSchema = courses && courses.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Cursos de Product Management",
+    "description": "Cursos cortos y prácticos para desarrollar habilidades de producto",
+    "itemListElement": courses.map((course, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "Course",
+        "name": course.title,
+        "description": course.description || "",
+        "provider": {
+          "@type": "Organization",
+          "name": "ProductPrepa",
+          "sameAs": "https://productprepa.com"
+        },
+        "url": `https://productprepa.com/cursos/${course.slug}`
+      }
+    }))
+  } : undefined;
+
   // Full skeleton during loading to prevent layout flashes
   if (isLoading) {
     return (
@@ -101,6 +124,7 @@ export default function Courses() {
         description="Aprende habilidades de producto con cursos cortos y prácticos. Videos de menos de 10 minutos con ejercicios aplicables."
         canonical="/cursos"
         keywords="cursos product management, capacitación PM, videos producto, formación PM, aprender producto, cursos para ser product manager, curso product manager, que hace un product manager"
+        jsonLd={coursesSchema}
       />
 
       <div className="container max-w-6xl py-8 space-y-8">
