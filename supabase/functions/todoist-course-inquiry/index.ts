@@ -1,9 +1,8 @@
 // Todoist Course Inquiry Edge Function
-// This function receives course inquiries and creates tasks in a specific Todoist project
+// This function receives course inquiries and creates tasks in Todoist Inbox with "consulta-cursos" label
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const TODOIST_API_URL = "https://api.todoist.com/rest/v2/tasks";
-const COURSE_INQUIRY_PROJECT_ID = "sanguche-6cxHqfhWpVM28Vrq";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -133,7 +132,6 @@ serve(async (req) => {
     // Log diagnostic information before making the request
     console.log("Creating Todoist course inquiry task", {
       hasToken: !!todoistToken,
-      projectId: COURSE_INQUIRY_PROJECT_ID,
       courseInterest: courseLabel,
       contentLength: `${sanitizedName}+${sanitizedEmail}`.length,
       messageLength: sanitizedMessage.length,
@@ -149,7 +147,6 @@ serve(async (req) => {
       body: JSON.stringify({
         content: `${sanitizedName}+${sanitizedEmail}`,
         description: `**Curso de interés:** ${courseLabel}\n\n${sanitizedMessage}`,
-        project_id: COURSE_INQUIRY_PROJECT_ID,
         labels: ["consulta-cursos"],
       }),
     });
@@ -161,7 +158,6 @@ serve(async (req) => {
         status: response.status,
         statusText: response.statusText,
         errorBody,
-        projectId: COURSE_INQUIRY_PROJECT_ID,
         requestContent: `${sanitizedName}+${sanitizedEmail}`,
       });
       
