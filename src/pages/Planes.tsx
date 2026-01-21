@@ -13,6 +13,8 @@ import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePricing } from "@/hooks/usePricing";
+import { CourseInquiryCta } from "@/components/planes/CourseInquiryCta";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 interface PlanCardProps {
   name: React.ReactNode;
@@ -96,7 +98,8 @@ function PlanCard({
 }
 
 export default function Planes() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { profile } = useUserProfile();
   const { 
     hasActivePremium, 
     hasActiveRePremium, 
@@ -386,6 +389,15 @@ export default function Planes() {
                 ctaText={hasCursosAll ? "Acceder a cursos" : "Comprar bundle"}
                 ctaLink={hasCursosAll ? "/mentoria" : undefined}
                 isCurrentPlan={hasCursosAll}
+              />
+            </div>
+
+            {/* Course Inquiry CTA */}
+            <div className="mt-8 text-center">
+              <CourseInquiryCta
+                isAuthenticated={isAuthenticated}
+                profileName={profile?.name}
+                userEmail={user?.email}
               />
             </div>
           </div>
