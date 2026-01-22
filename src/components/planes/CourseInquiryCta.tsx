@@ -142,7 +142,7 @@ export function CourseInquiryCta({
         className="w-full sm:w-auto gap-2"
       >
         <MessageCircleQuestion className="h-5 w-5" />
-        ¿Tenés dudas sobre los cursos?
+        ¿Tenés otras dudas sobre los cursos?
       </Button>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

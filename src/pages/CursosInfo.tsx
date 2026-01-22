@@ -295,7 +295,7 @@ export default function CursosInfo() {
         {/* Final CTA */}
         <section className="px-4 py-12">
           <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-2xl font-bold mb-4">¿Tenés dudas sobre los cursos?</h2>
+            <h2 className="text-2xl font-bold mb-4">¿Tenés otras dudas sobre los cursos?</h2>
             <p className="text-muted-foreground mb-6">
               Escribinos y te ayudamos a elegir el mejor camino para vos.
             </p>
