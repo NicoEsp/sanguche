@@ -347,7 +347,15 @@ export default function Planes() {
         {/* Courses - Row 2 */}
         <section className="px-4 py-8">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-center mb-8">Cursos Especializados</h2>
+            <h2 className="text-2xl font-bold text-center mb-4">Cursos Especializados</h2>
+            <div className="text-center mb-8">
+              <Button asChild variant="outline" size="sm">
+                <Link to="/cursos-info">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Ver detalle de cursos
+                </Link>
+              </Button>
+            </div>
             
             <div className="grid md:grid-cols-2 gap-6">
               {/* Curso Estrategia */}
