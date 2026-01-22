@@ -6,6 +6,7 @@ const SITE_URL = 'https://productprepa.com'
 const STATIC_ROUTES = [
   { path: '/', priority: '1.0', changefreq: 'weekly' },
   { path: '/planes', priority: '0.9', changefreq: 'weekly' },
+  { path: '/cursos-info', priority: '0.9', changefreq: 'weekly' },
   { path: '/preguntas', priority: '0.8', changefreq: 'monthly' },
   { path: '/starterpack', priority: '0.8', changefreq: 'monthly' },
   { path: '/starterpack/build', priority: '0.7', changefreq: 'monthly' },

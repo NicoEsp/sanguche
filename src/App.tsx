@@ -20,6 +20,7 @@ const SkillGaps = lazy(() => import("./pages/SkillGaps"));
 const Recommendations = lazy(() => import("./pages/Recommendations"));
 const Progress = lazy(() => import("./pages/Progress"));
 const Planes = lazy(() => import("./pages/Planes"));
+const CursosInfo = lazy(() => import("./pages/CursosInfo"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Welcome = lazy(() => import("./pages/Welcome"));
@@ -111,6 +112,7 @@ const App = () => (
                       <Route path="/" element={<Index />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/planes" element={<Planes />} />
+                      <Route path="/cursos-info" element={<CursosInfo />} />
                       <Route path="/premium" element={<Navigate to="/planes" replace />} />
                       <Route path="/welcome" element={<Welcome />} />
                       <Route path="/starterpack" element={<StarterPackHome />} />
