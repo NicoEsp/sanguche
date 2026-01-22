@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Crown, BookOpen, Sparkles, X } from "lucide-react";
+import { Check, Star, Crown, BookOpen, Sparkles, X, ArrowRight } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -350,10 +350,11 @@ export default function Planes() {
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-center mb-4">Cursos Especializados</h2>
             <div className="text-center mb-8">
-              <Button asChild variant="outline" size="sm">
+              <Button asChild size="default" className="bg-primary/10 text-primary border border-primary hover:bg-primary hover:text-primary-foreground transition-all">
                 <Link to="/cursos-info">
                   <BookOpen className="h-4 w-4 mr-2" />
                   Ver detalle de cursos
+                  <ArrowRight className="h-4 w-4 ml-2" />
                 </Link>
               </Button>
             </div>
