@@ -16,7 +16,6 @@ import {
   ArrowRight,
   Sparkles,
   Target,
-  TrendingUp,
   Users
 } from "lucide-react";
 
@@ -130,12 +129,14 @@ export default function CursosInfo() {
               <CardContent className="p-0">
                 <div className="grid md:grid-cols-2 gap-6">
                   {/* Course Image */}
-                  <div className="relative aspect-video md:aspect-auto bg-muted flex items-center justify-center p-6">
-                    <div className="text-center">
-                      <div className="w-24 h-24 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center">
-                        <TrendingUp className="w-12 h-12 text-primary" />
-                      </div>
-                      <Badge variant="nuevo" className="mb-2">
+                  <div className="relative aspect-video md:aspect-auto overflow-hidden">
+                    <img 
+                      src="https://lgscevufwnetegglgpnw.supabase.co/storage/v1/object/public/course-thumbnails/estrategia-de-producto-para-principiantes-1768839792745.jpeg"
+                      alt="Curso Estrategia de Producto para principiantes"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-4 left-4">
+                      <Badge variant="nuevo">
                         <Calendar className="w-3 h-3 mr-1" />
                         Lanza 31 de enero
                       </Badge>
@@ -166,7 +167,8 @@ export default function CursosInfo() {
                       <h3 className="font-semibold text-sm">Lo que vas a aprender:</h3>
                       <ul className="space-y-2">
                         {[
-                          "Fundamentos de estrategia de producto",
+                          "Fundamentos de Estrategia de Producto",
+                          "Las Seis Dimensiones",
                           "Frameworks esenciales para empezar",
                           "Cómo alinear producto con negocio",
                           "Ejercicios prácticos aplicables",
@@ -181,10 +183,15 @@ export default function CursosInfo() {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-2xl font-bold">
-                          {pricingLoading ? "..." : curso_estrategia.formatted}
-                        </span>
-                        <span className="text-sm text-muted-foreground ml-1">pago único</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-2xl font-bold">
+                            {pricingLoading ? "..." : curso_estrategia.formatted}
+                          </span>
+                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800">
+                            Precio pre-lanzamiento
+                          </Badge>
+                        </div>
+                        <span className="text-sm text-muted-foreground">pago único</span>
                       </div>
                       <Button asChild>
                         <Link to="/planes">
