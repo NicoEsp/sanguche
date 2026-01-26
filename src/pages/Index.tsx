@@ -16,7 +16,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 
 const Index = () => {
   // Hook para redirigir usuarios autenticados según su estado (V3)
-  const { isRedirecting, isFading } = useHomeRedirect();
+  const { isRedirecting, isFading, destination } = useHomeRedirect();
   
   const {
     isAuthenticated
@@ -24,9 +24,15 @@ const Index = () => {
   const { trackEvent } = useMixpanelTracking();
   const { premium, loading: pricingLoading } = usePricing();
 
-  // Mostrar skeleton loading mientras se determina a dónde redirigir al usuario autenticado
+  // Mostrar skeleton loading específico según página destino
   if (isRedirecting) {
-    return <LoadingScreen isFading={isFading} variant="skeleton" />;
+    return (
+      <LoadingScreen 
+        isFading={isFading} 
+        variant="skeleton" 
+        destination={destination as '/progreso' | '/mejoras' | '/autoevaluacion' | null}
+      />
+    );
   }
 
   const premiumBenefits = [
