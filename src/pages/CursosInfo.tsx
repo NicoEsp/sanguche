@@ -86,7 +86,7 @@ export default function CursosInfo() {
         title="Cursos de Producto | Estrategia, Discovery y más - ProductPrepa"
         description="Aprende Estrategia de Producto con cursos cortos y prácticos. Videos de menos de 10 minutos, ejercicios aplicables y acceso de por vida. Ideal para principiantes."
         canonical="/cursos-info"
-        keywords="cursos estrategia de producto, curso product manager principiantes, formación PM online, aprender product management, curso estrategia producto, cursos PM gratis"
+        keywords="cursos Estrategia de Producto, curso product manager principiantes, formación PM online, aprender product management, curso estrategia producto, cursos PM gratis"
         jsonLd={cursosInfoSchema}
       />
 

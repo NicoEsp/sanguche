@@ -70,7 +70,7 @@ export function CoursePaywall({ courseTitle }: CoursePaywallProps) {
           </Link>
 
           <p className="text-xs text-muted-foreground mt-4">
-            Los cursos están incluidos en los planes RePremium y Curso de Estrategia
+            Los cursos están incluidos en los planes RePremium y Curso de Estrategia de Producto
           </p>
         </CardContent>
       </Card>
