@@ -4,11 +4,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAssessmentData } from './useAssessmentData';
 import { useSubscription } from './useSubscription';
 
-const FADE_DURATION = 300; // ms - debe coincidir con la animación en tailwind
+const FADE_DURATION = 150; // ms - reducido para mejor UX
 
 /**
  * Hook que maneja la redirección automática en Home según el estado del usuario (V3):
  * - No autenticado → Se queda en Landing
+ * - Autenticado con returnTo → Redirige a returnTo (ej: /preguntas)
  * - Autenticado sin evaluación → /autoevaluacion
  * - Autenticado Free con evaluación → /mejoras
  * - Autenticado Premium con evaluación → /progreso
@@ -35,18 +36,26 @@ export function useHomeRedirect() {
     // Marcar como ejecutado para evitar loops
     hasRedirectedRef.current = true;
     
-    // Limpiar parámetro new_user si existe
-    if (searchParams.has('new_user')) {
+    // Capturar returnTo antes de limpiar parámetros
+    const returnTo = searchParams.get('returnTo');
+    
+    // Limpiar parámetros new_user y returnTo
+    if (searchParams.has('new_user') || searchParams.has('returnTo')) {
       searchParams.delete('new_user');
+      searchParams.delete('returnTo');
       setSearchParams(searchParams, { replace: true });
     }
     
     // Iniciar fade-out antes de navegar
     setIsFading(true);
     
-    // Determinar destino
+    // Determinar destino - priorizar returnTo si existe
     let destination: string;
-    if (!hasAssessment) {
+    
+    if (returnTo) {
+      // Decodificar y usar la ruta de origen
+      destination = decodeURIComponent(returnTo);
+    } else if (!hasAssessment) {
       destination = '/autoevaluacion';
     } else if (hasActivePremium) {
       destination = '/progreso';

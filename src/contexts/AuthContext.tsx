@@ -13,9 +13,9 @@ interface AuthContextType {
   isSigningOut: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  signUp: (email: string, password: string, name?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name?: string, returnTo?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signInWithGoogle: () => Promise<{ error: any }>;
+  signInWithGoogle: (returnTo?: string) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   resendConfirmation: (email: string) => Promise<{ error: any }>;
@@ -196,17 +196,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           window.dispatchEvent(new CustomEvent('supabase:password_recovery'));
         }
 
-        // Bootstrap: asegurar datos base existen
+        // Bootstrap: asegurar datos base existen + prefetch en paralelo
         if (currentUser) {
-          (async () => {
-            try {
-              await supabase.rpc('ensure_user_defaults');
-            } catch (error) {
-              if (import.meta.env.DEV) {
-                console.error('[AuthContext] Error ensuring user defaults:', error);
-              }
+          Promise.allSettled([
+            supabase.rpc('ensure_user_defaults'),
+            queryClient.prefetchQuery({
+              queryKey: ['user-composite-data', currentUser.id],
+              queryFn: async () => {
+                const { data: profileData } = await supabase
+                  .from('profiles')
+                  .select(`
+                    id, name, user_id, mentoria_completed, last_mentoria_date, is_founder,
+                    user_subscriptions(plan, status, current_period_end, purchase_type)
+                  `)
+                  .eq('user_id', currentUser.id)
+                  .maybeSingle();
+
+                const { data: assessmentsData } = await supabase
+                  .from('assessments')
+                  .select('id, updated_at')
+                  .eq('user_id', profileData?.id || '')
+                  .order('updated_at', { ascending: false })
+                  .limit(100);
+
+                const subscriptionData = profileData?.user_subscriptions;
+                const purchaseType = subscriptionData?.purchase_type || 'subscription';
+
+                return {
+                  profile: profileData ? {
+                    id: profileData.id,
+                    name: profileData.name,
+                    user_id: profileData.user_id || '',
+                    mentoria_completed: profileData.mentoria_completed,
+                    last_mentoria_date: profileData.last_mentoria_date,
+                    is_founder: profileData.is_founder,
+                  } : null,
+                  subscription: subscriptionData ? {
+                    plan: subscriptionData.plan,
+                    status: subscriptionData.status,
+                    current_period_end: subscriptionData.current_period_end 
+                      ? new Date(subscriptionData.current_period_end) 
+                      : null,
+                    purchase_type: purchaseType,
+                    isOneTimePurchase: purchaseType === 'one_time',
+                  } : {
+                    plan: 'free',
+                    status: 'active',
+                    current_period_end: null,
+                    purchase_type: 'subscription',
+                    isOneTimePurchase: false,
+                  },
+                  assessmentsCount: assessmentsData?.length || 0,
+                  lastAssessmentDate: assessmentsData?.[0]?.updated_at || null,
+                };
+              },
+            }),
+          ]).catch((error) => {
+            if (import.meta.env.DEV) {
+              console.error('[AuthContext] Error in parallel bootstrap:', error);
             }
-          })();
+          });
         }
 
         if (event === 'SIGNED_OUT') {
@@ -241,10 +290,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [toast, queryClient]);
 
-  const signUp = async (email: string, password: string, name?: string) => {
+  const signUp = async (email: string, password: string, name?: string, returnTo?: string) => {
     setIsLoading(true);
     try {
-      const redirectUrl = `${window.location.origin}/?new_user=true`;
+      // Incluir returnTo en el redirect URL si existe
+      let redirectUrl = `${window.location.origin}/?new_user=true`;
+      if (returnTo) {
+        redirectUrl += `&returnTo=${encodeURIComponent(returnTo)}`;
+      }
       
       const { error } = await supabase.auth.signUp({
         email,
@@ -301,12 +354,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (returnTo?: string) => {
     try {
+      // Incluir returnTo en el redirect URL si existe
+      let redirectUrl = window.location.origin;
+      if (returnTo) {
+        redirectUrl += `?returnTo=${encodeURIComponent(returnTo)}`;
+      }
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: redirectUrl,
         },
       });
 

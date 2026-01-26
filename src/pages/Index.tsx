@@ -24,9 +24,9 @@ const Index = () => {
   const { trackEvent } = useMixpanelTracking();
   const { premium, loading: pricingLoading } = usePricing();
 
-  // Mostrar loading mientras se determina a dónde redirigir al usuario autenticado
+  // Mostrar skeleton loading mientras se determina a dónde redirigir al usuario autenticado
   if (isRedirecting) {
-    return <LoadingScreen isFading={isFading} />;
+    return <LoadingScreen isFading={isFading} variant="skeleton" />;
   }
 
   const premiumBenefits = [
