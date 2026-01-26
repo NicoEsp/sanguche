@@ -201,7 +201,7 @@ serve(async (req) => {
         attributes: {
           checkout_data: {
             email: checkoutEmail,
-            name: userName,
+            ...(userName && { name: userName }),
             custom: {
               anonymous_checkout: String(isAnonymousCheckout),
               checkout_intent_id: checkoutIntentId,
