@@ -22,6 +22,7 @@ export function useHomeRedirect() {
   const { hasActivePremium, loading: subscriptionLoading } = useSubscription();
   const hasRedirectedRef = useRef(false);
   const [isFading, setIsFading] = useState(false);
+  const [destination, setDestination] = useState<string | null>(null);
   
   useEffect(() => {
     // Solo ejecutar una vez por sesión de componente
@@ -50,22 +51,25 @@ export function useHomeRedirect() {
     setIsFading(true);
     
     // Determinar destino - priorizar returnTo si existe
-    let destination: string;
+    let dest: string;
     
     if (returnTo) {
       // Decodificar y usar la ruta de origen
-      destination = decodeURIComponent(returnTo);
+      dest = decodeURIComponent(returnTo);
     } else if (!hasAssessment) {
-      destination = '/autoevaluacion';
+      dest = '/autoevaluacion';
     } else if (hasActivePremium) {
-      destination = '/progreso';
+      dest = '/progreso';
     } else {
-      destination = '/mejoras';
+      dest = '/mejoras';
     }
+    
+    // Guardar destino para el skeleton loading
+    setDestination(dest);
     
     // Navegar después del fade-out
     setTimeout(() => {
-      navigate(destination, { replace: true });
+      navigate(dest, { replace: true });
     }, FADE_DURATION);
     
   }, [
@@ -85,5 +89,5 @@ export function useHomeRedirect() {
   const isLoading = authLoading || assessmentLoading || subscriptionLoading;
   const isRedirecting = isAuthenticated && (isLoading || !hasRedirectedRef.current);
 
-  return { isRedirecting, isFading };
+  return { isRedirecting, isFading, destination };
 }
