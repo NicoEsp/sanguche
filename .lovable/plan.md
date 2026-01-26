@@ -1,184 +1,273 @@
 
 
-## Plan: Implementar Login con Google OAuth
+## Plan: Optimización de Flujo Post-Login y Redirección por Origen
 
-### Parte 1: Configuración Manual (Debes hacer esto primero)
+### Resumen
 
----
-
-#### Paso 1: Crear proyecto en Google Cloud Console
-
-1. Ir a [Google Cloud Console](https://console.cloud.google.com/)
-2. En el menú superior, hacer clic en el selector de proyecto
-3. Hacer clic en **"Nuevo Proyecto"**
-4. Nombre sugerido: `ProductPrepa Auth`
-5. Hacer clic en **"Crear"**
+Este plan aborda cuatro objetivos principales:
+1. **Optimizar el flujo post-login** reduciendo tiempos de carga con skeleton loading y paralelización
+2. **Cambiar el modo por defecto en `/auth`** de login a registro
+3. **Destacar los enlaces de cambio de modo** como botones en lugar de text links
+4. **Preservar la ruta de origen** para que usuarios que llegan desde `/preguntas` vuelvan ahí después del registro
 
 ---
 
-#### Paso 2: Configurar la Pantalla de Consentimiento OAuth
+### Parte 1: Preservar Ruta de Origen (Nueva)
 
-1. En el menú lateral, ir a **APIs & Services → OAuth consent screen**
-2. Seleccionar **"External"** como tipo de usuario
-3. Hacer clic en **"Create"**
-4. Completar los campos obligatorios:
-   - **App name**: `ProductPrepa`
-   - **User support email**: Tu email
-   - **Developer contact email**: Tu email
-5. Hacer clic en **"Save and Continue"**
-6. En **Scopes**, hacer clic en "Add or Remove Scopes" y agregar:
-   - `openid`
-   - `.../auth/userinfo.email`
-   - `.../auth/userinfo.profile`
-7. Hacer clic en **"Save and Continue"** hasta terminar
+#### 1.1 Problema identificado
 
----
-
-#### Paso 3: Crear Credenciales OAuth
-
-1. En el menú lateral, ir a **APIs & Services → Credentials**
-2. Hacer clic en **"+ Create Credentials"** → **"OAuth Client ID"**
-3. Seleccionar **"Web application"** como tipo
-4. Nombre: `ProductPrepa Web`
-5. En **Authorized JavaScript origins**, agregar:
+Cuando un usuario no autenticado intenta acceder a `/preguntas`:
+1. `ProtectedRoute` guarda la ubicación en `state={{ from: location }}`
+2. Redirige a `/auth`
+3. **Pero** cuando el usuario se registra, el `signUp` usa un redirect fijo:
+   ```typescript
+   const redirectUrl = `${window.location.origin}/?new_user=true`;
    ```
-   https://productprepa.com
-   https://sanguche.lovable.app
-   http://localhost:8080
-   ```
-6. En **Authorized redirect URIs**, agregar:
-   ```
-   https://lgscevufwnetegglgpnw.supabase.co/auth/v1/callback
-   ```
-7. Hacer clic en **"Create"**
-8. **IMPORTANTE**: Copiar el **Client ID** y **Client Secret** que aparecen
+4. Después de verificar email, llega a `/` y `useHomeRedirect` lo lleva a `/autoevaluacion`
 
----
+#### 1.2 Solución
 
-#### Paso 4: Configurar Google en Supabase
+Modificar el flujo para incluir la ruta de origen:
 
-1. Ir al [Dashboard de Supabase - Providers](https://supabase.com/dashboard/project/lgscevufwnetegglgpnw/auth/providers)
-2. Buscar **Google** en la lista
-3. Activar el toggle para habilitarlo
-4. Pegar el **Client ID** de Google
-5. Pegar el **Client Secret** de Google
-6. Hacer clic en **"Save"**
+**Archivo: `src/pages/Auth.tsx`**
 
----
-
-### Parte 2: Cambios en el Código
-
-Una vez configurado Google en Supabase, implementaré los siguientes cambios:
-
----
-
-#### 2.1 Crear `GoogleAuthButton.tsx`
-
-Nuevo archivo con el botón estilizado de Google que incluye:
-- Logo SVG oficial de Google con colores correctos
-- Estado de loading
-- Prop para personalizar el texto del botón
-
----
-
-#### 2.2 Actualizar `AuthContext.tsx`
-
-Agregar la función `signInWithGoogle` al contexto:
+Leer el state de location para obtener la ruta de origen:
 
 ```typescript
-// Nuevo método en el interface
-signInWithGoogle: () => Promise<{ error: any }>;
+import { useLocation } from 'react-router-dom';
 
-// Implementación
-const signInWithGoogle = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin,
-    },
-  });
-  
-  if (error) {
-    toast({
-      title: "Error con Google",
-      description: "No se pudo iniciar sesión con Google.",
-      variant: "destructive",
+// En el componente:
+const location = useLocation();
+const fromPath = location.state?.from?.pathname || null;
+```
+
+Pasar la ruta de origen al signUp:
+
+```typescript
+const handleSignUp = async (data: SignUpFormData) => {
+  trackEvent('signup_started', { email: data.email });
+  const { error } = await signUp(data.email, data.password, data.name, fromPath);
+  // ...
+};
+```
+
+**Archivo: `src/contexts/AuthContext.tsx`**
+
+Modificar `signUp` para aceptar la ruta de origen:
+
+```typescript
+const signUp = async (email: string, password: string, name?: string, returnTo?: string) => {
+  setIsLoading(true);
+  try {
+    // Incluir returnTo en el redirect URL
+    let redirectUrl = `${window.location.origin}/?new_user=true`;
+    if (returnTo) {
+      redirectUrl += `&returnTo=${encodeURIComponent(returnTo)}`;
+    }
+    
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: name ? { name } : undefined
+      }
     });
+    // ...
+  }
+};
+```
+
+Igual para `signInWithGoogle`:
+
+```typescript
+const signInWithGoogle = async (returnTo?: string) => {
+  let redirectUrl = window.location.origin;
+  if (returnTo) {
+    redirectUrl += `?returnTo=${encodeURIComponent(returnTo)}`;
   }
   
-  return { error };
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: redirectUrl },
+  });
+  // ...
 };
 ```
 
----
+**Archivo: `src/hooks/useHomeRedirect.ts`**
 
-#### 2.3 Actualizar `LoginForm.tsx`
-
-Agregar el botón de Google arriba del formulario de email:
-
-```tsx
-<GoogleAuthButton 
-  onClick={onGoogleSignIn} 
-  isLoading={isLoading} 
-/>
-
-<div className="relative my-4">
-  <Separator />
-  <span className="bg-background px-2 text-muted-foreground">
-    o continúa con email
-  </span>
-</div>
-
-{/* Form de email existente */}
-```
-
----
-
-#### 2.4 Actualizar `SignUpForm.tsx`
-
-Misma estructura que LoginForm: botón de Google + separador + form de email.
-
----
-
-#### 2.5 Actualizar `Auth.tsx`
-
-Conectar el handler de Google con tracking de Mixpanel:
+Procesar el parámetro `returnTo` para redirigir al origen:
 
 ```typescript
-const { signInWithGoogle } = useAuth();
-
-const handleGoogleSignIn = async () => {
-  trackEvent('google_signin_started');
-  await signInWithGoogle();
-};
+useEffect(() => {
+  // ... código existente ...
+  
+  // Verificar si hay ruta de retorno específica
+  const returnTo = searchParams.get('returnTo');
+  
+  // Limpiar parámetros
+  if (searchParams.has('new_user') || searchParams.has('returnTo')) {
+    searchParams.delete('new_user');
+    searchParams.delete('returnTo');
+    setSearchParams(searchParams, { replace: true });
+  }
+  
+  // Determinar destino
+  let destination: string;
+  
+  // Si hay returnTo, usarlo como destino
+  if (returnTo) {
+    destination = decodeURIComponent(returnTo);
+  } else if (!hasAssessment) {
+    destination = '/autoevaluacion';
+  } else if (hasActivePremium) {
+    destination = '/progreso';
+  } else {
+    destination = '/mejoras';
+  }
+  
+  // Navegar después del fade-out
+  setTimeout(() => {
+    navigate(destination, { replace: true });
+  }, FADE_DURATION);
+  
+}, [/* deps */]);
 ```
 
-Y pasar `onGoogleSignIn={handleGoogleSignIn}` a los forms.
+---
+
+### Parte 2: Optimización del Flujo Post-Login
+
+#### 2.1 Reducir delay de fade-out
+
+**Archivo: `src/hooks/useHomeRedirect.ts`**
+
+Cambiar la constante FADE_DURATION de 300ms a 150ms.
+
+#### 2.2 Implementar Skeleton Loading
+
+**Archivo: `src/components/LoadingScreen.tsx`**
+
+Agregar prop `variant` que permite mostrar skeleton loading:
+
+```typescript
+interface LoadingScreenProps {
+  isFading?: boolean;
+  variant?: 'spinner' | 'skeleton';
+}
+```
+
+El skeleton incluirá:
+- Header skeleton (logo + nav)
+- Grid de 3 cards skeleton
+
+**Archivo: `src/pages/Index.tsx`**
+
+Usar variante skeleton:
+
+```typescript
+if (isRedirecting) {
+  return <LoadingScreen isFading={isFading} variant="skeleton" />;
+}
+```
+
+#### 2.3 Paralelizar llamadas
+
+**Archivo: `src/contexts/AuthContext.tsx`**
+
+Ejecutar `ensure_user_defaults` y prefetch en paralelo:
+
+```typescript
+if (currentUser) {
+  Promise.allSettled([
+    supabase.rpc('ensure_user_defaults'),
+    queryClient.prefetchQuery({
+      queryKey: ['user-composite-data', currentUser.id],
+      // ...
+    }),
+  ]);
+}
+```
 
 ---
 
-#### 2.6 Actualizar `index.ts`
+### Parte 3: Cambiar Modo por Defecto en Auth
 
-Exportar el nuevo componente GoogleAuthButton.
+**Archivo: `src/pages/Auth.tsx`**
 
----
+Cambiar el estado inicial de `mode`:
 
-### Resumen de archivos
-
-| Archivo | Acción |
-|---------|--------|
-| `src/components/auth/GoogleAuthButton.tsx` | Crear |
-| `src/components/auth/index.ts` | Modificar |
-| `src/contexts/AuthContext.tsx` | Modificar |
-| `src/components/auth/LoginForm.tsx` | Modificar |
-| `src/components/auth/SignUpForm.tsx` | Modificar |
-| `src/pages/Auth.tsx` | Modificar |
+```typescript
+const [mode, setMode] = useState<AuthMode>('signup'); // Era 'login'
+```
 
 ---
 
-### Notas Importantes
+### Parte 4: Destacar Enlaces de Cambio de Modo
 
-- **Tracking**: Se agregará evento `google_signin_started` a Mixpanel
-- **Perfiles automáticos**: El trigger `handle_new_user` ya existente creará automáticamente el perfil para usuarios de Google
-- **Redirect**: Después de autenticar, el usuario volverá a la home y será redirigido según su estado (assessment, subscription, etc.)
+**Archivo: `src/pages/Auth.tsx`**
+
+Cambiar los botones de `variant="link"` a `variant="outline"` con `w-full`:
+
+```typescript
+{mode === 'signup' && (
+  <Button
+    variant="outline"
+    className="w-full"
+    onClick={() => setMode('login')}
+  >
+    ¿Ya tienes cuenta? Inicia sesión
+  </Button>
+)}
+
+{mode === 'login' && (
+  <>
+    <Button
+      variant="outline"
+      className="w-full"
+      onClick={() => setMode('signup')}
+    >
+      ¿No tienes cuenta? Regístrate
+    </Button>
+    <Button
+      variant="ghost"
+      className="text-sm block mx-auto"
+      onClick={() => setMode('reset')}
+    >
+      ¿Olvidaste tu contraseña?
+    </Button>
+  </>
+)}
+```
+
+---
+
+### Resumen de Archivos a Modificar
+
+| Archivo | Cambios |
+|---------|---------|
+| `src/hooks/useHomeRedirect.ts` | Reducir fade + procesar `returnTo` |
+| `src/components/LoadingScreen.tsx` | Agregar variante skeleton |
+| `src/pages/Index.tsx` | Usar variante skeleton |
+| `src/contexts/AuthContext.tsx` | Paralelizar + pasar `returnTo` en signUp/signInWithGoogle |
+| `src/pages/Auth.tsx` | Modo default = signup + botones destacados + pasar `fromPath` |
+
+---
+
+### Flujo Final Esperado
+
+Usuario llega a `/preguntas` sin autenticar:
+
+```text
+/preguntas → (no auth) → /auth?state={from: "/preguntas"}
+     ↓
+Registro con email + verificación
+     ↓
+Click en email → /?new_user=true&returnTo=/preguntas
+     ↓
+useHomeRedirect detecta returnTo
+     ↓
+Redirige a /preguntas ✓
+```
 
