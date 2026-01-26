@@ -369,7 +369,7 @@ export default function Planes() {
                 icon={<BookOpen className="w-6 h-6 text-primary" />}
                 badge="Nuevo"
                 features={[
-                  "Fundamentos de estrategia de producto",
+                  "Fundamentos de Estrategia de Producto",
                   "Frameworks para empezar",
                   "Ejercicios prácticos",
                   "Acceso de por vida",
