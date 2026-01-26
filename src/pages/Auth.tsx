@@ -28,11 +28,16 @@ export default function Auth() {
   const [isRecoveryReady, setIsRecoveryReady] = useState(false);
   const recoveryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const { signIn, signUp, resetPassword, resendConfirmation, updatePassword, isLoading, isAuthenticated, session } = useAuth();
+  const { signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation, updatePassword, isLoading, isAuthenticated, session } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { trackEvent } = useMixpanelTracking();
   const { toast } = useToast();
+
+  const handleGoogleSignIn = async () => {
+    trackEvent('google_signin_started');
+    await signInWithGoogle();
+  };
 
   // Detectar token de recovery en URL hash (viene del email de Supabase)
   // IMPORTANTE: NO limpiar el hash aquí - Supabase necesita procesarlo primero
@@ -196,11 +201,11 @@ export default function Auth() {
           
           <CardContent className="space-y-4">
             {mode === 'login' && (
-              <LoginForm onSubmit={handleLogin} isLoading={isLoading} />
+              <LoginForm onSubmit={handleLogin} onGoogleSignIn={handleGoogleSignIn} isLoading={isLoading} />
             )}
 
             {mode === 'signup' && (
-              <SignUpForm onSubmit={handleSignUp} isLoading={isLoading} />
+              <SignUpForm onSubmit={handleSignUp} onGoogleSignIn={handleGoogleSignIn} isLoading={isLoading} />
             )}
 
             {mode === 'reset' && (
