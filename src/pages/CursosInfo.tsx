@@ -127,13 +127,13 @@ export default function CursosInfo() {
           <div className="max-w-4xl mx-auto">
             <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-card to-primary/5">
               <CardContent className="p-0">
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Course Image */}
-                  <div className="relative aspect-video md:aspect-auto overflow-hidden">
+                <div className="flex flex-col">
+                  {/* Course Image - Full width, no cropping */}
+                  <div className="relative w-full">
                     <img 
                       src="https://lgscevufwnetegglgpnw.supabase.co/storage/v1/object/public/course-thumbnails/estrategia-de-producto-para-principiantes-1768839792745.jpeg"
                       alt="Curso Estrategia de Producto para principiantes"
-                      className="w-full h-full object-cover"
+                      className="w-full h-auto rounded-t-lg"
                     />
                     <div className="absolute bottom-4 left-4">
                       <Badge variant="nuevo">
@@ -143,8 +143,8 @@ export default function CursosInfo() {
                     </div>
                   </div>
 
-                  {/* Course Details */}
-                  <div className="p-6 md:py-8">
+                  {/* Course Details - Below image */}
+                  <div className="p-6">
                     <div className="flex items-center gap-2 mb-3">
                       <Badge variant="outline">Nivel: Principiante</Badge>
                       <Badge variant="secondary">
