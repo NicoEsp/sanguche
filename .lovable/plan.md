@@ -1,244 +1,174 @@
 
 
-## Plan: Optimización de Flujo Post-Login y Redirección por Origen
+## Plan: Skeleton Loading Específico por Página Destino
 
 ### Resumen
 
-Este plan aborda cuatro objetivos principales:
-1. **Optimizar el flujo post-login** reduciendo tiempos de carga con skeleton loading y paralelización
-2. **Cambiar el modo por defecto en `/auth`** de login a registro
-3. **Destacar los enlaces de cambio de modo** como botones en lugar de text links
-4. **Preservar la ruta de origen** para que usuarios que llegan desde `/preguntas` vuelvan ahí después del registro
+Este plan modifica el sistema de skeleton loading durante la redirección para que muestre una animación más específica que coincida con el layout real de cada página destino (`/progreso`, `/mejoras`, `/autoevaluacion`).
 
 ---
 
-### Parte 1: Preservar Ruta de Origen (Nueva)
+### Análisis de Layouts Existentes
 
-#### 1.1 Problema identificado
+El proyecto ya tiene skeletons específicos en `src/components/skeletons/`:
 
-Cuando un usuario no autenticado intenta acceder a `/preguntas`:
-1. `ProtectedRoute` guarda la ubicación en `state={{ from: location }}`
-2. Redirige a `/auth`
-3. **Pero** cuando el usuario se registra, el `signUp` usa un redirect fijo:
-   ```typescript
-   const redirectUrl = `${window.location.origin}/?new_user=true`;
-   ```
-4. Después de verificar email, llega a `/` y `useHomeRedirect` lo lleva a `/autoevaluacion`
+| Skeleton | Estructura |
+|----------|------------|
+| `SkeletonProgress` | Header + 3 columnas (Cards con objetivos) |
+| `SkeletonAssessment` | Título + Card con 4 preguntas (radio groups de 5 opciones) |
+| `SkeletonMentoria` | Título + Grid 3 columnas + 2 Cards verticales |
 
-#### 1.2 Solución
-
-Modificar el flujo para incluir la ruta de origen:
-
-**Archivo: `src/pages/Auth.tsx`**
-
-Leer el state de location para obtener la ruta de origen:
-
-```typescript
-import { useLocation } from 'react-router-dom';
-
-// En el componente:
-const location = useLocation();
-const fromPath = location.state?.from?.pathname || null;
-```
-
-Pasar la ruta de origen al signUp:
-
-```typescript
-const handleSignUp = async (data: SignUpFormData) => {
-  trackEvent('signup_started', { email: data.email });
-  const { error } = await signUp(data.email, data.password, data.name, fromPath);
-  // ...
-};
-```
-
-**Archivo: `src/contexts/AuthContext.tsx`**
-
-Modificar `signUp` para aceptar la ruta de origen:
-
-```typescript
-const signUp = async (email: string, password: string, name?: string, returnTo?: string) => {
-  setIsLoading(true);
-  try {
-    // Incluir returnTo en el redirect URL
-    let redirectUrl = `${window.location.origin}/?new_user=true`;
-    if (returnTo) {
-      redirectUrl += `&returnTo=${encodeURIComponent(returnTo)}`;
-    }
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: name ? { name } : undefined
-      }
-    });
-    // ...
-  }
-};
-```
-
-Igual para `signInWithGoogle`:
-
-```typescript
-const signInWithGoogle = async (returnTo?: string) => {
-  let redirectUrl = window.location.origin;
-  if (returnTo) {
-    redirectUrl += `?returnTo=${encodeURIComponent(returnTo)}`;
-  }
-  
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: redirectUrl },
-  });
-  // ...
-};
-```
-
-**Archivo: `src/hooks/useHomeRedirect.ts`**
-
-Procesar el parámetro `returnTo` para redirigir al origen:
-
-```typescript
-useEffect(() => {
-  // ... código existente ...
-  
-  // Verificar si hay ruta de retorno específica
-  const returnTo = searchParams.get('returnTo');
-  
-  // Limpiar parámetros
-  if (searchParams.has('new_user') || searchParams.has('returnTo')) {
-    searchParams.delete('new_user');
-    searchParams.delete('returnTo');
-    setSearchParams(searchParams, { replace: true });
-  }
-  
-  // Determinar destino
-  let destination: string;
-  
-  // Si hay returnTo, usarlo como destino
-  if (returnTo) {
-    destination = decodeURIComponent(returnTo);
-  } else if (!hasAssessment) {
-    destination = '/autoevaluacion';
-  } else if (hasActivePremium) {
-    destination = '/progreso';
-  } else {
-    destination = '/mejoras';
-  }
-  
-  // Navegar después del fade-out
-  setTimeout(() => {
-    navigate(destination, { replace: true });
-  }, FADE_DURATION);
-  
-}, [/* deps */]);
-```
+**Problema actual**: `LoadingScreen` muestra un skeleton genérico de 3 columnas para todas las páginas, sin importar el destino.
 
 ---
 
-### Parte 2: Optimización del Flujo Post-Login
+### Solución Propuesta
 
-#### 2.1 Reducir delay de fade-out
+Agregar una prop `destination` al `LoadingScreen` que determine qué skeleton renderizar según la página destino.
 
-**Archivo: `src/hooks/useHomeRedirect.ts`**
+---
 
-Cambiar la constante FADE_DURATION de 300ms a 150ms.
+### Cambios Requeridos
 
-#### 2.2 Implementar Skeleton Loading
+#### 1. Actualizar `LoadingScreen.tsx`
 
-**Archivo: `src/components/LoadingScreen.tsx`**
-
-Agregar prop `variant` que permite mostrar skeleton loading:
+**Agregar nuevo prop `destination`**:
 
 ```typescript
 interface LoadingScreenProps {
   isFading?: boolean;
   variant?: 'spinner' | 'skeleton';
+  destination?: '/progreso' | '/mejoras' | '/autoevaluacion' | null;
 }
 ```
 
-El skeleton incluirá:
-- Header skeleton (logo + nav)
-- Grid de 3 cards skeleton
-
-**Archivo: `src/pages/Index.tsx`**
-
-Usar variante skeleton:
+**Importar skeletons específicos**:
 
 ```typescript
+import SkeletonProgress from "@/components/skeletons/SkeletonProgress";
+import SkeletonAssessment from "@/components/skeletons/SkeletonAssessment";
+```
+
+**Crear nuevo skeleton para `/mejoras` (SkillGaps)**:
+
+```typescript
+const SkeletonMejoras = () => (
+  <div className="container mx-auto px-4 py-8 space-y-8">
+    {/* Header: Título + descripción */}
+    <div className="space-y-3">
+      <Skeleton className="h-10 w-3/4 max-w-md" />
+      <Skeleton className="h-5 w-1/2 max-w-sm" />
+    </div>
+    
+    {/* Sección: Tus fortalezas */}
+    <div className="space-y-4">
+      <Skeleton className="h-7 w-40" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-20 rounded-md" />
+        ))}
+      </div>
+    </div>
+    
+    {/* Sección: Competencias sólidas */}
+    <div className="space-y-4">
+      <Skeleton className="h-7 w-48" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {[1, 2].map((i) => (
+          <Skeleton key={i} className="h-20 rounded-md" />
+        ))}
+      </div>
+    </div>
+    
+    {/* Sección: Áreas de mejora */}
+    <div className="space-y-4">
+      <Skeleton className="h-7 w-44" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-20 rounded-md" />
+        ))}
+      </div>
+    </div>
+    
+    {/* CTAs */}
+    <div className="flex gap-3">
+      <Skeleton className="h-10 w-48" />
+      <Skeleton className="h-10 w-24" />
+    </div>
+  </div>
+);
+```
+
+**Lógica de selección de skeleton**:
+
+```typescript
+if (variant === 'skeleton') {
+  const renderSkeleton = () => {
+    switch (destination) {
+      case '/progreso':
+        return <SkeletonProgress />;
+      case '/autoevaluacion':
+        return <SkeletonAssessment />;
+      case '/mejoras':
+        return <SkeletonMejoras />;
+      default:
+        // Skeleton genérico como fallback
+        return <GenericSkeleton />;
+    }
+  };
+
+  return (
+    <div className={cn("min-h-screen bg-background", isFading && "animate-fade-out")}>
+      {renderSkeleton()}
+    </div>
+  );
+}
+```
+
+---
+
+#### 2. Actualizar `useHomeRedirect.ts`
+
+**Exponer la variable `destination`** para que `Index.tsx` pueda pasarla al `LoadingScreen`:
+
+```typescript
+export function useHomeRedirect() {
+  // ... código existente ...
+  const [destination, setDestination] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // ... lógica existente ...
+    
+    // Guardar destino antes de navegar
+    setDestination(dest);
+    
+    setTimeout(() => {
+      navigate(dest, { replace: true });
+    }, FADE_DURATION);
+  }, [/* deps */]);
+
+  return { isRedirecting, isFading, destination };
+}
+```
+
+---
+
+#### 3. Actualizar `Index.tsx`
+
+**Pasar `destination` al `LoadingScreen`**:
+
+```typescript
+const { isRedirecting, isFading, destination } = useHomeRedirect();
+
 if (isRedirecting) {
-  return <LoadingScreen isFading={isFading} variant="skeleton" />;
+  return (
+    <LoadingScreen 
+      isFading={isFading} 
+      variant="skeleton" 
+      destination={destination as '/progreso' | '/mejoras' | '/autoevaluacion' | null}
+    />
+  );
 }
-```
-
-#### 2.3 Paralelizar llamadas
-
-**Archivo: `src/contexts/AuthContext.tsx`**
-
-Ejecutar `ensure_user_defaults` y prefetch en paralelo:
-
-```typescript
-if (currentUser) {
-  Promise.allSettled([
-    supabase.rpc('ensure_user_defaults'),
-    queryClient.prefetchQuery({
-      queryKey: ['user-composite-data', currentUser.id],
-      // ...
-    }),
-  ]);
-}
-```
-
----
-
-### Parte 3: Cambiar Modo por Defecto en Auth
-
-**Archivo: `src/pages/Auth.tsx`**
-
-Cambiar el estado inicial de `mode`:
-
-```typescript
-const [mode, setMode] = useState<AuthMode>('signup'); // Era 'login'
-```
-
----
-
-### Parte 4: Destacar Enlaces de Cambio de Modo
-
-**Archivo: `src/pages/Auth.tsx`**
-
-Cambiar los botones de `variant="link"` a `variant="outline"` con `w-full`:
-
-```typescript
-{mode === 'signup' && (
-  <Button
-    variant="outline"
-    className="w-full"
-    onClick={() => setMode('login')}
-  >
-    ¿Ya tienes cuenta? Inicia sesión
-  </Button>
-)}
-
-{mode === 'login' && (
-  <>
-    <Button
-      variant="outline"
-      className="w-full"
-      onClick={() => setMode('signup')}
-    >
-      ¿No tienes cuenta? Regístrate
-    </Button>
-    <Button
-      variant="ghost"
-      className="text-sm block mx-auto"
-      onClick={() => setMode('reset')}
-    >
-      ¿Olvidaste tu contraseña?
-    </Button>
-  </>
-)}
 ```
 
 ---
@@ -247,27 +177,34 @@ Cambiar los botones de `variant="link"` a `variant="outline"` con `w-full`:
 
 | Archivo | Cambios |
 |---------|---------|
-| `src/hooks/useHomeRedirect.ts` | Reducir fade + procesar `returnTo` |
-| `src/components/LoadingScreen.tsx` | Agregar variante skeleton |
-| `src/pages/Index.tsx` | Usar variante skeleton |
-| `src/contexts/AuthContext.tsx` | Paralelizar + pasar `returnTo` en signUp/signInWithGoogle |
-| `src/pages/Auth.tsx` | Modo default = signup + botones destacados + pasar `fromPath` |
+| `src/components/LoadingScreen.tsx` | Agregar prop `destination`, importar skeletons, lógica de selección |
+| `src/hooks/useHomeRedirect.ts` | Exponer `destination` en el return |
+| `src/pages/Index.tsx` | Pasar `destination` al `LoadingScreen` |
 
 ---
 
-### Flujo Final Esperado
-
-Usuario llega a `/preguntas` sin autenticar:
+### Flujo Visual Esperado
 
 ```text
-/preguntas → (no auth) → /auth?state={from: "/preguntas"}
+Usuario Premium se autentica
      ↓
-Registro con email + verificación
+useHomeRedirect determina destination = '/progreso'
      ↓
-Click en email → /?new_user=true&returnTo=/preguntas
+Index.tsx renderiza <LoadingScreen destination="/progreso" />
      ↓
-useHomeRedirect detecta returnTo
+LoadingScreen muestra SkeletonProgress (3 columnas con cards de objetivos)
      ↓
-Redirige a /preguntas ✓
+Fade-out → Navega a /progreso
+     ↓
+Transición suave porque el skeleton coincide con el layout real
 ```
+
+---
+
+### Beneficios
+
+1. **Mejor UX percibida**: El skeleton anticipa visualmente el contenido real de la página destino
+2. **Transición más suave**: Reducción del "salto" visual entre loading y contenido
+3. **Reutilización**: Aprovecha los skeletons existentes del proyecto
+4. **Mantenibilidad**: Fácil agregar nuevos destinos en el futuro
 
