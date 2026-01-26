@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Seo } from '@/components/Seo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,20 +23,24 @@ import {
 type AuthMode = 'login' | 'signup' | 'reset' | 'email-verification' | 'update-password';
 
 export default function Auth() {
-  const [mode, setMode] = useState<AuthMode>('login');
+  const [mode, setMode] = useState<AuthMode>('signup'); // Default: signup para optimizar conversión
   const [verificationEmail, setVerificationEmail] = useState('');
   const [isRecoveryReady, setIsRecoveryReady] = useState(false);
   const recoveryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation, updatePassword, isLoading, isAuthenticated, session } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { trackEvent } = useMixpanelTracking();
   const { toast } = useToast();
 
+  // Obtener ruta de origen desde el state de ProtectedRoute
+  const fromPath = location.state?.from?.pathname || null;
+
   const handleGoogleSignIn = async () => {
     trackEvent('google_signin_started');
-    await signInWithGoogle();
+    await signInWithGoogle(fromPath);
   };
 
   // Detectar token de recovery en URL hash (viene del email de Supabase)
@@ -131,10 +135,10 @@ export default function Auth() {
   };
 
   const handleSignUp = async (data: SignUpFormData) => {
-    trackEvent('signup_started', { email: data.email });
-    const { error } = await signUp(data.email, data.password, data.name);
+    trackEvent('signup_started', { email: data.email, from_path: fromPath });
+    const { error } = await signUp(data.email, data.password, data.name, fromPath);
     if (!error) {
-      trackEvent('signup_completed', { email: data.email, name: data.name });
+      trackEvent('signup_completed', { email: data.email, name: data.name, from_path: fromPath });
       setVerificationEmail(data.email);
       setMode('email-verification');
     } else {
@@ -234,19 +238,19 @@ export default function Auth() {
               <Separator />
               
               {mode !== 'email-verification' && mode !== 'update-password' && (
-                <div className="text-center space-y-2">
+                <div className="text-center space-y-3">
                   {mode === 'login' && (
                     <>
                       <Button
-                        variant="link"
-                        className="text-sm"
+                        variant="outline"
+                        className="w-full"
                         onClick={() => setMode('signup')}
                       >
                         ¿No tienes cuenta? Regístrate
                       </Button>
                       <Button
-                        variant="link"
-                        className="text-sm block mx-auto"
+                        variant="ghost"
+                        className="text-sm"
                         onClick={() => setMode('reset')}
                       >
                         ¿Olvidaste tu contraseña?
@@ -256,8 +260,8 @@ export default function Auth() {
                   
                   {mode === 'signup' && (
                     <Button
-                      variant="link"
-                      className="text-sm"
+                      variant="outline"
+                      className="w-full"
                       onClick={() => setMode('login')}
                     >
                       ¿Ya tienes cuenta? Inicia sesión
@@ -266,8 +270,8 @@ export default function Auth() {
                   
                   {mode === 'reset' && (
                     <Button
-                      variant="link"
-                      className="text-sm"
+                      variant="outline"
+                      className="w-full"
                       onClick={() => setMode('login')}
                     >
                       Volver al inicio de sesión
