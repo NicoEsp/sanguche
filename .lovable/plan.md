@@ -1,210 +1,77 @@
 
 
-## Plan: Skeleton Loading Específico por Página Destino
+## Plan: Card de Curso con Imagen Completa Arriba
 
-### Resumen
+### Problema Actual
 
-Este plan modifica el sistema de skeleton loading durante la redirección para que muestre una animación más específica que coincida con el layout real de cada página destino (`/progreso`, `/mejoras`, `/autoevaluacion`).
+La card del curso "Estrategia de Producto" en `/cursos-info` tiene un layout de 2 columnas donde:
+- La imagen está a la izquierda con `aspect-video md:aspect-auto` y `object-cover`
+- Esto causa que la imagen se corte para llenar el espacio disponible
 
----
+### Solución
 
-### Análisis de Layouts Existentes
-
-El proyecto ya tiene skeletons específicos en `src/components/skeletons/`:
-
-| Skeleton | Estructura |
-|----------|------------|
-| `SkeletonProgress` | Header + 3 columnas (Cards con objetivos) |
-| `SkeletonAssessment` | Título + Card con 4 preguntas (radio groups de 5 opciones) |
-| `SkeletonMentoria` | Título + Grid 3 columnas + 2 Cards verticales |
-
-**Problema actual**: `LoadingScreen` muestra un skeleton genérico de 3 columnas para todas las páginas, sin importar el destino.
+Cambiar el layout de la card del curso destacado para que muestre:
+1. **Arriba**: La imagen completa sin recortar
+2. **Abajo**: Toda la información del curso (badges, título, descripción, features, precio, CTAs)
 
 ---
 
-### Solución Propuesta
+### Cambios en `src/pages/CursosInfo.tsx`
 
-Agregar una prop `destination` al `LoadingScreen` que determine qué skeleton renderizar según la página destino.
+#### Modificar la sección Featured Course (líneas 125-208)
 
----
-
-### Cambios Requeridos
-
-#### 1. Actualizar `LoadingScreen.tsx`
-
-**Agregar nuevo prop `destination`**:
-
-```typescript
-interface LoadingScreenProps {
-  isFading?: boolean;
-  variant?: 'spinner' | 'skeleton';
-  destination?: '/progreso' | '/mejoras' | '/autoevaluacion' | null;
-}
+**De**:
+```jsx
+<div className="grid md:grid-cols-2 gap-6">
+  {/* Course Image */}
+  <div className="relative aspect-video md:aspect-auto overflow-hidden">
+    <img ... className="w-full h-full object-cover" />
+  </div>
+  {/* Course Details */}
+  <div className="p-6 md:py-8">
+    ...
+  </div>
+</div>
 ```
 
-**Importar skeletons específicos**:
-
-```typescript
-import SkeletonProgress from "@/components/skeletons/SkeletonProgress";
-import SkeletonAssessment from "@/components/skeletons/SkeletonAssessment";
-```
-
-**Crear nuevo skeleton para `/mejoras` (SkillGaps)**:
-
-```typescript
-const SkeletonMejoras = () => (
-  <div className="container mx-auto px-4 py-8 space-y-8">
-    {/* Header: Título + descripción */}
-    <div className="space-y-3">
-      <Skeleton className="h-10 w-3/4 max-w-md" />
-      <Skeleton className="h-5 w-1/2 max-w-sm" />
-    </div>
-    
-    {/* Sección: Tus fortalezas */}
-    <div className="space-y-4">
-      <Skeleton className="h-7 w-40" />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-20 rounded-md" />
-        ))}
-      </div>
-    </div>
-    
-    {/* Sección: Competencias sólidas */}
-    <div className="space-y-4">
-      <Skeleton className="h-7 w-48" />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {[1, 2].map((i) => (
-          <Skeleton key={i} className="h-20 rounded-md" />
-        ))}
-      </div>
-    </div>
-    
-    {/* Sección: Áreas de mejora */}
-    <div className="space-y-4">
-      <Skeleton className="h-7 w-44" />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-20 rounded-md" />
-        ))}
-      </div>
-    </div>
-    
-    {/* CTAs */}
-    <div className="flex gap-3">
-      <Skeleton className="h-10 w-48" />
-      <Skeleton className="h-10 w-24" />
+**A**:
+```jsx
+<div className="flex flex-col">
+  {/* Course Image - Full width, no cropping */}
+  <div className="relative w-full">
+    <img 
+      src="..."
+      alt="Curso Estrategia de Producto para principiantes"
+      className="w-full h-auto object-contain rounded-t-lg"
+    />
+    <div className="absolute bottom-4 left-4">
+      <Badge variant="nuevo">
+        <Calendar className="w-3 h-3 mr-1" />
+        Lanza 31 de enero
+      </Badge>
     </div>
   </div>
-);
+
+  {/* Course Details - Below image */}
+  <div className="p-6">
+    {/* ... badges, título, descripción, features, precio, CTA ... */}
+  </div>
+</div>
 ```
 
-**Lógica de selección de skeleton**:
+### Detalles técnicos
 
-```typescript
-if (variant === 'skeleton') {
-  const renderSkeleton = () => {
-    switch (destination) {
-      case '/progreso':
-        return <SkeletonProgress />;
-      case '/autoevaluacion':
-        return <SkeletonAssessment />;
-      case '/mejoras':
-        return <SkeletonMejoras />;
-      default:
-        // Skeleton genérico como fallback
-        return <GenericSkeleton />;
-    }
-  };
-
-  return (
-    <div className={cn("min-h-screen bg-background", isFading && "animate-fade-out")}>
-      {renderSkeleton()}
-    </div>
-  );
-}
-```
-
----
-
-#### 2. Actualizar `useHomeRedirect.ts`
-
-**Exponer la variable `destination`** para que `Index.tsx` pueda pasarla al `LoadingScreen`:
-
-```typescript
-export function useHomeRedirect() {
-  // ... código existente ...
-  const [destination, setDestination] = useState<string | null>(null);
-  
-  useEffect(() => {
-    // ... lógica existente ...
-    
-    // Guardar destino antes de navegar
-    setDestination(dest);
-    
-    setTimeout(() => {
-      navigate(dest, { replace: true });
-    }, FADE_DURATION);
-  }, [/* deps */]);
-
-  return { isRedirecting, isFading, destination };
-}
-```
-
----
-
-#### 3. Actualizar `Index.tsx`
-
-**Pasar `destination` al `LoadingScreen`**:
-
-```typescript
-const { isRedirecting, isFading, destination } = useHomeRedirect();
-
-if (isRedirecting) {
-  return (
-    <LoadingScreen 
-      isFading={isFading} 
-      variant="skeleton" 
-      destination={destination as '/progreso' | '/mejoras' | '/autoevaluacion' | null}
-    />
-  );
-}
-```
-
----
-
-### Resumen de Archivos a Modificar
-
-| Archivo | Cambios |
-|---------|---------|
-| `src/components/LoadingScreen.tsx` | Agregar prop `destination`, importar skeletons, lógica de selección |
-| `src/hooks/useHomeRedirect.ts` | Exponer `destination` en el return |
-| `src/pages/Index.tsx` | Pasar `destination` al `LoadingScreen` |
-
----
-
-### Flujo Visual Esperado
-
-```text
-Usuario Premium se autentica
-     ↓
-useHomeRedirect determina destination = '/progreso'
-     ↓
-Index.tsx renderiza <LoadingScreen destination="/progreso" />
-     ↓
-LoadingScreen muestra SkeletonProgress (3 columnas con cards de objetivos)
-     ↓
-Fade-out → Navega a /progreso
-     ↓
-Transición suave porque el skeleton coincide con el layout real
-```
-
----
+| Propiedad | Antes | Después |
+|-----------|-------|---------|
+| Layout | `grid md:grid-cols-2` | `flex flex-col` |
+| Imagen contenedor | `aspect-video md:aspect-auto overflow-hidden` | `relative w-full` |
+| Imagen estilo | `object-cover` (recorta) | `object-contain` o `h-auto` (muestra completa) |
+| Content padding | `p-6 md:py-8` | `p-6` (consistente) |
 
 ### Beneficios
 
-1. **Mejor UX percibida**: El skeleton anticipa visualmente el contenido real de la página destino
-2. **Transición más suave**: Reducción del "salto" visual entre loading y contenido
-3. **Reutilización**: Aprovecha los skeletons existentes del proyecto
-4. **Mantenibilidad**: Fácil agregar nuevos destinos en el futuro
+1. **Imagen completa visible**: Sin recorte ni distorsión
+2. **Mejor jerarquía visual**: La imagen como hero, contenido debajo
+3. **Responsive natural**: La imagen escala proporcionalmente en todos los dispositivos
+4. **Consistencia mobile/desktop**: Mismo layout en todas las pantallas
 
