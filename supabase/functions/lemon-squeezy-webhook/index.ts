@@ -44,6 +44,9 @@ interface LemonSqueezyWebhookEvent {
       user_email?: string;
       customer_email?: string;
       user_name?: string;
+      total?: number; // Total amount in cents (includes discounts)
+      subtotal?: number;
+      discount_total?: number;
     };
   };
 }
@@ -277,6 +280,10 @@ serve(async (req) => {
       case 'order_created':
         console.log(`[Webhook] Processing order_created - Plan: ${planConfig?.plan || 'unknown'}, Type: ${planConfig?.purchaseType || 'unknown'}`);
         
+        // Extract the actual paid amount (with discounts applied)
+        const orderTotal = event!.data.attributes.total;
+        console.log(`[Webhook] Order total (with discounts): ${orderTotal} centavos`);
+        
         // For one-time purchases, activate the plan immediately
         if (planConfig?.purchaseType === 'one_time') {
           console.log('[Webhook] One-time purchase detected, activating plan:', planConfig.plan);
@@ -291,6 +298,7 @@ serve(async (req) => {
               lemon_squeezy_variant_id: variantId,
               lemon_squeezy_order_id: orderId,
               lemon_squeezy_customer_id: customerId,
+              paid_amount: orderTotal || null, // Store actual paid amount
               // No current_period_end for one-time purchases (permanent access)
               current_period_end: null,
               updated_at: new Date().toISOString(),
@@ -301,7 +309,7 @@ serve(async (req) => {
             
           console.log('[Webhook] One-time purchase activated successfully');
         } else {
-          // For subscriptions, just record the order (subscription_created will handle activation)
+          // For subscriptions, record the order with paid_amount (subscription_created will complete activation)
           await supabase
             .from('user_subscriptions')
             .upsert({
@@ -309,6 +317,7 @@ serve(async (req) => {
               lemon_squeezy_order_id: orderId,
               lemon_squeezy_customer_id: customerId,
               lemon_squeezy_variant_id: variantId,
+              paid_amount: orderTotal || null, // Store actual paid amount
               updated_at: new Date().toISOString(),
             }, { 
               onConflict: 'user_id',
