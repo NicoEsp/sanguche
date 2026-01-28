@@ -3,7 +3,7 @@ import { Seo } from "@/components/Seo";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { assessmentSchema, DOMAINS, OPTIONAL_DOMAINS, type AssessmentValues, type OptionalAssessmentValues, computeSeniorityScore, type DomainKey, type OptionalDomainKey } from "@/utils/scoring";
+import { assessmentSchema, DOMAINS, OPTIONAL_DOMAINS, type AssessmentValues, type OptionalAssessmentValues, computeSeniorityScore, type DomainKey, type OptionalDomainKey, type AssessmentResult } from "@/utils/scoring";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Constantes para localStorage
 const ASSESSMENT_IN_PROGRESS_KEY = 'assessment_in_progress';
@@ -41,6 +42,7 @@ const ASSESSMENT_PARTIAL_ANSWERS_KEY = 'assessment_partial_answers';
 
 export default function Assessment() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedDomain, setSelectedDomain] = useState<DomainKey | null>(null);
   const [isReevaluating, setIsReevaluating] = useState(false);
@@ -49,6 +51,10 @@ export default function Assessment() {
   const [isSaving, setIsSaving] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [optionalValues, setOptionalValues] = useState<OptionalAssessmentValues>({});
+  
+  // Estado local para mostrar resultados inmediatamente después de guardar
+  const [localResult, setLocalResult] = useState<AssessmentResult | null>(null);
+  const [localValues, setLocalValues] = useState<AssessmentValues | null>(null);
   
   const isMobile = useIsMobile();
   const totalSteps = DOMAINS.length + OPTIONAL_DOMAINS.length;
@@ -248,6 +254,9 @@ export default function Assessment() {
   const handleStartReevaluation = () => {
     setIsReevaluating(true);
     setCurrentStep(0);
+    // Limpiar resultado local para permitir nueva evaluación
+    setLocalResult(null);
+    setLocalValues(null);
     // Marcar que hay una evaluación en progreso
     localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
     // Limpiar respuestas parciales previas
@@ -303,24 +312,32 @@ export default function Assessment() {
       const result = computeSeniorityScore(data, hasOptionalAnswers ? optionalValues : undefined);
       const timeSpent = Math.round((Date.now() - assessmentStartTime) / 1000); // segundos
       
-      await saveAssessment(data, hasOptionalAnswers ? optionalValues : undefined, result, supabase);
-    
-    // Track assessment completion
-    trackEvent('assessment_completed', {
-      total_score: result.promedioGlobal,
-      estimated_level: result.nivel,
-      time_spent_seconds: timeSpent,
-      gaps_count: result.gaps?.length || 0,
-      strengths_count: result.strengths?.length || 0
-    });
-    
-    // Actualizar propiedades del usuario
-    setUserProperties({
-      assessment_completed: true,
-      estimated_level: result.nivel,
-      last_assessment_date: new Date().toISOString()
-    });
+      // Guardar resultado localmente para mostrar inmediatamente
+      setLocalResult(result);
+      setLocalValues(data);
       
+      // Guardar en servidor (async)
+      await saveAssessment(data, hasOptionalAnswers ? optionalValues : undefined, result, supabase);
+      
+      // Invalidar cache para sincronizar con servidor
+      await queryClient.invalidateQueries({ queryKey: ['assessment-data'] });
+    
+      // Track assessment completion
+      trackEvent('assessment_completed', {
+        total_score: result.promedioGlobal,
+        estimated_level: result.nivel,
+        time_spent_seconds: timeSpent,
+        gaps_count: result.gaps?.length || 0,
+        strengths_count: result.strengths?.length || 0
+      });
+      
+      // Actualizar propiedades del usuario
+      setUserProperties({
+        assessment_completed: true,
+        estimated_level: result.nivel,
+        last_assessment_date: new Date().toISOString()
+      });
+        
       toast({ title: "Autoevaluación guardada", description: `Nivel estimado: ${result.nivel} (promedio ${result.promedioGlobal})` });
       
       // Limpiar las flags de evaluación en progreso
@@ -333,6 +350,10 @@ export default function Assessment() {
       // Scroll suave al top para que vea su resultado
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
+      // Limpiar resultado local en caso de error
+      setLocalResult(null);
+      setLocalValues(null);
+      
       if (import.meta.env.DEV) {
         console.error('Error guardando evaluación:', error);
       }
@@ -387,7 +408,7 @@ export default function Assessment() {
           )}
         </div>
         <p className="text-muted-foreground mb-4">
-          {hasAssessment && !isReevaluating
+          {(hasAssessment || localResult) && !isReevaluating
             ? "Estos son tus resultados"
             : "Elegí la afirmación que mejor describa tu experiencia en cada dominio."}
         </p>
@@ -399,7 +420,13 @@ export default function Assessment() {
           </div>
         )}
 
-        {!assessmentLoading && hasAssessment && !isReevaluating && savedResult && (
+        {/* Usar resultado local si existe, sino el del servidor */}
+        {(() => {
+          const effectiveResult = localResult || savedResult;
+          const effectiveValues = localValues || savedValues;
+          const effectiveHasAssessment = hasAssessment || !!localResult;
+          
+          return !assessmentLoading && effectiveHasAssessment && !isReevaluating && effectiveResult && (
           <div className="space-y-6">
             <div className="p-6 rounded-lg border bg-card animate-fade-in hover:shadow-lg transition-all">
               <h2 className="text-lg font-semibold mb-4">Tu última autoevaluación</h2>
@@ -410,7 +437,7 @@ export default function Assessment() {
                   <div className="w-36 h-36 rounded-full border-4 border-primary/20 bg-primary/5 flex flex-col items-center justify-center animate-scale-in">
                     <Star className="h-6 w-6 text-primary mb-1" />
                     <span className="text-4xl font-bold text-primary">
-                      {savedResult.promedioGlobal}
+                      {effectiveResult.promedioGlobal}
                     </span>
                     <span className="text-xs text-muted-foreground uppercase tracking-wider">
                       Promedio
@@ -419,15 +446,15 @@ export default function Assessment() {
                 </div>
                 
                 {/* Profile estimate */}
-                {savedResult.profileEstimate && (
+                {effectiveResult.profileEstimate && (
                   <div className="text-sm text-center text-muted-foreground max-w-md mt-2">
-                    <p className="mb-2">{savedResult.profileEstimate}</p>
-                    {savedResult.ctaInfo && (
+                    <p className="mb-2">{effectiveResult.profileEstimate}</p>
+                    {effectiveResult.ctaInfo && (
                       <Link 
                         to={hasActivePremium ? '/mentoria' : '/premium'}
                         className="text-primary hover:text-primary/80 font-medium underline transition-colors"
                       >
-                        {savedResult.ctaInfo.text}
+                        {effectiveResult.ctaInfo.text}
                       </Link>
                     )}
                   </div>
@@ -445,7 +472,7 @@ export default function Assessment() {
                     <Trophy className="h-4 w-4 text-primary" />
                     <span className="text-sm text-muted-foreground">Nivel estimado:</span>
                     <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                      {savedResult.nivel}
+                      {effectiveResult.nivel}
                     </Badge>
                   </div>
 
@@ -454,7 +481,7 @@ export default function Assessment() {
                     <Target className="h-4 w-4 text-primary" />
                     <span className="text-sm text-muted-foreground">Especialización:</span>
                     <Badge variant="secondary">
-                      {savedResult.specialization}
+                      {effectiveResult.specialization}
                     </Badge>
                   </div>
 
@@ -483,12 +510,12 @@ export default function Assessment() {
               </div>
             </div>
 
-            {savedValues && (
+            {effectiveValues && (
               <div>
                 <h3 className="text-base font-semibold mb-3">Tus respuestas guardadas</h3>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {DOMAINS.map((d) => {
-                    const score = savedValues ? savedValues[d.key] : undefined;
+                    const score = effectiveValues ? effectiveValues[d.key] : undefined;
                     return (
                       <div key={d.key} className="rounded-md border p-4 bg-card">
                         <div className="font-medium">{d.label}</div>
@@ -513,7 +540,8 @@ export default function Assessment() {
               </Button>
             </div>
           </div>
-        )}
+        );
+        })()}
 
         {isReevaluating && (
           <>
