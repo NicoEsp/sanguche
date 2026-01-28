@@ -1,143 +1,194 @@
 
 
-## Plan: Corregir Pantalla en Blanco Después de Enviar Evaluación
+## Plan: Mejoras al Dashboard de Admin
 
-### Problema
-Después de completar y enviar la autoevaluación, la pantalla queda en blanco porque:
-- El resultado se guarda en Supabase de forma asíncrona
-- La UI cambia a "modo resultados" (`setIsReevaluating(false)`) antes de que el cache de React Query se actualice
-- El hook `useAssessmentData()` tiene un `staleTime` de 5 minutos, así que `savedResult` permanece `null`
+### Resumen de Cambios
 
-### Solución
-Guardar el resultado calculado en estado local (`localResult`) y mostrarlo inmediatamente, sin esperar la respuesta del servidor.
+| # | Problema | Solución |
+|---|----------|----------|
+| 1 | "Crecimiento de Usuarios (30 días)" usa rolling 30 días | Cambiar a mes calendario en curso (ej: "Enero 2026") |
+| 2 | Falta métrica de día con más evaluaciones | Agregar nueva fila con día, cantidad y fecha |
+| 3 | MRR/ARR usa precios base ($120k), no reales ($60k con descuento) | Guardar `total` del webhook y usarlo para calcular MRR |
+| 4 | RePremium no aparece en /admin/suscripciones | Agregar todos los planes al filtro, tabla y badges |
+| 5 | Resumen de Actividad Reciente | Sí, los datos son en tiempo real, actualizados cada vez que cargas el dashboard |
 
 ---
 
-### Cambios en `src/pages/Assessment.tsx`
+### Detalle de Cambios
 
-#### 1. Agregar imports y estado local
+#### 1. Mes en Curso (no últimos 30 días)
 
-```typescript
-import { useQueryClient } from '@tanstack/react-query';
-import type { AssessmentResult, AssessmentValues } from '@/utils/scoring';
+**Archivos:**
+- `src/hooks/useAdminAnalytics.ts`
+- `src/pages/admin/AdminDashboard.tsx`
 
-// Dentro del componente:
-const queryClient = useQueryClient();
-const [localResult, setLocalResult] = useState<AssessmentResult | null>(null);
-const [localValues, setLocalValues] = useState<AssessmentValues | null>(null);
+**Cambios:**
+- Calcular inicio del mes actual (`monthStart = new Date(year, month, 1)`)
+- Filtrar `userGrowth` solo a días del mes actual
+- Agregar `monthName` al objeto analytics (ej: "Enero 2026")
+- Actualizar promedio diario para dividir entre días transcurridos del mes
+
+**UI:**
+- Título: "Crecimiento de Usuarios (Enero 2026)"
+- Promedio: calculado sobre días transcurridos, no 30 fijos
+
+---
+
+#### 2. Día con Más Evaluaciones
+
+**Archivos:**
+- `src/hooks/useAdminAnalytics.ts`
+- `src/pages/admin/AdminDashboard.tsx`
+
+**Cambios:**
+- Agregar cálculo de `peakAssessmentDay` similar a `peakDay` (agrupar assessments por fecha)
+- Nueva propiedad en `AdminAnalytics`: `peakAssessmentDay: { count: number; date: string | null }`
+
+**UI:**
+- Nueva fila en "Crecimiento de Usuarios":
+
 ```
-
-#### 2. Modificar la función `onSubmit` (líneas 297-347)
-
-Después de calcular el resultado, guardarlo localmente ANTES del guardado async:
-
-```typescript
-async function onSubmit(data: AssessmentValues) {
-  setIsSaving(true);
-  
-  try {
-    const hasOptionalAnswers = Object.keys(optionalValues).length > 0;
-    const result = computeSeniorityScore(data, hasOptionalAnswers ? optionalValues : undefined);
-    
-    // NUEVO: Guardar resultado localmente para mostrar inmediatamente
-    setLocalResult(result);
-    setLocalValues(data);
-    
-    // Guardar en servidor (async)
-    await saveAssessment(data, hasOptionalAnswers ? optionalValues : undefined, result, supabase);
-    
-    // Invalidar cache para sincronizar
-    await queryClient.invalidateQueries({ queryKey: ['assessment-data'] });
-    
-    // ... resto igual (tracking, toast, localStorage cleanup, etc.)
-    
-    setIsReevaluating(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } catch (error) {
-    // Limpiar resultado local en caso de error
-    setLocalResult(null);
-    setLocalValues(null);
-    // ... manejo de error existente
-  } finally {
-    setIsSaving(false);
-  }
-}
-```
-
-#### 3. Crear variables para resultado efectivo
-
-Agregar antes del return:
-
-```typescript
-// Usar resultado local si existe, sino el del servidor
-const effectiveResult = localResult || savedResult;
-const effectiveValues = localValues || savedValues;
-const effectiveHasAssessment = hasAssessment || !!localResult;
-```
-
-#### 4. Actualizar condición de renderizado (línea 402)
-
-**Antes:**
-```typescript
-{!assessmentLoading && hasAssessment && !isReevaluating && savedResult && (
-```
-
-**Después:**
-```typescript
-{!assessmentLoading && effectiveHasAssessment && !isReevaluating && effectiveResult && (
-```
-
-#### 5. Reemplazar referencias a `savedResult` y `savedValues`
-
-En el bloque de resultados (líneas 403-516), cambiar:
-- `savedResult` → `effectiveResult`
-- `savedValues` → `effectiveValues`
-
-#### 6. Limpiar estado local al re-evaluar
-
-En `handleStartReevaluation` (líneas 248-255), agregar:
-
-```typescript
-const handleStartReevaluation = () => {
-  setIsReevaluating(true);
-  setCurrentStep(0);
-  setLocalResult(null);  // Limpiar resultado local
-  setLocalValues(null);
-  localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
-  localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
-};
+┌─────────────────────────────────────────────────────────────┐
+│ Día con más evaluaciones                              5     │
+│                                                      15/01  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### Flujo Corregido
+#### 3. MRR/ARR con Precios Reales (Descuentos Aplicados)
 
-```text
-ANTES (problemático):
-Usuario envía → saveAssessment() → setIsReevaluating(false)
-                                    ↓
-                              savedResult = null
-                                    ↓
-                              PANTALLA EN BLANCO
+Este es el cambio más importante. Verificamos que Jonathan Glantz pagó $60,002 ARS (no $120,000) por RePremium con cupón 50%.
 
-DESPUÉS (correcto):
-Usuario envía → computeSeniorityScore() → setLocalResult(result)
-                                           ↓
-                                    setIsReevaluating(false)
-                                           ↓
-                                    effectiveResult = localResult
-                                           ↓
-                                    MUESTRA RESULTADOS INMEDIATAMENTE
+**Paso 1: Migración de Base de Datos**
+
+Agregar columna `paid_amount` a `user_subscriptions`:
+
+```sql
+ALTER TABLE user_subscriptions 
+ADD COLUMN paid_amount integer DEFAULT NULL;
+
+COMMENT ON COLUMN user_subscriptions.paid_amount IS 
+  'Precio efectivamente pagado en centavos (incluye descuentos aplicados)';
 ```
+
+**Paso 2: Modificar Webhook**
+
+**Archivo:** `supabase/functions/lemon-squeezy-webhook/index.ts`
+
+Extraer `total` del evento `order_created` y guardarlo:
+
+```typescript
+// En order_created:
+const orderTotal = event.data.attributes.total; // Ya viene en centavos
+
+// Guardar en user_subscriptions
+await supabase
+  .from('user_subscriptions')
+  .upsert({
+    user_id: userId,
+    paid_amount: orderTotal,  // Precio real pagado
+    // ... resto de campos
+  });
+```
+
+**Paso 3: Modificar Cálculo de MRR**
+
+**Archivo:** `src/hooks/useAdminAnalytics.ts`
+
+1. Agregar `paid_amount` al select de subscriptions
+2. Usar `paid_amount` si existe, sino fallback a precio del plan:
+
+```typescript
+const monthlyPrice = sub.paid_amount 
+  ? sub.paid_amount / 100  // convertir centavos a pesos
+  : (sub.plan === 'premium' ? premiumMonthlyPrice : repremiumMonthlyPrice);
+```
+
+**Paso 4: Backfill Datos Existentes**
+
+Actualizar suscripción de Jonathan Glantz manualmente:
+
+```sql
+UPDATE user_subscriptions 
+SET paid_amount = 6000231  -- $60,002.31 en centavos
+WHERE lemon_squeezy_subscription_id = '1830123';
+```
+
+---
+
+#### 4. RePremium y Otros Planes en /admin/suscripciones
+
+**Archivos:**
+- `src/hooks/useAdminSubscriptions.ts`
+- `src/pages/admin/AdminSubscriptions.tsx`
+
+**Cambios en tipos:**
+
+```typescript
+// SubscriptionFilters
+plan?: 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'all';
+
+// SubscriptionWithProfile
+plan: 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all';
+```
+
+**Cambios en UI:**
+
+1. Agregar opciones al Select de planes:
+   - Todos
+   - Premium
+   - RePremium
+   - Curso Estrategia
+   - Cursos All
+   - Free
+
+2. Actualizar `getPlanBadge()` con colores para cada plan:
+   - Premium: amber
+   - RePremium: purple
+   - Curso Estrategia: blue
+   - Cursos All: cyan
+   - Free: secondary
+
+3. Actualizar `useSubscriptionStats()` para incluir RePremium en conteos.
+
+---
+
+#### 5. Resumen de Actividad Reciente (Confirmación)
+
+Los datos mostrados:
+- **Evaluaciones hoy**: `analytics.assessmentsToday` - cuenta assessments con `created_at >= today`
+- **Usuarios activos (30 días)**: `analytics.activeUsers` - usuarios únicos que hicieron assessment en últimos 30 días
+- **Tasa de conversión**: `analytics.conversionRate` - % de usuarios con plan premium
+- **Opcionales**: `analytics.usersWithOptionalAnswers` - usuarios que completaron Growth/IA
+
+Todos estos datos se calculan en tiempo real cada vez que se carga el dashboard y se actualizan con el botón "Actualizar".
 
 ---
 
 ### Archivos a Modificar
 
-| Archivo | Cambio |
-|---------|--------|
-| `src/pages/Assessment.tsx` | Agregar estado local, modificar onSubmit, actualizar renderizado |
+| Archivo | Cambios |
+|---------|---------|
+| `src/hooks/useAdminAnalytics.ts` | Mes en curso, peakAssessmentDay, MRR con paid_amount |
+| `src/pages/admin/AdminDashboard.tsx` | Título mes, nueva fila evaluaciones |
+| `src/hooks/useAdminSubscriptions.ts` | Tipos con todos los planes |
+| `src/pages/admin/AdminSubscriptions.tsx` | Select y badges para todos los planes |
+| `supabase/functions/lemon-squeezy-webhook/index.ts` | Guardar paid_amount |
+| Migración SQL | Agregar columna paid_amount |
 
-### Riesgo
-**Muy bajo** - El resultado mostrado es idéntico al guardado en Supabase (viene del mismo `computeSeniorityScore()`). No hay cambios en la lógica de guardado ni en la base de datos.
+### Orden de Implementación
+
+1. Migración SQL (agregar columna `paid_amount`)
+2. Webhook (guardar precio real)
+3. Backfill de Jonathan Glantz
+4. Hook de analytics (usar paid_amount para MRR)
+5. Dashboard UI (mes en curso, peak assessment day)
+6. Subscriptions UI (filtros y badges para todos los planes)
+
+### Riesgos
+
+- **Bajo:** Cambios de UI en dashboard son solo visuales
+- **Medio:** Modificación del webhook requiere pruebas (pero no afecta pagos existentes)
+- **Bajo:** Backfill es manual y controlado
 
