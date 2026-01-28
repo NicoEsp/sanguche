@@ -1,119 +1,143 @@
 
-## Plan: Actualizar Sección de Planes en Landing Page
 
-### Situación Actual
-La landing page (`src/pages/Index.tsx`) muestra solo **2 planes**: Gratis y Premium. La página `/planes` ya tiene los **3 planes** con su estructura y beneficios actualizados.
+## Plan: Corregir Pantalla en Blanco Después de Enviar Evaluación
 
-### Cambios a Realizar
+### Problema
+Después de completar y enviar la autoevaluación, la pantalla queda en blanco porque:
+- El resultado se guarda en Supabase de forma asíncrona
+- La UI cambia a "modo resultados" (`setIsReevaluating(false)`) antes de que el cache de React Query se actualice
+- El hook `useAssessmentData()` tiene un `staleTime` de 5 minutos, así que `savedResult` permanece `null`
 
-#### 1. Restructurar la sección "Free vs Premium" → "Nuestros Planes"
+### Solución
+Guardar el resultado calculado en estado local (`localResult`) y mostrarlo inmediatamente, sin esperar la respuesta del servidor.
 
-**Ubicación:** Líneas 168-257 de `src/pages/Index.tsx`
+---
 
-**Cambios:**
-- Título: "Todo lo que necesitas para crecer" → "Elige tu plan"
-- Layout: Grid de 2 columnas → Grid de 3 columnas (responsivo)
-- Agregar el plan **RePremium** con sus beneficios específicos
+### Cambios en `src/pages/Assessment.tsx`
 
-#### 2. Estructura de los 3 Planes
+#### 1. Agregar imports y estado local
 
-| Plan | Precio | Beneficios Clave |
-|------|--------|------------------|
-| **Gratis** | $0/mes | Autoevaluación, áreas de mejora, recursos introductorios |
-| **Premium** | $50.000/mes | Todo gratis + 1 sesión mensual 1:1, Career Path, Starter Pack |
-| **RePremium** | $120.000/mes | Todo Premium + 2 sesiones 1:1, acceso completo a Cursos |
+```typescript
+import { useQueryClient } from '@tanstack/react-query';
+import type { AssessmentResult, AssessmentValues } from '@/utils/scoring';
 
-#### 3. Agregar botón "Ver más detalles"
-- Ubicación: Después de las cards de planes
-- Enlace a `/planes`
-- Estilo: Botón outline con ícono ArrowRight
+// Dentro del componente:
+const queryClient = useQueryClient();
+const [localResult, setLocalResult] = useState<AssessmentResult | null>(null);
+const [localValues, setLocalValues] = useState<AssessmentValues | null>(null);
+```
 
-### Diseño Visual
+#### 2. Modificar la función `onSubmit` (líneas 297-347)
+
+Después de calcular el resultado, guardarlo localmente ANTES del guardado async:
+
+```typescript
+async function onSubmit(data: AssessmentValues) {
+  setIsSaving(true);
+  
+  try {
+    const hasOptionalAnswers = Object.keys(optionalValues).length > 0;
+    const result = computeSeniorityScore(data, hasOptionalAnswers ? optionalValues : undefined);
+    
+    // NUEVO: Guardar resultado localmente para mostrar inmediatamente
+    setLocalResult(result);
+    setLocalValues(data);
+    
+    // Guardar en servidor (async)
+    await saveAssessment(data, hasOptionalAnswers ? optionalValues : undefined, result, supabase);
+    
+    // Invalidar cache para sincronizar
+    await queryClient.invalidateQueries({ queryKey: ['assessment-data'] });
+    
+    // ... resto igual (tracking, toast, localStorage cleanup, etc.)
+    
+    setIsReevaluating(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (error) {
+    // Limpiar resultado local en caso de error
+    setLocalResult(null);
+    setLocalValues(null);
+    // ... manejo de error existente
+  } finally {
+    setIsSaving(false);
+  }
+}
+```
+
+#### 3. Crear variables para resultado efectivo
+
+Agregar antes del return:
+
+```typescript
+// Usar resultado local si existe, sino el del servidor
+const effectiveResult = localResult || savedResult;
+const effectiveValues = localValues || savedValues;
+const effectiveHasAssessment = hasAssessment || !!localResult;
+```
+
+#### 4. Actualizar condición de renderizado (línea 402)
+
+**Antes:**
+```typescript
+{!assessmentLoading && hasAssessment && !isReevaluating && savedResult && (
+```
+
+**Después:**
+```typescript
+{!assessmentLoading && effectiveHasAssessment && !isReevaluating && effectiveResult && (
+```
+
+#### 5. Reemplazar referencias a `savedResult` y `savedValues`
+
+En el bloque de resultados (líneas 403-516), cambiar:
+- `savedResult` → `effectiveResult`
+- `savedValues` → `effectiveValues`
+
+#### 6. Limpiar estado local al re-evaluar
+
+En `handleStartReevaluation` (líneas 248-255), agregar:
+
+```typescript
+const handleStartReevaluation = () => {
+  setIsReevaluating(true);
+  setCurrentStep(0);
+  setLocalResult(null);  // Limpiar resultado local
+  setLocalValues(null);
+  localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
+  localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
+};
+```
+
+---
+
+### Flujo Corregido
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│                         Elige tu plan                                      │
-│    Desde autoevaluación gratuita hasta mentoría y cursos especializados   │
-├────────────────────┬────────────────────┬────────────────────────────────┤
-│                    │                    │                                  │
-│   🥪 Gratis        │   ⭐ Premium       │   👑 RePremium                   │
-│   $0/mes           │   $50.000/mes      │   $120.000/mes                   │
-│                    │   (+35 usuarios)   │   (Nuevo)                        │
-│   ✓ Autoevaluación │   ✓ Todo Gratis    │   ✓ Todo Premium                 │
-│   ✓ Áreas mejora   │   ✓ 1 sesión 1:1   │   ✓ 2 sesiones 1:1               │
-│   ✓ Recursos intro │   ✓ Career Path    │   ✓ Acceso a Cursos              │
-│   ✓ PDFs gratis    │   ✓ Starter Pack   │   ✓ Feedback personalizado       │
-│                    │                    │                                  │
-│   [Comenzar]       │   [Suscribirse]    │   [Suscribirse]                  │
-├────────────────────┴────────────────────┴────────────────────────────────┤
-│                                                                            │
-│                    [ Ver más detalles → ]                                  │
-│                                                                            │
-└──────────────────────────────────────────────────────────────────────────┘
+ANTES (problemático):
+Usuario envía → saveAssessment() → setIsReevaluating(false)
+                                    ↓
+                              savedResult = null
+                                    ↓
+                              PANTALLA EN BLANCO
+
+DESPUÉS (correcto):
+Usuario envía → computeSeniorityScore() → setLocalResult(result)
+                                           ↓
+                                    setIsReevaluating(false)
+                                           ↓
+                                    effectiveResult = localResult
+                                           ↓
+                                    MUESTRA RESULTADOS INMEDIATAMENTE
 ```
 
-### Código a Modificar
+---
 
-**Archivo:** `src/pages/Index.tsx`
+### Archivos a Modificar
 
-**1. Agregar imports necesarios:**
-```typescript
-import { Crown } from "lucide-react";
-```
-
-**2. Agregar hook de pricing para RePremium:**
-```typescript
-const { premium, repremium, loading: pricingLoading } = usePricing();
-```
-
-**3. Definir beneficios de RePremium:**
-```typescript
-const repremiumBenefits = [
-  "Todo lo incluido en Premium",
-  <>2 sesiones mensuales 1:1 con NicoProducto</>,
-  "Acceso completo a todos los Cursos",
-  "Feedback personalizado en ejercicios",
-  "Acceso prioritario a nuevos contenidos"
-];
-```
-
-**4. Actualizar la sección de planes (líneas 168-257):**
-- Cambiar grid de `md:grid-cols-2` a `md:grid-cols-3`
-- Agregar tercera card para RePremium
-- Actualizar título y descripción
-- Agregar botón "Ver más detalles" al final
-
-**5. Ajustes responsivos:**
-- En móvil: Stack vertical de las 3 cards
-- En tablet/desktop: 3 columnas
-
-### Detalles Técnicos
-
-#### Card de Gratis (simplificada)
-- Mantener beneficios actuales
-- Botón: "Comenzar gratis" → `/auth`
-
-#### Card de Premium
-- Badge: "+35 usuarios activos"
-- Border destacado: `border-primary`
-- Usar `LemonSqueezyCheckout` con `plan="premium"`
-
-#### Card de RePremium
-- Badge: "Nuevo" con variant especial
-- Ícono: `Crown` en color amber
-- Usar `LemonSqueezyCheckout` con `plan="repremium"`
-
-#### Botón "Ver más detalles"
-```tsx
-<div className="flex justify-center mt-8">
-  <Button asChild variant="outline" size="lg">
-    <Link to="/planes">
-      Ver más detalles
-      <ArrowRight className="ml-2 h-4 w-4" />
-    </Link>
-  </Button>
-</div>
-```
+| Archivo | Cambio |
+|---------|--------|
+| `src/pages/Assessment.tsx` | Agregar estado local, modificar onSubmit, actualizar renderizado |
 
 ### Riesgo
-**Bajo** - Son cambios visuales y de estructura en la landing page. No afectan la lógica de checkout ni otras funcionalidades.
+**Muy bajo** - El resultado mostrado es idéntico al guardado en Supabase (viene del mismo `computeSeniorityScore()`). No hay cambios en la lógica de guardado ni en la base de datos.
+
