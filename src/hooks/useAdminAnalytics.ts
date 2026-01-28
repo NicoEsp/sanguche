@@ -29,6 +29,7 @@ interface AdminAnalytics {
   premiumCompedUsers: number;
   userGrowth: Array<{ date: string; count: number }>;
   peakDay: { count: number; date: string | null };
+  peakAssessmentDay: { count: number; date: string | null };
   skillGapDistribution: Array<{ 
     skill: string; 
     count: number;
@@ -47,6 +48,9 @@ interface AdminAnalytics {
   avgScoreFree: number;
   avgScorePremium: number;
   usersWithOptionalAnswers: number;
+  // Month info
+  monthName: string;
+  daysElapsedInMonth: number;
   // New detailed metrics
   subscriptionsByPlan: {
     premium: PlanBreakdown;
@@ -54,7 +58,7 @@ interface AdminAnalytics {
     curso_estrategia: { paid: number };
     cursos_all: { paid: number };
   };
-  pricingSource: 'lemonsqueezy' | 'fallback';
+  pricingSource: 'lemonsqueezy' | 'fallback' | 'real';
 }
 
 export function useAdminAnalytics() {
@@ -78,7 +82,7 @@ export function useAdminAnalytics() {
         supabase.functions.invoke('pricing-config'),
         supabase.from('profiles').select('id, created_at, user_id'),
         supabase.from('assessments').select('id, created_at, assessment_result, user_id'),
-        supabase.from('user_subscriptions').select('plan, status, user_id, created_at, lemon_squeezy_subscription_id, is_comped, purchase_type'),
+        supabase.from('user_subscriptions').select('plan, status, user_id, created_at, lemon_squeezy_subscription_id, is_comped, purchase_type, paid_amount'),
       ]);
 
       // Extract pricing data
@@ -103,6 +107,13 @@ export function useAdminAnalytics() {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
       const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      // Current month calculations
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const daysElapsedInMonth = now.getDate();
+      const monthName = now.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      // Capitalize first letter
+      const formattedMonthName = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
       const totalUsers = usersData?.length || 0;
       const totalAssessments = assessmentsData?.length || 0;
@@ -132,6 +143,7 @@ export function useAdminAnalytics() {
 
       let totalMrr = 0;
       let totalPaidRecurrentUsers = 0;
+      let hasRealPricing = false;
 
       subscriptionsData?.forEach(sub => {
         if (sub?.status !== 'active' || sub?.plan === 'free') return;
@@ -145,8 +157,13 @@ export function useAdminAnalytics() {
               subscriptionsByPlan.premium.comped++;
             } else {
               subscriptionsByPlan.premium.paid++;
-              subscriptionsByPlan.premium.mrr += premiumMonthlyPrice;
-              totalMrr += premiumMonthlyPrice;
+              // Use paid_amount if available, otherwise fallback to plan price
+              const monthlyPrice = sub.paid_amount 
+                ? sub.paid_amount / 100 
+                : premiumMonthlyPrice;
+              if (sub.paid_amount) hasRealPricing = true;
+              subscriptionsByPlan.premium.mrr += monthlyPrice;
+              totalMrr += monthlyPrice;
               totalPaidRecurrentUsers++;
             }
             break;
@@ -155,8 +172,13 @@ export function useAdminAnalytics() {
               subscriptionsByPlan.repremium.comped++;
             } else {
               subscriptionsByPlan.repremium.paid++;
-              subscriptionsByPlan.repremium.mrr += repremiumMonthlyPrice;
-              totalMrr += repremiumMonthlyPrice;
+              // Use paid_amount if available, otherwise fallback to plan price
+              const monthlyPrice = sub.paid_amount 
+                ? sub.paid_amount / 100 
+                : repremiumMonthlyPrice;
+              if (sub.paid_amount) hasRealPricing = true;
+              subscriptionsByPlan.repremium.mrr += monthlyPrice;
+              totalMrr += monthlyPrice;
               totalPaidRecurrentUsers++;
             }
             break;
@@ -191,9 +213,10 @@ export function useAdminAnalytics() {
       // ARPU = Average Revenue Per (Paying) User - only divide by users who actually pay for recurrent plans
       const arpu = totalPaidRecurrentUsers > 0 ? mrr / totalPaidRecurrentUsers : 0;
 
+      // User growth for current month only
       const userGrowth: Array<{ date: string; count: number }> = [];
-      for (let i = 29; i >= 0; i--) {
-        const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+      for (let i = daysElapsedInMonth - 1; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
         const dateStr = date.toISOString().split('T')[0];
         const count = usersData?.filter(u => 
           u?.created_at && new Date(u.created_at).toDateString() === date.toDateString()
@@ -201,7 +224,7 @@ export function useAdminAnalytics() {
         userGrowth.push({ date: dateStr, count });
       }
 
-      // Calculate peak day with date
+      // Calculate peak day with date (within current month)
       const peakDayData = userGrowth.reduce((max, day) => 
         day.count > max.count ? day : max, 
         userGrowth[0] || { date: null, count: 0 }
@@ -209,6 +232,22 @@ export function useAdminAnalytics() {
       const peakDay = {
         count: peakDayData?.count || 0,
         date: peakDayData?.date || null
+      };
+
+      // Calculate peak assessment day
+      const assessmentsByDay = new Map<string, number>();
+      assessmentsData?.forEach(a => {
+        if (a?.created_at) {
+          const dateStr = new Date(a.created_at).toISOString().split('T')[0];
+          assessmentsByDay.set(dateStr, (assessmentsByDay.get(dateStr) || 0) + 1);
+        }
+      });
+      const peakAssessmentDayData = Array.from(assessmentsByDay.entries())
+        .reduce((max, [date, count]) => count > max.count ? { date, count } : max, 
+                { date: null as string | null, count: 0 });
+      const peakAssessmentDay = {
+        count: peakAssessmentDayData.count,
+        date: peakAssessmentDayData.date
       };
 
       const skillGapCounts = new Map<string, number>();
@@ -351,6 +390,10 @@ export function useAdminAnalytics() {
       });
       const usersWithOptionalAnswers = usersWithOptionalDomains.size;
 
+      // Determine pricing source
+      const pricingSourceValue: 'lemonsqueezy' | 'fallback' | 'real' = 
+        hasRealPricing ? 'real' : (pricingData?.source === 'lemonsqueezy' ? 'lemonsqueezy' : 'fallback');
+
       const analyticsData: AdminAnalytics = {
         totalUsers,
         activeUsers,
@@ -362,6 +405,7 @@ export function useAdminAnalytics() {
         premiumCompedUsers,
         userGrowth,
         peakDay,
+        peakAssessmentDay,
         skillGapDistribution,
         conversionRate,
         mrr,
@@ -374,8 +418,10 @@ export function useAdminAnalytics() {
         avgScoreFree,
         avgScorePremium,
         usersWithOptionalAnswers,
+        monthName: formattedMonthName,
+        daysElapsedInMonth,
         subscriptionsByPlan,
-        pricingSource,
+        pricingSource: pricingSourceValue,
       };
 
       setAnalytics(analyticsData);

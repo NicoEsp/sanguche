@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface SubscriptionWithProfile {
   id: string;
   user_id: string;
-  plan: 'free' | 'premium';
+  plan: 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all';
   status: 'active' | 'inactive' | 'cancelled';
   lemon_squeezy_subscription_id: string | null;
   lemon_squeezy_customer_id: string | null;
@@ -15,6 +15,7 @@ export interface SubscriptionWithProfile {
   updated_at: string;
   is_comped: boolean;
   admin_notes: string | null;
+  paid_amount: number | null;
   profiles: {
     id: string;
     name: string | null;
@@ -38,7 +39,7 @@ export interface WebhookLog {
 }
 
 export interface SubscriptionFilters {
-  plan?: 'free' | 'premium' | 'all';
+  plan?: 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'all';
   status?: 'active' | 'inactive' | 'cancelled' | 'all';
   search?: string;
   comped?: 'all' | 'paid' | 'comped';
@@ -136,10 +137,20 @@ export function useSubscriptionStats() {
       if (error) throw error;
 
       const total = data.length;
-      const premiumAll = data.filter(s => s.plan === 'premium' && s.status === 'active');
+      
+      // Premium includes premium + repremium
+      const premiumAll = data.filter(s => 
+        (s.plan === 'premium' || s.plan === 'repremium') && s.status === 'active'
+      );
       const premium = premiumAll.length;
       const premiumPaid = premiumAll.filter(s => !s.is_comped).length;
       const premiumComped = premiumAll.filter(s => s.is_comped).length;
+      
+      // Count by specific plans
+      const repremiumCount = data.filter(s => s.plan === 'repremium' && s.status === 'active').length;
+      const cursoEstrategiaCount = data.filter(s => s.plan === 'curso_estrategia' && s.status === 'active').length;
+      const cursosAllCount = data.filter(s => s.plan === 'cursos_all' && s.status === 'active').length;
+      
       const free = data.filter(s => s.plan === 'free').length;
       const withLemonSqueezy = data.filter(s => s.lemon_squeezy_subscription_id).length;
       const conversionRate = total > 0 ? ((premium / total) * 100).toFixed(1) : '0';
@@ -149,6 +160,9 @@ export function useSubscriptionStats() {
         premium,
         premiumPaid,
         premiumComped,
+        repremiumCount,
+        cursoEstrategiaCount,
+        cursosAllCount,
         free,
         withLemonSqueezy,
         conversionRate,

@@ -192,8 +192,8 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               Resumen Financiero
-              <Badge variant={analytics.pricingSource === 'lemonsqueezy' ? 'default' : 'outline'} className="text-xs">
-                {analytics.pricingSource === 'lemonsqueezy' ? 'LemonSqueezy' : 'Fallback'}
+              <Badge variant={analytics.pricingSource === 'real' ? 'default' : analytics.pricingSource === 'lemonsqueezy' ? 'secondary' : 'outline'} className="text-xs">
+                {analytics.pricingSource === 'real' ? 'Precios Reales' : analytics.pricingSource === 'lemonsqueezy' ? 'LemonSqueezy' : 'Fallback'}
               </Badge>
             </CardTitle>
             <CardDescription>Métricas clave de ingresos (solo suscripciones recurrentes)</CardDescription>
@@ -260,14 +260,14 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Crecimiento de Usuarios (30 días)
+              Crecimiento de Usuarios ({analytics.monthName})
             </CardTitle>
-            <CardDescription>Resumen de nuevos registros</CardDescription>
+            <CardDescription>Resumen de nuevos registros del mes</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">Total nuevos usuarios (30 días)</span>
+                <span className="text-sm font-medium">Total nuevos usuarios</span>
                 <span className="text-2xl font-bold text-primary">
                   {analytics.userGrowth.reduce((acc, day) => acc + day.count, 0)}
                 </span>
@@ -275,7 +275,9 @@ export default function AdminDashboard() {
               <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
                 <span className="text-sm font-medium">Promedio diario</span>
                 <span className="text-lg font-semibold">
-                  {Math.round(analytics.userGrowth.reduce((acc, day) => acc + day.count, 0) / 30)}
+                  {analytics.daysElapsedInMonth > 0 
+                    ? Math.round(analytics.userGrowth.reduce((acc, day) => acc + day.count, 0) / analytics.daysElapsedInMonth)
+                    : 0}
                 </span>
               </div>
               <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
@@ -287,6 +289,19 @@ export default function AdminDashboard() {
                   {analytics.peakDay.date && (
                     <span className="text-xs text-muted-foreground">
                       {format(new Date(analytics.peakDay.date), 'dd/MM', { locale: es })}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
+                <span className="text-sm font-medium">Día con más evaluaciones</span>
+                <div className="text-right">
+                  <span className="text-lg font-semibold block">
+                    {analytics.peakAssessmentDay.count}
+                  </span>
+                  {analytics.peakAssessmentDay.date && (
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(analytics.peakAssessmentDay.date), 'dd/MM', { locale: es })}
                     </span>
                   )}
                 </div>

@@ -1085,6 +1085,7 @@ export type Database = {
           lemon_squeezy_order_id: string | null
           lemon_squeezy_subscription_id: string | null
           lemon_squeezy_variant_id: string | null
+          paid_amount: number | null
           plan: Database["public"]["Enums"]["subscription_plan"]
           purchase_type: string | null
           status: Database["public"]["Enums"]["subscription_status"]
@@ -1102,6 +1103,7 @@ export type Database = {
           lemon_squeezy_order_id?: string | null
           lemon_squeezy_subscription_id?: string | null
           lemon_squeezy_variant_id?: string | null
+          paid_amount?: number | null
           plan?: Database["public"]["Enums"]["subscription_plan"]
           purchase_type?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
@@ -1119,6 +1121,7 @@ export type Database = {
           lemon_squeezy_order_id?: string | null
           lemon_squeezy_subscription_id?: string | null
           lemon_squeezy_variant_id?: string | null
+          paid_amount?: number | null
           plan?: Database["public"]["Enums"]["subscription_plan"]
           purchase_type?: string | null
           status?: Database["public"]["Enums"]["subscription_status"]
