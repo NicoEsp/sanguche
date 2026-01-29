@@ -5,6 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Planes con acceso a recursos premium
+const PREMIUM_PLANS = ['premium', 'repremium', 'cursos_all', 'curso_estrategia'];
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -64,7 +67,7 @@ Deno.serve(async (req) => {
         .eq('user_id', profile.id)
         .single();
 
-      if (!subscription || subscription.plan !== 'premium' || subscription.status !== 'active') {
+      if (!subscription || !PREMIUM_PLANS.includes(subscription.plan) || subscription.status !== 'active') {
         throw new Error('Premium subscription required');
       }
     }
