@@ -113,7 +113,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
     plan,
     hasActivePremium: isStillLoading 
       ? undefined 
-      : (isActive && plan === 'premium'),
+      : (isActive && ['premium', 'repremium'].includes(plan || '')),
     hasActiveRePremium: isStillLoading
       ? undefined
       : (isActive && plan === 'repremium'),
