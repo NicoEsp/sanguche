@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { exportToCSV } from '@/utils/csvExport';
 import { getUsersThisMonth, getRecordsLastWeek, getRecordsThisWeek, getLastWeekRange, formatWeekRange } from '@/utils/dateHelpers';
 import { cn } from '@/lib/utils';
+import { isPremiumPlan, getPlanBadgeInfo } from '@/constants/plans';
 
 interface UserProfile {
   id: string;
@@ -438,6 +439,20 @@ export default function AdminUsers() {
     );
   }
 
+  // Helper to render plan badge using centralized constants
+  const renderPlanBadge = (plan?: string, size: 'default' | 'small' = 'default') => {
+    const badgeInfo = getPlanBadgeInfo(plan);
+    const sizeClass = size === 'small' ? 'text-[10px] h-5' : '';
+    return (
+      <Badge 
+        variant={badgeInfo.variant} 
+        className={cn(badgeInfo.className, sizeClass, 'whitespace-nowrap shrink-0')}
+      >
+        {badgeInfo.label}
+      </Badge>
+    );
+  };
+
   if (loading) {
     return <SkeletonAdminTable columns={7} rows={8} showStats statsCount={4} />;
   }
@@ -486,9 +501,9 @@ export default function AdminUsers() {
             <div className="flex items-center gap-2">
               <Crown className="h-4 w-4 text-muted-foreground shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-medium truncate">Premium</p>
+                <p className="text-xs sm:text-sm font-medium truncate">Premium + RePremium</p>
                 <p className="text-xl sm:text-2xl font-bold">
-                  {users.filter(u => u.subscription?.plan === 'premium').length}
+                  {users.filter(u => isPremiumPlan(u.subscription?.plan)).length}
                 </p>
               </div>
             </div>
@@ -611,6 +626,9 @@ export default function AdminUsers() {
                 <SelectItem value="all">Todos los planes</SelectItem>
                 <SelectItem value="free">Gratuito</SelectItem>
                 <SelectItem value="premium">Premium</SelectItem>
+                <SelectItem value="repremium">RePremium</SelectItem>
+                <SelectItem value="curso_estrategia">Curso Estrategia</SelectItem>
+                <SelectItem value="cursos_all">Cursos All</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -632,7 +650,7 @@ export default function AdminUsers() {
           )}
 
           {/* Vista Desktop - Tabla */}
-          <div className="hidden md:block">
+          <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -668,9 +686,7 @@ export default function AdminUsers() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.subscription?.plan === 'premium' ? 'default' : 'secondary'}>
-                        {user.subscription?.plan === 'premium' ? 'Premium' : 'Gratuito'}
-                      </Badge>
+                      {renderPlanBadge(user.subscription?.plan)}
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.role === 'admin' ? 'destructive' : 'outline'}>
@@ -678,7 +694,7 @@ export default function AdminUsers() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {user.subscription?.plan === 'premium' && (
+                      {isPremiumPlan(user.subscription?.plan) && (
                         <Badge variant={user.mentoria_completed ? 'default' : 'secondary'}>
                           {user.mentoria_completed ? '✓ Completada' : '⏳ Pendiente'}
                         </Badge>
@@ -702,7 +718,7 @@ export default function AdminUsers() {
                             className="text-xs"
                           >
                             <ArrowUp className="w-3 h-3 mr-1" />
-                            Upgrade a Premium
+                            Upgrade
                           </Button>
                         )}
                         <Button
@@ -713,7 +729,7 @@ export default function AdminUsers() {
                         >
                           {user.role === 'admin' ? 'Quitar Admin' : 'Hacer Admin'}
                         </Button>
-                        {user.subscription?.plan === 'premium' && (
+                        {isPremiumPlan(user.subscription?.plan) && (
                           <Button
                             variant={user.mentoria_completed ? 'outline' : 'default'}
                             size="sm"
@@ -772,9 +788,7 @@ export default function AdminUsers() {
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0 flex-wrap justify-end">
-                    <Badge variant={user.subscription?.plan === 'premium' ? 'default' : 'secondary'} className="text-[10px] h-5">
-                      {user.subscription?.plan === 'premium' ? 'Premium' : 'Free'}
-                    </Badge>
+                    {renderPlanBadge(user.subscription?.plan, 'small')}
                     {user.is_founder && (
                       <Badge variant="founder" className="text-[10px] h-5">Founder</Badge>
                     )}
@@ -786,7 +800,7 @@ export default function AdminUsers() {
                 
                 <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3 text-xs text-muted-foreground">
                   <span>{new Date(user.created_at).toLocaleDateString('es-ES')}</span>
-                  {user.subscription?.plan === 'premium' && (
+                  {isPremiumPlan(user.subscription?.plan) && (
                     <span>{user.mentoria_completed ? '✓ Mentoría' : '⏳ Pendiente'}</span>
                   )}
                   {user.hasOptionalAnswers && <span>🟣 Opcional</span>}
@@ -813,10 +827,10 @@ export default function AdminUsers() {
                       })}
                       className="text-xs h-8 flex-1 min-w-[100px]"
                     >
-                      <ArrowUp className="w-3 h-3 mr-1" /> Premium
+                      <ArrowUp className="w-3 h-3 mr-1" /> Upgrade
                     </Button>
                   )}
-                  {user.subscription?.plan === 'premium' && (
+                  {isPremiumPlan(user.subscription?.plan) && (
                     <Button
                       variant={user.mentoria_completed ? 'outline' : 'default'}
                       size="sm"
@@ -891,10 +905,13 @@ export default function AdminUsers() {
       </Card>
 
       <PlanUpgradeModal
+        targetUser={upgradeModalUser}
         isOpen={!!upgradeModalUser}
         onClose={() => setUpgradeModalUser(null)}
-        targetUser={upgradeModalUser}
-        onSuccess={fetchUsers}
+        onSuccess={() => {
+          setUpgradeModalUser(null);
+          fetchUsers();
+        }}
       />
 
       <AlertDialog open={!!deleteDialogUser} onOpenChange={(open) => !open && setDeleteDialogUser(null)}>
@@ -902,20 +919,12 @@ export default function AdminUsers() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar usuario permanentemente?</AlertDialogTitle>
             <AlertDialogDescription>
-              Estás a punto de eliminar al usuario <strong>{deleteDialogUser?.name || deleteDialogUser?.email}</strong>.
-              <br/><br/>
-              Esta acción es <strong>irreversible</strong> y eliminará:
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Perfil del usuario</li>
-                <li>Información de suscripción</li>
-                <li>Evaluaciones completadas</li>
-                <li>Todos los datos asociados</li>
-              </ul>
+              Esta acción eliminará permanentemente al usuario <strong>{deleteDialogUser?.name || deleteDialogUser?.email}</strong> y todos sus datos asociados. Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogAction 
               onClick={deleteUser}
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -926,7 +935,7 @@ export default function AdminUsers() {
                   Eliminando...
                 </>
               ) : (
-                'Eliminar Usuario'
+                'Eliminar usuario'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
