@@ -5,8 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Planes con acceso a recursos premium
-const PREMIUM_PLANS = ['premium', 'repremium', 'cursos_all', 'curso_estrategia'];
+// Planes con acceso a recursos premium del Starter Pack
+// Solo premium y repremium tienen este beneficio (cursos_all y curso_estrategia solo tienen acceso a cursos)
+const PREMIUM_PLANS = ['premium', 'repremium'];
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
