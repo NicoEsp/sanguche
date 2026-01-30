@@ -736,11 +736,11 @@ export default function AdminUsers() {
                             onClick={() => toggleMentoriaStatus(user.id, user.mentoria_completed)}
                             className="text-xs"
                             title={user.mentoria_completed ? 
-                              'Bloquear recomendaciones y recursos personalizados' : 
-                              'Desbloquear recomendaciones y recursos personalizados'
+                              'Ocultar ejercicios y recursos asignados' : 
+                              'Mostrar ejercicios y recursos asignados'
                             }
                           >
-                            {user.mentoria_completed ? '🔒 Bloquear Contenido' : '🔓 Desbloquear Contenido'}
+                            {user.mentoria_completed ? '✓ Mentoría' : '⏳ Pendiente'}
                           </Button>
                         )}
                         <Button
@@ -837,7 +837,7 @@ export default function AdminUsers() {
                       onClick={() => toggleMentoriaStatus(user.id, user.mentoria_completed)}
                       className="text-xs h-8 flex-1 min-w-[100px]"
                     >
-                      {user.mentoria_completed ? '🔒 Bloquear' : '🔓 Desbloquear'}
+                      {user.mentoria_completed ? '✓ Mentoría' : '⏳ Pendiente'}
                     </Button>
                   )}
                   <Button

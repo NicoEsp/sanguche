@@ -117,7 +117,7 @@ export default function AdminMentoriaDetail() {
                   } else {
                     toast({
                       title: "✅ Mentoría completada",
-                      description: "El usuario ahora tiene acceso a todo el contenido avanzado"
+                      description: "El usuario ahora puede ver ejercicios y recursos asignados"
                     });
                     
                     // Invalidate queries to refresh data
