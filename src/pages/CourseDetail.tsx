@@ -62,25 +62,53 @@ export default function CourseDetail() {
     }
   }, [progressStats.isCompleted, course]);
 
-  // Build JSON-LD schema for individual course
-  const courseSchema = course ? {
-    "@context": "https://schema.org",
-    "@type": "Course",
-    "name": course.title,
-    "description": course.description || "",
-    "provider": {
-      "@type": "Organization",
-      "name": "ProductPrepa",
-      "sameAs": "https://productprepa.com"
+  // Build JSON-LD schema for individual course with Breadcrumbs
+  const courseSchema = course ? [
+    // Course Schema
+    {
+      "@context": "https://schema.org",
+      "@type": "Course",
+      "name": course.title,
+      "description": course.description || "",
+      "provider": {
+        "@type": "Organization",
+        "name": "ProductPrepa",
+        "sameAs": "https://productprepa.com"
+      },
+      "hasCourseInstance": {
+        "@type": "CourseInstance",
+        "courseMode": "online",
+        "courseWorkload": `PT${course.duration_minutes || 30}M`
+      },
+      ...(course.thumbnail_url && { "image": course.thumbnail_url }),
+      "url": `https://productprepa.com/cursos/${course.slug}`
     },
-    "hasCourseInstance": {
-      "@type": "CourseInstance",
-      "courseMode": "online",
-      "courseWorkload": `PT${course.duration_minutes || 30}M`
-    },
-    ...(course.thumbnail_url && { "image": course.thumbnail_url }),
-    "url": `https://productprepa.com/cursos/${course.slug}`
-  } : undefined;
+    // BreadcrumbList Schema
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Inicio",
+          "item": "https://productprepa.com"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Cursos",
+          "item": "https://productprepa.com/cursos-info"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": course.title,
+          "item": `https://productprepa.com/cursos/${course.slug}`
+        }
+      ]
+    }
+  ] : undefined;
 
   const activeLesson = lessonsWithProgress.find((l) => l.id === activeLessonId);
 
