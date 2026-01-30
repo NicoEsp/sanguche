@@ -15,6 +15,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { usePricing } from "@/hooks/usePricing";
 import { CourseInquiryCta } from "@/components/planes/CourseInquiryCta";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface PlanCardProps {
   name: React.ReactNode;
@@ -208,38 +214,78 @@ export default function Planes() {
 
   const isFreePlan = !hasActivePremium && !hasActiveRePremium && !hasCursoEstrategia && !hasCursosAll;
 
-  const planesSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "name": "Planes y Precios | ProductPrepa",
-    "description": "Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados.",
-    "offers": [
-      {
-        "@type": "Offer",
-        "name": "Plan Premium",
-        "price": pricingLoading ? 0 : premium.amount / 100,
-        "priceCurrency": "ARS",
-        "availability": "https://schema.org/InStock",
-        "itemOffered": {
-          "@type": "Service",
-          "name": "Mentoría Premium ProductPrepa",
-          "description": "Sesión mensual 1:1, Career Path personalizado, recursos curados"
+  // FAQs data for Planes
+  const planesFaqs = [
+    {
+      question: "¿Puedo cancelar mi suscripción cuando quiera?",
+      answer: "Sí, todos los planes de suscripción se pueden cancelar en cualquier momento desde tu perfil. No hay compromisos de permanencia."
+    },
+    {
+      question: "¿Qué incluye la mentoría 1:1?",
+      answer: "Cada mes tendrás una sesión de 45 minutos con NicoProducto donde revisamos tu progreso, definimos objetivos concretos y trabajamos en tus áreas de mejora específicas."
+    },
+    {
+      question: "¿Qué diferencia hay entre Premium y RePremium?",
+      answer: "RePremium incluye todo lo de Premium más 2 sesiones mensuales en lugar de 1, acceso completo a todos los cursos, feedback personalizado en ejercicios y un canal directo de comunicación."
+    },
+    {
+      question: "¿Cómo funciona el pago único de los cursos?",
+      answer: "Al comprar un curso con pago único, tienes acceso de por vida al contenido. No hay suscripción ni renovaciones automáticas."
+    },
+    {
+      question: "¿Puedo probar antes de pagar?",
+      answer: "Sí, el Plan Gratuito incluye la autoevaluación completa y acceso a recursos introductorios. Así puedes conocer la plataforma antes de suscribirte."
+    }
+  ];
+
+  const planesSchema = [
+    // WebPage Schema with Offers
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Planes y Precios | ProductPrepa",
+      "description": "Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados.",
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Plan Premium",
+          "price": pricingLoading ? 0 : premium.amount / 100,
+          "priceCurrency": "ARS",
+          "availability": "https://schema.org/InStock",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Mentoría Premium ProductPrepa",
+            "description": "Sesión mensual 1:1, Career Path personalizado, recursos curados"
+          }
+        },
+        {
+          "@type": "Offer",
+          "name": "Plan RePremium",
+          "price": pricingLoading ? 0 : repremium.amount / 100,
+          "priceCurrency": "ARS",
+          "availability": "https://schema.org/InStock",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Mentoría RePremium ProductPrepa",
+            "description": "Todo Premium + acceso a todos los cursos"
+          }
         }
-      },
-      {
-        "@type": "Offer",
-        "name": "Plan RePremium",
-        "price": pricingLoading ? 0 : repremium.amount / 100,
-        "priceCurrency": "ARS",
-        "availability": "https://schema.org/InStock",
-        "itemOffered": {
-          "@type": "Service",
-          "name": "Mentoría RePremium ProductPrepa",
-          "description": "Todo Premium + acceso a todos los cursos"
+      ]
+    },
+    // FAQPage Schema
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": planesFaqs.map(faq => ({
+        "@type": "Question",
+        "name": faq.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.answer
         }
-      }
-    ]
-  };
+      }))
+    }
+  ];
 
   return (
     <>
@@ -247,7 +293,7 @@ export default function Planes() {
         title="Planes y Precios | ProductPrepa" 
         description="Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados." 
         canonical="/planes" 
-        keywords="precios productprepa, planes suscripción, premium PM, mentoría producto, cursos PM"
+        keywords="precios productprepa, planes suscripción, premium PM, mentoría producto, cursos PM, mentoría product manager precio, curso PM con tutor, inversión formación producto"
         jsonLd={planesSchema}
       />
       
@@ -565,7 +611,30 @@ export default function Planes() {
 
         {/* Social Proof - Hidden for now */}
 
-        {/* FAQ/Help Section */}
+        {/* FAQ Section */}
+        <section className="py-12 px-4 bg-muted/30">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-2xl font-bold text-center mb-2">Preguntas frecuentes</h2>
+            <p className="text-center text-muted-foreground mb-8">
+              Todo lo que necesitás saber sobre nuestros planes
+            </p>
+            
+            <Accordion type="single" collapsible className="w-full">
+              {planesFaqs.map((faq, index) => (
+                <AccordionItem key={index} value={`item-${index}`}>
+                  <AccordionTrigger className="text-left">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </section>
+
+        {/* Help Section */}
         <section className="py-8 px-4 mb-8">
           <div className="max-w-4xl mx-auto text-center">
             <p className="text-sm text-muted-foreground">

@@ -16,69 +16,135 @@ import {
   ArrowRight,
   Sparkles,
   Target,
-  Users
+  Users,
+  ChevronDown
 } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function CursosInfo() {
   const { user, isAuthenticated } = useAuth();
   const { profile } = useUserProfile();
   const { curso_estrategia, cursos_all, loading: pricingLoading } = usePricing();
 
-  const cursosInfoSchema = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    "name": "Cursos de Producto - ProductPrepa",
-    "description": "Cursos especializados para Product Managers. Aprende Estrategia de Producto con videos cortos y ejercicios prácticos.",
-    "itemListElement": [
-      {
-        "@type": "Course",
-        "@id": "https://productprepa.com/cursos/estrategia-producto",
-        "position": 1,
-        "name": "Estrategia de Producto para principiantes",
-        "description": "Aprende los conceptos básicos de lo que implica una Estrategia de Producto y cuáles son los frameworks más importantes.",
-        "provider": {
-          "@type": "Organization",
-          "name": "ProductPrepa",
-          "url": "https://productprepa.com"
-        },
-        "courseMode": "online",
-        "educationalLevel": "Beginner",
-        "inLanguage": "es",
-        "hasCourseInstance": {
-          "@type": "CourseInstance",
+  // FAQs data
+  const faqs = [
+    {
+      question: "¿Cuánto dura el curso Estrategia de Producto?",
+      answer: "El curso tiene una duración de 80 minutos, dividido en videos cortos de menos de 10 minutos cada uno para que puedas avanzar a tu ritmo."
+    },
+    {
+      question: "¿Los cursos tienen acceso de por vida?",
+      answer: "Sí, todos nuestros cursos incluyen acceso de por vida con un único pago. Además, recibirás actualizaciones futuras sin costo adicional."
+    },
+    {
+      question: "¿Puedo acceder desde el celular?",
+      answer: "Sí, la plataforma es 100% responsive y puedes ver los videos y hacer ejercicios desde cualquier dispositivo."
+    },
+    {
+      question: "¿Qué pasa si compro el curso y lanzan nuevos contenidos?",
+      answer: "Al comprar el curso tienes acceso a todas las actualizaciones futuras del mismo curso sin costo adicional. Si quieres acceso a nuevos cursos, puedes optar por el bundle 'Todos los Cursos'."
+    },
+    {
+      question: "¿Los cursos tienen certificado?",
+      answer: "Los cursos incluyen certificado de finalización que puedes compartir en LinkedIn una vez completes todas las lecciones y ejercicios."
+    }
+  ];
+
+  const cursosInfoSchema = [
+    // ItemList Schema for courses
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "Cursos de Producto - ProductPrepa",
+      "description": "Cursos especializados para Product Managers. Aprende Estrategia de Producto con videos cortos y ejercicios prácticos.",
+      "itemListElement": [
+        {
+          "@type": "Course",
+          "@id": "https://productprepa.com/cursos/estrategia-producto",
+          "position": 1,
+          "name": "Estrategia de Producto para principiantes",
+          "description": "Aprende los conceptos básicos de lo que implica una Estrategia de Producto y cuáles son los frameworks más importantes.",
+          "provider": {
+            "@type": "Organization",
+            "name": "ProductPrepa",
+            "url": "https://productprepa.com"
+          },
           "courseMode": "online",
-          "duration": "PT80M"
+          "educationalLevel": "Beginner",
+          "inLanguage": "es",
+          "hasCourseInstance": {
+            "@type": "CourseInstance",
+            "courseMode": "online",
+            "duration": "PT80M"
+          },
+          "offers": {
+            "@type": "Offer",
+            "price": pricingLoading ? 0 : curso_estrategia.amount / 100,
+            "priceCurrency": "ARS",
+            "availability": "https://schema.org/PreOrder"
+          }
         },
-        "offers": {
-          "@type": "Offer",
-          "price": pricingLoading ? 0 : curso_estrategia.amount / 100,
-          "priceCurrency": "ARS",
-          "availability": "https://schema.org/PreOrder"
-        }
-      },
-      {
-        "@type": "Course",
-        "@id": "https://productprepa.com/cursos/pm-101",
-        "position": 2,
-        "name": "Product Management 101",
-        "description": "Introducción gratuita a Product Management. Perfecto para quienes recién comienzan.",
-        "provider": {
-          "@type": "Organization",
-          "name": "ProductPrepa",
-          "url": "https://productprepa.com"
-        },
-        "courseMode": "online",
-        "educationalLevel": "Beginner",
-        "inLanguage": "es",
-        "isAccessibleForFree": true,
-        "hasCourseInstance": {
-          "@type": "CourseInstance",
+        {
+          "@type": "Course",
+          "@id": "https://productprepa.com/cursos/pm-101",
+          "position": 2,
+          "name": "Product Management 101",
+          "description": "Introducción gratuita a Product Management. Perfecto para quienes recién comienzan.",
+          "provider": {
+            "@type": "Organization",
+            "name": "ProductPrepa",
+            "url": "https://productprepa.com"
+          },
           "courseMode": "online",
-          "duration": "PT45M"
+          "educationalLevel": "Beginner",
+          "inLanguage": "es",
+          "isAccessibleForFree": true,
+          "hasCourseInstance": {
+            "@type": "CourseInstance",
+            "courseMode": "online",
+            "duration": "PT45M"
+          }
         }
-      }
-    ]
-  };
+      ]
+    },
+    // BreadcrumbList Schema
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Inicio",
+          "item": "https://productprepa.com"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Cursos",
+          "item": "https://productprepa.com/cursos-info"
+        }
+      ]
+    },
+    // FAQPage Schema
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": faqs.map(faq => ({
+        "@type": "Question",
+        "name": faq.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.answer
+        }
+      }))
+    }
+  ];
 
   return (
     <>
@@ -86,7 +152,7 @@ export default function CursosInfo() {
         title="Cursos de Producto | Estrategia, Discovery y más - ProductPrepa"
         description="Aprende Estrategia de Producto con cursos cortos y prácticos. Videos de menos de 10 minutos, ejercicios aplicables y acceso de por vida. Ideal para principiantes."
         canonical="/cursos-info"
-        keywords="cursos Estrategia de Producto, curso product manager principiantes, formación PM online, aprender product management, curso estrategia producto, cursos PM gratis"
+        keywords="cursos Estrategia de Producto, curso product manager principiantes, formación PM online, aprender product management, curso estrategia producto, cursos PM gratis, como ser product manager sin experiencia, curso estrategia de producto online, formación product manager latinoamérica, curso PM en español"
         jsonLd={cursosInfoSchema}
       />
 
@@ -296,6 +362,29 @@ export default function CursosInfo() {
                 </Link>
               </Button>
             </Card>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="px-4 py-12 bg-muted/30">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-2xl font-bold text-center mb-2">Preguntas frecuentes</h2>
+            <p className="text-center text-muted-foreground mb-8">
+              Todo lo que necesitás saber sobre nuestros cursos
+            </p>
+            
+            <Accordion type="single" collapsible className="w-full">
+              {faqs.map((faq, index) => (
+                <AccordionItem key={index} value={`item-${index}`}>
+                  <AccordionTrigger className="text-left">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
         </section>
 
