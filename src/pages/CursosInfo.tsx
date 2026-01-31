@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Seo } from "@/components/Seo";
 import { CourseInquiryCta } from "@/components/planes/CourseInquiryCta";
+import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { usePricing } from "@/hooks/usePricing";
-import { 
+import {
   BookOpen, 
   Clock, 
   Calendar, 
@@ -247,7 +248,7 @@ export default function CursosInfo() {
                       </ul>
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-2xl font-bold">
@@ -259,12 +260,22 @@ export default function CursosInfo() {
                         </div>
                         <span className="text-sm text-muted-foreground">pago único</span>
                       </div>
-                      <Button asChild>
-                        <Link to="/planes">
-                          Ver planes
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </Link>
-                      </Button>
+                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <LemonSqueezyCheckout 
+                          plan="curso_estrategia"
+                          variant="default"
+                          size="default"
+                          className="w-full sm:w-auto"
+                        >
+                          Comprar ahora
+                        </LemonSqueezyCheckout>
+                        <Button asChild variant="outline">
+                          <Link to="/planes">
+                            Ver planes
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
