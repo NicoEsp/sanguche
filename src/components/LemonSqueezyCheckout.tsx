@@ -13,6 +13,10 @@ export type PlanType = 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_al
 interface LemonSqueezyCheckoutProps {
   plan?: PlanType;
   buttonText?: string;
+  children?: React.ReactNode;
+  variant?: "default" | "outline" | "ghost" | "secondary" | "destructive" | "link";
+  size?: "default" | "sm" | "lg" | "icon";
+  className?: string;
   onSuccess?: () => void;
   onError?: (error: string) => void;
   onCheckoutStart?: () => void;
@@ -21,6 +25,10 @@ interface LemonSqueezyCheckoutProps {
 export function LemonSqueezyCheckout({ 
   plan = 'premium',
   buttonText,
+  children,
+  variant = 'default',
+  size = 'lg',
+  className,
   onSuccess, 
   onError, 
   onCheckoutStart 
@@ -159,8 +167,9 @@ export function LemonSqueezyCheckout({
   return (
     <>
       <Button 
-        size="lg" 
-        className="w-full min-h-[44px]" 
+        size={size}
+        variant={variant}
+        className={className ?? "w-full min-h-[44px]"} 
         onClick={handleButtonClick}
         disabled={loading}
       >
@@ -170,7 +179,7 @@ export function LemonSqueezyCheckout({
             Redirigiendo a checkout...
           </>
         ) : (
-          buttonText || getDefaultButtonText()
+          children || buttonText || getDefaultButtonText()
         )}
       </Button>
       
