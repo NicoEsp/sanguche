@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Loader2 } from "lucide-react";
 import { z } from "zod";
+import type { PlanType } from "./LemonSqueezyCheckout";
 
 const emailSchema = z.string().email("Por favor ingresa un email válido");
 
@@ -13,11 +14,43 @@ interface EmailCaptureDialogProps {
   onOpenChange: (open: boolean) => void;
   onEmailSubmit: (email: string) => void;
   isLoading: boolean;
+  plan?: PlanType;
 }
 
-export function EmailCaptureDialog({ open, onOpenChange, onEmailSubmit, isLoading }: EmailCaptureDialogProps) {
+const getDialogContent = (plan?: PlanType) => {
+  switch (plan) {
+    case 'curso_estrategia':
+      return {
+        title: "Ingresa tu email para comprar",
+        description: "Al completar tu pago, tendrás acceso de por vida al curso Estrategia de Producto.",
+        securityNote: "🔒 Pago único y seguro. Acceso de por vida."
+      };
+    case 'cursos_all':
+      return {
+        title: "Ingresa tu email para comprar",
+        description: "Al completar tu pago, tendrás acceso de por vida a todos los cursos actuales y futuros.",
+        securityNote: "🔒 Pago único y seguro. Acceso de por vida."
+      };
+    case 'repremium':
+      return {
+        title: "Ingresa tu email para suscribirte",
+        description: "Al completar tu pago, tendrás acceso a RePremium con 2 sesiones mensuales 1:1 y todos los cursos.",
+        securityNote: "🔒 Pago seguro procesado por Lemon Squeezy. Cancela cuando quieras."
+      };
+    default: // premium
+      return {
+        title: "Ingresa tu email para suscribirte",
+        description: "Al completar tu pago, tendrás acceso a tu mentoría Premium con sesión mensual 1:1.",
+        securityNote: "🔒 Pago seguro procesado por Lemon Squeezy. Cancela cuando quieras."
+      };
+  }
+};
+
+export function EmailCaptureDialog({ open, onOpenChange, onEmailSubmit, isLoading, plan }: EmailCaptureDialogProps) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+
+  const content = getDialogContent(plan);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,10 +72,10 @@ export function EmailCaptureDialog({ open, onOpenChange, onEmailSubmit, isLoadin
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="w-5 h-5 text-primary" />
-            Ingresa tu email para continuar
+            {content.title}
           </DialogTitle>
           <DialogDescription>
-            Al completar tu pago, te enviaremos acceso inmediato a tu cuenta Premium con todos los beneficios incluidos.
+            {content.description}
           </DialogDescription>
         </DialogHeader>
         
@@ -84,7 +117,7 @@ export function EmailCaptureDialog({ open, onOpenChange, onEmailSubmit, isLoadin
             </Button>
             
             <p className="text-xs text-muted-foreground text-center">
-              🔒 Pago 100% seguro procesado por Lemon Squeezy. Cancela cuando quieras.
+              {content.securityNote}
             </p>
           </div>
         </form>

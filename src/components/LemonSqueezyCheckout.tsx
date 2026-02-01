@@ -188,6 +188,7 @@ export function LemonSqueezyCheckout({
         onOpenChange={setShowEmailDialog}
         onEmailSubmit={handleEmailSubmit}
         isLoading={loading}
+        plan={plan}
       />
     </>
   );
