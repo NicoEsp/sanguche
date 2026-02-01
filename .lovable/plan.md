@@ -1,238 +1,198 @@
 
-# Plan de Optimización SEO para Conversión en Cursos
 
-## Resumen Ejecutivo
+## Plan: EmailCaptureDialog Dinámico + Sistema de Upgrades
 
-Tras analizar la implementación SEO actual, ProductPrepa tiene una base sólida pero hay oportunidades significativas para mejorar el tráfico orgánico y la conversión hacia cursos.
+### Resumen
 
----
+Implementaremos dos mejoras clave para mejorar la experiencia de compra:
 
-## Lo que ya está bien implementado
+1. **EmailCaptureDialog Dinámico**: El diálogo mostrará mensajes contextuales según el producto que el usuario está comprando (curso vs suscripción Premium)
 
-| Elemento | Estado |
-|----------|--------|
-| Meta tags básicos (title, description) | ✅ |
-| Open Graph y Twitter Cards | ✅ |
-| Canonical URLs | ✅ |
-| JSON-LD para cursos (Course schema) | ✅ |
-| Sitemap dinámico con cursos | ✅ |
-| robots.txt configurado | ✅ |
-| Keywords en páginas principales | ✅ |
+2. **Sistema de Upgrades para Usuarios**: Lógica frontend para permitir upgrades desde:
+   - `curso_estrategia` → `cursos_all` o `repremium`
+   - `premium` → `repremium`
 
 ---
 
-## Oportunidades de Mejora Identificadas
+### Parte 1: EmailCaptureDialog Dinámico
 
-### 1. Agregar FAQPage Schema a páginas clave
+#### Problema Actual
+El `EmailCaptureDialog` muestra el mismo mensaje para todos los productos:
+> "Al completar tu pago, te enviaremos acceso inmediato a tu cuenta **Premium** con todos los beneficios incluidos."
 
-**Problema**: Las páginas de cursos y planes no tienen schema FAQ, lo cual es muy valorado por Google para aparecer en rich snippets.
+Esto es confuso cuando un usuario está comprando `curso_estrategia` o `cursos_all`.
 
-**Solución**: Agregar sección FAQ visible con JSON-LD `FAQPage` en:
-- `/cursos-info` - Preguntas frecuentes sobre los cursos
-- `/planes` - Preguntas sobre precios y qué incluye cada plan
+#### Solución
 
-**Ejemplos de FAQs para cursos**:
-- "¿Cuánto dura el curso Estrategia de Producto?"
-- "¿Los cursos tienen certificado?"
-- "¿Puedo acceder desde móvil?"
-- "¿Qué pasa si compro el curso y lanzan nuevos contenidos?"
+| Plan | Título | Descripción |
+|------|--------|-------------|
+| `premium` | "Ingresa tu email para suscribirte" | "Al completar tu pago, tendrás acceso a tu mentoría Premium con sesión mensual 1:1." |
+| `repremium` | "Ingresa tu email para suscribirte" | "Al completar tu pago, tendrás acceso a RePremium con 2 sesiones mensuales y todos los cursos." |
+| `curso_estrategia` | "Ingresa tu email para comprar" | "Al completar tu pago, tendrás acceso de por vida al curso Estrategia de Producto." |
+| `cursos_all` | "Ingresa tu email para comprar" | "Al completar tu pago, tendrás acceso de por vida a todos los cursos actuales y futuros." |
 
-### 2. Implementar BreadcrumbList Schema
-
-**Problema**: No hay breadcrumbs estructurados, lo cual ayuda a Google a entender la jerarquía del sitio.
-
-**Solución**: Agregar BreadcrumbList JSON-LD a:
-- `/cursos-info` → Home > Cursos
-- `/cursos/[slug]` → Home > Cursos > [Nombre del Curso]
-- `/starterpack/build` → Home > Starter Pack > Build
-
-### 3. Optimizar Keywords para Long-Tail de Cursos
-
-**Problema actual**: Keywords genéricas como "curso product manager"
-
-**Oportunidad**: Keywords long-tail más específicas que convierten mejor:
-
-| Página | Keywords actuales | Keywords sugeridas adicionales |
-|--------|-------------------|-------------------------------|
-| `/cursos-info` | curso product manager principiantes | "como ser product manager sin experiencia", "curso estrategia de producto online", "formación product manager latinoamérica", "curso PM en español" |
-| `/cursos` | cursos product management | "curso product manager gratis", "capacitación PM online", "aprender producto desde cero" |
-| `/planes` | precios productprepa | "mentoría product manager precio", "curso PM con tutor", "inversión formación producto" |
-
-
-### 5. Agregar VideoObject Schema a Cursos
-
-**Problema**: Los cursos tienen videos pero no tienen schema `VideoObject`.
-
-**Solución**: En la página de detalle de cada curso, agregar JSON-LD para cada lección con:
-- name, description, thumbnailUrl
-- uploadDate, duration
-- contentUrl (si es público) o embedUrl
-
-### 6. Mejorar la Página de Autoevaluación para SEO
-
-**Problema actual**: La página `/autoevaluacion` no tiene meta tags optimizados para atraer tráfico orgánico.
-
-**Oportunidad**: Esta es una herramienta gratuita que puede atraer mucho tráfico.
-
-**Cambios sugeridos**:
-- Title: "Autoevaluación Product Manager Gratis | Descubre tu nivel PM"
-- Description: "Test gratuito de 5 minutos para conocer tu nivel como Product Manager. Identifica tus fortalezas, áreas de mejora y recibe recomendaciones personalizadas."
-- Keywords: "test product manager gratis, autoevaluación PM, nivel seniority PM, evaluación habilidades producto"
-
-### 7. Agregar Hreflang para Mercado LATAM/España
-
-**Oportunidad futura**: Si el target es específicamente LATAM, considerar agregar hreflang para diferenciar del español de España:
-```html
-<link rel="alternate" hreflang="es-AR" href="https://productprepa.com/cursos-info" />
-```
-
-### 8. Mejorar Internal Linking hacia Cursos
-
-**Problema**: El flujo de internal links hacia cursos puede mejorar.
-
-**Solución**:
-- En página de resultados de autoevaluación → Link directo a curso relevante
-- En Starter Pack → Mencionar cursos como siguiente paso
-- En Mejoras → Recomendar curso específico según área débil
-
-### 9. Agregar Offer Schema con Precio en Múltiples Monedas
-
-**Mejora para /cursos-info**:
-```json
-{
-  "@type": "Offer",
-  "price": "45000",
-  "priceCurrency": "ARS",
-  "priceValidUntil": "2025-02-15",
-  "availability": "https://schema.org/PreOrder",
-  "validFrom": "2025-01-15"
-}
-```
-
-### 10. Optimizar robots.txt con Sitemap URL
-
-**Cambio menor**: Agregar referencia al sitemap en robots.txt:
-```
-Sitemap: https://productprepa.com/sitemap.xml
-```
+El mensaje de seguridad también se adaptará:
+- Suscripciones: "🔒 Pago seguro. Cancela cuando quieras."
+- Cursos: "🔒 Pago único y seguro. Acceso de por vida."
 
 ---
 
-## Priorización por Impacto
+### Parte 2: Sistema de Upgrades Frontend
 
-| Prioridad | Mejora | Esfuerzo | Impacto SEO |
-|-----------|--------|----------|-------------|
-| 🔴 Alta | FAQPage Schema en /cursos-info y /planes | Medio | Alto (rich snippets) |
-| 🔴 Alta | Optimizar keywords autoevaluación | Bajo | Alto (tráfico orgánico) |
-| 🟡 Media | BreadcrumbList Schema | Bajo | Medio |
-| 🟡 Media | Keywords long-tail en cursos | Bajo | Medio-Alto |
-| 🟡 Media | Agregar Sitemap a robots.txt | Muy bajo | Bajo |
-| 🟢 Futura | Blog de contenidos | Alto | Muy alto (largo plazo) |
-| 🟢 Futura | VideoObject Schema | Medio | Medio |
+#### Paths de Upgrade Soportados
+
+```
+curso_estrategia → cursos_all    (de 1 curso a todos)
+curso_estrategia → repremium     (de 1 curso a mentoría + cursos)
+premium → repremium              (de 1 sesión a 2 + cursos)
+```
+
+#### Cambios en UI
+
+**En `/planes`:**
+- Si usuario tiene `curso_estrategia`: mostrar CTA "Upgrade a Cursos All" y "Upgrade a RePremium"
+- Si usuario tiene `premium`: mostrar CTA "Upgrade a RePremium" en la tarjeta de RePremium
+
+**En `/cursos-info`:**
+- Si usuario tiene `curso_estrategia`: mostrar botón "Acceder al curso" + opción de upgrade a cursos_all
+
+**En `/perfil`:**
+- Agregar sección "Mejorar plan" con opciones de upgrade disponibles
 
 ---
 
-## Archivos a Modificar
+### Archivos a Modificar
 
 | Archivo | Cambios |
 |---------|---------|
-| `src/pages/CursosInfo.tsx` | Agregar sección FAQ visible + FAQPage JSON-LD, mejorar keywords, agregar BreadcrumbList |
-| `src/pages/Planes.tsx` | Agregar sección FAQ + FAQPage JSON-LD |
-| `src/pages/Assessment.tsx` | Optimizar title, description y keywords para SEO |
-| `src/pages/CourseDetail.tsx` | Agregar BreadcrumbList JSON-LD |
-| `public/robots.txt` | Agregar línea Sitemap |
-| `src/components/Seo.tsx` | (Opcional) Soporte para múltiples schemas más limpio |
+| `src/components/EmailCaptureDialog.tsx` | Agregar prop `plan` y mensajes dinámicos |
+| `src/components/LemonSqueezyCheckout.tsx` | Pasar `plan` al EmailCaptureDialog |
+| `src/pages/Planes.tsx` | Lógica de upgrade: mostrar opciones según plan actual |
+| `src/components/ui/badge.tsx` | (Opcional) Nuevo variant "upgrade" |
 
 ---
 
-## Sección Técnica
+### Sección Técnica
 
-### FAQPage Schema para /cursos-info
+#### 1. EmailCaptureDialog.tsx - Props y Contenido Dinámico
 
 ```typescript
-const faqSchema = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "¿Cuánto dura el curso Estrategia de Producto?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "El curso tiene una duración de 80 minutos, dividido en videos cortos de menos de 10 minutos cada uno para que puedas avanzar a tu ritmo."
-      }
-    },
-    {
-      "@type": "Question", 
-      "name": "¿Los cursos tienen acceso de por vida?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Sí, todos nuestros cursos incluyen acceso de por vida con un único pago. Además, recibirás actualizaciones futuras sin costo adicional."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "¿Puedo acceder desde el celular?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Sí, la plataforma es 100% responsive y puedes ver los videos y hacer ejercicios desde cualquier dispositivo."
-      }
-    }
-  ]
+interface EmailCaptureDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onEmailSubmit: (email: string) => void;
+  isLoading: boolean;
+  plan?: 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all';
+}
+
+const getDialogContent = (plan: string) => {
+  switch (plan) {
+    case 'curso_estrategia':
+      return {
+        title: "Ingresa tu email para comprar",
+        description: "Al completar tu pago, tendrás acceso de por vida al curso Estrategia de Producto.",
+        securityNote: "🔒 Pago único y seguro. Acceso de por vida."
+      };
+    case 'cursos_all':
+      return {
+        title: "Ingresa tu email para comprar",
+        description: "Al completar tu pago, tendrás acceso de por vida a todos los cursos actuales y futuros.",
+        securityNote: "🔒 Pago único y seguro. Acceso de por vida."
+      };
+    case 'repremium':
+      return {
+        title: "Ingresa tu email para suscribirte",
+        description: "Al completar tu pago, tendrás acceso a RePremium con 2 sesiones mensuales 1:1 y todos los cursos.",
+        securityNote: "🔒 Pago seguro procesado por Lemon Squeezy. Cancela cuando quieras."
+      };
+    default: // premium
+      return {
+        title: "Ingresa tu email para suscribirte",
+        description: "Al completar tu pago, tendrás acceso a tu mentoría Premium con sesión mensual 1:1.",
+        securityNote: "🔒 Pago seguro procesado por Lemon Squeezy. Cancela cuando quieras."
+      };
+  }
 };
 ```
 
-### BreadcrumbList Schema
+#### 2. LemonSqueezyCheckout.tsx - Pasar plan al dialog
 
 ```typescript
-const breadcrumbSchema = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "Inicio",
-      "item": "https://productprepa.com"
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "Cursos",
-      "item": "https://productprepa.com/cursos-info"
-    }
-  ]
-};
-```
-
-### Optimización Assessment.tsx
-
-```typescript
-<Seo 
-  title="Autoevaluación Product Manager Gratis | Descubre tu nivel"
-  description="Test gratuito de 5 minutos para conocer tu nivel como Product Manager. Identifica fortalezas, áreas de mejora y recibe un roadmap personalizado."
-  canonical="/autoevaluacion"
-  keywords="test product manager gratis, autoevaluación PM, nivel seniority PM, evaluación habilidades producto, quiz product manager"
+<EmailCaptureDialog
+  open={showEmailDialog}
+  onOpenChange={setShowEmailDialog}
+  onEmailSubmit={handleEmailSubmit}
+  isLoading={loading}
+  plan={plan}  // Nueva prop
 />
 ```
 
-### robots.txt actualizado
+#### 3. Planes.tsx - Lógica de Upgrade
 
+```typescript
+// Para usuarios con curso_estrategia: mostrar upgrade a cursos_all
+{hasCursoEstrategia && !hasCursosAll && !hasActiveRePremium && (
+  <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+    <p className="text-sm mb-2">¿Querés acceso a todos los cursos?</p>
+    <LemonSqueezyCheckout 
+      plan="cursos_all" 
+      buttonText="Upgrade a Todos los Cursos"
+      variant="outline"
+    />
+  </div>
+)}
+
+// Para usuarios con premium: mostrar upgrade a repremium
+{hasActivePremium && !hasActiveRePremium && (
+  <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+    <p className="text-sm mb-2">¿Querés más sesiones y acceso a cursos?</p>
+    <LemonSqueezyCheckout 
+      plan="repremium" 
+      buttonText="Upgrade a RePremium"
+      variant="default"
+    />
+  </div>
+)}
 ```
-User-agent: Googlebot
-Allow: /
 
-User-agent: Bingbot
-Allow: /
+#### 4. Webhook - El backend ya soporta upgrades
 
-User-agent: Twitterbot
-Allow: /
+El webhook actual usa `upsert` con `onConflict: 'user_id'`, lo que significa que automáticamente sobrescribe la suscripción anterior cuando el usuario compra un plan nuevo:
 
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: *
-Allow: /
-
-Sitemap: https://productprepa.com/sitemap.xml
+```typescript
+// En lemon-squeezy-webhook/index.ts (líneas 291-308)
+await supabase
+  .from('user_subscriptions')
+  .upsert({
+    user_id: userId,
+    plan: planConfig.plan,  // El nuevo plan
+    status: 'active',
+    // ... otros campos
+  }, { 
+    onConflict: 'user_id',  // Sobrescribe el plan anterior
+    ignoreDuplicates: false 
+  });
 ```
+
+Esto significa que cuando un usuario con `curso_estrategia` compra `cursos_all`, automáticamente se actualiza su plan. El frontend solo necesita mostrar las opciones correctas.
+
+---
+
+### Consideraciones de Negocio
+
+1. **No hay prorratas automáticas**: Lemon Squeezy no calcula automáticamente la diferencia de precio. El usuario paga el precio completo del nuevo plan.
+
+2. **Suscripciones vs One-time**: 
+   - Si un usuario tiene `curso_estrategia` (one-time) y compra `repremium` (subscription), su acceso cambia completamente al modelo de suscripción
+   - Si cancela `repremium`, perdería el acceso al curso también (porque el plan se sobrescribió)
+
+3. **Posible mejora futura**: Implementar lógica para mantener acceso a compras one-time anteriores (requiere cambios en modelo de datos)
+
+---
+
+### Resultado Final
+
+1. Usuarios anónimos verán mensajes contextuales al comprar cualquier producto
+2. Usuarios con planes inferiores verán CTAs claros para hacer upgrade
+3. El flujo de upgrade funciona out-of-the-box porque el webhook ya usa upsert
+
