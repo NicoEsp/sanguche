@@ -379,6 +379,25 @@ export default function Planes() {
                 isCurrentPlan={hasActiveRePremium}
               />
             </div>
+
+            {/* Upgrade CTAs for subscription users */}
+            {hasActivePremium && !hasActiveRePremium && (
+              <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-amber-900 dark:text-amber-100">¿Querés más sesiones y acceso a cursos?</p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300">Upgrade a RePremium: 2 sesiones mensuales + todos los cursos</p>
+                  </div>
+                  <LemonSqueezyCheckout 
+                    plan="repremium" 
+                    buttonText="Upgrade a RePremium"
+                    variant="default"
+                    size="default"
+                    className="whitespace-nowrap"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -447,6 +466,34 @@ export default function Planes() {
                 isCurrentPlan={hasCursosAll}
               />
             </div>
+
+            {/* Upgrade CTAs for course users */}
+            {hasCursoEstrategia && !hasCursosAll && !hasActiveRePremium && (
+              <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium">¿Querés acceso a todos los cursos?</p>
+                    <p className="text-sm text-muted-foreground">Incluye cursos actuales y futuros con un único pago</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <LemonSqueezyCheckout 
+                      plan="cursos_all" 
+                      buttonText="Upgrade a Todos los Cursos"
+                      variant="outline"
+                      size="default"
+                      className="whitespace-nowrap"
+                    />
+                    <LemonSqueezyCheckout 
+                      plan="repremium" 
+                      buttonText="Upgrade a RePremium"
+                      variant="default"
+                      size="default"
+                      className="whitespace-nowrap"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Course Inquiry CTA */}
             <div className="mt-8 text-center">
