@@ -8,6 +8,7 @@ import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { usePricing } from "@/hooks/usePricing";
+import { useSubscription } from "@/hooks/useSubscription";
 import {
   BookOpen, 
   Clock, 
@@ -18,7 +19,7 @@ import {
   Sparkles,
   Target,
   Users,
-  ChevronDown
+  Crown
 } from "lucide-react";
 import {
   Accordion,
@@ -30,7 +31,12 @@ import {
 export default function CursosInfo() {
   const { user, isAuthenticated } = useAuth();
   const { profile } = useUserProfile();
-  const { curso_estrategia, cursos_all, loading: pricingLoading } = usePricing();
+  const { curso_estrategia, cursos_all, repremium, loading: pricingLoading } = usePricing();
+  const { 
+    hasActiveRePremium, 
+    hasCursoEstrategia, 
+    hasCursosAll 
+  } = useSubscription();
 
   // FAQs data
   const faqs = [
@@ -359,20 +365,134 @@ export default function CursosInfo() {
                 </Card>
               ))}
             </div>
+          </div>
+        </section>
 
-            <Card className="p-6 bg-primary/5 border-primary/20">
-              <h3 className="font-bold mb-2">¿Querés acceso a todos los cursos?</h3>
-              <p className="text-muted-foreground mb-4 text-sm">
-                Con el bundle "Todos los Cursos" ({pricingLoading ? "..." : cursos_all.formatted} pago único) 
-                tenés acceso de por vida a todos los cursos actuales y futuros.
-              </p>
-              <Button asChild>
-                <Link to="/planes">
-                  Ver opciones de compra
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
-              </Button>
-            </Card>
+        {/* Pricing Options Section */}
+        <section className="px-4 py-12 bg-background">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-center mb-2">Opciones de compra</h2>
+            <p className="text-center text-muted-foreground mb-8">
+              Elegí la opción que mejor se adapte a tus necesidades
+            </p>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Curso individual */}
+              <Card className={`p-6 text-center ${hasCursoEstrategia ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : ''}`}>
+                <BookOpen className="w-8 h-8 text-primary mx-auto mb-4" />
+                <h3 className="font-bold mb-2">Curso Individual</h3>
+                <p className="text-2xl font-bold mb-1">
+                  {pricingLoading ? "..." : curso_estrategia.formatted}
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">pago único</p>
+                <ul className="text-sm text-left space-y-2 mb-6">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span>Estrategia de Producto</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span>Acceso de por vida</span>
+                  </li>
+                </ul>
+                {hasCursoEstrategia ? (
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to="/cursos">Acceder al curso</Link>
+                  </Button>
+                ) : (
+                  <LemonSqueezyCheckout plan="curso_estrategia" buttonText="Comprar curso" className="w-full" />
+                )}
+              </Card>
+              
+              {/* Todos los cursos */}
+              <Card className={`p-6 text-center relative ${hasCursosAll ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : 'border-primary bg-primary/5'}`}>
+                {!hasCursosAll && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Mejor valor</Badge>
+                )}
+                <Sparkles className="w-8 h-8 text-amber-500 mx-auto mb-4" />
+                <h3 className="font-bold mb-2">Todos los Cursos</h3>
+                <p className="text-2xl font-bold mb-1">
+                  {pricingLoading ? "..." : cursos_all.formatted}
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">pago único</p>
+                <ul className="text-sm text-left space-y-2 mb-6">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span>Todos los cursos actuales</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span>Cursos futuros incluidos</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span>Acceso de por vida</span>
+                  </li>
+                </ul>
+                {hasCursosAll ? (
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to="/cursos">Acceder a cursos</Link>
+                  </Button>
+                ) : (
+                  <LemonSqueezyCheckout plan="cursos_all" buttonText="Comprar bundle" className="w-full" />
+                )}
+              </Card>
+              
+              {/* RePremium */}
+              <Card className={`p-6 text-center ${hasActiveRePremium ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : ''}`}>
+                <Crown className="w-8 h-8 text-amber-500 mx-auto mb-4" />
+                <h3 className="font-bold mb-2">Con Mentoría</h3>
+                <p className="text-2xl font-bold mb-1">
+                  {pricingLoading ? "..." : repremium.formatted}
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">/mes</p>
+                <ul className="text-sm text-left space-y-2 mb-6">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span>Todos los cursos incluidos</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span>2 sesiones mensuales 1:1</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span>Career Path personalizado</span>
+                  </li>
+                </ul>
+                {hasActiveRePremium ? (
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to="/mentoria">Ir a tu mentoría</Link>
+                  </Button>
+                ) : (
+                  <LemonSqueezyCheckout plan="repremium" buttonText="Suscribirse" className="w-full" />
+                )}
+              </Card>
+            </div>
+            
+            {/* Upgrade CTA for curso_estrategia users */}
+            {hasCursoEstrategia && !hasCursosAll && !hasActiveRePremium && (
+              <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-center sm:text-left">
+                    <p className="font-medium">Ya tenés el curso Estrategia de Producto</p>
+                    <p className="text-sm text-muted-foreground">¿Querés acceder a todos los cursos actuales y futuros?</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <LemonSqueezyCheckout 
+                      plan="cursos_all" 
+                      buttonText="Upgrade a Todos los Cursos"
+                      variant="outline"
+                    />
+                    <LemonSqueezyCheckout 
+                      plan="repremium" 
+                      buttonText="Upgrade a RePremium"
+                      variant="default"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 

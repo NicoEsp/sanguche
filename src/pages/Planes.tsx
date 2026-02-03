@@ -244,7 +244,7 @@ export default function Planes() {
       "@context": "https://schema.org",
       "@type": "WebPage",
       "name": "Planes y Precios | ProductPrepa",
-      "description": "Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados.",
+      "description": "Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada.",
       "offers": [
         {
           "@type": "Offer",
@@ -267,7 +267,7 @@ export default function Planes() {
           "itemOffered": {
             "@type": "Service",
             "name": "Mentoría RePremium ProductPrepa",
-            "description": "Todo Premium + acceso a todos los cursos"
+            "description": "Todo Premium + 2 sesiones mensuales + acceso a todos los cursos"
           }
         }
       ]
@@ -401,108 +401,34 @@ export default function Planes() {
           </div>
         </section>
 
-        {/* Divider */}
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 border-t border-border" />
-            <span className="text-muted-foreground text-sm">O compra acceso a cursos</span>
-            <div className="flex-1 border-t border-border" />
-          </div>
-        </div>
-
-        {/* Courses - Row 2 */}
+        {/* Courses Info Block */}
         <section className="px-4 py-8">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-center mb-4">Cursos Especializados</h2>
-            <div className="text-center mb-8">
-              <Button asChild size="default" className="bg-primary/10 text-primary border border-primary hover:bg-primary hover:text-primary-foreground transition-all">
-                <Link to="/cursos-info">
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Ver detalle de cursos
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Link>
-              </Button>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Curso Estrategia */}
-              <PlanCard
-                name={<>Estrategia de Producto<br />para principiantes</>}
-                price={pricingLoading ? "..." : curso_estrategia.formatted}
-                priceLabel="(pago único)"
-                description="Curso para principiantes que quieren dominar la Estrategia de Producto"
-                icon={<BookOpen className="w-6 h-6 text-primary" />}
-                badge="Nuevo"
-                features={[
-                  "Fundamentos de Estrategia de Producto",
-                  "Frameworks para empezar",
-                  "Ejercicios prácticos",
-                  "Acceso de por vida",
-                  "Actualizaciones incluidas"
-                ]}
-                plan="curso_estrategia"
-                ctaText={hasCursoEstrategia ? "Acceder al curso" : "Comprar curso"}
-                ctaLink={hasCursoEstrategia ? "/mentoria" : undefined}
-                isCurrentPlan={hasCursoEstrategia}
-              />
-
-              {/* Todos los Cursos */}
-              <PlanCard
-                name="Todos los Cursos"
-                price={pricingLoading ? "..." : cursos_all.formatted}
-                priceLabel="(pago único)"
-                description="Acceso completo a todos los cursos disponibles"
-                icon={<Sparkles className="w-6 h-6 text-amber-500" />}
-                badge="Mejor valor"
-                features={[
-                  "Acceso a todos los cursos actuales",
-                  "Cursos futuros incluidos por un único valor",
-                  "Certificados de finalización",
-                  "Acceso de por vida"
-                ]}
-                plan="cursos_all"
-                ctaText={hasCursosAll ? "Acceder a cursos" : "Comprar bundle"}
-                ctaLink={hasCursosAll ? "/mentoria" : undefined}
-                isCurrentPlan={hasCursosAll}
-              />
-            </div>
-
-            {/* Upgrade CTAs for course users */}
-            {hasCursoEstrategia && !hasCursosAll && !hasActiveRePremium && (
-              <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <p className="font-medium">¿Querés acceso a todos los cursos?</p>
-                    <p className="text-sm text-muted-foreground">Incluye cursos actuales y futuros con un único pago</p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <LemonSqueezyCheckout 
-                      plan="cursos_all" 
-                      buttonText="Upgrade a Todos los Cursos"
-                      variant="outline"
-                      size="default"
-                      className="whitespace-nowrap"
-                    />
-                    <LemonSqueezyCheckout 
-                      plan="repremium" 
-                      buttonText="Upgrade a RePremium"
-                      variant="default"
-                      size="default"
-                      className="whitespace-nowrap"
-                    />
+            <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                <div className="flex-shrink-0">
+                  <div className="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center">
+                    <BookOpen className="w-8 h-8 text-primary" />
                   </div>
                 </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold mb-2">¿También te interesan nuestros cursos?</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Además de los planes de suscripción, ofrecemos cursos especializados 
+                    con acceso de por vida. Comprá un curso individual o el bundle completo.
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    <strong>Tip:</strong> Los usuarios RePremium ya tienen acceso a todos los cursos incluido.
+                  </p>
+                  <Button asChild>
+                    <Link to="/cursos-info">
+                      Ver cursos disponibles
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
-            )}
-
-            {/* Course Inquiry CTA */}
-            <div className="mt-8 text-center">
-              <CourseInquiryCta
-                isAuthenticated={isAuthenticated}
-                profileName={profile?.name}
-                userEmail={user?.email}
-              />
-            </div>
+            </Card>
           </div>
         </section>
 
