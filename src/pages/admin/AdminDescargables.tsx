@@ -39,8 +39,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, FileDown, Star, Loader2, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileDown, Star, Loader2, Upload, Crown, Lock } from 'lucide-react';
 import { SkeletonAdminTable } from '@/components/skeletons/SkeletonAdminTable';
+
+type AccessLevel = 'public' | 'authenticated' | 'premium';
 
 interface DownloadableResource {
   id: string;
@@ -54,6 +56,7 @@ interface DownloadableResource {
   display_order: number;
   is_featured: boolean;
   is_active: boolean;
+  access_level: AccessLevel;
   created_at: string;
   updated_at: string;
 }
@@ -67,6 +70,7 @@ interface FormData {
   display_order: number;
   is_featured: boolean;
   is_active: boolean;
+  access_level: AccessLevel;
 }
 
 const initialFormData: FormData = {
@@ -78,7 +82,14 @@ const initialFormData: FormData = {
   display_order: 0,
   is_featured: false,
   is_active: true,
+  access_level: 'authenticated',
 };
+
+const accessLevels = [
+  { value: 'public', label: 'Público' },
+  { value: 'authenticated', label: 'Solo autenticados' },
+  { value: 'premium', label: 'Solo Premium' },
+];
 
 const resourceTypes = [
   { value: 'pdf', label: 'PDF' },
@@ -169,6 +180,7 @@ export default function AdminDescargables() {
         display_order: data.display_order,
         is_featured: data.is_featured,
         is_active: data.is_active,
+        access_level: data.access_level,
       };
 
       if (existingId) {
@@ -248,6 +260,7 @@ export default function AdminDescargables() {
       display_order: resource.display_order,
       is_featured: resource.is_featured,
       is_active: resource.is_active,
+      access_level: resource.access_level || 'authenticated',
     });
     setSelectedFile(null);
     setIsDialogOpen(true);
@@ -303,6 +316,7 @@ export default function AdminDescargables() {
             <TableRow>
               <TableHead>Título</TableHead>
               <TableHead>Tipo</TableHead>
+              <TableHead>Acceso</TableHead>
               <TableHead className="text-center">Orden</TableHead>
               <TableHead className="text-center">Destacado</TableHead>
               <TableHead className="text-center">Activo</TableHead>
@@ -312,7 +326,7 @@ export default function AdminDescargables() {
           <TableBody>
             {resources?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   <FileDown className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   No hay descargables registrados
                 </TableCell>
@@ -325,6 +339,23 @@ export default function AdminDescargables() {
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
                       {resourceTypes.find(t => t.value === resource.type)?.label || resource.type}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    {resource.access_level === 'premium' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-600">
+                        <Crown className="h-3 w-3" />
+                        Premium
+                      </span>
+                    ) : resource.access_level === 'authenticated' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-600">
+                        <Lock className="h-3 w-3" />
+                        Autenticado
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                        Público
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-center">{resource.display_order}</TableCell>
                   <TableCell className="text-center">
@@ -438,6 +469,25 @@ export default function AdminDescargables() {
                   onChange={(e) => setFormData(prev => ({ ...prev, display_order: parseInt(e.target.value) || 0 }))}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="access_level">Nivel de Acceso</Label>
+              <Select
+                value={formData.access_level}
+                onValueChange={(value: AccessLevel) => setFormData(prev => ({ ...prev, access_level: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {accessLevels.map((level) => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
