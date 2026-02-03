@@ -298,6 +298,7 @@ export type Database = {
       }
       downloadable_resources: {
         Row: {
+          access_level: Database["public"]["Enums"]["resource_access_level"]
           bucket_name: string | null
           created_at: string
           description: string | null
@@ -313,6 +314,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_level?: Database["public"]["Enums"]["resource_access_level"]
           bucket_name?: string | null
           created_at?: string
           description?: string | null
@@ -328,6 +330,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_level?: Database["public"]["Enums"]["resource_access_level"]
           bucket_name?: string | null
           created_at?: string
           description?: string | null

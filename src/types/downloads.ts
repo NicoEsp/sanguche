@@ -1,4 +1,5 @@
 export type DownloadableType = 'pdf' | 'template' | 'checklist' | 'guide';
+export type DownloadableAccessLevel = 'public' | 'authenticated' | 'premium';
 
 export interface DownloadableResource {
   id: string;
@@ -12,6 +13,7 @@ export interface DownloadableResource {
   display_order: number;
   is_active: boolean;
   is_featured: boolean;
+  access_level: DownloadableAccessLevel;
   created_at: string;
   updated_at: string;
 }
