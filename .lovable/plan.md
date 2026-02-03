@@ -1,157 +1,210 @@
 
 
-# Plan: Agregar Opción de Upgrade a RePremium en Perfil
+# Plan: Nuevo Descargable Premium "Prepárate para una Entrevista de PM"
 
 ## Resumen
 
-Añadir CTAs de upgrade en la sección "Plan y Suscripción" de la página de perfil para usuarios que pueden mejorar su plan:
-- `premium` → `repremium`
-- `curso_estrategia` → `cursos_all` o `repremium`
-- `cursos_all` → `repremium`
+Subir un nuevo recurso descargable exclusivo para usuarios Premium y RePremium. El documento es una guía de 7 páginas para preparar entrevistas de Product Manager.
+
+**Comportamiento deseado:**
+- ✅ Usuarios Premium/RePremium: pueden ver y descargar
+- 🔒 Usuarios Free: ven la tarjeta bloqueada con CTA a suscribirse
+- 🔒 Usuarios no logueados: ven la tarjeta bloqueada con CTA a iniciar sesión
 
 ---
 
-## Ubicación del Cambio
+## Cambios Necesarios
 
-Dentro de la Card "Plan y Suscripción" (líneas 237-358), después de los badges de estado y antes del botón de cancelar suscripción, agregaremos una sección condicional de upgrade.
+### 1. Base de Datos - Agregar columna `access_level`
 
----
+La tabla `downloadable_resources` no tiene campo de nivel de acceso. Necesitamos agregar una columna usando el enum existente `resource_access_level` (ya existe con valores: `public`, `authenticated`, `premium`).
 
-## Lógica de Upgrade
-
-| Plan actual | Opciones de upgrade disponibles |
-|-------------|--------------------------------|
-| `free` | Mantener botón "Ver planes" existente |
-| `premium` | Upgrade a RePremium |
-| `curso_estrategia` | Upgrade a Cursos All o RePremium |
-| `cursos_all` | Upgrade a RePremium |
-| `repremium` | Ninguna (ya tiene el plan máximo) |
-
----
-
-## Diseño Visual
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  ⬆️ Mejorar tu plan                                         │
-│                                                             │
-│  [Si es premium]                                            │
-│  Obtené 2 sesiones mensuales y acceso a todos los cursos    │
-│  con RePremium.                                             │
-│  [Upgrade a RePremium →]                                    │
-│                                                             │
-│  [Si es curso_estrategia]                                   │
-│  Accedé a todos los cursos actuales y futuros.              │
-│  [Upgrade a Cursos All →]  [Upgrade a RePremium →]          │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+```sql
+ALTER TABLE downloadable_resources 
+ADD COLUMN access_level resource_access_level NOT NULL DEFAULT 'authenticated';
 ```
 
+### 2. Subir el archivo PDF
+
+Copiar el PDF a storage y crear el registro en la base de datos:
+- **Título**: "Prepárate para una entrevista de PM"
+- **Descripción**: "Guía para preparar tu narrativa profesional y destacar en entrevistas de Product Manager. Incluye frameworks para logros, liderazgo y decisiones difíciles."
+- **access_level**: `premium`
+
+### 3. Actualizar Types
+
+Agregar `access_level` a la interfaz `DownloadableResource`:
+
+```typescript
+export interface DownloadableResource {
+  // ... campos existentes
+  access_level: 'public' | 'authenticated' | 'premium';
+}
+```
+
+### 4. Actualizar DownloadableCard
+
+Modificar el componente para manejar 3 estados de acceso:
+
+| Estado | Condición | UI |
+|--------|-----------|-----|
+| **Accesible** | Usuario Premium/RePremium O recurso no-premium | Botones activos |
+| **Requiere suscripción** | Usuario Free + recurso premium | Tarjeta bloqueada + CTA "Ver planes" |
+| **Requiere login** | No autenticado | Tarjeta bloqueada + CTA "Iniciar sesión" |
+
+**Diseño visual bloqueado:**
+- Overlay semitransparente sobre la tarjeta
+- Icono de candado prominente
+- Badge "Premium" en la tarjeta
+- CTA claro según el caso
+
+### 5. Actualizar Admin Panel
+
+Agregar selector de `access_level` en el formulario de creación/edición:
+
+```tsx
+<Select value={formData.access_level} ...>
+  <SelectItem value="public">Público</SelectItem>
+  <SelectItem value="authenticated">Solo autenticados</SelectItem>
+  <SelectItem value="premium">Solo Premium</SelectItem>
+</Select>
+```
+
+Mostrar badge de acceso en la tabla.
+
 ---
 
-## Archivo a Modificar
+## Archivos a Modificar
 
 | Archivo | Cambios |
 |---------|---------|
-| `src/pages/Profile.tsx` | Agregar import de LemonSqueezyCheckout, ArrowUpRight. Agregar sección de upgrade dentro de la Card de suscripción |
+| **DB Migration** | Agregar columna `access_level` a `downloadable_resources` |
+| `src/types/downloads.ts` | Agregar campo `access_level` a la interfaz |
+| `src/components/downloads/DownloadableCard.tsx` | Lógica de acceso + UI bloqueada |
+| `src/pages/admin/AdminDescargables.tsx` | Selector de nivel de acceso |
+| **Storage** | Copiar PDF al bucket `downloads` |
 
 ---
 
 ## Sección Técnica
 
-### Imports a agregar
+### DownloadableCard - Lógica de acceso
 
 ```tsx
-import { LemonSqueezyCheckout } from '@/components/LemonSqueezyCheckout';
-import { ArrowUpRight } from 'lucide-react';
+import { useSubscription } from '@/hooks/useSubscription';
+import { isPremiumPlan } from '@/constants/plans';
+
+export function DownloadableCard({ resource }: DownloadableCardProps) {
+  const { isAuthenticated } = useAuth();
+  const { subscription, loading: subLoading } = useSubscription();
+  
+  const isPremiumResource = resource.access_level === 'premium';
+  const userHasPremium = isPremiumPlan(subscription?.plan);
+  
+  // Determinar estado de acceso
+  const accessState = useMemo(() => {
+    if (!isPremiumResource) return 'accessible';
+    if (!isAuthenticated) return 'requires_login';
+    if (!userHasPremium) return 'requires_subscription';
+    return 'accessible';
+  }, [isPremiumResource, isAuthenticated, userHasPremium]);
+  
+  const isLocked = accessState !== 'accessible';
+  
+  // ... render con estados
+}
 ```
 
-### Helper para detectar opciones de upgrade
+### DownloadableCard - UI Bloqueada
 
 ```tsx
-const getUpgradeOptions = () => {
-  const plan = subscription?.plan;
-  const isActive = subscription?.status === 'active';
-  
-  if (!isActive || plan === 'repremium' || plan === 'free') return null;
-  
-  if (plan === 'premium') {
-    return {
-      title: "Mejorar tu plan",
-      description: "Obtené 2 sesiones mensuales 1:1 y acceso completo a todos los cursos con RePremium.",
-      options: [{ plan: 'repremium' as const, label: 'Upgrade a RePremium' }]
-    };
-  }
-  
-  if (plan === 'curso_estrategia') {
-    return {
-      title: "Mejorar tu acceso",
-      description: "Expandí tu acceso a más cursos o sumá mentoría personalizada.",
-      options: [
-        { plan: 'cursos_all' as const, label: 'Todos los Cursos' },
-        { plan: 'repremium' as const, label: 'RePremium' }
-      ]
-    };
-  }
-  
-  if (plan === 'cursos_all') {
-    return {
-      title: "Sumá mentoría",
-      description: "¿Querés acompañamiento personalizado? Upgrade a RePremium incluye 2 sesiones mensuales 1:1.",
-      options: [{ plan: 'repremium' as const, label: 'Upgrade a RePremium' }]
-    };
-  }
-  
-  return null;
+{isLocked && (
+  <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+    <div className="text-center p-6">
+      <Lock className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+      {accessState === 'requires_login' ? (
+        <>
+          <p className="font-medium mb-2">Inicia sesión para acceder</p>
+          <Button onClick={() => navigate('/auth', { state: { from: { pathname: '/preguntas' } } })}>
+            Iniciar sesión
+          </Button>
+        </>
+      ) : (
+        <>
+          <p className="font-medium mb-2">Contenido exclusivo Premium</p>
+          <p className="text-sm text-muted-foreground mb-4">
+            Accede a este recurso con tu suscripción Premium o RePremium
+          </p>
+          <Button asChild>
+            <Link to="/planes">Ver planes</Link>
+          </Button>
+        </>
+      )}
+    </div>
+  </div>
+)}
+```
+
+### Badge Premium en tarjeta
+
+```tsx
+{resource.access_level === 'premium' && (
+  <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30">
+    <Crown className="h-3 w-3 mr-1" />
+    Premium
+  </Badge>
+)}
+```
+
+### Admin - FormData actualizado
+
+```typescript
+interface FormData {
+  // ... campos existentes
+  access_level: 'public' | 'authenticated' | 'premium';
+}
+
+const initialFormData: FormData = {
+  // ... otros campos
+  access_level: 'authenticated',
 };
 ```
 
-### UI de upgrade (después de línea 302, antes del botón de cancelar)
+### Registro del nuevo recurso
 
-```tsx
-{/* Upgrade Section */}
-{(() => {
-  const upgradeInfo = getUpgradeOptions();
-  if (!upgradeInfo) return null;
-  
-  return (
-    <div className="p-4 bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-950/20 dark:to-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800">
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-8 h-8 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center">
-          <ArrowUpRight className="w-4 h-4 text-amber-700 dark:text-amber-300" />
-        </div>
-        <div className="flex-1 space-y-3">
-          <div>
-            <p className="font-medium text-amber-900 dark:text-amber-100">{upgradeInfo.title}</p>
-            <p className="text-sm text-amber-700 dark:text-amber-300">{upgradeInfo.description}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {upgradeInfo.options.map((option) => (
-              <LemonSqueezyCheckout 
-                key={option.plan}
-                plan={option.plan} 
-                buttonText={option.label}
-                variant="default"
-                size="sm"
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-})()}
+```sql
+INSERT INTO downloadable_resources (
+  title,
+  slug,
+  description,
+  type,
+  file_path,
+  bucket_name,
+  access_level,
+  display_order,
+  is_featured,
+  is_active
+) VALUES (
+  'Prepárate para una entrevista de PM',
+  'preparate-entrevista-pm',
+  'Guía para preparar tu narrativa profesional y destacar en entrevistas de Product Manager. Incluye frameworks para logros, liderazgo y decisiones difíciles.',
+  'guide',
+  'preparate-entrevista-pm.pdf',
+  'downloads',
+  'premium',
+  10,
+  true,
+  true
+);
 ```
 
 ---
 
-## Resultado
+## Resultado Final
 
-1. Usuarios `premium` verán un CTA para upgrade a `repremium`
-2. Usuarios con `curso_estrategia` verán opciones para `cursos_all` y `repremium`
-3. Usuarios con `cursos_all` verán opción para `repremium`
-4. Usuarios `free` mantienen el botón "Ver planes" existente
-5. Usuarios `repremium` no ven nada (ya tienen el plan máximo)
-
-El diseño usa colores ámbar para destacar la oportunidad de upgrade sin ser invasivo.
+1. **Nuevo recurso visible** en `/preguntas` con badge Premium
+2. **Usuarios Premium/RePremium** pueden ver y descargar inmediatamente
+3. **Usuarios Free** ven overlay bloqueado con CTA a `/planes`
+4. **Usuarios no logueados** ven overlay bloqueado con CTA a `/auth`
+5. **Admin** puede configurar nivel de acceso para futuros recursos
 
