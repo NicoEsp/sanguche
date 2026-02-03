@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { LemonSqueezyCheckout } from '@/components/LemonSqueezyCheckout';
 import { 
   FileText, 
   Target, 
@@ -46,7 +47,8 @@ import {
   RefreshCw,
   ShoppingBag,
   Sparkles,
-  GraduationCap
+  GraduationCap,
+  ArrowUpRight
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -182,6 +184,43 @@ export default function Profile() {
   // Check if user has any "other badges"
   const hasOtherBadges = profile?.is_founder;
 
+  // Helper to get upgrade options based on current plan
+  const getUpgradeOptions = () => {
+    const plan = subscription?.plan;
+    const isActive = subscription?.status === 'active';
+    
+    if (!isActive || plan === 'repremium' || plan === 'free') return null;
+    
+    if (plan === 'premium') {
+      return {
+        title: "Mejorar tu plan",
+        description: "Obtené 2 sesiones mensuales 1:1 y acceso completo a todos los cursos con RePremium.",
+        options: [{ plan: 'repremium' as const, label: 'Upgrade a RePremium' }]
+      };
+    }
+    
+    if (plan === 'curso_estrategia') {
+      return {
+        title: "Mejorar tu acceso",
+        description: "Expandí tu acceso a más cursos o sumá mentoría personalizada.",
+        options: [
+          { plan: 'cursos_all' as const, label: 'Todos los Cursos' },
+          { plan: 'repremium' as const, label: 'RePremium' }
+        ]
+      };
+    }
+    
+    if (plan === 'cursos_all') {
+      return {
+        title: "Sumá mentoría",
+        description: "¿Querés acompañamiento personalizado? Upgrade a RePremium incluye 2 sesiones mensuales 1:1.",
+        options: [{ plan: 'repremium' as const, label: 'Upgrade a RePremium' }]
+      };
+    }
+    
+    return null;
+  };
+
   if (loading) {
     return (
       <div className="container py-8 space-y-8">
@@ -301,6 +340,39 @@ export default function Profile() {
                 }
               </p>
             )}
+
+            {/* Upgrade Section */}
+            {(() => {
+              const upgradeInfo = getUpgradeOptions();
+              if (!upgradeInfo) return null;
+              
+              return (
+                <div className="p-4 bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-950/20 dark:to-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center">
+                      <ArrowUpRight className="w-4 h-4 text-amber-700 dark:text-amber-300" />
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <p className="font-medium text-amber-900 dark:text-amber-100">{upgradeInfo.title}</p>
+                        <p className="text-sm text-amber-700 dark:text-amber-300">{upgradeInfo.description}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {upgradeInfo.options.map((option) => (
+                          <LemonSqueezyCheckout 
+                            key={option.plan}
+                            plan={option.plan} 
+                            buttonText={option.label}
+                            variant="default"
+                            size="sm"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {subscription?.plan !== 'free' && subscription?.status === 'active' && !subscription?.isOneTimePurchase && (
               <AlertDialog>
