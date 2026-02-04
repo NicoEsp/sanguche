@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, ArrowRight, Zap, Rocket, Crown } from "lucide-react";
+import { Check, Star, ArrowRight, Zap, Rocket, Crown, Users } from "lucide-react";
 import { HowItWorks } from "@/components/sections/HowItWorks";
-
+import { SocialProofStrip } from "@/components/landing/SocialProofStrip";
+import { StickyMobileCTA } from "@/components/landing/StickyMobileCTA";
 import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
 import { useAuth } from '@/contexts/AuthContext';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
@@ -81,43 +82,45 @@ const Index = () => {
         jsonLd={indexSchema}
       />
       <main className="min-h-screen bg-background">
-        {/* Enhanced Hero Section */}
+        {/* Enhanced Hero Section - Optimizado para reducir bounce rate */}
         <section className="container text-center py-16 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 -z-10" />
           
           <div className="flex items-center justify-center mb-6">
             <Badge variant="secondary" className="px-4 py-2 text-sm font-medium">
               <Zap className="h-4 w-4 mr-2" />
-              Evaluación específica para Product Managers (o roles similares)
+              Gratis · Solo 5 minutos
             </Badge>
           </div>
           
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-            Impulsa tu carrera como <span className="text-primary">Product Manager</span>
+            Descubrí tu nivel real como <span className="text-primary">Product Manager</span>
           </h1>
           
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed">Plataforma integral que identifica tu nivel actual y áreas de crecimiento, con recursos curados y roadmap de carrera diseñado por <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a>.</p>
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+            Autoevaluación diseñada por{' '}
+            <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">
+              NicoProducto
+            </a>{' '}
+            para identificar tus fortalezas y áreas de mejora.
+          </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-            <Button asChild size="lg" className="w-full sm:w-auto text-base px-8 py-6 font-semibold" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'hero', cta_text: isAuthenticated ? 'Continuar evaluación' : 'Comenzar evaluación gratis' })}>
-              <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
-                {isAuthenticated ? "Continuar evaluación" : "Comenzar evaluación gratis"}
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-base px-8 py-6" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'hero_planes' })}>
-              <Link to="/planes">Ver planes</Link>
-            </Button>
-          </div>
+          <Button asChild size="lg" className="text-lg px-10 py-7 font-semibold shadow-lg" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'hero', cta_text: 'Comenzar evaluación gratis' })}>
+            <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
+              Comenzar evaluación gratis
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
           
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+          {/* Social proof inmediato */}
+          <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <Check className="h-4 w-4 text-primary" />
-              <span>100% gratis para empezar</span>
+              <Users className="h-4 w-4 text-primary" />
+              <span className="font-medium">+450 PMs evaluados</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-primary" />
-              <span>Sin tarjeta de crédito</span>
+              <span>11 competencias</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-primary" />
@@ -125,6 +128,8 @@ const Index = () => {
             </div>
           </div>
         </section>
+
+        <SocialProofStrip />
 
         <HowItWorks />
         
@@ -311,6 +316,8 @@ const Index = () => {
             </Button>
           </div>
         </section>
+        {/* Sticky CTA para mobile */}
+        <StickyMobileCTA isAuthenticated={isAuthenticated} />
       </main>
     </>;
 };

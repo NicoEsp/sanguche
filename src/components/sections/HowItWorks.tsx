@@ -1,30 +1,26 @@
-import { CheckCircle, Target, TrendingUp, Trophy } from "lucide-react";
+import { CheckCircle, Target, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 const steps = [
   {
     icon: CheckCircle,
-    title: "Autoevaluación completa",
-    description: "Evalúa tus habilidades en 11 dominios clave de Product Management",
+    title: "Evaluáte",
+    subtitle: "5 minutos",
+    description: "Respondé preguntas sobre tus habilidades en 11 competencias de Product Management",
     color: "text-primary"
   },
   {
     icon: Target,
-    title: "Identifica áreas de mejora",
-    description: "Descubre las áreas específicas donde puedes mejorar tu perfil profesional",
+    title: "Descubrí",
+    description: "Identificá tus fortalezas y las áreas donde más impacto tendrá tu desarrollo",
     color: "text-secondary-foreground"
   },
   {
     icon: TrendingUp,
-    title: "Recursos personalizados",
-    description: "Accede a recursos curados y un roadmap específico para tu crecimiento",
+    title: "Crecé",
+    description: "Accedé a recursos curados y un roadmap específico para tu perfil",
     color: "text-primary"
-  },
-  {
-    icon: Trophy,
-    title: "Career Path",
-    description: "Construí tu Career Path con objetivos concretos y pasos para avanzar",
-    color: "text-secondary-foreground"
   }
 ];
 
@@ -38,7 +34,7 @@ export function HowItWorks() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
+      <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
         {steps.map((step, index) => (
           <Card key={index} className="relative border-2 hover:border-primary/20 transition-colors">
             <CardContent className="p-6 text-center">
@@ -52,7 +48,10 @@ export function HowItWorks() {
                   {index + 1}
                 </div>
               </div>
-              <h3 className="font-semibold mb-2">{step.title}</h3>
+              <h3 className="font-semibold mb-1">{step.title}</h3>
+              {step.subtitle && (
+                <Badge variant="secondary" className="mb-2 text-xs">{step.subtitle}</Badge>
+              )}
               <p className="text-sm text-muted-foreground">{step.description}</p>
             </CardContent>
           </Card>
