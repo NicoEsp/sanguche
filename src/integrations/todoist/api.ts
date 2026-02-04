@@ -21,12 +21,12 @@ export async function createTodoistFeedbackTask({ name, email, feedback }: Creat
   );
 
   if (error) {
-    console.error('Todoist API error:', error);
+    if (import.meta.env.DEV) console.error('Todoist API error:', error);
     throw new Error('No pudimos enviar tu feedback. Intenta nuevamente en unos minutos.');
   }
 
   if (!data?.success) {
-    console.error('Todoist API error:', data?.error);
+    if (import.meta.env.DEV) console.error('Todoist API error:', data?.error);
     throw new Error('No pudimos enviar tu feedback. Intenta nuevamente en unos minutos.');
   }
 

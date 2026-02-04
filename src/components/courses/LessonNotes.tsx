@@ -41,7 +41,7 @@ export function LessonNotes({ lessonId }: LessonNotesProps) {
       // Reset to idle after 2 seconds
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (error) {
-      console.error('Error saving note:', error);
+      if (import.meta.env.DEV) console.error('Error saving note:', error);
       setSaveStatus('idle');
     }
   }, [lessonId, updateNote]);

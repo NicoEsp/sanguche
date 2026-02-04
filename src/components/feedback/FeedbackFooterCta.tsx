@@ -119,7 +119,7 @@ export function FeedbackFooterCta({
       setShowAnimation(true);
       setTimeout(() => setShowAnimation(false), 3000);
     } catch (error) {
-      console.error('Error sending feedback:', error);
+      if (import.meta.env.DEV) console.error('Error sending feedback:', error);
       toast({
         title: "No pudimos enviar el feedback",
         description: "Intenta nuevamente en unos minutos.",

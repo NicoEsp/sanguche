@@ -1,14 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
-import { 
-  Rocket, 
-  CheckSquare, 
-  Target,
-  TrendingUp, 
-  GraduationCap, 
-  BookOpen,
-  FileDown,
-  User, 
-  LogOut, 
+import {
+  User,
+  LogOut,
   Shield,
   ChevronLeft,
   ChevronRight,
@@ -17,7 +10,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { isPremiumFeature, FEATURES } from "@/utils/features";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useCallback, useEffect, useState } from "react";
@@ -30,66 +22,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
-interface NavItemType {
-  href: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  premium: boolean;
-  repremium?: boolean;
-  isNew?: boolean;
-}
-
-const navItems: NavItemType[] = [
-  { 
-    href: "/autoevaluacion", 
-    label: "Autoevaluación", 
-    icon: CheckSquare,
-    premium: false 
-  },
-  { 
-    href: "/mejoras", 
-    label: "Áreas de Mejora", 
-    icon: Target,
-    premium: false 
-  },
-  { 
-    href: "/mentoria", 
-    label: "Mentoría", 
-    icon: BookOpen,
-    premium: isPremiumFeature(FEATURES.RECOMMENDATIONS) 
-  },
-  { 
-    href: "/progreso", 
-    label: "Career Path", 
-    icon: TrendingUp,
-    premium: isPremiumFeature(FEATURES.PROGRESS) 
-  },
-  { 
-    href: "/cursos", 
-    label: "Cursos", 
-    icon: GraduationCap,
-    premium: false,
-    repremium: true,
-    isNew: true
-  },
-];
-
-const extraItems: NavItemType[] = [
-  { 
-    href: "/starterpack", 
-    label: "Starter Pack", 
-    icon: Rocket,
-    premium: false
-  },
-  { 
-    href: "/preguntas", 
-    label: "Descargables", 
-    icon: FileDown,
-    premium: false,
-    isNew: true
-  },
-];
+import { navItems, extraItems } from "@/constants/navigation";
 
 interface AppSidebarProps {
   collapsed: boolean;

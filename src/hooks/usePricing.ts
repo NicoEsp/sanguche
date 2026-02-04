@@ -33,7 +33,7 @@ export function usePricing() {
       const { data, error } = await supabase.functions.invoke<PricingData>('pricing-config');
       
       if (error) {
-        console.error('Error fetching pricing:', error);
+        if (import.meta.env.DEV) console.error('Error fetching pricing:', error);
         throw error;
       }
       

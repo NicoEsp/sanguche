@@ -22,7 +22,7 @@ export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []
         .in("lesson_id", lessonIds);
 
       if (error) {
-        console.error("Error fetching course progress:", error);
+        if (import.meta.env.DEV) console.error("Error fetching course progress:", error);
         throw error;
       }
 
@@ -82,7 +82,7 @@ export function useUpdateLessonProgress() {
         .maybeSingle();
 
       if (fetchError) {
-        console.error("Error fetching existing progress:", fetchError);
+        if (import.meta.env.DEV) console.error("Error fetching existing progress:", fetchError);
         throw fetchError;
       }
 

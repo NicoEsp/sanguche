@@ -101,7 +101,7 @@ export function useCreateCourse() {
       toast.success('Curso creado correctamente');
     },
     onError: (error) => {
-      console.error('Error creating course:', error);
+      if (import.meta.env.DEV) console.error('Error creating course:', error);
       toast.error('Error al crear el curso');
     },
   });
@@ -124,7 +124,7 @@ export function useUpdateCourse() {
       toast.success('Curso actualizado correctamente');
     },
     onError: (error) => {
-      console.error('Error updating course:', error);
+      if (import.meta.env.DEV) console.error('Error updating course:', error);
       toast.error('Error al actualizar el curso');
     },
   });
@@ -146,7 +146,7 @@ export function useDeleteCourse() {
       toast.success('Curso eliminado correctamente');
     },
     onError: (error) => {
-      console.error('Error deleting course:', error);
+      if (import.meta.env.DEV) console.error('Error deleting course:', error);
       toast.error('Error al eliminar el curso');
     },
   });
@@ -170,7 +170,7 @@ export function useCreateLesson() {
       toast.success('Lección creada correctamente');
     },
     onError: (error) => {
-      console.error('Error creating lesson:', error);
+      if (import.meta.env.DEV) console.error('Error creating lesson:', error);
       toast.error('Error al crear la lección');
     },
   });
@@ -193,7 +193,7 @@ export function useUpdateLesson() {
       toast.success('Lección actualizada correctamente');
     },
     onError: (error) => {
-      console.error('Error updating lesson:', error);
+      if (import.meta.env.DEV) console.error('Error updating lesson:', error);
       toast.error('Error al actualizar la lección');
     },
   });
@@ -217,7 +217,7 @@ export function useDeleteLesson() {
       toast.success('Lección eliminada correctamente');
     },
     onError: (error) => {
-      console.error('Error deleting lesson:', error);
+      if (import.meta.env.DEV) console.error('Error deleting lesson:', error);
       toast.error('Error al eliminar la lección');
     },
   });
@@ -241,7 +241,7 @@ export function useCreateExercise() {
       toast.success('Ejercicio creado correctamente');
     },
     onError: (error) => {
-      console.error('Error creating exercise:', error);
+      if (import.meta.env.DEV) console.error('Error creating exercise:', error);
       toast.error('Error al crear el ejercicio');
     },
   });
@@ -264,7 +264,7 @@ export function useUpdateExercise() {
       toast.success('Ejercicio actualizado correctamente');
     },
     onError: (error) => {
-      console.error('Error updating exercise:', error);
+      if (import.meta.env.DEV) console.error('Error updating exercise:', error);
       toast.error('Error al actualizar el ejercicio');
     },
   });
@@ -288,7 +288,7 @@ export function useDeleteExercise() {
       toast.success('Ejercicio eliminado correctamente');
     },
     onError: (error) => {
-      console.error('Error deleting exercise:', error);
+      if (import.meta.env.DEV) console.error('Error deleting exercise:', error);
       toast.error('Error al eliminar el ejercicio');
     },
   });

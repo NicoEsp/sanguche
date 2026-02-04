@@ -43,7 +43,7 @@ export function VideoPlayer({ lesson, courseSlug, isCompleted, onComplete }: Vid
       
       onComplete();
     } catch (error) {
-      console.error("Error marking lesson complete:", error);
+      if (import.meta.env.DEV) console.error("Error marking lesson complete:", error);
     }
   };
 

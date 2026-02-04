@@ -77,7 +77,7 @@ export function useResourceAccess() {
       .createSignedUrl(resource.file_path, 86400); // 24 horas
 
     if (error) {
-      console.error('Error getting signed URL:', error);
+      if (import.meta.env.DEV) console.error('Error getting signed URL:', error);
       return null;
     }
 

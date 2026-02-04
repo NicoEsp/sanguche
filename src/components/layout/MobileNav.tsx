@@ -1,16 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { 
-  Menu, 
-  Rocket, 
-  CheckSquare, 
-  Target,
-  TrendingUp, 
-  GraduationCap, 
-  BookOpen,
-  FileDown,
-  User, 
-  LogOut, 
+import {
+  Menu,
+  User,
+  LogOut,
   Shield,
   Twitter,
   Linkedin
@@ -19,59 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { isPremiumFeature, FEATURES } from "@/utils/features";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-
-const navItems = [
-  { 
-    href: "/autoevaluacion", 
-    label: "Autoevaluación", 
-    icon: CheckSquare,
-    premium: false 
-  },
-  { 
-    href: "/mejoras", 
-    label: "Áreas de Mejora", 
-    icon: Target,
-    premium: false 
-  },
-  { 
-    href: "/mentoria", 
-    label: "Mentoría", 
-    icon: BookOpen,
-    premium: isPremiumFeature(FEATURES.RECOMMENDATIONS) 
-  },
-  { 
-    href: "/progreso", 
-    label: "Career Path", 
-    icon: TrendingUp,
-    premium: isPremiumFeature(FEATURES.PROGRESS) 
-  },
-  { 
-    href: "/cursos", 
-    label: "Cursos", 
-    icon: GraduationCap,
-    premium: true,
-    isNew: true
-  },
-];
-
-const extraItems = [
-  { 
-    href: "/starterpack", 
-    label: "Starter Pack", 
-    icon: Rocket,
-    premium: false 
-  },
-  { 
-    href: "/preguntas", 
-    label: "Descargables", 
-    icon: FileDown,
-    premium: false,
-    isNew: true
-  },
-];
+import { navItems, extraItems } from "@/constants/navigation";
 
 export function MobileNav() {
   const [isOpen, setIsOpen] = useState(false);

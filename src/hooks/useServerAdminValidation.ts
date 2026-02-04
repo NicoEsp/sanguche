@@ -34,7 +34,7 @@ export function useServerAdminValidation(user: User | null): AdminValidationResu
       });
 
       if (error) {
-        console.error('Admin validation failed');
+        if (import.meta.env.DEV) console.error('Admin validation failed');
         setIsAdmin(false);
         
         // SECURITY: Log failed validation attempt (fire and forget)
@@ -62,7 +62,7 @@ export function useServerAdminValidation(user: User | null): AdminValidationResu
         }
       }
     } catch (error) {
-      console.error('Admin validation error');
+      if (import.meta.env.DEV) console.error('Admin validation error');
       setIsAdmin(false);
     } finally {
       setIsValidating(false);
