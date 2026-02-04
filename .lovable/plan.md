@@ -1,76 +1,68 @@
 
+# Plan: Optimización de Landing Page para Reducir Bounce Rate
 
-# Plan: Nuevo Descargable Premium "Prepárate para una Entrevista de PM"
+## Diagnóstico Actual
 
-## Resumen
+**Problema identificado:** Bounce rate del 59% - más de la mitad de los visitantes abandonan sin interactuar.
 
-Subir un nuevo recurso descargable exclusivo para usuarios Premium y RePremium. El documento es una guía de 7 páginas para preparar entrevistas de Product Manager.
-
-**Comportamiento deseado:**
-- ✅ Usuarios Premium/RePremium: pueden ver y descargar
-- 🔒 Usuarios Free: ven la tarjeta bloqueada con CTA a suscribirse
-- 🔒 Usuarios no logueados: ven la tarjeta bloqueada con CTA a iniciar sesión
+**Análisis de la landing actual:**
+- Hero section con mucho texto inicial
+- CTAs principales bien visibles pero pueden mejorarse
+- Propuesta de valor diluida en múltiples secciones
+- Sin elementos de urgencia o prueba social inmediata
+- Mobile experience podría optimizarse
 
 ---
 
-## Cambios Necesarios
+## Estrategia de Optimización
 
-### 1. Base de Datos - Agregar columna `access_level`
+### 1. Hero Section - Above the Fold
 
-La tabla `downloadable_resources` no tiene campo de nivel de acceso. Necesitamos agregar una columna usando el enum existente `resource_access_level` (ya existe con valores: `public`, `authenticated`, `premium`).
+**Objetivo:** Captar atención en los primeros 3 segundos
 
-```sql
-ALTER TABLE downloadable_resources 
-ADD COLUMN access_level resource_access_level NOT NULL DEFAULT 'authenticated';
+| Elemento Actual | Problema | Mejora Propuesta |
+|-----------------|----------|------------------|
+| Badge largo "Evaluación específica para PM..." | Demasiado texto | Badge corto: "Gratis - 5 minutos" |
+| Título genérico | No comunica beneficio inmediato | Título orientado a resultado: "Descubrí tu nivel real como PM" |
+| Subtítulo largo (2 líneas) | Información densa | Una línea clara + bullet points |
+| Sin prueba social | Falta credibilidad | Agregar: "+450 PMs evaluados" |
+
+**Nuevo Hero propuesto:**
+```
+Badge: ⚡ Gratis · Solo 5 minutos
+
+Título: Descubrí tu nivel real como Product Manager
+
+Subtítulo: Autoevaluación diseñada por NicoProducto para identificar 
+          tus fortalezas y áreas de mejora.
+
+CTA Principal: [Comenzar evaluación gratis →]
+
+Prueba social: ✓ +450 PMs evaluados  ✓ 11 competencias  ✓ Roadmap personalizado
 ```
 
-### 2. Subir el archivo PDF
+### 2. Prueba Social Visible
 
-Copiar el PDF a storage y crear el registro en la base de datos:
-- **Título**: "Prepárate para una entrevista de PM"
-- **Descripción**: "Guía para preparar tu narrativa profesional y destacar en entrevistas de Product Manager. Incluye frameworks para logros, liderazgo y decisiones difíciles."
-- **access_level**: `premium`
+**Agregar sección compacta debajo del hero:**
+- Número de usuarios registrados (+450)
+- Contador de evaluaciones completadas (+350)
+- Logos de empresas donde trabajan usuarios (si aplica)
+- Micro-testimonios en formato compacto
 
-### 3. Actualizar Types
+### 3. Sticky CTA Mobile
 
-Agregar `access_level` a la interfaz `DownloadableResource`:
+**Para reducir bounce en mobile (donde es más alto):**
+- Botón flotante sticky en la parte inferior
+- Aparece después de scroll de 200px
+- Texto: "Comenzar gratis" con flecha
+- Diseño compacto que no bloquee contenido
 
-```typescript
-export interface DownloadableResource {
-  // ... campos existentes
-  access_level: 'public' | 'authenticated' | 'premium';
-}
-```
+### 4. Simplificación de "How It Works"
 
-### 4. Actualizar DownloadableCard
-
-Modificar el componente para manejar 3 estados de acceso:
-
-| Estado | Condición | UI |
-|--------|-----------|-----|
-| **Accesible** | Usuario Premium/RePremium O recurso no-premium | Botones activos |
-| **Requiere suscripción** | Usuario Free + recurso premium | Tarjeta bloqueada + CTA "Ver planes" |
-| **Requiere login** | No autenticado | Tarjeta bloqueada + CTA "Iniciar sesión" |
-
-**Diseño visual bloqueado:**
-- Overlay semitransparente sobre la tarjeta
-- Icono de candado prominente
-- Badge "Premium" en la tarjeta
-- CTA claro según el caso
-
-### 5. Actualizar Admin Panel
-
-Agregar selector de `access_level` en el formulario de creación/edición:
-
-```tsx
-<Select value={formData.access_level} ...>
-  <SelectItem value="public">Público</SelectItem>
-  <SelectItem value="authenticated">Solo autenticados</SelectItem>
-  <SelectItem value="premium">Solo Premium</SelectItem>
-</Select>
-```
-
-Mostrar badge de acceso en la tabla.
+**Reducir de 4 pasos a 3 más concisos:**
+1. Evaluáte (5 min) → Conocé tu nivel actual
+2. Descubrí → Áreas de mejora priorizadas  
+3. Crecé → Recursos y roadmap personalizado
 
 ---
 
@@ -78,133 +70,140 @@ Mostrar badge de acceso en la tabla.
 
 | Archivo | Cambios |
 |---------|---------|
-| **DB Migration** | Agregar columna `access_level` a `downloadable_resources` |
-| `src/types/downloads.ts` | Agregar campo `access_level` a la interfaz |
-| `src/components/downloads/DownloadableCard.tsx` | Lógica de acceso + UI bloqueada |
-| `src/pages/admin/AdminDescargables.tsx` | Selector de nivel de acceso |
-| **Storage** | Copiar PDF al bucket `downloads` |
+| `src/pages/Index.tsx` | Hero optimizado, social proof, sticky CTA mobile |
+| `src/components/sections/HowItWorks.tsx` | Simplificar a 3 pasos |
+| `src/components/landing/SocialProofStrip.tsx` | Nuevo componente |
+| `src/components/landing/StickyMobileCTA.tsx` | Nuevo componente |
 
 ---
 
 ## Sección Técnica
 
-### DownloadableCard - Lógica de acceso
+### Nuevo Hero Section
 
 ```tsx
-import { useSubscription } from '@/hooks/useSubscription';
-import { isPremiumPlan } from '@/constants/plans';
+{/* Badge más conciso */}
+<Badge variant="secondary" className="px-4 py-2 text-sm font-medium">
+  <Zap className="h-4 w-4 mr-2" />
+  Gratis · Solo 5 minutos
+</Badge>
 
-export function DownloadableCard({ resource }: DownloadableCardProps) {
-  const { isAuthenticated } = useAuth();
-  const { subscription, loading: subLoading } = useSubscription();
-  
-  const isPremiumResource = resource.access_level === 'premium';
-  const userHasPremium = isPremiumPlan(subscription?.plan);
-  
-  // Determinar estado de acceso
-  const accessState = useMemo(() => {
-    if (!isPremiumResource) return 'accessible';
-    if (!isAuthenticated) return 'requires_login';
-    if (!userHasPremium) return 'requires_subscription';
-    return 'accessible';
-  }, [isPremiumResource, isAuthenticated, userHasPremium]);
-  
-  const isLocked = accessState !== 'accessible';
-  
-  // ... render con estados
-}
-```
+{/* Título orientado a resultado */}
+<h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
+  Descubrí tu nivel real como{' '}
+  <span className="text-primary">Product Manager</span>
+</h1>
 
-### DownloadableCard - UI Bloqueada
+{/* Subtítulo simplificado */}
+<p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+  Autoevaluación diseñada por{' '}
+  <a href="https://linkedin.com/in/nicolas-espindola/" className="text-primary underline">
+    NicoProducto
+  </a>{' '}
+  para identificar tus fortalezas y áreas de mejora.
+</p>
 
-```tsx
-{isLocked && (
-  <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
-    <div className="text-center p-6">
-      <Lock className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-      {accessState === 'requires_login' ? (
-        <>
-          <p className="font-medium mb-2">Inicia sesión para acceder</p>
-          <Button onClick={() => navigate('/auth', { state: { from: { pathname: '/preguntas' } } })}>
-            Iniciar sesión
-          </Button>
-        </>
-      ) : (
-        <>
-          <p className="font-medium mb-2">Contenido exclusivo Premium</p>
-          <p className="text-sm text-muted-foreground mb-4">
-            Accede a este recurso con tu suscripción Premium o RePremium
-          </p>
-          <Button asChild>
-            <Link to="/planes">Ver planes</Link>
-          </Button>
-        </>
-      )}
-    </div>
+{/* CTA único y prominente */}
+<Button asChild size="lg" className="text-lg px-10 py-7 font-semibold shadow-lg">
+  <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
+    Comenzar evaluación gratis
+    <ArrowRight className="ml-2 h-5 w-5" />
+  </Link>
+</Button>
+
+{/* Social proof inmediato */}
+<div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm text-muted-foreground">
+  <div className="flex items-center gap-2">
+    <Users className="h-4 w-4 text-primary" />
+    <span className="font-medium">+450 PMs evaluados</span>
   </div>
-)}
+  <div className="flex items-center gap-2">
+    <Check className="h-4 w-4 text-primary" />
+    <span>11 competencias</span>
+  </div>
+  <div className="flex items-center gap-2">
+    <Check className="h-4 w-4 text-primary" />
+    <span>Roadmap personalizado</span>
+  </div>
+</div>
 ```
 
-### Badge Premium en tarjeta
+### Sticky Mobile CTA Component
 
 ```tsx
-{resource.access_level === 'premium' && (
-  <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30">
-    <Crown className="h-3 w-3 mr-1" />
-    Premium
-  </Badge>
-)}
-```
+// src/components/landing/StickyMobileCTA.tsx
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 
-### Admin - FormData actualizado
+export function StickyMobileCTA({ isAuthenticated }: { isAuthenticated: boolean }) {
+  const [isVisible, setIsVisible] = useState(false);
 
-```typescript
-interface FormData {
-  // ... campos existentes
-  access_level: 'public' | 'authenticated' | 'premium';
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsVisible(window.scrollY > 200);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t md:hidden z-50 animate-slide-up">
+      <Button asChild size="lg" className="w-full">
+        <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
+          Comenzar gratis
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Link>
+      </Button>
+    </div>
+  );
 }
-
-const initialFormData: FormData = {
-  // ... otros campos
-  access_level: 'authenticated',
-};
 ```
 
-### Registro del nuevo recurso
+### HowItWorks Simplificado (3 pasos)
 
-```sql
-INSERT INTO downloadable_resources (
-  title,
-  slug,
-  description,
-  type,
-  file_path,
-  bucket_name,
-  access_level,
-  display_order,
-  is_featured,
-  is_active
-) VALUES (
-  'Prepárate para una entrevista de PM',
-  'preparate-entrevista-pm',
-  'Guía para preparar tu narrativa profesional y destacar en entrevistas de Product Manager. Incluye frameworks para logros, liderazgo y decisiones difíciles.',
-  'guide',
-  'preparate-entrevista-pm.pdf',
-  'downloads',
-  'premium',
-  10,
-  true,
-  true
-);
+```tsx
+const steps = [
+  {
+    icon: CheckCircle,
+    title: "Evaluáte",
+    subtitle: "5 minutos",
+    description: "Respondé preguntas sobre tus habilidades en 11 competencias de Product Management"
+  },
+  {
+    icon: Target,
+    title: "Descubrí",
+    description: "Identificá tus fortalezas y las áreas donde más impacto tendrá tu desarrollo"
+  },
+  {
+    icon: TrendingUp,
+    title: "Crecé",
+    description: "Accedé a recursos curados y un roadmap específico para tu perfil"
+  }
+];
 ```
 
 ---
 
-## Resultado Final
+## Métricas a Monitorear Post-Implementación
 
-1. **Nuevo recurso visible** en `/preguntas` con badge Premium
-2. **Usuarios Premium/RePremium** pueden ver y descargar inmediatamente
-3. **Usuarios Free** ven overlay bloqueado con CTA a `/planes`
-4. **Usuarios no logueados** ven overlay bloqueado con CTA a `/auth`
-5. **Admin** puede configurar nivel de acceso para futuros recursos
+| Métrica | Actual | Objetivo |
+|---------|--------|----------|
+| Bounce rate | 59% | <45% |
+| Tiempo en página | 3:01 | >4:00 |
+| Click en CTA hero | - | >15% |
+| Scroll a pricing | - | >40% |
 
+---
+
+## Resultado Esperado
+
+1. **Hero más impactante** con propuesta de valor clara en 3 segundos
+2. **Prueba social inmediata** que genera confianza
+3. **CTA sticky en mobile** que captura usuarios que scrollean
+4. **Proceso simplificado** más fácil de entender
+5. **Tracking mejorado** para medir cada cambio
