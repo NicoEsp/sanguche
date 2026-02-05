@@ -10,14 +10,13 @@ export function useSocialProofMetrics() {
   return useQuery({
     queryKey: ['social-proof-metrics'],
     queryFn: async (): Promise<SocialProofMetrics> => {
-      const [usersResult, assessmentsResult] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('assessments').select('id', { count: 'exact', head: true }),
-      ]);
-
+      const { data, error } = await supabase.rpc('get_social_proof_metrics').single();
+      
+      if (error) throw error;
+      
       return {
-        totalUsers: usersResult.count ?? 0,
-        totalAssessments: assessmentsResult.count ?? 0,
+        totalUsers: data?.total_users ?? 0,
+        totalAssessments: data?.total_assessments ?? 0,
       };
     },
     staleTime: 1000 * 60 * 60, // 1 hour - these metrics don't change frequently
