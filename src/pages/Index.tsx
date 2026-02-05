@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, ArrowRight, Zap, Rocket, Crown, Users } from "lucide-react";
+import { Check, Star, ArrowRight, Zap, Rocket, Crown, Users, Book } from "lucide-react";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { SocialProofStrip } from "@/components/landing/SocialProofStrip";
 import { StickyMobileCTA } from "@/components/landing/StickyMobileCTA";
@@ -14,73 +14,47 @@ import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
 import { usePricing } from "@/hooks/usePricing";
 import { useHomeRedirect } from '@/hooks/useHomeRedirect';
 import { LoadingScreen } from '@/components/LoadingScreen';
-
 const Index = () => {
   // Hook para redirigir usuarios autenticados según su estado (V3)
-  const { isRedirecting, isFading, destination } = useHomeRedirect();
-  
+  const {
+    isRedirecting,
+    isFading,
+    destination
+  } = useHomeRedirect();
   const {
     isAuthenticated
   } = useAuth();
-  const { trackEvent } = useMixpanelTracking();
-  const { premium, repremium, loading: pricingLoading } = usePricing();
+  const {
+    trackEvent
+  } = useMixpanelTracking();
+  const {
+    premium,
+    repremium,
+    loading: pricingLoading
+  } = usePricing();
 
   // Mostrar skeleton loading específico según página destino
   if (isRedirecting) {
-    return (
-      <LoadingScreen 
-        isFading={isFading} 
-        variant="skeleton" 
-        destination={destination as '/progreso' | '/mejoras' | '/autoevaluacion' | null}
-      />
-    );
+    return <LoadingScreen isFading={isFading} variant="skeleton" destination={destination as '/progreso' | '/mejoras' | '/autoevaluacion' | null} />;
   }
-
-  const premiumBenefits = [
-    "Todo lo incluido en Gratis",
-    "1 sesión mensual 1:1 con NicoProducto",
-    "Tu Career Path con objetivos concretos",
-    "Acceso al Starter Pack completo",
-    "Recursos curados según tus áreas de mejora"
-  ];
-
-  const repremiumBenefits = [
-    "Todo lo incluido en Premium",
-    "2 sesiones mensuales 1:1 con NicoProducto",
-    "Acceso completo a todos los Cursos",
-    "Feedback personalizado en ejercicios",
-    "Acceso prioritario a nuevos contenidos"
-  ];
-
-  const indexSchema = [
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "ProductPrepa",
-      "url": "https://productprepa.com",
-      "logo": "https://productprepa.com/favicon.png",
-      "sameAs": [
-        "https://twitter.com/nicoproducto",
-        "https://www.linkedin.com/in/nicolas-espindola/"
-      ]
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "ProductPrepa",
-      "url": "https://productprepa.com",
-      "description": "Aprendé Producto en una plataforma que combina Cursos, evaluación de habilidades, tu propio Career Path y mentoría personalizada."
-    }
-  ];
-
+  const premiumBenefits = ["Todo lo incluido en Gratis", "1 sesión mensual 1:1 con NicoProducto", "Tu Career Path con objetivos concretos", "Acceso al Starter Pack completo", "Recursos curados según tus áreas de mejora"];
+  const repremiumBenefits = ["Todo lo incluido en Premium", "2 sesiones mensuales 1:1 con NicoProducto", "Acceso completo a todos los Cursos", "Feedback personalizado en ejercicios", "Acceso prioritario a nuevos contenidos"];
+  const indexSchema = [{
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "ProductPrepa",
+    "url": "https://productprepa.com",
+    "logo": "https://productprepa.com/favicon.png",
+    "sameAs": ["https://twitter.com/nicoproducto", "https://www.linkedin.com/in/nicolas-espindola/"]
+  }, {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "ProductPrepa",
+    "url": "https://productprepa.com",
+    "description": "Aprendé Producto en una plataforma que combina Cursos, evaluación de habilidades, tu propio Career Path y mentoría personalizada."
+  }];
   return <>
-      <Seo 
-        title="ProductPrepa - Plataforma para crecer en Producto" 
-        description="Aprendé Producto en una plataforma que combina Cursos, evaluación de habilidades, tu propio Career Path y mentoría personalizada."
-        canonical="/" 
-        keywords="product management, autoevaluación PM, seniority, carrera producto, product manager, evaluación profesional, desarrollo PM"
-        jsonLd={indexSchema}
-      />
+      <Seo title="ProductPrepa - Plataforma para crecer en Producto" description="Aprendé Producto en una plataforma que combina Cursos, evaluación de habilidades, tu propio Career Path y mentoría personalizada." canonical="/" keywords="product management, autoevaluación PM, seniority, carrera producto, product manager, evaluación profesional, desarrollo PM" jsonLd={indexSchema} />
       <main className="min-h-screen bg-background">
         {/* Enhanced Hero Section - Optimizado para reducir bounce rate */}
         <section className="container text-center py-16 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
@@ -98,17 +72,17 @@ const Index = () => {
           </h1>
           
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-            No importa de donde vengas o el rol que ocupes, todos tenemos habilidades de Producto.
-            <br className="hidden sm:block" />
-            <span className="sm:hidden"> </span>
-            Accedé a una autoevaluación diseñada por{' '}
+            No importa de donde vengas o el rol que ocupes, todos tenemos habilidades de Producto. Accedé a una autoevaluación diseñada por{' '}
             <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">
               NicoProducto
             </a>{' '}
             para identificar tus fortalezas y áreas de mejora.
           </p>
           
-          <Button asChild size="lg" className="text-lg px-10 py-7 font-semibold shadow-lg" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'hero', cta_text: 'Comenzar evaluación gratis' })}>
+          <Button asChild size="lg" className="text-lg px-10 py-7 font-semibold shadow-lg" onClick={() => trackEvent('landing_page_cta_click', {
+          cta_location: 'hero',
+          cta_text: 'Comenzar evaluación gratis'
+        })}>
             <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
               Comenzar evaluación gratis
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -119,12 +93,12 @@ const Index = () => {
           <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-primary" />
-              <span className="font-medium">Recursos curados y exclusivos</span>
+              <span className="font-medium">+450 PMs evaluados</span>
             </div>
-            <div className="flex items-center gap-2">
+            <Book className="flex items-center gap-2">
               <Check className="h-4 w-4 text-primary" />
               <span>11 competencias</span>
-            </div>
+            </Book>
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-primary" />
               <span>Roadmap personalizado</span>
@@ -139,7 +113,9 @@ const Index = () => {
         {/* CTA after HowItWorks */}
         <section className="text-center mx-0 my-0 px-[2px] py-[20px]">
           <div className="container mx-auto px-4">
-            <Button size="lg" asChild className="bg-primary hover:bg-primary/90" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'after_how_it_works' })}>
+            <Button size="lg" asChild className="bg-primary hover:bg-primary/90" onClick={() => trackEvent('landing_page_cta_click', {
+            cta_location: 'after_how_it_works'
+          })}>
               <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
                 Evalúate ahora
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -222,7 +198,9 @@ const Index = () => {
                 <div className="bg-muted/50 p-3 rounded-lg text-center mt-4">
                   <div className="text-xl font-bold">$0 <span className="text-sm font-normal text-muted-foreground">/mes</span></div>
                 </div>
-                <Button asChild className="w-full mt-4" variant="outline" onClick={() => trackEvent('landing_page_cta_click', { cta_location: 'pricing_free' })}>
+                <Button asChild className="w-full mt-4" variant="outline" onClick={() => trackEvent('landing_page_cta_click', {
+                cta_location: 'pricing_free'
+              })}>
                   <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
                     {isAuthenticated ? "Ir a evaluación" : "Comenzar gratis"}
                   </Link>
@@ -244,27 +222,20 @@ const Index = () => {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="space-y-3 flex-1">
-                  {premiumBenefits.map((benefit, index) => (
-                    <div key={index} className="flex items-start gap-3">
+                  {premiumBenefits.map((benefit, index) => <div key={index} className="flex items-start gap-3">
                       <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                       <span className="text-sm">{benefit}</span>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
                 <div className="bg-muted/50 p-3 rounded-lg text-center mt-4">
                   <div className="text-xl font-bold text-primary">
-                    {pricingLoading ? (
-                      <span className="inline-block animate-pulse">...</span>
-                    ) : (
-                      <>{premium.formatted} <span className="text-sm font-normal text-muted-foreground">/mes</span></>
-                    )}
+                    {pricingLoading ? <span className="inline-block animate-pulse">...</span> : <>{premium.formatted} <span className="text-sm font-normal text-muted-foreground">/mes</span></>}
                   </div>
                 </div>
                 <div className="mt-4">
-                  <LemonSqueezyCheckout 
-                    plan="premium"
-                    onCheckoutStart={() => trackEvent('landing_page_cta_click', { cta_location: 'pricing_premium' })} 
-                  />
+                  <LemonSqueezyCheckout plan="premium" onCheckoutStart={() => trackEvent('landing_page_cta_click', {
+                  cta_location: 'pricing_premium'
+                })} />
                 </div>
               </CardContent>
             </Card>
@@ -283,27 +254,20 @@ const Index = () => {
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="space-y-3 flex-1">
-                  {repremiumBenefits.map((benefit, index) => (
-                    <div key={index} className="flex items-start gap-3">
+                  {repremiumBenefits.map((benefit, index) => <div key={index} className="flex items-start gap-3">
                       <Check className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
                       <span className="text-sm">{benefit}</span>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
                 <div className="bg-amber-500/10 p-3 rounded-lg text-center mt-4">
                   <div className="text-xl font-bold text-amber-600">
-                    {pricingLoading ? (
-                      <span className="inline-block animate-pulse">...</span>
-                    ) : (
-                      <>{repremium.formatted} <span className="text-sm font-normal text-muted-foreground">/mes</span></>
-                    )}
+                    {pricingLoading ? <span className="inline-block animate-pulse">...</span> : <>{repremium.formatted} <span className="text-sm font-normal text-muted-foreground">/mes</span></>}
                   </div>
                 </div>
                 <div className="mt-4">
-                  <LemonSqueezyCheckout 
-                    plan="repremium"
-                    onCheckoutStart={() => trackEvent('landing_page_cta_click', { cta_location: 'pricing_repremium' })} 
-                  />
+                  <LemonSqueezyCheckout plan="repremium" onCheckoutStart={() => trackEvent('landing_page_cta_click', {
+                  cta_location: 'pricing_repremium'
+                })} />
                 </div>
               </CardContent>
             </Card>
