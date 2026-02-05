@@ -2,7 +2,7 @@ import { MessageCircle, Zap, BookOpen } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 const features = [{
   icon: Zap,
-  title: "Evaluación específica para PMs",
+  title: "Evaluación específica",
   description: "No es un test genérico. Diseñado específicamente para evaluar las 11 competencias core de Product Management.",
   highlight: true
 }, {
