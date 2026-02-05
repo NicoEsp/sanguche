@@ -1,29 +1,24 @@
 
-# Fix: Alineación de textos en "Cómo funciona"
+# Cambiar ícono del item de recursos dedicados
 
-## Problema
-La card "Evaluáte" tiene un Badge "5 minutos" que las otras cards no tienen, causando que:
-- Los textos de descripción de "Descubrí" y "Crecé" queden más arriba
-- Hay espacio en blanco desigual entre las cards
+## Cambio
 
-## Solución
+**Archivo**: `src/components/landing/SocialProofStrip.tsx`
 
-Agregar un **espacio reservado invisible** en las cards que no tienen subtitle, para mantener la alineación visual consistente.
+Cambiar el ícono `Award` por `Gift` en el item "+20 recursos dedicados exclusivos" para diferenciarlo visualmente del item anterior que también usa `Award`.
 
-### Cambio en `src/components/sections/HowItWorks.tsx`
-
-**Líneas 51-55** - Actualizar el renderizado del título y subtitle:
-
+### Actualización de imports (línea 1)
 ```tsx
-<h3 className="font-semibold mb-1">{step.title}</h3>
-{step.subtitle ? (
-  <Badge variant="secondary" className="mb-2 text-xs">{step.subtitle}</Badge>
-) : (
-  <div className="mb-2 h-5"></div>
-)}
-<p className="text-sm text-muted-foreground">{step.description}</p>
+import { Users, Star, Award, Gift } from 'lucide-react';
 ```
 
-## Resultado esperado
-- Las 3 descripciones quedarán perfectamente alineadas en la misma línea visual
-- Se elimina el espacio en blanco irregular debajo de "Descubrí" y "Crecé"
+### Actualización del ícono (línea ~26)
+```tsx
+<div className="flex items-center gap-2">
+  <Gift className="h-5 w-5 text-primary" />
+  <span><strong>+20</strong> recursos dedicados exclusivos</span>
+</div>
+```
+
+## Resultado
+Los 4 items tendrán íconos distintos: Users, Star, Award, y Gift.
