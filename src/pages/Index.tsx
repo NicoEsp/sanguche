@@ -98,7 +98,10 @@ const Index = () => {
           </h1>
           
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-            No importa de donde vengas o el rol que ocupes, todos tenemos habilidades de Producto. Accedé a una autoevaluación diseñada por{' '}
+            No importa de donde vengas o el rol que ocupes, todos tenemos habilidades de Producto.
+            <br className="hidden sm:block" />
+            <span className="sm:hidden"> </span>
+            Accedé a una autoevaluación diseñada por{' '}
             <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">
               NicoProducto
             </a>{' '}
