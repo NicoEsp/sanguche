@@ -49,8 +49,10 @@ export function HowItWorks() {
                 </div>
               </div>
               <h3 className="font-semibold mb-1">{step.title}</h3>
-              {step.subtitle && (
+              {step.subtitle ? (
                 <Badge variant="secondary" className="mb-2 text-xs">{step.subtitle}</Badge>
+              ) : (
+                <div className="mb-2 h-5"></div>
               )}
               <p className="text-sm text-muted-foreground">{step.description}</p>
             </CardContent>
