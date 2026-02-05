@@ -15,7 +15,7 @@ export function SocialProofStrip() {
           </div>
           <div className="flex items-center gap-2">
             <Award className="h-5 w-5 text-primary" />
-            <span>Diseñado por <strong>NicoProducto</strong></span>
+            <span><strong>+40 horas</strong> de mentoría dedicadas</span>
           </div>
         </div>
       </div>
