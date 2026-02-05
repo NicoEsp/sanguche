@@ -119,7 +119,7 @@ const Index = () => {
           <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-primary" />
-              <span className="font-medium">+450 PMs evaluados</span>
+              <span className="font-medium">Recursos curados y exclusivos</span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-primary" />
