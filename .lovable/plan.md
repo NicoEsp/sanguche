@@ -1,24 +1,19 @@
 
-# Cambiar ícono del item de recursos dedicados
+# Cambiar fecha de lanzamiento del curso
+
+## Curso
+**Estrategia de Producto para principiantes** (ID: `cde8ceef-7ec4-4f40-90d8-5b8efb2cc5ce`)
 
 ## Cambio
+- **Fecha actual**: 31 de enero de 2026
+- **Nueva fecha**: 20 de febrero de 2026
 
-**Archivo**: `src/components/landing/SocialProofStrip.tsx`
-
-Cambiar el ícono `Award` por `Gift` en el item "+20 recursos dedicados exclusivos" para diferenciarlo visualmente del item anterior que también usa `Award`.
-
-### Actualización de imports (línea 1)
-```tsx
-import { Users, Star, Award, Gift } from 'lucide-react';
+## Acción técnica
+Ejecutar actualización en la tabla `courses`:
+```sql
+UPDATE courses 
+SET publish_at = '2026-02-20T00:00:00-03:00', updated_at = now()
+WHERE id = 'cde8ceef-7ec4-4f40-90d8-5b8efb2cc5ce';
 ```
 
-### Actualización del ícono (línea ~26)
-```tsx
-<div className="flex items-center gap-2">
-  <Gift className="h-5 w-5 text-primary" />
-  <span><strong>+20</strong> recursos dedicados exclusivos</span>
-</div>
-```
-
-## Resultado
-Los 4 items tendrán íconos distintos: Users, Star, Award, y Gift.
+Nota: La hora se configura a medianoche en zona horaria Argentina (UTC-3).
