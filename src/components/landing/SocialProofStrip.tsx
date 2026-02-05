@@ -24,6 +24,10 @@ export function SocialProofStrip() {
             <Award className="h-5 w-5 text-primary" />
             <span><strong>+40 horas</strong> de mentoría dedicadas</span>
           </div>
+          <div className="flex items-center gap-2">
+            <Award className="h-5 w-5 text-primary" />
+            <span><strong>+20</strong> recursos dedicados exclusivos</span>
+          </div>
         </div>
       </div>
     </section>
