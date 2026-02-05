@@ -99,6 +99,7 @@ const Index = () => {
           
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
             No importa de donde vengas o el rol que ocupes, todos tenemos habilidades de Producto.
+            <br />
             <br className="hidden sm:block" />
             <span className="sm:hidden"> </span>
             Accedé a una autoevaluación diseñada por{' '}
