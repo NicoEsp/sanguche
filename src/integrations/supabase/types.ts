@@ -1174,6 +1174,13 @@ export type Database = {
       create_admin_user: { Args: { admin_user_id: string }; Returns: boolean }
       ensure_user_defaults: { Args: never; Returns: undefined }
       get_profile_id_for_auth: { Args: never; Returns: string }
+      get_social_proof_metrics: {
+        Args: never
+        Returns: {
+          total_assessments: number
+          total_users: number
+        }[]
+      }
       has_active_premium: { Args: never; Returns: boolean }
       has_course_access: { Args: { p_course_slug?: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
