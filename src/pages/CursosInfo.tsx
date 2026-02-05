@@ -211,7 +211,7 @@ export default function CursosInfo() {
                     <div className="absolute bottom-4 left-4">
                       <Badge variant="nuevo">
                         <Calendar className="w-3 h-3 mr-1" />
-                        Lanza 31 de enero
+                        Lanza 20 de febrero
                       </Badge>
                     </div>
                   </div>
