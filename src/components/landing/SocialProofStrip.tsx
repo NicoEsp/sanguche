@@ -1,4 +1,4 @@
-import { Users, Star, Award } from 'lucide-react';
+import { Users, Star, Award, Gift } from 'lucide-react';
 import { useSocialProofMetrics } from '@/hooks/useSocialProofMetrics';
 
 export function SocialProofStrip() {
@@ -25,7 +25,7 @@ export function SocialProofStrip() {
             <span><strong>+40 horas</strong> de mentoría dedicadas</span>
           </div>
           <div className="flex items-center gap-2">
-            <Award className="h-5 w-5 text-primary" />
+            <Gift className="h-5 w-5 text-primary" />
             <span><strong>+20</strong> recursos dedicados exclusivos</span>
           </div>
         </div>
