@@ -37,7 +37,7 @@ const whyCards = [
     icon: TrendingUp,
     title: "De ejecutor a estratega",
     description:
-      "Pasar de recibir tickets a influir en la dirección del producto. Los devs con mentalidad de producto son los más valorados en cualquier equipo, y los primeros en ser promovidos.",
+      "Pasar de recibir tickets a influir en la dirección del Producto. Los devs con mentalidad de producto son los más valorados en cualquier equipo, y los que más chances tienen de ser promovidos.",
   },
   {
     icon: Rocket,
