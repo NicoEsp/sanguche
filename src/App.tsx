@@ -38,6 +38,9 @@ const StarterPackLead = lazy(() => import("./pages/StarterPackLead"));
 // Descargables
 const Descargables = lazy(() => import("./pages/Descargables"));
 
+// Soy Dev
+const SoyDev = lazy(() => import("./pages/SoyDev"));
+
 // Skeleton components for better perceived performance
 // Skeletons cargados directamente (son críticos para UX y pequeños)
 import SkeletonProgress from "./components/skeletons/SkeletonProgress";
@@ -119,6 +122,7 @@ const App = () => (
                       <Route path="/starterpack/build" element={<StarterPackBuild />} />
                       <Route path="/starterpack/lead" element={<StarterPackLead />} />
                       <Route path="/preguntas" element={<Descargables />} />
+                      <Route path="/soy-dev" element={<SoyDev />} />
                       <Route path="/cursos" element={
                         <ProtectedRoute>
                           <Courses />
