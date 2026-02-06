@@ -25,7 +25,7 @@ const whyCards = [
     icon: Brain,
     title: "El contexto cambió",
     description:
-      "Con AI generando código, el diferencial ya no es solo saber programar. Es entender qué construir y por qué. Los devs que entienden producto son los que lideran equipos, toman decisiones y no son reemplazables.",
+      "Con AI generando código, el diferencial ya no es solo saber programar. Es entender qué construir y por qué. Los devs que entienden producto son los que lideran equipos, toman decisiones y aportar mucho más valor.",
   },
   {
     icon: Users,
