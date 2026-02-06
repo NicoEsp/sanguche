@@ -31,7 +31,7 @@ const whyCards = [
     icon: Users,
     title: "Hablá el mismo idioma que el negocio",
     description:
-      "Cuando entendés métricas, priorización y discovery, la comunicación con PMs, diseñadores y stakeholders deja de ser un cuello de botella. Tu carrera se acelera y las fricciones desaparecen.",
+      "Cuando entendés de métricas, priorización y product discovery, la comunicación con PMs, diseñadores y stakeholders en general deja de ser un cuello de botella. Tu carrera se acelera y las fricciones desaparecen.",
   },
   {
     icon: TrendingUp,
