@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, ArrowRight, Zap, Rocket, Crown, Users } from "lucide-react";
+import { Check, Star, ArrowRight, Zap, Rocket, Crown, Users, Code } from "lucide-react";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { SocialProofStrip } from "@/components/landing/SocialProofStrip";
 import { StickyMobileCTA } from "@/components/landing/StickyMobileCTA";
@@ -92,8 +92,13 @@ const Index = () => {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>
-          
-          {/* Social proof inmediato */}
+
+          <Button asChild variant="ghost" size="sm" className="mt-3 text-muted-foreground hover:text-primary">
+            <Link to="/soy-dev">
+              Soy Dev, ¿qué hago?
+              <Code className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
           
         </section>
 
