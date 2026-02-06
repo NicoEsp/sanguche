@@ -43,7 +43,7 @@ const whyCards = [
     icon: Rocket,
     title: "Emprendimiento y side-projects",
     description:
-      "Si querés lanzar tu propio producto, necesitás saber priorización, discovery y validación — no solo código. El 70% de las startups fracasan por problemas de producto, no de tecnología.",
+      "Si querés lanzar tu propio producto, necesitás saber priorización, product discovery y distribución, solo con código no alcanza. El 70% de las startups fracasan por problemas de producto, no de tecnología.",
   },
 ];
 
