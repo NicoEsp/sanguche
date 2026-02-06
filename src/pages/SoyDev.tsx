@@ -68,16 +68,22 @@ const benefits = [
 
 const stats = [
   {
-    value: "70%",
-    label: "de startups fracasan por problemas de producto, no de tecnología",
+    value: "35%",
+    label: "de startups fracasan porque no había necesidad de mercado. Es la razón #1 de fracaso.",
+    source: "CB Insights, 2021",
+    url: "https://www.cbinsights.com/research/report/startup-failure-reasons-top/",
   },
   {
-    value: "3x",
-    label: "más valorados son los devs que entienden producto en procesos de hiring",
+    value: "4-5x",
+    label: "más rápido crecen en revenue las empresas donde producto, cultura y herramientas están alineados",
+    source: "McKinsey, 2020",
+    url: "https://www.mckinsey.com/industries/technology-media-and-telecommunications/our-insights/developer-velocity-how-software-excellence-fuels-business-performance",
   },
   {
-    value: "2025",
-    label: "el año en que AI cambió las reglas: saber programar ya no alcanza",
+    value: "84%",
+    label: "de developers ya usan herramientas de AI para programar. Solo código ya no es el diferencial.",
+    source: "Stack Overflow Survey, 2025",
+    url: "https://survey.stackoverflow.co/2025/ai",
   },
 ];
 
@@ -201,6 +207,14 @@ const SoyDev = () => {
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {stat.label}
                   </p>
+                  <a
+                    href={stat.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary/60 hover:text-primary underline mt-1 inline-block"
+                  >
+                    Fuente: {stat.source}
+                  </a>
                 </div>
               ))}
             </div>
