@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, ArrowRight, Zap, Rocket, Crown, Users, Code } from "lucide-react";
+import { Check, Star, ArrowRight, Zap, Rocket, Crown, Users } from "lucide-react";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { SocialProofStrip } from "@/components/landing/SocialProofStrip";
 import { StickyMobileCTA } from "@/components/landing/StickyMobileCTA";
@@ -93,12 +93,18 @@ const Index = () => {
             </Link>
           </Button>
 
-          <Button asChild variant="ghost" size="sm" className="mt-3 text-muted-foreground hover:text-primary">
-            <Link to="/soy-dev">
-              Soy Dev, ¿qué hago?
-              <Code className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+          <Link 
+            to="/soy-dev" 
+            onClick={() => trackEvent('landing_soy_dev_click', { cta_location: 'hero' })}
+            className="mt-3 inline-flex items-center gap-1 font-mono text-sm bg-slate-900/80 text-slate-300 border border-slate-700 hover:border-slate-400 rounded-md px-4 py-2 transition-colors duration-200"
+          >
+            <span className="text-green-400 mr-1">&gt;</span>
+            <span className="text-sky-400">soyDev</span>
+            <span className="text-slate-500">.</span>
+            <span className="text-amber-400">queHago</span>
+            <span className="text-slate-500">()</span>
+            <span className="animate-blink text-slate-400 ml-0.5">▎</span>
+          </Link>
           
         </section>
 
