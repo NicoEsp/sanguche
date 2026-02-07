@@ -8,7 +8,7 @@ export interface PremiumUser {
   user_id: string;
   mentoria_completed: boolean;
   user_subscriptions: {
-    plan: 'free' | 'premium';
+    plan: 'free' | 'premium' | 'repremium';
     status: 'active' | 'inactive' | 'cancelled';
     created_at: string;
   };
@@ -32,7 +32,7 @@ export function usePremiumUsers() {
             created_at
           )
         `)
-        .eq('user_subscriptions.plan', 'premium')
+        .in('user_subscriptions.plan', ['premium', 'repremium'])
         .eq('user_subscriptions.status', 'active')
         .order('name');
       
