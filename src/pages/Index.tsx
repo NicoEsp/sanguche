@@ -96,7 +96,7 @@ const Index = () => {
           <Link 
             to="/soy-dev" 
             onClick={() => trackEvent('landing_soy_dev_click', { cta_location: 'hero' })}
-            className="mt-3 inline-flex items-center gap-1 font-mono text-sm bg-slate-900/80 text-slate-300 border border-slate-700 hover:border-slate-400 rounded-md px-4 py-2 transition-colors duration-200"
+            className="mt-6 inline-flex items-center gap-1 font-mono text-sm bg-slate-900/80 text-slate-300 border border-slate-700 hover:border-slate-400 rounded-md px-4 py-2 transition-colors duration-200"
           >
             <span className="text-green-400 mr-1">&gt;</span>
             <span className="text-sky-400">soyDev</span>
