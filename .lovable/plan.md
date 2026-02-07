@@ -1,23 +1,37 @@
 
 
-## Separar visualmente el boton "Soy Dev" del CTA principal
+## Poner el boton "Soy Dev" en su propio renglon, debajo del CTA
 
-### Cambio
+### Problema
 
-Un ajuste simple en `src/pages/Index.tsx` (linea 99): cambiar el `mt-3` del Link de soyDev por `mt-6` para agregar mas interlineado entre el boton "Comenzar evaluacion gratis" y el snippet de codigo, y que no queden pegados.
+La seccion hero usa `text-center` pero no tiene `flex-col`, asi que tanto el boton "Comenzar evaluacion gratis" como el link `soyDev.queHago()` se renderizan como elementos inline uno al lado del otro. El `mt-6` no fuerza un salto de linea.
+
+### Solucion
+
+Envolver ambos elementos (el Button y el Link de soyDev) en un contenedor `flex flex-col items-center` con gap. Esto garantiza que cada uno ocupe su propio renglon y queden centrados con separacion clara.
 
 ### Detalle tecnico
 
-**Archivo: `src/pages/Index.tsx`** (linea 99)
+**Archivo: `src/pages/Index.tsx`** (lineas 86-107)
 
-Cambiar la clase `mt-3` a `mt-6` en el className del Link:
+Envolver el `Button` y el `Link` en un `div` con clases flex column:
 
-```
-mt-3 inline-flex items-center...
-```
-pasa a:
-```
-mt-6 inline-flex items-center...
+```jsx
+<div className="flex flex-col items-center gap-4">
+  <Button asChild size="lg" ...>
+    <Link to={...}>
+      Comenzar evaluación gratis
+      <ArrowRight ... />
+    </Link>
+  </Button>
+
+  <Link 
+    to="/soy-dev" 
+    className="inline-flex items-center gap-1 font-mono text-sm ..."
+  >
+    ...
+  </Link>
+</div>
 ```
 
-Esto agrega 1.5rem (24px) de espacio superior en vez de los 0.75rem (12px) actuales, dando una separacion clara entre ambos elementos sin romper la jerarquia visual.
+Se elimina el `mt-6` del Link porque el `gap-4` del contenedor se encarga de la separacion (16px entre ambos elementos). Si se quiere mas espacio se puede subir a `gap-6`.
