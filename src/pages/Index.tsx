@@ -83,28 +83,30 @@ const Index = () => {
             para identificar tus fortalezas y áreas de mejora.
           </p>
           
-          <Button asChild size="lg" className="text-lg px-10 py-7 font-semibold shadow-lg" onClick={() => trackEvent('landing_page_cta_click', {
-          cta_location: 'hero',
-          cta_text: 'Comenzar evaluación gratis'
-        })}>
-            <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
-              Comenzar evaluación gratis
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </Button>
+          <div className="flex flex-col items-center gap-4">
+            <Button asChild size="lg" className="text-lg px-10 py-7 font-semibold shadow-lg" onClick={() => trackEvent('landing_page_cta_click', {
+              cta_location: 'hero',
+              cta_text: 'Comenzar evaluación gratis'
+            })}>
+              <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
+                Comenzar evaluación gratis
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
 
-          <Link 
-            to="/soy-dev" 
-            onClick={() => trackEvent('landing_soy_dev_click', { cta_location: 'hero' })}
-            className="mt-6 inline-flex items-center gap-1 font-mono text-sm bg-slate-900/80 text-slate-300 border border-slate-700 hover:border-slate-400 rounded-md px-4 py-2 transition-colors duration-200"
-          >
-            <span className="text-green-400 mr-1">&gt;</span>
-            <span className="text-sky-400">soyDev</span>
-            <span className="text-slate-500">.</span>
-            <span className="text-amber-400">queHago</span>
-            <span className="text-slate-500">()</span>
-            <span className="animate-blink text-slate-400 ml-0.5">▎</span>
-          </Link>
+            <Link 
+              to="/soy-dev" 
+              onClick={() => trackEvent('landing_soy_dev_click', { cta_location: 'hero' })}
+              className="inline-flex items-center gap-1 font-mono text-sm bg-slate-900/80 text-slate-300 border border-slate-700 hover:border-slate-400 rounded-md px-4 py-2 transition-colors duration-200"
+            >
+              <span className="text-green-400 mr-1">&gt;</span>
+              <span className="text-sky-400">soyDev</span>
+              <span className="text-slate-500">.</span>
+              <span className="text-amber-400">queHago</span>
+              <span className="text-slate-500">()</span>
+              <span className="animate-blink text-slate-400 ml-0.5">▎</span>
+            </Link>
+          </div>
           
         </section>
 
