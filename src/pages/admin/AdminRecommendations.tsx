@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Search, Crown, RefreshCw } from 'lucide-react';
 import { SkeletonAdminTable } from '@/components/skeletons/SkeletonAdminTable';
 import { usePremiumUsers, useRefreshPremiumUsers } from '@/hooks/usePremiumUsers';
+import { getPlanBadgeInfo } from '@/constants/plans';
 import { useNavigate } from 'react-router-dom';
 
 export default function AdminRecommendations() {
@@ -39,7 +40,7 @@ export default function AdminRecommendations() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Gestión de Mentorías</h1>
             <p className="text-sm text-muted-foreground">
-              Ejercicios y recursos para usuarios Premium
+              Ejercicios y recursos para usuarios Premium y RePremium
             </p>
           </div>
           <Button 
@@ -55,9 +56,9 @@ export default function AdminRecommendations() {
 
         <Card>
           <CardHeader className="pb-3 sm:pb-6">
-            <CardTitle className="text-base sm:text-lg">Buscar Usuario Premium</CardTitle>
+            <CardTitle className="text-base sm:text-lg">Buscar Usuario</CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              Selecciona un usuario para gestionar su mentoría
+              Selecciona un usuario Premium o RePremium para gestionar su mentoría
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -109,7 +110,14 @@ export default function AdminRecommendations() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="default">Premium</Badge>
+                            {(() => {
+                              const badgeInfo = getPlanBadgeInfo(user.user_subscriptions.plan);
+                              return (
+                                <Badge variant={badgeInfo.variant} className={`${badgeInfo.className} rounded-md whitespace-nowrap shrink-0`}>
+                                  {badgeInfo.label}
+                                </Badge>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             {new Date(user.user_subscriptions.created_at).toLocaleDateString('es-ES')}
