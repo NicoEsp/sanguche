@@ -65,9 +65,18 @@ Deno.serve(async (req) => {
     // Parse request body
     const { profileId }: DeleteUserRequest = await req.json();
 
-    if (!profileId) {
+    if (!profileId || typeof profileId !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Missing profileId parameter' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // SECURITY: Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(profileId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid profileId format' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -169,16 +178,7 @@ Deno.serve(async (req) => {
     console.log('[delete-user] User deleted successfully');
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'User deleted successfully',
-        deleted: {
-          profile_id: targetProfile.id,
-          auth_user_id: targetProfile.user_id,
-          name: targetProfile.name,
-          email: userEmail,
-        }
-      }),
+      JSON.stringify({ success: true, message: 'User deleted successfully' }),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -188,10 +188,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('[delete-user] Error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Internal server error',
-        details: error instanceof Error ? error.stack : undefined
-      }),
+      JSON.stringify({ error: 'Error interno del servidor' }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

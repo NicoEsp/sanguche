@@ -91,7 +91,7 @@ serve(async (req) => {
     if (!lemonSqueezyResponse.ok) {
       const errorText = await lemonSqueezyResponse.text();
       console.error('Lemon Squeezy API error:', errorText);
-      throw new Error(`Failed to cancel subscription in Lemon Squeezy: ${errorText}`);
+      throw new Error('Failed to cancel subscription in Lemon Squeezy');
     }
 
     // Update subscription status in database
@@ -118,7 +118,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in cancel-subscription:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'No pudimos cancelar tu suscripción. Intenta nuevamente en unos minutos.' }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400 

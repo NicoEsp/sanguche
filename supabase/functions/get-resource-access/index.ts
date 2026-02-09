@@ -33,8 +33,14 @@ Deno.serve(async (req) => {
     }
 
     const { resourceId } = await req.json();
-    if (!resourceId) {
+    if (!resourceId || typeof resourceId !== 'string') {
       throw new Error('Missing resourceId parameter');
+    }
+
+    // SECURITY: Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(resourceId)) {
+      throw new Error('Invalid resourceId format');
     }
 
     // Get resource details
