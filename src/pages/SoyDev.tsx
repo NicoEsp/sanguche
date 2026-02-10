@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Seo } from "@/components/Seo";
-import { Code, Lightbulb, Rocket, Target, Brain, TrendingUp, Users, ArrowRight, CheckCircle2, BarChart3, Zap, Home, ChevronRight } from "lucide-react";
+import { Code, Lightbulb, Rocket, Target, Brain, TrendingUp, Users, ArrowRight, CheckCircle2, BarChart3, Zap, Home, ChevronRight, MessageCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import SkillCard from "@/components/soydev/SkillCard";
 const whyCards = [{
@@ -36,7 +36,10 @@ const benefits = [{
 }, {
   icon: CheckCircle2,
   text: "Tené un roadmap claro de crecimiento en producto con objetivos concretos y medibles"
-}];
+}, {
+  icon: MessageCircle,
+  text: <>Accedé a sesiones de mentoría personalizada 1:1 con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline font-medium">NicoProducto</a> para acelerar tu crecimiento en producto</>
+}] as const;
 const stats = [{
   value: "35%",
   label: "de startups fracasan porque no había necesidad de mercado. Es la razón #1 de fracaso.",
@@ -186,7 +189,7 @@ const SoyDev = () => {
           </div>
 
           <div className="space-y-4 max-w-2xl mx-auto">
-            {benefits.map(benefit => <div key={benefit.text} className="flex items-start gap-4 p-4 rounded-xl bg-muted/40 border border-border/40">
+            {benefits.map((benefit, index) => <div key={index} className="flex items-start gap-4 p-4 rounded-xl bg-muted/40 border border-border/40">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <benefit.icon className="h-5 w-5 text-primary" />
                 </div>
