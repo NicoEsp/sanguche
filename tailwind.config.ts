@@ -159,6 +159,10 @@ export default {
 					transform: 'scale(1)', 
 					boxShadow: 'none' 
 				}
+			},
+			'typing': {
+				'0%': { width: '0' },
+				'100%': { width: '100%' }
 			}
 			},
 		animation: {
@@ -169,7 +173,8 @@ export default {
 			'fade-in': 'fade-in 0.3s ease-out forwards',
 			'drop-in': 'drop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
 			'shake': 'shake 0.4s ease-in-out',
-			'drop-settle': 'drop-settle 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+			'drop-settle': 'drop-settle 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+			'typing': 'typing 1s steps(30, end) forwards'
 		}
 		}
 	},
