@@ -104,6 +104,7 @@ const SoyDev = () => {
   const skillsSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setSkillsVisible(false);
     const el = skillsSectionRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
