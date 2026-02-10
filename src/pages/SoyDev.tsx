@@ -26,7 +26,7 @@ const whyCards = [{
 }];
 const benefits = [{
   icon: Target,
-  text: "Evaluá tus habilidades de producto actuales con una autoevaluación diseñada por expertos"
+  text: "Evaluá tus habilidades de producto actuales con una autoevaluación diseñada por un experto con más de 10 años de experiencia."
 }, {
   icon: BarChart3,
   text: "Identificá gaps específicos para tu perfil técnico y obtené tu nivel de seniority en producto"
