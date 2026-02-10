@@ -4,131 +4,85 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Seo } from "@/components/Seo";
-import {
-  Code,
-  Lightbulb,
-  Rocket,
-  Target,
-  Brain,
-  TrendingUp,
-  Users,
-  ArrowRight,
-  CheckCircle2,
-  BarChart3,
-  Zap,
-  Home,
-  ChevronRight,
-} from "lucide-react";
+import { Code, Lightbulb, Rocket, Target, Brain, TrendingUp, Users, ArrowRight, CheckCircle2, BarChart3, Zap, Home, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import SkillCard from "@/components/soydev/SkillCard";
-
-const whyCards = [
-  {
-    icon: Brain,
-    title: "El contexto cambió",
-    description:
-      "Con AI generando código, el diferencial ya no es solo saber programar. Es entender qué construir y por qué. Los devs que entienden producto son los que lideran equipos, toman decisiones y aportar mucho más valor.",
-  },
-  {
-    icon: Users,
-    title: "Hablá idioma del negocio",
-    description:
-      "Cuando entendés de métricas, priorización y product discovery, la comunicación con PMs, diseñadores y stakeholders en general deja de ser un cuello de botella. Tu carrera se acelera y las fricciones desaparecen.",
-  },
-  {
-    icon: TrendingUp,
-    title: "De ejecutor a estratega",
-    description:
-      "Pasar de recibir tickets a influir en la dirección del Producto. Los devs con mentalidad de producto son los más valorados en cualquier equipo, y los que más chances tienen de ser promovidos.",
-  },
-  {
-    icon: Rocket,
-    title: "Emprendimiento y side-projects",
-    description:
-      "Si querés lanzar tu propio producto, necesitás saber priorización, product discovery y distribución, solo con código no alcanza. El 35% de las startups fracasan porque no había necesidad de mercado — es la razón #1 de fracaso (CB Insights, 2021).",
-  },
-];
-
-const benefits = [
-  {
-    icon: Target,
-    text: "Evaluá tus habilidades de producto actuales con una autoevaluación diseñada por expertos",
-  },
-  {
-    icon: BarChart3,
-    text: "Identificá gaps específicos para tu perfil técnico y obtené tu nivel de seniority en producto",
-  },
-  {
-    icon: Lightbulb,
-    text: "Accedé a recursos curados pensados para perfiles que vienen del desarrollo de software",
-  },
-  {
-    icon: CheckCircle2,
-    text: "Tené un roadmap claro de crecimiento en producto con objetivos concretos y medibles",
-  },
-];
-
-const stats = [
-  {
-    value: "35%",
-    label: "de startups fracasan porque no había necesidad de mercado. Es la razón #1 de fracaso.",
-    source: "CB Insights, 2021",
-    url: "https://www.cbinsights.com/research/report/startup-failure-reasons-top/",
-  },
-  {
-    value: "4-5x",
-    label: "más rápido crecen en revenue las empresas donde producto, cultura y herramientas están alineados",
-    source: "McKinsey, 2020",
-    url: "https://www.mckinsey.com/industries/technology-media-and-telecommunications/our-insights/developer-velocity-how-software-excellence-fuels-business-performance",
-  },
-  {
-    value: "84%",
-    label: "de developers ya usan herramientas de AI para programar. Solo código ya no es el diferencial.",
-    source: "Stack Overflow Survey, 2025",
-    url: "https://survey.stackoverflow.co/2025/ai",
-  },
-];
-
+const whyCards = [{
+  icon: Brain,
+  title: "El contexto cambió",
+  description: "Con AI generando código, el diferencial ya no es solo saber programar. Es entender qué construir y por qué. Los devs que entienden producto son los que lideran equipos, toman decisiones y aportar mucho más valor."
+}, {
+  icon: Users,
+  title: "Hablá idioma del negocio",
+  description: "Cuando entendés de métricas, priorización y product discovery, la comunicación con PMs, diseñadores y stakeholders en general deja de ser un cuello de botella. Tu carrera se acelera y las fricciones desaparecen."
+}, {
+  icon: TrendingUp,
+  title: "De ejecutor a estratega",
+  description: "Pasar de recibir tickets a influir en la dirección del Producto. Los devs con mentalidad de producto son los más valorados en cualquier equipo, y los que más chances tienen de ser promovidos."
+}, {
+  icon: Rocket,
+  title: "Emprendimiento y side-projects",
+  description: "Si querés lanzar tu propio producto, necesitás saber priorización, product discovery y distribución, solo con código no alcanza. El 35% de las startups fracasan porque no había necesidad de mercado — es la razón #1 de fracaso (CB Insights, 2021)."
+}];
+const benefits = [{
+  icon: Target,
+  text: "Evaluá tus habilidades de producto actuales con una autoevaluación diseñada por expertos"
+}, {
+  icon: BarChart3,
+  text: "Identificá gaps específicos para tu perfil técnico y obtené tu nivel de seniority en producto"
+}, {
+  icon: Lightbulb,
+  text: "Accedé a recursos curados pensados para perfiles que vienen del desarrollo de software"
+}, {
+  icon: CheckCircle2,
+  text: "Tené un roadmap claro de crecimiento en producto con objetivos concretos y medibles"
+}];
+const stats = [{
+  value: "35%",
+  label: "de startups fracasan porque no había necesidad de mercado. Es la razón #1 de fracaso.",
+  source: "CB Insights, 2021",
+  url: "https://www.cbinsights.com/research/report/startup-failure-reasons-top/"
+}, {
+  value: "4-5x",
+  label: "más rápido crecen en revenue las empresas donde producto, cultura y herramientas están alineados",
+  source: "McKinsey, 2020",
+  url: "https://www.mckinsey.com/industries/technology-media-and-telecommunications/our-insights/developer-velocity-how-software-excellence-fuels-business-performance"
+}, {
+  value: "84%",
+  label: "de developers ya usan herramientas de AI para programar. Solo código ya no es el diferencial.",
+  source: "Stack Overflow Survey, 2025",
+  url: "https://survey.stackoverflow.co/2025/ai"
+}];
 const soyDevSchema = {
   "@context": "https://schema.org",
   "@type": "WebPage",
   name: "ProductPrepa para Desarrolladores",
   url: "https://productprepa.com/soy-dev",
-  description:
-    "Descubrí por qué aprender Product Management es clave para desarrolladores de software en la era de AI.",
+  description: "Descubrí por qué aprender Product Management es clave para desarrolladores de software en la era de AI."
 };
-
 const SoyDev = () => {
-  const { isAuthenticated } = useAuth();
+  const {
+    isAuthenticated
+  } = useAuth();
   const [skillsVisible, setSkillsVisible] = useState(false);
   const skillsSectionRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     setSkillsVisible(false);
     const el = skillsSectionRef.current;
     if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setSkillsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.15 }
-    );
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setSkillsVisible(true);
+        observer.disconnect();
+      }
+    }, {
+      threshold: 0.15
+    });
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-
-  return (
-    <>
-      <Seo
-        title="Soy Dev - Por qué aprender Producto | ProductPrepa"
-        description="Descubrí por qué aprender Product Management es clave para desarrolladores. Evaluá tus habilidades de producto y crecé profesionalmente."
-        canonical="/soy-dev"
-        keywords="desarrollador producto, dev product management, programador PM, software developer product skills, carrera desarrollador"
-        jsonLd={soyDevSchema}
-      />
+  return <>
+      <Seo title="Soy Dev - Por qué aprender Producto | ProductPrepa" description="Descubrí por qué aprender Product Management es clave para desarrolladores. Evaluá tus habilidades de producto y crecé profesionalmente." canonical="/soy-dev" keywords="desarrollador producto, dev product management, programador PM, software developer product skills, carrera desarrollador" jsonLd={soyDevSchema} />
 
       <main className="min-h-screen bg-background animate-fade-in">
         {/* Breadcrumb */}
@@ -194,16 +148,7 @@ const SoyDev = () => {
           </div>
 
           <div ref={skillsSectionRef} className="grid gap-6 sm:grid-cols-2 max-w-4xl mx-auto">
-            {whyCards.map((card, index) => (
-              <SkillCard
-                key={card.title}
-                icon={card.icon}
-                title={card.title}
-                description={card.description}
-                delay={index * 400}
-                triggerAnimation={skillsVisible}
-              />
-            ))}
+            {whyCards.map((card, index) => <SkillCard key={card.title} icon={card.icon} title={card.title} description={card.description} delay={index * 400} triggerAnimation={skillsVisible} />)}
           </div>
         </section>
 
@@ -214,24 +159,17 @@ const SoyDev = () => {
               Los números hablan
             </h2>
             <div className="grid gap-8 sm:grid-cols-3 max-w-3xl mx-auto text-center">
-              {stats.map((stat) => (
-                <div key={stat.value}>
+              {stats.map(stat => <div key={stat.value}>
                   <div className="text-4xl sm:text-5xl font-bold text-primary mb-2">
                     {stat.value}
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {stat.label}
                   </p>
-                  <a
-                    href={stat.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-primary/60 hover:text-primary underline mt-1 inline-block"
-                  >
+                  <a href={stat.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary/60 hover:text-primary underline mt-1 inline-block">
                     Fuente: {stat.source}
                   </a>
-                </div>
-              ))}
+                </div>)}
             </div>
           </div>
         </section>
@@ -243,25 +181,19 @@ const SoyDev = () => {
               Qué vas a descubrir en ProductPrepa
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Herramientas pensadas para que un perfil técnico pueda evaluar,
-              aprender y crecer en producto.
+              Herramientas pensadas para que un perfil técnico pueda evaluar, aprender y crecer en sus habilidades de Producto.
             </p>
           </div>
 
           <div className="space-y-4 max-w-2xl mx-auto">
-            {benefits.map((benefit) => (
-              <div
-                key={benefit.text}
-                className="flex items-start gap-4 p-4 rounded-xl bg-muted/40 border border-border/40"
-              >
+            {benefits.map(benefit => <div key={benefit.text} className="flex items-start gap-4 p-4 rounded-xl bg-muted/40 border border-border/40">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <benefit.icon className="h-5 w-5 text-primary" />
                 </div>
                 <p className="text-sm sm:text-base text-foreground leading-relaxed">
                   {benefit.text}
                 </p>
-              </div>
-            ))}
+              </div>)}
           </div>
         </section>
 
@@ -295,8 +227,6 @@ const SoyDev = () => {
           </Card>
         </section>
       </main>
-    </>
-  );
+    </>;
 };
-
 export default SoyDev;
