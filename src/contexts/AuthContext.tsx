@@ -5,6 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useServerAdminValidation } from '@/hooks/useServerAdminValidation';
 import { Mixpanel } from '@/lib/mixpanel';
 import { useQueryClient } from '@tanstack/react-query';
+import { fetchCompositeData } from '@/hooks/useProfileCompositeData';
+import { getAuthErrorMessage } from '@/utils/errorMessages';
 
 interface AuthContextType {
   user: User | null;
@@ -35,68 +37,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // SECURITY: Server-side admin validation - cannot be bypassed by localStorage manipulation
   const { isAdmin, isValidating: isAdminValidating } = useServerAdminValidation(user);
 
-  // Prefetch critical data when user authenticates - OPTIMIZED: Single composite query
-  // Uses same structure as useProfileCompositeData hook for cache compatibility
+  // Prefetch critical data when user authenticates
   useEffect(() => {
     if (user && !isLoading) {
       queryClient.prefetchQuery({
         queryKey: ['user-composite-data', user.id],
-        queryFn: async () => {
-          // Fetch profile with subscription in single query
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select(`
-              id, 
-              name, 
-              user_id, 
-              mentoria_completed,
-              last_mentoria_date,
-              is_founder,
-              user_subscriptions(plan, status, current_period_end, purchase_type)
-            `)
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          // Fetch assessments count
-          const { data: assessmentsData } = await supabase
-            .from('assessments')
-            .select('id, updated_at')
-            .eq('user_id', profileData?.id || '')
-            .order('updated_at', { ascending: false })
-            .limit(100);
-
-          // Transform to ProfileCompositeData format
-          const subscriptionData = profileData?.user_subscriptions;
-          const purchaseType = subscriptionData?.purchase_type || 'subscription';
-
-          return {
-            profile: profileData ? {
-              id: profileData.id,
-              name: profileData.name,
-              user_id: profileData.user_id || '',
-              mentoria_completed: profileData.mentoria_completed,
-              last_mentoria_date: profileData.last_mentoria_date,
-              is_founder: profileData.is_founder,
-            } : null,
-            subscription: subscriptionData ? {
-              plan: subscriptionData.plan,
-              status: subscriptionData.status,
-              current_period_end: subscriptionData.current_period_end 
-                ? new Date(subscriptionData.current_period_end) 
-                : null,
-              purchase_type: purchaseType,
-              isOneTimePurchase: purchaseType === 'one_time',
-            } : {
-              plan: 'free',
-              status: 'active',
-              current_period_end: null,
-              purchase_type: 'subscription',
-              isOneTimePurchase: false,
-            },
-            assessmentsCount: assessmentsData?.length || 0,
-            lastAssessmentDate: assessmentsData?.[0]?.updated_at || null,
-          };
-        },
+        queryFn: () => fetchCompositeData(user.id),
       });
     }
   }, [user, isLoading, queryClient]);
@@ -202,54 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             supabase.rpc('ensure_user_defaults'),
             queryClient.prefetchQuery({
               queryKey: ['user-composite-data', currentUser.id],
-              queryFn: async () => {
-                const { data: profileData } = await supabase
-                  .from('profiles')
-                  .select(`
-                    id, name, user_id, mentoria_completed, last_mentoria_date, is_founder,
-                    user_subscriptions(plan, status, current_period_end, purchase_type)
-                  `)
-                  .eq('user_id', currentUser.id)
-                  .maybeSingle();
-
-                const { data: assessmentsData } = await supabase
-                  .from('assessments')
-                  .select('id, updated_at')
-                  .eq('user_id', profileData?.id || '')
-                  .order('updated_at', { ascending: false })
-                  .limit(100);
-
-                const subscriptionData = profileData?.user_subscriptions;
-                const purchaseType = subscriptionData?.purchase_type || 'subscription';
-
-                return {
-                  profile: profileData ? {
-                    id: profileData.id,
-                    name: profileData.name,
-                    user_id: profileData.user_id || '',
-                    mentoria_completed: profileData.mentoria_completed,
-                    last_mentoria_date: profileData.last_mentoria_date,
-                    is_founder: profileData.is_founder,
-                  } : null,
-                  subscription: subscriptionData ? {
-                    plan: subscriptionData.plan,
-                    status: subscriptionData.status,
-                    current_period_end: subscriptionData.current_period_end 
-                      ? new Date(subscriptionData.current_period_end) 
-                      : null,
-                    purchase_type: purchaseType,
-                    isOneTimePurchase: purchaseType === 'one_time',
-                  } : {
-                    plan: 'free',
-                    status: 'active',
-                    current_period_end: null,
-                    purchase_type: 'subscription',
-                    isOneTimePurchase: false,
-                  },
-                  assessmentsCount: assessmentsData?.length || 0,
-                  lastAssessmentDate: assessmentsData?.[0]?.updated_at || null,
-                };
-              },
+              queryFn: () => fetchCompositeData(currentUser.id),
             }),
           ]).catch((error) => {
             if (import.meta.env.DEV) {
@@ -311,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         toast({
           title: "Error al registrarse",
-          description: getErrorMessage(error.message),
+          description: getAuthErrorMessage(error.message),
           variant: "destructive",
         });
       } else {
@@ -338,7 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         toast({
           title: "Error al iniciar sesión",
-          description: getErrorMessage(error.message),
+          description: getAuthErrorMessage(error.message),
           variant: "destructive",
         });
       } else {
@@ -416,7 +315,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         toast({
           title: "Error al enviar email",
-          description: getErrorMessage(error.message),
+          description: getAuthErrorMessage(error.message),
           variant: "destructive",
         });
       } else {
@@ -442,7 +341,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         toast({
           title: "Error al actualizar contraseña",
-          description: getErrorMessage(error.message),
+          description: getAuthErrorMessage(error.message),
           variant: "destructive",
         });
       } else {
@@ -481,7 +380,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         toast({
           title: "Error al reenviar confirmación",
-          description: getErrorMessage(error.message),
+          description: getAuthErrorMessage(error.message),
           variant: "destructive",
         });
       } else {
@@ -495,28 +394,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const getErrorMessage = (message: string): string => {
-    const errorMessages: Record<string, string> = {
-      'Invalid login credentials': 'Credenciales incorrectas. Verifica tu email y contraseña.',
-      'Email not confirmed': 'Por favor verifica tu email antes de iniciar sesión.',
-      'Password should be at least 6 characters': 'La contraseña debe tener al menos 6 caracteres.',
-      'User already registered': 'Ya existe una cuenta con este email.',
-      'Invalid email': 'Por favor ingresa un email válido.',
-      'Signup requires a valid password': 'Se requiere una contraseña válida para registrarse.',
-      'Email rate limit exceeded': 'Demasiados intentos. Espera unos minutos e intenta nuevamente.',
-      'Password is too weak': 'La contraseña es muy débil. Usa al menos 6 caracteres.',
-      'User not found': 'No se encontró una cuenta con este email.',
-      // Recovery/OTP errors
-      'otp_expired': 'El enlace ha expirado. Los enlaces de recuperación son válidos por 1 hora.',
-      'Token has expired or is invalid': 'El enlace ha expirado o ya fue usado. Cada enlace solo puede usarse una vez.',
-      'flow_state_expired': 'El enlace ha expirado. Solicita uno nuevo.',
-      'Invalid Refresh Token: Already Used': 'Este enlace ya fue usado. Cada enlace de recuperación solo puede usarse una vez.',
-      'Invalid Refresh Token: Refresh Token Not Found': 'Enlace inválido o ya usado. Solicita uno nuevo.',
-    };
-
-    return errorMessages[message] || 'Hubo un error, intenta nuevamente en unos minutos.';
   };
 
   const value = useMemo(() => ({

@@ -18,7 +18,7 @@ export function useCourse(slug: string) {
         if (courseError.code === "PGRST116") {
           return null; // Not found
         }
-        console.error("Error fetching course:", courseError);
+        if (import.meta.env.DEV) console.error("Error fetching course:", courseError);
         throw courseError;
       }
 
@@ -31,7 +31,7 @@ export function useCourse(slug: string) {
         .order("order_index", { ascending: true });
 
       if (lessonsError) {
-        console.error("Error fetching lessons:", lessonsError);
+        if (import.meta.env.DEV) console.error("Error fetching lessons:", lessonsError);
         throw lessonsError;
       }
 
@@ -44,7 +44,7 @@ export function useCourse(slug: string) {
         .order("order_index", { ascending: true });
 
       if (exercisesError) {
-        console.error("Error fetching exercises:", exercisesError);
+        if (import.meta.env.DEV) console.error("Error fetching exercises:", exercisesError);
         throw exercisesError;
       }
 

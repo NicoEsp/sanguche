@@ -13,7 +13,7 @@ export function useCourses() {
         .order("order_index", { ascending: true });
 
       if (error) {
-        console.error("Error fetching courses:", error);
+        if (import.meta.env.DEV) console.error("Error fetching courses:", error);
         throw error;
       }
 

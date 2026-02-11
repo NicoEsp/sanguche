@@ -184,7 +184,7 @@ const AdminStarterPack = () => {
       handleCloseDialog();
     },
     onError: (error) => {
-      console.error('Error saving resource:', error);
+      if (import.meta.env.DEV) console.error('Error saving resource:', error);
       toast.error('Error al guardar el recurso');
     },
   });

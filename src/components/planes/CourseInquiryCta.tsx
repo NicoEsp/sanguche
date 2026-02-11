@@ -122,7 +122,7 @@ export function CourseInquiryCta({
       setShowAnimation(true);
       setTimeout(() => setShowAnimation(false), 3000);
     } catch (error) {
-      console.error('Error sending course inquiry:', error);
+      if (import.meta.env.DEV) console.error('Error sending course inquiry:', error);
       toast({
         title: "No pudimos enviar tu consulta",
         description: "Intenta nuevamente en unos minutos.",

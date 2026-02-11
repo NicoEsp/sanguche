@@ -242,7 +242,7 @@ const AdminCourses = () => {
         thumbnail_url = publicUrlData.publicUrl;
         toast.success('Imagen subida correctamente');
       } catch (error) {
-        console.error('Error uploading thumbnail:', error);
+        if (import.meta.env.DEV) console.error('Error uploading thumbnail:', error);
         toast.error('Error al subir la imagen');
         setIsUploading(false);
         return;
