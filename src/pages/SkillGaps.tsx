@@ -9,7 +9,10 @@ import { ResourcesList } from "@/components/resources/ResourcesList";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import { StickyBanner } from "@/components/StickyBanner";
+import { PremiumCTACard } from "@/components/PremiumCTACard";
+import { ContextualCTA } from "@/components/ContextualCTA";
 
 export default function SkillGaps() {
   const {
@@ -52,7 +55,19 @@ export default function SkillGaps() {
       : "Acceder a mentoría personalizada";
   }, [gapCount, canAccessRecommendations]);
 
+  const priorityAreasCount = useMemo(
+    () => gaps.filter(g => g.prioridad === "Alta").length,
+    [gaps]
+  );
+
   const mentorshipCtaPath = canAccessRecommendations ? "/mentoria" : "/premium";
+
+  const handleCtaClick = useCallback((ctaLocation: string, skillName?: string) => {
+    trackEvent('landing_page_cta_click', {
+      cta_location: ctaLocation,
+      ...(skillName && { skill_name: skillName }),
+    });
+  }, [trackEvent]);
   
   const formattedUpdatedAt = useMemo(
     () => updatedAt ? new Intl.DateTimeFormat("es-AR", {
@@ -75,6 +90,13 @@ export default function SkillGaps() {
   }, [loading, result, gaps, strengths, neutralAreas, trackEvent]);
   return <>
       <Seo title="Resultados de tu evaluación — ProductPrepa" description="Revisa tu desempeño completo: fortalezas y áreas de mejora identificadas." canonical="/mejoras" keywords="gaps de producto, fortalezas PM, áreas de mejora, resultados evaluación, feedback producto" />
+      {!hasActivePremium && hasAssessment && !loading && (
+        <StickyBanner
+          priorityAreasCount={priorityAreasCount}
+          ctaPath="/premium"
+          onCtaClick={() => handleCtaClick('sticky_banner')}
+        />
+      )}
       <section className="container py-6 sm:py-10 px-4 sm:px-6 animate-fade-in">
         <h1 className="text-2xl sm:text-3xl font-semibold mb-3">Resultados de tu evaluación</h1>
         {loading && <div className="space-y-4 mb-6">
@@ -131,14 +153,23 @@ export default function SkillGaps() {
             {gaps.length > 0 && <div>
                 <h2 className="text-xl font-semibold mb-4">📈 Áreas de mejora</h2>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {gaps.map(g => <div key={g.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-md border p-4 bg-card gap-2 sm:gap-0">
-                      <div>
-                        <div className="font-medium">{g.label}</div>
-                        <div className="text-sm text-muted-foreground">Puntaje: {g.value} / 5</div>
+                  {gaps.map(g => <div key={g.key} className="flex flex-col rounded-md border p-4 bg-card gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                        <div>
+                          <div className="font-medium">{g.label}</div>
+                          <div className="text-sm text-muted-foreground">Puntaje: {g.value} / 5</div>
+                        </div>
+                        <Badge variant={g.prioridad === "Alta" ? "destructive" : "secondary"} className="self-start sm:self-auto">
+                          Prioridad {g.prioridad}
+                        </Badge>
                       </div>
-                      <Badge variant={g.prioridad === "Alta" ? "destructive" : "secondary"} className="self-start sm:self-auto">
-                        Prioridad {g.prioridad}
-                      </Badge>
+                      {g.prioridad === "Alta" && !hasActivePremium && (
+                        <ContextualCTA
+                          skillName={g.label}
+                          ctaPath="/premium"
+                          onCtaClick={() => handleCtaClick('contextual_skill_card', g.label)}
+                        />
+                      )}
                     </div>)}
                 </div>
               </div>}
@@ -150,6 +181,15 @@ export default function SkillGaps() {
                   No se detectaron áreas críticas de mejora. Tu perfil muestra competencias sólidas en todos los dominios evaluados.
                 </p>
               </div>}
+
+            {/* Premium CTA Card - solo para usuarios no premium con gaps */}
+            {gaps.length > 0 && !hasActivePremium && (
+              <PremiumCTACard
+                userLevel={result.nivel}
+                ctaPath="/premium"
+                onCtaClick={() => handleCtaClick('premium_cta_card')}
+              />
+            )}
 
             {/* Dominios opcionales explorados */}
             {Object.keys(answeredOptionalDomains).length > 0 && (
