@@ -28,6 +28,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DndContext, DragOverlay, useDraggable, useDroppable } from "@dnd-kit/core";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
+import type { DragOverlayData } from "@/hooks/useDragAndDrop";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove, defaultAnimateLayoutChanges } from "@dnd-kit/sortable";
 import type { AnimateLayoutChanges } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -188,6 +189,7 @@ export default function Progress() {
   const {
     draggingId,
     activeObjective,
+    activeOverlayData,
     overId,
     recentlyDroppedId,
     sensors,
@@ -195,6 +197,7 @@ export default function Progress() {
     handleDragStart,
     handleDragOver,
     handleDragEnd,
+    handleDragCancel,
   } = useDragAndDrop({
     profileId,
     isMapLocked,
@@ -694,14 +697,15 @@ export default function Progress() {
             </Alert>
           )}
 
-          <DndContext 
-            sensors={sensors} 
+          <DndContext
+            sensors={sensors}
             collisionDetection={dndContextProps.collisionDetection}
             modifiers={dndContextProps.modifiers}
             measuring={dndContextProps.measuring}
-            onDragStart={handleDragStart} 
-            onDragOver={handleDragOver} 
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
             <section>
               <div className="relative">
@@ -727,24 +731,13 @@ export default function Progress() {
               </div>
             </section>
 
-            {/* DragOverlay for visual preview */}
+            {/* DragOverlay — unified preview for all drag sources */}
             <DragOverlay dropAnimation={{
-              duration: 200,
+              duration: 250,
               easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
             }}>
-              {activeObjective ? (
-                <div className="rounded-2xl border-2 border-primary bg-background/95 p-4 shadow-2xl ring-2 ring-primary/50 scale-105 max-w-[300px]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="outline" className="bg-primary/10 border-primary/30 text-primary text-xs">
-                      {activeObjective.type}
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      {activeObjective.source === 'mentor' ? 'Mentoría' : 'Personalizado'}
-                    </Badge>
-                  </div>
-                  <p className="font-semibold text-sm line-clamp-1">{activeObjective.title}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{activeObjective.summary}</p>
-                </div>
+              {activeOverlayData ? (
+                <DragOverlayCard data={activeOverlayData} />
               ) : null}
             </DragOverlay>
 
@@ -976,6 +969,30 @@ export default function Progress() {
     </>;
 }
 
+// Unified DragOverlay card — shows for all drag sources
+const DragOverlayCard = memo(function DragOverlayCard({ data }: { data: DragOverlayData }) {
+  const sourceLabel = data.source === "recommended"
+    ? "Recomendado"
+    : data.source === "mentor"
+      ? "Mentoría"
+      : "Personalizado";
+
+  return (
+    <div className="rounded-2xl border-2 border-primary bg-background/95 p-4 shadow-2xl ring-2 ring-primary/40 scale-105 max-w-[300px] transform-gpu">
+      <div className="flex items-center gap-2 mb-2">
+        <Badge variant="outline" className="bg-primary/10 border-primary/30 text-primary text-xs">
+          {data.type}
+        </Badge>
+        <Badge variant="secondary" className="text-xs">
+          {sourceLabel}
+        </Badge>
+      </div>
+      <p className="font-semibold text-sm line-clamp-1">{data.title}</p>
+      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{data.summary}</p>
+    </div>
+  );
+});
+
 // Canvas Stage Column with droppable and sortable
 interface CanvasStageColumnProps {
   stage: StageConfig;
@@ -1007,13 +1024,18 @@ const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, d
         `bg-gradient-to-b ${stage.gradient}`
       )}
     >
-      {/* Drop zone indicator */}
+      {/* Drop zone indicator — visible when dragging over this column */}
       {isOver && draggingId && (
-        <div className="absolute inset-2 border-2 border-dashed border-primary/60 rounded-xl bg-primary/5 pointer-events-none z-10 flex items-center justify-center">
-          <div className="bg-primary/20 backdrop-blur-sm rounded-lg px-4 py-2">
-            <span className="text-sm font-medium text-primary">Soltar aquí</span>
+        <div className="absolute inset-2 border-2 border-dashed border-primary/60 rounded-xl bg-primary/5 pointer-events-none z-10 flex items-center justify-center transition-opacity duration-150">
+          <div className="bg-primary/20 backdrop-blur-sm rounded-lg px-4 py-2 animate-fade-in">
+            <span className="text-sm font-medium text-primary">Soltar en {stage.label}</span>
           </div>
         </div>
+      )}
+
+      {/* Subtle highlight when something is being dragged but not over this column */}
+      {draggingId && !isOver && objectives.length === 0 && (
+        <div className="absolute inset-2 border-2 border-dashed border-muted-foreground/20 rounded-xl pointer-events-none z-10 transition-opacity duration-150" />
       )}
 
       <div className="flex items-start justify-between gap-4 mb-6">
@@ -1032,7 +1054,7 @@ const CanvasStageColumn = memo(function CanvasStageColumn({ stage, objectives, d
 
       <ScrollArea className="h-full pr-2">
         <SortableContext items={objectiveIds} strategy={verticalListSortingStrategy}>
-          <div className="grid grid-cols-1 gap-4 auto-rows-fr">
+          <div className="grid grid-cols-1 gap-4 auto-rows-auto">
             {/* Enhanced empty state for first-time users */}
             {showEmptyState && objectives.length === 0 && (
               <div className="col-span-full flex flex-col items-center justify-center py-12 px-6 text-center">
@@ -1116,7 +1138,15 @@ const SortableCanvasCard = memo(function SortableCanvasCard({
   const completedSteps = objective.steps.filter(step => step.completed).length;
   const [isShaking, setIsShaking] = useState(false);
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: objective.id,
     disabled: isMentor || isMapLocked,
     animateLayoutChanges,
@@ -1164,12 +1194,11 @@ const SortableCanvasCard = memo(function SortableCanvasCard({
       {showIndicator && indicatorPosition === 'top' && (
         <div className="absolute -top-2 left-2 right-2 h-1 bg-primary rounded-full animate-pulse shadow-sm shadow-primary/30 z-20" />
       )}
-      
+
       <div
         ref={setNodeRef}
         style={style}
         {...attributes}
-        {...listeners}
         onPointerDown={(e) => {
           if (isMentor || isMapLocked) {
             handleBlockedAttempt();
@@ -1178,22 +1207,29 @@ const SortableCanvasCard = memo(function SortableCanvasCard({
         }}
         className={cn(
           "relative rounded-2xl border bg-background/80 backdrop-blur p-3 md:p-5 shadow-sm",
-          "h-full flex flex-col min-h-[320px]",
+          "flex flex-col",
           "transform-gpu", // GPU acceleration for smoother animations
           complete && "border-emerald-400/60 shadow-[0_0_0_1px_rgba(16,185,129,0.25)]",
-          isDragging && "opacity-50 scale-[1.02] shadow-lg z-50",
+          isDragging && "opacity-40 scale-[1.02] shadow-lg z-50 ring-2 ring-primary/30",
           !isDragging && "transition-all duration-200 ease-out", // Smooth transition only when not dragging
-          isRecentlyDropped && "animate-drop-in",
+          isRecentlyDropped && "animate-drop-settle",
           isShaking && "animate-shake",
-          !isMentor && !isMapLocked && "cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md",
           (isMentor || isMapLocked) && "cursor-not-allowed"
         )}
       >
-      {/* Header con badges - altura fija */}
+      {/* Header con badges + drag handle */}
       <div className="flex flex-wrap items-center gap-2 mb-2 min-h-[28px]">
-        {/* Grip icon para elementos arrastrables */}
+        {/* Drag handle — only this element triggers drag, keeping checkboxes/buttons clickable */}
         {!isMentor && !isMapLocked && (
-          <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0 -ml-1" />
+          <button
+            ref={setActivatorNodeRef}
+            {...listeners}
+            className="touch-none cursor-grab active:cursor-grabbing -ml-1 p-0.5 rounded hover:bg-muted/60 transition-colors"
+            aria-label="Arrastrar objetivo"
+            tabIndex={-1}
+          >
+            <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
+          </button>
         )}
         <Badge variant="outline" className="bg-primary/10 border-primary/30 text-primary text-xs">
           {objective.type}
@@ -1282,8 +1318,10 @@ const SortableCanvasCard = memo(function SortableCanvasCard({
             <p className="text-sm font-medium">Checklist de avance</p>
             <div className="space-y-2">
               {objective.steps.map(step => (
-                <label
+                <div
                   key={step.id}
+                  role="button"
+                  tabIndex={0}
                   className={cn(
                     "flex items-center gap-3 rounded-lg border text-sm",
                     "px-3 py-2.5 md:px-3 md:py-2",
@@ -1296,11 +1334,18 @@ const SortableCanvasCard = memo(function SortableCanvasCard({
                     e.stopPropagation();
                     toggleStep(objective, step.id);
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleStep(objective, step.id);
+                    }
+                  }}
                 >
                   <Checkbox
                     checked={step.completed}
-                    onCheckedChange={() => toggleStep(objective, step.id)}
-                    className="h-5 w-5 md:h-4 md:w-4 flex-shrink-0"
+                    tabIndex={-1}
+                    className="h-5 w-5 md:h-4 md:w-4 flex-shrink-0 pointer-events-none"
                   />
                   <span className={cn(
                     "flex-1",
@@ -1308,7 +1353,7 @@ const SortableCanvasCard = memo(function SortableCanvasCard({
                   )}>
                     {step.title}
                   </span>
-                </label>
+                </div>
               ))}
             </div>
           </div>
