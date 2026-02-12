@@ -258,7 +258,7 @@ serve(async (req) => {
     } catch (error) {
       clearTimeout(timeoutId);
       
-      if (error.name === 'AbortError') {
+      if ((error as Error).name === 'AbortError') {
         console.error('Lemon Squeezy API timeout después de 15 segundos');
         return new Response(
           JSON.stringify({ 
