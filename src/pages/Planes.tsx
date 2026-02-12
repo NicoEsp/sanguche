@@ -251,6 +251,25 @@ export default function Planes() {
         "text": faq.answer
       }
     }))
+  },
+  // BreadcrumbList Schema
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Inicio",
+        "item": "https://productprepa.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Planes y Precios",
+        "item": "https://productprepa.com/planes"
+      }
+    ]
   }];
   return <>
       <Seo title="Planes y Precios | ProductPrepa" description="Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados." canonical="/planes" keywords="precios productprepa, planes suscripción, premium PM, mentoría producto, cursos PM, mentoría product manager precio, curso PM con tutor, inversión formación producto" jsonLd={planesSchema} />

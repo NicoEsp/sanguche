@@ -9,6 +9,7 @@ export type SeoProps = {
   image?: string;
   imageAlt?: string;
   url?: string;
+  ogType?: string;
   siteName?: string;
   twitterSite?: string;
   twitterCreator?: string;
@@ -17,13 +18,14 @@ export type SeoProps = {
   jsonLd?: object | object[];
 };
 
-export function Seo({ 
-  title, 
-  description, 
-  canonical, 
-  image, 
-  imageAlt, 
-  url, 
+export function Seo({
+  title,
+  description,
+  canonical,
+  image,
+  imageAlt,
+  url,
+  ogType,
   siteName = "ProductPrepa",
   twitterSite = "@nicoproducto",
   twitterCreator = "@nicoproducto",
@@ -75,13 +77,15 @@ export function Seo({
     const ogImageAlt = ensureMeta('property', 'og:image:alt');
     const ogUrl = ensureMeta('property', 'og:url');
     const ogSiteName = ensureMeta('property', 'og:site_name');
-    
+    const ogTypeEl = ensureMeta('property', 'og:type');
+
     if (ogTitle && title) ogTitle.setAttribute('content', title);
     if (ogDesc && description) ogDesc.setAttribute('content', description);
     if (ogImage && image) ogImage.setAttribute('content', image);
     if (ogImageAlt && imageAlt) ogImageAlt.setAttribute('content', imageAlt);
     if (ogUrl && url) ogUrl.setAttribute('content', url);
     if (ogSiteName && siteName) ogSiteName.setAttribute('content', siteName);
+    if (ogTypeEl && ogType) ogTypeEl.setAttribute('content', ogType);
 
     // Twitter Card meta tags
     const twitterTitle = ensureMeta('name', 'twitter:title');
@@ -123,7 +127,7 @@ export function Seo({
       script.textContent = JSON.stringify(jsonLd);
       document.head.appendChild(script);
     }
-  }, [title, description, canonical, image, imageAlt, url, siteName, twitterSite, twitterCreator, robots, keywords, jsonLd]);
+  }, [title, description, canonical, image, imageAlt, url, ogType, siteName, twitterSite, twitterCreator, robots, keywords, jsonLd]);
 
   return null;
 }

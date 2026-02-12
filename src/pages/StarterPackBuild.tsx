@@ -37,6 +37,48 @@ const StarterPackBuild = () => {
     },
   ];
 
+  const buildSchema = [
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Construir Productos - Starter Pack",
+      "description": "Guía paso a paso con recursos curados para quienes comienzan en Product Management.",
+      "provider": {
+        "@type": "Organization",
+        "name": "ProductPrepa",
+        "url": "https://productprepa.com"
+      },
+      "educationalLevel": "Beginner",
+      "inLanguage": "es",
+      "isAccessibleForFree": true,
+      "url": "https://productprepa.com/starterpack/build"
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Inicio",
+          "item": "https://productprepa.com"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Starter Pack",
+          "item": "https://productprepa.com/starterpack"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Construir Productos",
+          "item": "https://productprepa.com/starterpack/build"
+        }
+      ]
+    }
+  ];
+
   return (
     <>
       <Seo
@@ -44,6 +86,7 @@ const StarterPackBuild = () => {
         description="Guía paso a paso con recursos curados para quienes comienzan en Product Management."
         canonical="/starterpack/build"
         keywords="construir productos, PM junior, primeros pasos producto, fundamentos PM"
+        jsonLd={buildSchema}
       />
       <main className="min-h-screen bg-background animate-fade-in">
         <div className="container py-6 px-4 sm:px-6">

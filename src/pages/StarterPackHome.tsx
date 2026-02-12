@@ -9,14 +9,51 @@ import {
 import sangucheBuild from "@/assets/sanguche-build.png";
 import sangucheLead from "@/assets/sanguche-lead.png";
 
+const starterPackSchema = [
+  {
+    "@context": "https://schema.org",
+    "@type": "LearningResource",
+    "name": "Starter Pack para Product Managers",
+    "description": "Recursos curados y guía paso a paso para quienes comienzan en Product Management o dan el salto a liderar equipos de producto.",
+    "provider": {
+      "@type": "Organization",
+      "name": "ProductPrepa",
+      "url": "https://productprepa.com"
+    },
+    "educationalLevel": "Beginner",
+    "inLanguage": "es",
+    "isAccessibleForFree": true,
+    "url": "https://productprepa.com/starterpack"
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Inicio",
+        "item": "https://productprepa.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Starter Pack",
+        "item": "https://productprepa.com/starterpack"
+      }
+    ]
+  }
+];
+
 const StarterPackHome = () => {
   return (
     <>
-      <Seo 
-        title="Starter Pack para Product Managers | ProductPrepa" 
-        description="Recursos curados y guía paso a paso para quienes comienzan en Product Management o dan el salto a liderar equipos de producto." 
-        canonical="/starterpack" 
+      <Seo
+        title="Starter Pack para Product Managers | ProductPrepa"
+        description="Recursos curados y guía paso a paso para quienes comienzan en Product Management o dan el salto a liderar equipos de producto."
+        canonical="/starterpack"
         keywords="recursos PM, guía product manager, empezar en producto, starter pack, primeros pasos PM"
+        jsonLd={starterPackSchema}
       />
       <main className="min-h-screen bg-background animate-fade-in">
         <div className="container py-6 px-4 sm:px-6">

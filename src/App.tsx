@@ -124,15 +124,11 @@ const App = () => (
                       <Route path="/preguntas" element={<Descargables />} />
                       <Route path="/soy-dev" element={<SoyDev />} />
                       <Route path="/cursos" element={
-                        <ProtectedRoute>
+                        <ProtectedRoute fallbackPath="/cursos-info">
                           <Courses />
                         </ProtectedRoute>
                       } />
-                      <Route path="/cursos/:slug" element={
-                        <ProtectedRoute>
-                          <CourseDetail />
-                        </ProtectedRoute>
-                      } />
+                      <Route path="/cursos/:slug" element={<CourseDetail />} />
                       <Route path="/perfil" element={
                         <ProtectedRoute>
                           <Profile />

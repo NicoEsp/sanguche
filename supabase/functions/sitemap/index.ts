@@ -11,7 +11,7 @@ const STATIC_ROUTES = [
   { path: '/starterpack', priority: '0.8', changefreq: 'monthly' },
   { path: '/starterpack/build', priority: '0.7', changefreq: 'monthly' },
   { path: '/starterpack/lead', priority: '0.7', changefreq: 'monthly' },
-  { path: '/cursos', priority: '0.8', changefreq: 'weekly' },
+  { path: '/soy-dev', priority: '0.8', changefreq: 'monthly' },
   { path: '/auth', priority: '0.5', changefreq: 'monthly' },
 ]
 
