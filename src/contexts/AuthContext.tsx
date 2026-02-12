@@ -130,6 +130,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, queryClient]);
 
   useEffect(() => {
+    // Safety timeout: if auth takes too long, unblock the UI
+    const safetyTimeout = setTimeout(() => {
+      setIsLoading((current) => {
+        if (current) {
+          console.warn('[AuthContext] Auth initialization timed out, unblocking UI');
+          return false;
+        }
+        return current;
+      });
+    }, 8000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -186,7 +197,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
   }, [toast, queryClient]);
 
   const signUp = async (email: string, password: string, name?: string, returnTo?: string) => {
