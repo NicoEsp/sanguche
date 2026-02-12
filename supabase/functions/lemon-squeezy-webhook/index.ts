@@ -87,7 +87,7 @@ async function verifySignature(request: Request, secret: string): Promise<boolea
 
 // Helper function to log webhook event
 async function logWebhookEvent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   eventName: string,
   eventData: LemonSqueezyWebhookEvent,
   userEmail: string | null,
@@ -334,7 +334,45 @@ serve(async (req) => {
         // Determine plan from variant or default to premium
         const subscriptionPlan = planConfig?.plan || 'premium';
         console.log('[Webhook] Subscription plan:', subscriptionPlan);
-        
+
+        // Auto-cancel previous subscription if upgrading
+        const { data: currentSub } = await supabase
+          .from('user_subscriptions')
+          .select('lemon_squeezy_subscription_id, plan')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .not('lemon_squeezy_subscription_id', 'is', null)
+          .maybeSingle();
+
+        if (currentSub?.lemon_squeezy_subscription_id 
+            && currentSub.lemon_squeezy_subscription_id !== subscriptionId) {
+          console.log(`[Webhook] Auto-cancelling previous subscription: ${currentSub.lemon_squeezy_subscription_id} (plan: ${currentSub.plan})`);
+          
+          const lsApiKey = Deno.env.get('LEMON_SQUEEZY_API_KEY');
+          if (lsApiKey) {
+            try {
+              const cancelResponse = await fetch(
+                `https://api.lemonsqueezy.com/v1/subscriptions/${currentSub.lemon_squeezy_subscription_id}`,
+                {
+                  method: 'DELETE',
+                  headers: {
+                    'Authorization': `Bearer ${lsApiKey}`,
+                    'Accept': 'application/vnd.api+json',
+                  },
+                }
+              );
+              
+              if (cancelResponse.ok) {
+                console.log('[Webhook] Previous subscription cancelled successfully');
+              } else {
+                console.error('[Webhook] Failed to cancel previous subscription:', await cancelResponse.text());
+              }
+            } catch (cancelError) {
+              console.error('[Webhook] Error cancelling previous subscription:', cancelError);
+            }
+          }
+        }
+
         await supabase
           .from('user_subscriptions')
           .upsert({

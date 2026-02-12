@@ -245,9 +245,9 @@ export default function CourseDetail() {
                         {index + 1}
                       </span>
                       <span className="text-sm">{lesson.title}</span>
-                      {lesson.duration_seconds && (
+                      {lesson.duration_minutes && (
                         <span className="ml-auto text-xs text-muted-foreground/60">
-                          {Math.ceil(lesson.duration_seconds / 60)} min
+                          {lesson.duration_minutes} min
                         </span>
                       )}
                     </div>

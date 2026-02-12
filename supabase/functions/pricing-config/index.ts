@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
         plans: FALLBACK_PRICES,
         lastUpdated: new Date().toISOString(),
         source: 'fallback',
-        error: error.message
+        error: (error as Error).message
       }),
       {
         headers: {
