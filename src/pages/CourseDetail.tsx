@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Clock, CheckCircle2, PlayCircle, CalendarClock } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle2, PlayCircle, CalendarClock, BookOpen, ArrowRight } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -18,10 +18,12 @@ import { LessonNotes } from "@/components/courses/LessonNotes";
 import { useCourse } from "@/hooks/useCourse";
 import { useCourseProgress } from "@/hooks/useCourseProgress";
 import { useCourseAccess } from "@/hooks/useCourseAccess";
+import { useAuth } from "@/hooks/useAuth";
 import { Mixpanel } from "@/lib/mixpanel";
 
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const { user } = useAuth();
   const { data: course, isLoading: courseLoading } = useCourse(slug || "");
   const { hasAccess, isLoading: accessLoading } = useCourseAccess(slug, course);
   const { lessonsWithProgress, progressStats, isLoading: progressLoading } = useCourseProgress(
@@ -48,9 +50,10 @@ export default function CourseDetail() {
         page: "detail",
         course_slug: course.slug,
         course_title: course.title,
+        is_authenticated: !!user,
       });
     }
-  }, [course]);
+  }, [course, user]);
 
   // Track course completion
   useEffect(() => {
@@ -146,20 +149,150 @@ export default function CourseDetail() {
     return (
       <div className="container max-w-6xl py-8 text-center">
         <h1 className="text-2xl font-bold mb-4">Curso no encontrado</h1>
-        <Link to="/cursos">
+        <Link to="/cursos-info">
           <Button>Volver a cursos</Button>
         </Link>
       </div>
     );
   }
 
-  // No access - show paywall
+  // Public landing for unauthenticated users
+  if (!user) {
+    return (
+      <>
+        <Seo
+          title={`${course.title} - ProductPrepa`}
+          description={course.description || ""}
+          canonical={`/cursos/${course.slug}`}
+          ogType="course"
+          keywords={`curso ${course.slug}, product management, formación PM, aprender producto`}
+          jsonLd={courseSchema}
+        />
+
+        <div className="container max-w-4xl py-8 space-y-6">
+          {/* Back button */}
+          <Link
+            to="/cursos-info"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver a cursos
+          </Link>
+
+          {/* Course header */}
+          <div className="space-y-4">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              {course.title}
+            </h1>
+            {course.description && (
+              <p className="text-lg text-muted-foreground">
+                {course.description}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              {course.duration_minutes && (
+                <span className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  {course.duration_minutes} min
+                </span>
+              )}
+              {course.lessons && (
+                <span className="flex items-center gap-1">
+                  <BookOpen className="h-4 w-4" />
+                  {course.lessons.length} lecciones
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Thumbnail */}
+          {course.thumbnail_url && (
+            <div className="relative aspect-video rounded-xl overflow-hidden bg-muted">
+              <img
+                src={course.thumbnail_url}
+                alt={course.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+
+          {/* Outcome */}
+          {course.outcome && (
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-foreground mb-2">
+                  Al finalizar este curso podrás:
+                </h3>
+                <p className="text-muted-foreground">{course.outcome}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Lesson titles (public preview - no links, no video) */}
+          {course.lessons && course.lessons.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Contenido del curso</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="space-y-2">
+                  {course.lessons.map((lesson, index) => (
+                    <div
+                      key={lesson.id}
+                      className="flex items-center gap-3 p-2 rounded-lg text-muted-foreground"
+                    >
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                        {index + 1}
+                      </span>
+                      <span className="text-sm">{lesson.title}</span>
+                      {lesson.duration_seconds && (
+                        <span className="ml-auto text-xs text-muted-foreground/60">
+                          {Math.ceil(lesson.duration_seconds / 60)} min
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* CTA to register */}
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+            <CardContent className="p-8 text-center space-y-4">
+              <h2 className="text-xl font-bold text-foreground">
+                Registrate gratis para acceder
+              </h2>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Creá tu cuenta gratuita para acceder a este curso y todas las herramientas de ProductPrepa.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Button asChild size="lg">
+                  <Link to="/auth">
+                    Registrarse gratis
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link to="/planes">Ver planes</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </>
+    );
+  }
+
+  // Authenticated but no access - show paywall
   if (!hasAccess) {
     return (
       <>
-        <Seo 
-          title={`${course.title} - ProductPrepa`} 
-          description={course.description || ""} 
+        <Seo
+          title={`${course.title} - ProductPrepa`}
+          description={course.description || ""}
+          canonical={`/cursos/${course.slug}`}
+          ogType="course"
           keywords={`curso ${course.slug}, product management, formación PM, aprender producto`}
           jsonLd={courseSchema}
         />
@@ -176,6 +309,7 @@ export default function CourseDetail() {
           title={`${course.title} - ProductPrepa`}
           description={course.description || ""}
           canonical={`/cursos/${course.slug}`}
+          ogType="course"
           keywords={`curso ${course.slug}, product management, formación PM, aprender producto`}
           jsonLd={courseSchema}
         />
@@ -183,7 +317,7 @@ export default function CourseDetail() {
         <div className="container max-w-4xl py-8 space-y-6">
           {/* Back button */}
           <Link
-            to="/cursos"
+            to="/cursos-info"
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -196,11 +330,11 @@ export default function CourseDetail() {
               <CalendarClock className="h-4 w-4 mr-2" />
               Próximamente
             </Badge>
-            
+
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
               {course.title}
             </h1>
-            
+
             {course.description && (
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 {course.description}
@@ -232,7 +366,7 @@ export default function CourseDetail() {
                   Estamos preparando el contenido. Te notificaremos cuando esté listo.
                 </p>
               </div>
-              
+
               {/* Outcome preview */}
               {course.outcome && (
                 <div className="pt-4 border-t border-border/50">
@@ -247,7 +381,7 @@ export default function CourseDetail() {
 
           {/* Back to courses */}
           <div className="text-center pt-4">
-            <Link to="/cursos">
+            <Link to="/cursos-info">
               <Button variant="outline">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Ver otros cursos
@@ -265,6 +399,7 @@ export default function CourseDetail() {
         title={`${course.title} - ProductPrepa`}
         description={course.description || ""}
         canonical={`/cursos/${course.slug}`}
+        ogType="course"
         keywords={`curso ${course.slug}, product management, formación PM, aprender producto`}
         jsonLd={courseSchema}
       />
@@ -272,7 +407,7 @@ export default function CourseDetail() {
       <div className="container max-w-6xl py-8 space-y-6">
         {/* Back button */}
         <Link
-          to="/cursos"
+          to="/cursos-info"
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -284,7 +419,7 @@ export default function CourseDetail() {
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">
             {course.title}
           </h1>
-          
+
           {/* Progress bar */}
           {progressStats.totalLessons > 0 && (
             <div className="flex items-center gap-4">

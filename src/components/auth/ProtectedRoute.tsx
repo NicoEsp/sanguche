@@ -5,9 +5,10 @@ import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
+  fallbackPath?: string;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, fallbackPath }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
   const isDemoMode = import.meta.env.DEV && new URLSearchParams(location.search).has("demo");
@@ -28,9 +29,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <>{children}</>;
   }
 
-  // Redirigir a auth si no está autenticado
+  // Redirigir si no está autenticado
   if (!isAuthenticated) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    const redirectTo = fallbackPath || "/auth";
+    return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
   return <>{children}</>;
