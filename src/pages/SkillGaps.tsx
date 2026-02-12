@@ -1,9 +1,7 @@
 import { Seo } from "@/components/Seo";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Link } from "react-router-dom";
-import { isFeatureAvailable, FEATURES } from "@/utils/features";
 import { useSubscription } from "@/hooks/useAuth";
 import { ResourcesList } from "@/components/resources/ResourcesList";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
@@ -34,33 +32,10 @@ export default function SkillGaps() {
   const optionalImprovements = useMemo(() => result?.optionalImprovements ?? [], [result]);
   const answeredOptionalDomains = useMemo(() => result?.optionalDomains ?? {}, [result]);
   
-  const canAccessRecommendations = useMemo(
-    () => isFeatureAvailable(FEATURES.RECOMMENDATIONS, hasActivePremium),
-    [hasActivePremium]
-  );
-
-  const gapCount = gaps.length;
-
-  const mentorshipCtaLabel = useMemo(() => {
-    if (gapCount >= 1 && gapCount <= 3) {
-      return "Quiero mejorar como PM";
-    }
-
-    if (gapCount > 3) {
-      return "Quiero crecer como PM";
-    }
-
-    return canAccessRecommendations
-      ? "Ver mentoría personalizada"
-      : "Acceder a mentoría personalizada";
-  }, [gapCount, canAccessRecommendations]);
-
   const priorityAreasCount = useMemo(
     () => gaps.filter(g => g.prioridad === "Alta").length,
     [gaps]
   );
-
-  const mentorshipCtaPath = canAccessRecommendations ? "/mentoria" : "/premium";
 
   const handleCtaClick = useCallback((ctaLocation: string, skillName?: string) => {
     trackEvent('landing_page_cta_click', {
@@ -240,18 +215,7 @@ export default function SkillGaps() {
           </div>}
 
 
-        <div className="mt-8 flex flex-col sm:flex-row gap-3">
-          <Button
-            asChild
-            disabled={!hasAssessment || !result}
-            className="w-full sm:w-auto"
-          >
-            <Link to={mentorshipCtaPath}>{mentorshipCtaLabel}</Link>
-          </Button>
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link to="/autoevaluacion">Atrás</Link>
-          </Button>
-        </div>
+        <hr className="mt-10 border-border" />
 
         <ResourcesList assessmentResult={result || null} />
       </section>
