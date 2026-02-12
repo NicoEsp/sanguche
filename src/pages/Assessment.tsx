@@ -494,10 +494,22 @@ export default function Assessment() {
                   )}
                 </div>
 
-                {/* Columna derecha: CTA agresivo */}
-                <div className="flex justify-center md:justify-end">
-                  <Button 
-                    asChild 
+                {/* Columna derecha: CTAs */}
+                <div className="flex flex-col sm:flex-row items-center justify-center md:justify-end gap-3">
+                  {!hasActivePremium && (
+                    <Button
+                      asChild
+                      size="lg"
+                      variant="outline"
+                      className="border-primary text-primary hover:bg-primary hover:text-white font-semibold transition-all duration-300"
+                    >
+                      <Link to="/planes" className="flex items-center gap-2">
+                        <span>Quiero mejorar</span>
+                      </Link>
+                    </Button>
+                  )}
+                  <Button
+                    asChild
                     size="lg"
                     className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
                   >
