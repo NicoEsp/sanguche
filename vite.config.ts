@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import fs from "fs";
+import { seoPages } from "./vite-plugin-seo-pages";
 
 // Plugin to generate version.json on build
 const writeVersionPlugin = () => {
@@ -37,6 +38,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === 'development' && componentTagger(),
     writeVersionPlugin(),
+    seoPages(),
   ].filter(Boolean),
   resolve: {
     alias: {
