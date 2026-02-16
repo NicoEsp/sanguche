@@ -1,38 +1,45 @@
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { SEO_ROUTES, type SeoRouteData } from "@/seo/routes";
 
 const SITE_URL = 'https://productprepa.com';
 
-export type SeoProps = {
-  title: string;
-  description?: string;
-  canonical?: string;
-  image?: string;
-  imageAlt?: string;
+export type SeoProps = Partial<SeoRouteData> & {
+  /** Override title completely */
+  title?: string;
   url?: string;
   ogType?: string;
   siteName?: string;
   twitterSite?: string;
   twitterCreator?: string;
   robots?: string;
-  keywords?: string;
-  jsonLd?: object | object[];
 };
 
-export function Seo({
-  title,
-  description,
-  canonical,
-  image,
-  imageAlt,
-  url,
-  ogType,
-  siteName = "ProductPrepa",
-  twitterSite = "@nicoproducto",
-  twitterCreator = "@nicoproducto",
-  robots,
-  keywords,
-  jsonLd
-}: SeoProps) {
+/**
+ * SEO component that auto-loads defaults from routes.ts for the current path.
+ * Any prop you pass explicitly will override the route default.
+ */
+export function Seo(props: SeoProps) {
+  const { pathname } = useLocation();
+
+  // Find matching route data (exact match first, then fallback)
+  const routeData = SEO_ROUTES[pathname] || undefined;
+
+  // Merge: explicit props override route defaults
+  const title = props.title || routeData?.title || 'ProductPrepa';
+  const description = props.description || routeData?.description;
+  const canonical = props.canonical || routeData?.canonical;
+  const image = props.image || routeData?.image;
+  const imageAlt = props.imageAlt || routeData?.imageAlt;
+  const keywords = props.keywords || routeData?.keywords;
+  const jsonLd = props.jsonLd || routeData?.jsonLd;
+  const url = props.url || canonical;
+  const ogType = props.ogType || routeData?.ogType || 'website';
+  const siteName = props.siteName || 'ProductPrepa';
+  const twitterSite = props.twitterSite || '@nicoproducto';
+  const twitterCreator = props.twitterCreator || '@nicoproducto';
+  const robots = props.robots;
+
   useEffect(() => {
     if (title) document.title = title;
 
@@ -53,7 +60,6 @@ export function Seo({
         link.setAttribute('rel', 'canonical');
         document.head.appendChild(link);
       }
-      // Si empieza con /, agregar el dominio completo
       const fullCanonical = canonical.startsWith('http') 
         ? canonical 
         : `${SITE_URL}${canonical}`;
@@ -74,17 +80,17 @@ export function Seo({
     const ogTitle = ensureMeta('property', 'og:title');
     const ogDesc = ensureMeta('property', 'og:description');
     const ogImage = ensureMeta('property', 'og:image');
-    const ogImageAlt = ensureMeta('property', 'og:image:alt');
+    const ogImageAltEl = ensureMeta('property', 'og:image:alt');
     const ogUrl = ensureMeta('property', 'og:url');
-    const ogSiteName = ensureMeta('property', 'og:site_name');
+    const ogSiteNameEl = ensureMeta('property', 'og:site_name');
     const ogTypeEl = ensureMeta('property', 'og:type');
 
     if (ogTitle && title) ogTitle.setAttribute('content', title);
     if (ogDesc && description) ogDesc.setAttribute('content', description);
     if (ogImage && image) ogImage.setAttribute('content', image);
-    if (ogImageAlt && imageAlt) ogImageAlt.setAttribute('content', imageAlt);
+    if (ogImageAltEl && imageAlt) ogImageAltEl.setAttribute('content', imageAlt);
     if (ogUrl && url) ogUrl.setAttribute('content', url);
-    if (ogSiteName && siteName) ogSiteName.setAttribute('content', siteName);
+    if (ogSiteNameEl && siteName) ogSiteNameEl.setAttribute('content', siteName);
     if (ogTypeEl && ogType) ogTypeEl.setAttribute('content', ogType);
 
     // Twitter Card meta tags
@@ -115,7 +121,6 @@ export function Seo({
 
     // JSON-LD Schema
     if (jsonLd) {
-      // Remove existing schema if present
       const existingScript = document.querySelector('script[data-seo-jsonld]');
       if (existingScript) {
         existingScript.remove();
