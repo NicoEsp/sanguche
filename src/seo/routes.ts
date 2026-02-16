@@ -65,6 +65,15 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     keywords: 'starter pack PM, recursos product management, guía PM principiante, comenzar en producto',
     image: DEFAULT_IMAGE,
     imageAlt: DEFAULT_IMAGE_ALT,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'LearningResource',
+      name: 'Starter Pack para Product Managers',
+      description: 'Recursos curados y guía paso a paso para quienes comienzan en Product Management o dan el salto a liderar equipos de producto.',
+      provider: { '@type': 'Organization', name: 'ProductPrepa', url: SITE_URL },
+      educationalLevel: 'Beginner',
+      url: `${SITE_URL}/starterpack`,
+    },
   },
 
   '/starterpack/build': {
@@ -92,6 +101,14 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     keywords: 'desarrollador producto, dev product management, programador PM, software developer product skills, carrera desarrollador',
     image: DEFAULT_IMAGE,
     imageAlt: DEFAULT_IMAGE_ALT,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Soy Dev - Por qué aprender Producto',
+      description: 'Descubrí por qué aprender Product Management es clave para desarrolladores.',
+      url: `${SITE_URL}/soy-dev`,
+      publisher: { '@type': 'Organization', name: 'ProductPrepa', url: SITE_URL },
+    },
   },
 
   '/preguntas': {
