@@ -56,33 +56,6 @@ const stats = [{
   source: "Stack Overflow Survey, 2025",
   url: "https://survey.stackoverflow.co/2025/ai"
 }];
-const soyDevSchema = [
-  {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "name": "ProductPrepa para Desarrolladores",
-    "url": "https://productprepa.com/soy-dev",
-    "description": "Descubrí por qué aprender Product Management es clave para desarrolladores de software en la era de AI."
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Inicio",
-        "item": "https://productprepa.com"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": "Soy Dev",
-        "item": "https://productprepa.com/soy-dev"
-      }
-    ]
-  }
-];
 const SoyDev = () => {
   const {
     isAuthenticated
@@ -105,7 +78,7 @@ const SoyDev = () => {
     return () => observer.disconnect();
   }, []);
   return <>
-      <Seo title="Soy Dev - Por qué aprender Producto | ProductPrepa" description="Descubrí por qué aprender Product Management es clave para desarrolladores. Evaluá tus habilidades de producto y crecé profesionalmente." canonical="/soy-dev" keywords="desarrollador producto, dev product management, programador PM, software developer product skills, carrera desarrollador" jsonLd={soyDevSchema} />
+      <Seo />
 
       <main className="min-h-screen bg-background animate-fade-in">
         {/* Breadcrumb */}

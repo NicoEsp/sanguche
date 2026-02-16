@@ -64,7 +64,7 @@ export default function SkillGaps() {
     }
   }, [loading, result, gaps, strengths, neutralAreas, trackEvent]);
   return <>
-      <Seo title="Resultados de tu evaluación — ProductPrepa" description="Revisa tu desempeño completo: fortalezas y áreas de mejora identificadas." canonical="/mejoras" keywords="gaps de producto, fortalezas PM, áreas de mejora, resultados evaluación, feedback producto" />
+      <Seo />
       {!hasActivePremium && hasAssessment && !loading && (
         <StickyBanner
           priorityAreasCount={priorityAreasCount}

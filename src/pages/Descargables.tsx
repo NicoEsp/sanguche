@@ -18,13 +18,7 @@ export default function Descargables() {
 
   return (
     <>
-      <Seo
-        title="Preguntas de Producto para hacerte — ProductPrepa"
-        description="Un documento de disparadores para reflexionar sobre tu producto, tu equipo y cómo estás en tu rol actualmente."
-        url="/preguntas"
-        image="/social-image.png"
-        keywords="preguntas de producto, framework PM, template producto, reflexión PM, herramientas producto, recursos gratuitos, recursos descargables"
-      />
+      <Seo />
 
       <div className="container max-w-4xl py-8 space-y-8">
         <div className="space-y-2">

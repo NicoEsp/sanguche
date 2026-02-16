@@ -369,12 +369,7 @@ export default function Assessment() {
 
   return (
     <>
-      <Seo
-        title="Autoevaluación Product Manager Gratis | Descubre tu nivel PM"
-        description="Test gratuito de 5 minutos para conocer tu nivel como Product Manager. Identifica fortalezas, áreas de mejora y recibe un roadmap personalizado."
-        canonical="/autoevaluacion"
-        keywords="test product manager gratis, autoevaluación PM, nivel seniority PM, evaluación habilidades producto, quiz product manager, test PM gratis, diagnóstico carrera producto"
-      />
+      <Seo />
       <section className="container py-6 sm:py-10 px-4 sm:px-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <h1 className="text-2xl sm:text-3xl font-semibold">Autoevaluación de seniority</h1>
