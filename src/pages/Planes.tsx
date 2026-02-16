@@ -272,7 +272,7 @@ export default function Planes() {
     ]
   }];
   return <>
-      <Seo title="Planes y Precios | ProductPrepa" description="Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados." canonical="/planes" keywords="precios productprepa, planes suscripción, premium PM, mentoría producto, cursos PM, mentoría product manager precio, curso PM con tutor, inversión formación producto" jsonLd={planesSchema} />
+      <Seo jsonLd={planesSchema} />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         {/* Hero Section */}

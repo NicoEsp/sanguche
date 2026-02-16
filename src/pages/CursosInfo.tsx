@@ -155,13 +155,7 @@ export default function CursosInfo() {
 
   return (
     <>
-      <Seo
-        title="Cursos de Producto | Estrategia, Discovery y más - ProductPrepa"
-        description="Aprende Estrategia de Producto con cursos cortos y prácticos. Videos de menos de 10 minutos, ejercicios aplicables y acceso de por vida. Ideal para principiantes."
-        canonical="/cursos-info"
-        keywords="cursos Estrategia de Producto, curso product manager principiantes, formación PM online, aprender product management, curso estrategia producto, cursos PM gratis, como ser product manager sin experiencia, curso estrategia de producto online, formación product manager latinoamérica, curso PM en español"
-        jsonLd={cursosInfoSchema}
-      />
+      <Seo jsonLd={cursosInfoSchema} />
 
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         {/* Hero Section */}

@@ -76,23 +76,6 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     },
   },
 
-  '/starterpack/build': {
-    title: 'Construir Productos - Starter Pack | ProductPrepa',
-    description: 'Guía paso a paso con recursos curados para quienes comienzan en Product Management.',
-    canonical: `${SITE_URL}/starterpack/build`,
-    keywords: 'construir productos, PM principiante, guía product management',
-    image: DEFAULT_IMAGE,
-    imageAlt: DEFAULT_IMAGE_ALT,
-  },
-
-  '/starterpack/lead': {
-    title: 'Liderar Equipos - Starter Pack | ProductPrepa',
-    description: 'Guía paso a paso para PMs que buscan dar el salto a roles de liderazgo como Lead PM, GPM o Head of Product.',
-    canonical: `${SITE_URL}/starterpack/lead`,
-    keywords: 'liderar equipos producto, lead PM, GPM, head of product, liderazgo PM',
-    image: DEFAULT_IMAGE,
-    imageAlt: DEFAULT_IMAGE_ALT,
-  },
 
   '/soy-dev': {
     title: 'Soy Dev - Por qué aprender Producto | ProductPrepa',
@@ -127,5 +110,76 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     keywords: 'test product manager gratis, autoevaluación PM, nivel seniority PM, evaluación habilidades producto',
     image: DEFAULT_IMAGE,
     imageAlt: DEFAULT_IMAGE_ALT,
+  },
+
+  '/mejoras': {
+    title: 'Resultados de tu evaluación — ProductPrepa',
+    description: 'Revisa tu desempeño completo: fortalezas y áreas de mejora identificadas.',
+    canonical: `${SITE_URL}/mejoras`,
+    keywords: 'gaps de producto, fortalezas PM, áreas de mejora, resultados evaluación, feedback producto',
+    image: DEFAULT_IMAGE,
+    imageAlt: DEFAULT_IMAGE_ALT,
+  },
+
+  '/starterpack/build': {
+    title: 'Construir Productos - Starter Pack | ProductPrepa',
+    description: 'Guía paso a paso con recursos curados para quienes comienzan en Product Management.',
+    canonical: `${SITE_URL}/starterpack/build`,
+    keywords: 'construir productos, PM principiante, guía product management',
+    image: DEFAULT_IMAGE,
+    imageAlt: DEFAULT_IMAGE_ALT,
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'LearningResource',
+        name: 'Construir Productos - Starter Pack',
+        description: 'Guía paso a paso con recursos curados para quienes comienzan en Product Management.',
+        provider: { '@type': 'Organization', name: 'ProductPrepa', url: SITE_URL },
+        educationalLevel: 'Beginner',
+        inLanguage: 'es',
+        isAccessibleForFree: true,
+        url: `${SITE_URL}/starterpack/build`,
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Inicio', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Starter Pack', item: `${SITE_URL}/starterpack` },
+          { '@type': 'ListItem', position: 3, name: 'Construir Productos', item: `${SITE_URL}/starterpack/build` },
+        ],
+      },
+    ],
+  },
+
+  '/starterpack/lead': {
+    title: 'Liderar Equipos - Starter Pack | ProductPrepa',
+    description: 'Guía paso a paso para PMs que buscan dar el salto a roles de liderazgo como Lead PM, GPM o Head of Product.',
+    canonical: `${SITE_URL}/starterpack/lead`,
+    keywords: 'liderar equipos producto, lead PM, GPM, head of product, liderazgo PM',
+    image: DEFAULT_IMAGE,
+    imageAlt: DEFAULT_IMAGE_ALT,
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'LearningResource',
+        name: 'Liderar Equipos - Starter Pack',
+        description: 'Guía paso a paso para PMs que buscan dar el salto a roles de liderazgo como Lead PM, GPM o Head of Product.',
+        provider: { '@type': 'Organization', name: 'ProductPrepa', url: SITE_URL },
+        educationalLevel: 'Intermediate',
+        inLanguage: 'es',
+        isAccessibleForFree: true,
+        url: `${SITE_URL}/starterpack/lead`,
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Inicio', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Starter Pack', item: `${SITE_URL}/starterpack` },
+          { '@type': 'ListItem', position: 3, name: 'Liderar Equipos', item: `${SITE_URL}/starterpack/lead` },
+        ],
+      },
+    ],
   },
 };

@@ -39,22 +39,8 @@ const Index = () => {
   }
   const premiumBenefits = ["Todo lo incluido en Gratis", "1 sesión mensual 1:1 con NicoProducto", "Tu Career Path con objetivos concretos", "Acceso al Starter Pack completo", "Recursos curados según tus áreas de mejora"];
   const repremiumBenefits = ["Todo lo incluido en Premium", "2 sesiones mensuales 1:1 con NicoProducto", "Acceso completo a todos los Cursos", "Feedback personalizado en ejercicios", "Acceso prioritario a nuevos contenidos"];
-  const indexSchema = [{
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "ProductPrepa",
-    "url": "https://productprepa.com",
-    "logo": "https://productprepa.com/favicon.png",
-    "sameAs": ["https://twitter.com/nicoproducto", "https://www.linkedin.com/in/nicolas-espindola/"]
-  }, {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "ProductPrepa",
-    "url": "https://productprepa.com",
-    "description": "Aprendé Producto en una plataforma que combina Cursos, evaluación de habilidades, tu propio Career Path y mentoría personalizada."
-  }];
   return <>
-      <Seo title="ProductPrepa - Plataforma para crecer en Producto" description="Aprendé Producto en una plataforma que combina Cursos, evaluación de habilidades, tu propio Career Path y mentoría personalizada." canonical="/" keywords="product management, autoevaluación PM, seniority, carrera producto, product manager, evaluación profesional, desarrollo PM" jsonLd={indexSchema} />
+      <Seo />
       <main className="min-h-screen bg-background">
         {/* Enhanced Hero Section - Optimizado para reducir bounce rate */}
         <section className="container text-center py-16 sm:py-24 px-4 sm:px-6 relative overflow-hidden">

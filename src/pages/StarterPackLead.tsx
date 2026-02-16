@@ -37,57 +37,9 @@ const StarterPackLead = () => {
     },
   ];
 
-  const leadSchema = [
-    {
-      "@context": "https://schema.org",
-      "@type": "LearningResource",
-      "name": "Liderar Equipos - Starter Pack",
-      "description": "Guía paso a paso para PMs que buscan dar el salto a roles de liderazgo como Lead PM, GPM o Head of Product.",
-      "provider": {
-        "@type": "Organization",
-        "name": "ProductPrepa",
-        "url": "https://productprepa.com"
-      },
-      "educationalLevel": "Intermediate",
-      "inLanguage": "es",
-      "isAccessibleForFree": true,
-      "url": "https://productprepa.com/starterpack/lead"
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Inicio",
-          "item": "https://productprepa.com"
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": "Starter Pack",
-          "item": "https://productprepa.com/starterpack"
-        },
-        {
-          "@type": "ListItem",
-          "position": 3,
-          "name": "Liderar Equipos",
-          "item": "https://productprepa.com/starterpack/lead"
-        }
-      ]
-    }
-  ];
-
   return (
     <>
-      <Seo
-        title="Liderar Equipos - Starter Pack | ProductPrepa"
-        description="Guía paso a paso para PMs que buscan dar el salto a roles de liderazgo como Lead PM, GPM o Head of Product."
-        canonical="/starterpack/lead"
-        keywords="liderazgo producto, lead PM, head of product, gestión equipos producto, GPM"
-        jsonLd={leadSchema}
-      />
+      <Seo />
       <main className="min-h-screen bg-background animate-fade-in">
         <div className="container py-6 px-4 sm:px-6">
           <StarterPackBreadcrumb
