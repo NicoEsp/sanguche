@@ -98,6 +98,54 @@ export type Database = {
           },
         ]
       }
+      blog_posts: {
+        Row: {
+          id: string
+          slug: string
+          title: string
+          description: string | null
+          content: string
+          status: string
+          published_at: string | null
+          thumbnail_url: string | null
+          meta_title: string | null
+          meta_description: string | null
+          meta_keywords: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          title: string
+          description?: string | null
+          content?: string
+          status?: string
+          published_at?: string | null
+          thumbnail_url?: string | null
+          meta_title?: string | null
+          meta_description?: string | null
+          meta_keywords?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          title?: string
+          description?: string | null
+          content?: string
+          status?: string
+          published_at?: string | null
+          thumbnail_url?: string | null
+          meta_title?: string | null
+          meta_description?: string | null
+          meta_keywords?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       checkout_rate_limit: {
         Row: {
           created_at: string | null
