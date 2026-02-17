@@ -62,6 +62,11 @@ const AdminExercises = lazy(() => import("./pages/admin/AdminExercises"));
 const AdminCourses = lazy(() => import("./pages/admin/AdminCourses"));
 const AdminDescargables = lazy(() => import("./pages/admin/AdminDescargables"));
 const AdminCourseDetail = lazy(() => import("./pages/admin/AdminCourseDetail"));
+const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
+
+// Blog pages
+const BlogList = lazy(() => import("./pages/BlogList"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
 
 // QueryClient optimizado para velocidad con cache inteligente
 const queryClient = new QueryClient({
@@ -107,6 +112,7 @@ const App = () => (
                   <Route path="recursos" element={<AdminResources />} />
                   <Route path="starterpack" element={<AdminStarterPack />} />
                   <Route path="descargables" element={<AdminDescargables />} />
+                  <Route path="blog" element={<AdminBlog />} />
                   <Route path="configuracion" element={<AdminSettings />} />
                 </Route>
                 <Route path="/*" element={
@@ -123,6 +129,8 @@ const App = () => (
                       <Route path="/starterpack/lead" element={<StarterPackLead />} />
                       <Route path="/preguntas" element={<Descargables />} />
                       <Route path="/soy-dev" element={<SoyDev />} />
+                      <Route path="/blog" element={<BlogList />} />
+                      <Route path="/blog/:slug" element={<BlogPost />} />
                       <Route path="/cursos" element={
                         <ProtectedRoute fallbackPath="/cursos-info">
                           <Courses />

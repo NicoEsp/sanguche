@@ -12,6 +12,7 @@ const STATIC_ROUTES = [
   { path: '/starterpack/build', priority: '0.7', changefreq: 'monthly' },
   { path: '/starterpack/lead', priority: '0.7', changefreq: 'monthly' },
   { path: '/soy-dev', priority: '0.8', changefreq: 'monthly' },
+  { path: '/blog', priority: '0.8', changefreq: 'weekly' },
   { path: '/auth', priority: '0.5', changefreq: 'monthly' },
 ]
 
@@ -24,6 +25,12 @@ Deno.serve(async () => {
   // Fetch published courses
   const { data: courses } = await supabase
     .from('courses')
+    .select('slug, updated_at')
+    .eq('status', 'published')
+
+  // Fetch published blog posts
+  const { data: blogPosts } = await supabase
+    .from('blog_posts')
     .select('slug, updated_at')
     .eq('status', 'published')
 
@@ -53,6 +60,20 @@ Deno.serve(async () => {
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>
+`
+    }
+  }
+
+  // Add dynamic blog post routes
+  if (blogPosts) {
+    for (const post of blogPosts) {
+      const lastmod = post.updated_at?.split('T')[0] || today
+      xml += `  <url>
+    <loc>${SITE_URL}/blog/${post.slug}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 `
     }

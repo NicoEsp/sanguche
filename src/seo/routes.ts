@@ -121,6 +121,30 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     imageAlt: DEFAULT_IMAGE_ALT,
   },
 
+  '/blog': {
+    title: 'Blog de Producto | ProductPrepa',
+    description: 'Artículos prácticos sobre Product Management: cómo preparar entrevistas, diferencias de roles, métricas, estrategia y más.',
+    canonical: `${SITE_URL}/blog`,
+    keywords: 'blog product management, artículos PM, aprender producto, product manager consejos, carrera en producto',
+    image: DEFAULT_IMAGE,
+    imageAlt: DEFAULT_IMAGE_ALT,
+    ogType: 'website',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Blog',
+      name: 'Blog de ProductPrepa',
+      description: 'Artículos prácticos sobre Product Management.',
+      url: `${SITE_URL}/blog`,
+      publisher: {
+        '@type': 'Organization',
+        name: 'ProductPrepa',
+        url: SITE_URL,
+        logo: `${SITE_URL}/favicon.png`,
+      },
+      inLanguage: 'es',
+    },
+  },
+
   '/starterpack/build': {
     title: 'Construir Productos - Starter Pack | ProductPrepa',
     description: 'Guía paso a paso con recursos curados para quienes comienzan en Product Management.',

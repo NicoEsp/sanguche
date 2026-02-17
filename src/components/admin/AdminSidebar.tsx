@@ -24,7 +24,8 @@ import {
   Rocket,
   BookOpen,
   CreditCard,
-  FileDown
+  FileDown,
+  PenLine
 } from 'lucide-react';
 
 import { GraduationCap } from 'lucide-react';
@@ -40,6 +41,7 @@ const adminNavItems = [
   { title: 'Recursos', url: '/admin/recursos', icon: FileText },
   { title: 'Starter Pack', url: '/admin/starterpack', icon: Rocket },
   { title: 'Descargables', url: '/admin/descargables', icon: FileDown },
+  { title: 'Blog', url: '/admin/blog', icon: PenLine },
 ];
 
 const generalNavItems = [
