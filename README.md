@@ -1,74 +1,283 @@
 # ProductPrepa
 
-Una plataforma para Product Managers que permite:
-- Evaluarse en 11 dominios claves (Autoevaluación)
-- Ver sus Áreas de mejora personalizadas
-- Acceder a funcionalidades premium como Mentoría personalizada y Career Path
-- Hacer seguimiento del avance en sus objetivos de carrera
+Plataforma de crecimiento profesional para Product Managers. Permite evaluarse en dominios clave, identificar áreas de mejora, acceder a mentoría personalizada, cursos, recursos descargables y un Career Path estructurado.
+
+**URL de producción:** https://productprepa.com
 
 -----
 
 ## 🏗️ Estructura del proyecto
 
-### User
-src/pages/
-├── Index.tsx              → Landing page (página de inicio pública)
-├── Auth.tsx               → Autenticación (login/registro)
-├── Assessment.tsx         → ✨ NUEVO: Autoevaluación en 11 dominios basada en preguntas y ejemplos concretos
-├── SkillGaps.tsx          → Áreas de mejora
-├── Recommendations.tsx    → Mentoría personalizada (premium)
-├── Progress.tsx           → Career Path - Sistema de seguimiento de objetivos (premium)
-├── Premium.tsx            → Página de planes y checkout con Polar
-├── Profile.tsx            → ✨ NUEVO: Mi Perfil (estadísticas y configuración)
-└── NotFound.tsx           → Página 404
+```
+src/
+├── pages/                  # Páginas (usuario y admin)
+│   └── admin/              # Panel de administración (15 páginas)
+├── components/
+│   ├── admin/              # Componentes del panel admin
+│   ├── auth/               # Guards (ProtectedRoute, AdminProtectedRoute)
+│   ├── courses/            # Visor de cursos y lecciones
+│   ├── layout/             # AppLayout, AppSidebar, LandingHeader, MobileNav
+│   ├── landing/            # Componentes de la landing page
+│   ├── mentoria/           # Componentes de la sección de mentoría
+│   ├── planes/             # Componentes de la página de pricing
+│   ├── sections/           # Secciones compartidas de la landing
+│   ├── skeletons/          # Skeletons de carga (Assessment, Mentoria, Progress)
+│   └── ui/                 # shadcn/ui (~40 componentes)
+├── contexts/               # AuthContext (estado global de auth)
+├── hooks/                  # ~35 custom hooks
+├── integrations/
+│   ├── supabase/           # Cliente + tipos de la base de datos
+│   └── todoist/            # API de creación de tareas
+├── seo/                    # Configuración centralizada de SEO por ruta
+├── constants/              # navigation.ts, plans.ts
+├── lib/                    # Wrapper de Mixpanel
+├── types/                  # Definiciones TypeScript
+└── utils/                  # scoring.ts, features.ts, storage.ts, csvExport.ts
 
-### Admin
-src/pages/admin/
-├── AdminDashboard.tsx           → Panel principal con métricas
-├── AdminUsers.tsx               → Gestión de usuarios
-├── AdminAssessments.tsx         → Ver evaluaciones de usuarios
-├── AdminRecommendations.tsx     → Gestionar recomendaciones
-├── AdminResources.tsx           → CRUD de recursos educativos
-├── AdminMentoriaExercises.tsx   → CRUD de ejercicios prácticos
-├── AdminMentoriaDetail.tsx      → Detalle de mentoría por usuario
-├── AdminProgressObjectives.tsx  → Gestión de objetivos de progreso
-└── AdminSettings.tsx            → Configuración del sistema
-
-## 🔐 Autenticación
-
-- Sistema de autenticación con Supabase Auth
-- Registro e inicio de sesión con email
-- La tabla `user_subscriptions` guarda el estado de suscripción del usuario
-
-## 💳 Pagos
-
-- Integración con LemonSqueezy para procesamiento de pagos (Se descarta Polar como procesador de pagos por problemas administrativos)
-- Webhooks para sincronización de suscripciones
-- Gestión automática de estados de suscripción
-
-## 🧩 Funcionalidades premium principales
-
-### /mentoria
-Desde esta sección un usuario puede:
-- Agendar sesión de Mentoria con NicoProducto
-- Recibir recomendaciones personalizadas en base a sesión de Mentoria
-- Recibir recursos especializados
-- Ejercicios prácticos post sesión de Mentoria
-- Contenido bloqueado hasta completar mentoría
-- Desbloqueo desde panel de administración
-- Acceso gradual a funcionalidades premium
-
-### /progreso (Career Path)
-Desde esta sección el usuario puede:
-- Acceder a su Career Path estructurado en un Canvas y una lista de items arrastrable. Cada item tiene un checklist, al completar todos los elementos de la checklist el item pasa a estado 'completed' y eso se ve reflejado como avance en la sección superior
-- ✨ NUEVO: Ahora el canvas puede guardarse para fijar el plan de trabajo y se puede exportar a PDF
+supabase/
+├── config.toml             # Configuración del proyecto Supabase
+├── functions/              # 11 Edge Functions (Deno)
+└── migrations/             # 80+ migraciones SQL
+```
 
 -----
 
-## 📦 Tecnologías
+## 🚀 Funcionalidades
 
-- React + TypeScript
-- Vite
-- Tailwind CSS
-- Supabase (Backend as a Service)
-- LemonSqueezy (Pagos)
+### Páginas públicas
+
+| Ruta | Descripción |
+|---|---|
+| `/` | Landing page |
+| `/auth` | Login / Registro (email + Google OAuth) |
+| `/planes` | Página de planes y pricing |
+| `/cursos-info` | Información de cursos (para usuarios no autenticados) |
+| `/starterpack` | Starter Pack - página principal |
+| `/starterpack/build` | Starter Pack - Construir Productos |
+| `/starterpack/lead` | Starter Pack - Liderar Equipos |
+| `/preguntas` | Recursos descargables |
+| `/soy-dev` | Landing para Developers |
+| `/blog` | Lista de artículos del blog |
+| `/blog/:slug` | Artículo individual del blog |
+| `/welcome` | Página post-compra |
+
+### Páginas autenticadas
+
+| Ruta | Acceso | Descripción |
+|---|---|---|
+| `/autoevaluacion` | Auth | Evaluación en 11 dominios obligatorios + 2 opcionales |
+| `/mejoras` | Auth | Áreas de mejora identificadas a partir de la evaluación |
+| `/mentoria` | Auth + Premium | Mentoría personalizada 1:1 |
+| `/progreso` | Auth + Premium | Career Path con canvas y checklist |
+| `/cursos` | Auth | Biblioteca de cursos |
+| `/cursos/:slug` | Auth + Plan cursos | Detalle del curso (video player) |
+| `/perfil` | Auth | Perfil del usuario, estadísticas y configuración |
+
+### Panel de administración (`/admin/*`)
+
+Validación server-side via `is_admin_jwt()` RPC. Todos los accesos se registran en `security_audit`.
+
+- **Dashboard** - Métricas y analytics generales
+- **Usuarios** - Gestión de usuarios registrados
+- **Suscripciones** - Gestión de suscripciones activas
+- **Evaluaciones** - Visor de evaluaciones de usuarios
+- **Mentoría** - Gestión de mentorías y detalle por usuario
+- **Ejercicios** - Asignación y feedback de ejercicios prácticos
+- **Cursos** - CRUD de cursos y lecciones
+- **Recursos** - CRUD de recursos educativos
+- **Starter Pack** - Gestión de contenido del Starter Pack
+- **Descargables** - Gestión de recursos descargables
+- **Blog** - Creación, edición, publicación y eliminación de posts
+- **Configuración** - Settings del sistema
+
+-----
+
+## 📝 Autoevaluación
+
+Sistema de evaluación en **11 dominios obligatorios** y **2 opcionales**:
+
+**Obligatorios:**
+1. Estrategia de producto
+2. Roadmap y priorización
+3. Ejecución y entregas
+4. Discovery de usuarios
+5. Analítica y métricas
+6. UX e investigación
+7. Gestión de stakeholders
+8. Comunicación y alineación
+9. Liderazgo
+10. Conocimiento técnico
+11. Monetización y negocio
+
+**Opcionales:** Growth, IA aplicada a Producto
+
+Cada dominio se puntúa 1-5. Los resultados calculan un **nivel de seniority**: Junior, Mid, Senior, Lead o Head.
+
+-----
+
+## 💳 Planes y pagos
+
+Integración con **LemonSqueezy** para procesamiento de pagos. Los precios se obtienen dinámicamente via la edge function `pricing-config` (con cache de 5 minutos), con valores fallback en ARS.
+
+| Plan | Tipo | Acceso |
+|---|---|---|
+| **Gratuito** | Free | Autoevaluación + Áreas de mejora + recursos introductorios |
+| **Premium** | Suscripción mensual | Free + 1 sesión mensual 1:1 con mentor + Career Path + recursos curados + Starter Pack |
+| **RePremium** | Suscripción mensual | Premium + 2 sesiones mensuales + acceso completo a cursos + feedback de ejercicios + canal directo |
+| **Curso Estrategia** | Pago único | Acceso al curso de Estrategia (lifetime) |
+| **Cursos All** | Pago único | Acceso a todos los cursos (lifetime) |
+
+Checkout soporta **compra anónima** (solo email). El webhook vincula la compra a una cuenta existente o crea una nueva.
+
+-----
+
+## 🧩 Funcionalidades premium
+
+### /mentoria
+- Agendar sesión de mentoría 1:1 con NicoProducto
+- Recomendaciones personalizadas post-sesión
+- Recursos especializados asignados
+- Ejercicios prácticos con feedback
+- Contenido bloqueado hasta completar mentoría (desbloqueo desde admin)
+
+### /progreso (Career Path)
+- Canvas interactivo con items arrastrables (drag & drop con @dnd-kit)
+- Cada item tiene checklist; al completar todos los elementos pasa a estado "completed"
+- Barra de progreso superior refleja el avance total
+- El canvas se puede guardar para fijar el plan de trabajo
+- Exportación a PDF
+
+### /cursos
+- Biblioteca de cursos con visor de video
+- Progreso por lección trackeable
+- Notas por lección
+- Ejercicios por curso
+- Publicación programada de cursos (edge function `publish-scheduled-courses`)
+
+### Starter Pack (`/starterpack`)
+- Recursos estructurados para PMs en dos tracks: Construir Productos y Liderar Equipos
+- Contenido administrable desde el panel admin
+
+### Blog (`/blog`)
+- CMS completo administrado desde `/admin/blog`
+- Posts en Markdown renderizados con `react-markdown`
+- Slug auto-generado desde el título
+- Soporte para thumbnails, meta title, meta description y keywords por post
+- JSON-LD (BlogPosting + BreadcrumbList) y OG tags por post
+
+-----
+
+## 🔐 Autenticación
+
+Sistema basado en **Supabase Auth**:
+- Registro/login con **email y contraseña**
+- Login con **Google OAuth**
+- Recuperación y actualización de contraseña
+- Reenvío de email de confirmación
+
+**AuthContext** provee estado global:
+- `user`, `session`, `isAuthenticated`, `isAdmin`
+- Suscripciones Realtime a tablas `profiles`, `user_subscriptions`, `assessments`
+- Prefetch de datos compuestos del usuario al login
+- Tracking de usuario en Mixpanel
+
+**Seguridad admin:** Validación server-side via `is_admin_jwt()` RPC (no depende del cliente). Todos los intentos de acceso se loguean en `security_audit`.
+
+-----
+
+## 🔍 SEO
+
+Sistema centralizado y route-aware:
+
+- **`Seo.tsx`** - Componente React que inyecta dinámicamente meta tags en `<head>` (title, description, canonical, OG, Twitter Cards, JSON-LD)
+- **`seo/routes.ts`** - Configuración centralizada de SEO por ruta pública (keywords, descriptions, schemas)
+- **JSON-LD schemas:** WebSite, Organization, Blog, BlogPosting, LearningResource, WebPage, BreadcrumbList, FAQPage, Offer
+- **Sitemap dinámico** - Edge function que genera XML con rutas estáticas + cursos publicados + blog posts (cache 1 hora)
+- **`robots.txt`** - Permite todos los bots, apunta al sitemap
+- **`index.html`** - OG/Twitter tags pre-populados + `<noscript>` con links para crawlers
+
+-----
+
+## 📦 Stack técnico
+
+| Capa | Tecnología |
+|---|---|
+| Framework | React 18 + TypeScript |
+| Build | Vite 5 (SWC) |
+| Estilos | Tailwind CSS 3 + @tailwindcss/typography |
+| UI | shadcn/ui (Radix UI) |
+| Routing | React Router DOM v6 |
+| Data Fetching | TanStack React Query v5 (2min stale, 10min cache) |
+| Forms | React Hook Form + Zod |
+| Backend | Supabase (PostgreSQL + Realtime + Auth + Storage + Edge Functions) |
+| Edge Functions | Deno (11 funciones) |
+| Pagos | LemonSqueezy |
+| Analytics | Mixpanel |
+| Drag & Drop | @dnd-kit |
+| Markdown | react-markdown |
+| Fechas | date-fns (locale español) |
+| Iconos | Lucide React |
+| Toasts | Sonner |
+
+-----
+
+## ⚡ Edge Functions (Supabase)
+
+| Función | Auth | Descripción |
+|---|---|---|
+| `lemon-squeezy-checkout` | No | Crea sesiones de checkout (rate limit: 3/10min por usuario) |
+| `lemon-squeezy-webhook` | No | Procesa webhooks de pago (suscripciones + compras únicas) |
+| `pricing-config` | No | Obtiene precios en vivo desde LemonSqueezy (cache 5min) |
+| `sitemap` | No | Genera sitemap XML dinámico (cache 1h) |
+| `cancel-subscription` | JWT | Cancela suscripción de usuario |
+| `delete-user` | JWT | Elimina cuenta de usuario |
+| `get-admin-users` | JWT | Lista de usuarios para admin |
+| `get-resource-access` | - | Control de acceso a descarga de recursos |
+| `publish-scheduled-courses` | No | Auto-publica cursos programados |
+| `todoist-feedback` | JWT | Crea tarea en Todoist desde feedback de usuario |
+| `todoist-course-inquiry` | - | Crea tarea en Todoist desde consulta de curso |
+
+-----
+
+## 🏛️ Arquitectura
+
+- **Realtime-first:** Supabase Realtime en tablas clave en lugar de polling. React Query se invalida automáticamente en eventos Realtime.
+- **Code splitting:** Todas las páginas lazy-loaded con `React.lazy()` + `Suspense`. Skeletons específicos para páginas críticas.
+- **Prefetch compuesto:** Al login se prefetchean perfil, suscripción y evaluación en paralelo.
+- **Seguridad admin:** Validación server-side, no client-side. Audit logging completo.
+- **Checkout anónimo:** Permite comprar sin registro previo. El webhook vincula la compra a una cuenta.
+
+-----
+
+## 🛠️ Desarrollo
+
+```bash
+# Instalar dependencias
+npm install
+
+# Servidor de desarrollo (puerto 8080)
+npm run dev
+
+# Build de producción
+npm run build
+
+# Preview del build
+npm run preview
+```
+
+### Variables de entorno
+
+**Frontend (`.env`):**
+| Variable | Descripción |
+|---|---|
+| `VITE_SUPABASE_URL` | URL del proyecto Supabase |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon key |
+| `VITE_SUPABASE_PROJECT_ID` | ID del proyecto Supabase |
+
+**Supabase Edge Functions (secrets en dashboard):**
+| Variable | Descripción |
+|---|---|
+| `LEMON_SQUEEZY_API_KEY` | API key de LemonSqueezy |
+| `LEMON_SQUEEZY_STORE_ID` | Store ID de LemonSqueezy |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key para operaciones admin |
+| `TODOIST_API_KEY` | API key de Todoist para feedback |
