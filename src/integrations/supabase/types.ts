@@ -100,48 +100,48 @@ export type Database = {
       }
       blog_posts: {
         Row: {
-          id: string
-          slug: string
-          title: string
-          description: string | null
           content: string
-          status: string
-          published_at: string | null
-          thumbnail_url: string | null
-          meta_title: string | null
+          created_at: string
+          description: string | null
+          id: string
           meta_description: string | null
           meta_keywords: string | null
-          created_at: string
+          meta_title: string | null
+          published_at: string | null
+          slug: string
+          status: string
+          thumbnail_url: string | null
+          title: string
           updated_at: string
         }
         Insert: {
-          id?: string
-          slug: string
-          title: string
-          description?: string | null
           content?: string
-          status?: string
-          published_at?: string | null
-          thumbnail_url?: string | null
-          meta_title?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
           meta_description?: string | null
           meta_keywords?: string | null
-          created_at?: string
+          meta_title?: string | null
+          published_at?: string | null
+          slug: string
+          status?: string
+          thumbnail_url?: string | null
+          title: string
           updated_at?: string
         }
         Update: {
-          id?: string
-          slug?: string
-          title?: string
-          description?: string | null
           content?: string
-          status?: string
-          published_at?: string | null
-          thumbnail_url?: string | null
-          meta_title?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
           meta_description?: string | null
           meta_keywords?: string | null
-          created_at?: string
+          meta_title?: string | null
+          published_at?: string | null
+          slug?: string
+          status?: string
+          thumbnail_url?: string | null
+          title?: string
           updated_at?: string
         }
         Relationships: []
