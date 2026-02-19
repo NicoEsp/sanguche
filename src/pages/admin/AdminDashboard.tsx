@@ -40,7 +40,7 @@ export default function AdminDashboard() {
   };
 
   // Use real financial metrics from analytics
-  const { mrr, arr, arpu } = analytics;
+  const { mrr, ltv, arpu } = analytics;
 
   return (
     <div className="space-y-6">
@@ -74,113 +74,113 @@ export default function AdminDashboard() {
       </div>
 
       {/* KPIs Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-5">
-        <Card>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <Card className="h-full overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Usuarios Totales</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{analytics.totalUsers}</div>
+            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.totalUsers}</div>
             <p className="text-xs text-muted-foreground">Usuarios registrados</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="h-full overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Premium Pagados</CardTitle>
-            <Crown className="h-4 w-4 text-muted-foreground" />
+            <Crown className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{analytics.premiumPaidUsers}</div>
+            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.premiumPaidUsers}</div>
             <p className="text-xs text-muted-foreground">
               {analytics.conversionRate.toFixed(1)}% conversión
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="h-full overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Bonificados</CardTitle>
-            <Gift className="h-4 w-4 text-muted-foreground" />
+            <Gift className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{analytics.premiumCompedUsers}</div>
+            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.premiumCompedUsers}</div>
             <p className="text-xs text-muted-foreground">
               Premium sin pago
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="h-full overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">MRR</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{formatCurrency(mrr)}</div>
+            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{formatCurrency(mrr)}</div>
             <p className="text-xs text-muted-foreground">Ingresos mensuales recurrentes</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="h-full overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ARR</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">LTV</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{formatCurrency(arr)}</div>
-            <p className="text-xs text-muted-foreground">Ingresos anuales recurrentes</p>
+            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{formatCurrency(ltv)}</div>
+            <p className="text-xs text-muted-foreground">Ingreso promedio por cliente</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Secondary Metrics */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-4">
-        <Card>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <Card className="h-full overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Evaluaciones</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
+            <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{analytics.totalAssessments}</div>
+            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.totalAssessments}</div>
             <p className="text-xs text-muted-foreground">
               +{analytics.assessmentsToday} hoy
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="h-full overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Esta Semana</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{analytics.assessmentsThisWeek}</div>
+            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.assessmentsThisWeek}</div>
             <p className="text-xs text-muted-foreground">Evaluaciones completadas</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="h-full overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">ARPU</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">
+            <div className="text-base sm:text-2xl font-bold text-foreground truncate">
               {formatCurrency(arpu)}
             </div>
             <p className="text-xs text-muted-foreground">Ingreso promedio por usuario</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="h-full overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Conversión</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
+            <Target className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{analytics.conversionRate.toFixed(1)}%</div>
+            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.conversionRate.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">Free to Premium</p>
           </CardContent>
         </Card>
@@ -192,24 +192,24 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               Resumen Financiero
-              <Badge variant={analytics.pricingSource === 'real' ? 'default' : analytics.pricingSource === 'lemonsqueezy' ? 'secondary' : 'outline'} className="text-xs">
+              <Badge variant={analytics.pricingSource === 'real' ? 'default' : analytics.pricingSource === 'lemonsqueezy' ? 'secondary' : 'outline'} className="text-xs whitespace-nowrap shrink-0">
                 {analytics.pricingSource === 'real' ? 'Precios Reales' : analytics.pricingSource === 'lemonsqueezy' ? 'LemonSqueezy' : 'Fallback'}
               </Badge>
             </CardTitle>
             <CardDescription>Métricas clave de ingresos (solo suscripciones recurrentes)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center gap-2">
               <span className="text-sm">Ingresos Mensuales (MRR)</span>
-              <Badge variant="secondary">{formatCurrency(mrr)}</Badge>
+              <Badge variant="secondary" className="whitespace-nowrap shrink-0">{formatCurrency(mrr)}</Badge>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm">Ingresos Anuales (ARR)</span>
-              <Badge variant="secondary">{formatCurrency(arr)}</Badge>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-sm">Lifetime Value (LTV)</span>
+              <Badge variant="secondary" className="whitespace-nowrap shrink-0">{formatCurrency(ltv)}</Badge>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center gap-2">
               <span className="text-sm">ARPU (por usuario pagante)</span>
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="whitespace-nowrap shrink-0">
                 {formatCurrency(arpu)}
               </Badge>
             </div>

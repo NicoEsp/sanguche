@@ -39,7 +39,7 @@ interface AdminAnalytics {
   }>;
   conversionRate: number;
   mrr: number;
-  arr: number;
+  ltv: number;
   arpu: number;
   averageAssessmentScore: number;
   recentActivePeriod: string;
@@ -209,9 +209,15 @@ export function useAdminAnalytics() {
 
       // Calculate financial metrics
       const mrr = totalMrr;
-      const arr = mrr * 12;
       // ARPU = Average Revenue Per (Paying) User - only divide by users who actually pay for recurrent plans
       const arpu = totalPaidRecurrentUsers > 0 ? mrr / totalPaidRecurrentUsers : 0;
+
+      // LTV = Total historical revenue / unique paying users
+      // Sum all paid_amount from ALL subscriptions (active + inactive + cancelled)
+      const allPaidAmounts = subscriptionsData?.filter(s => s?.paid_amount && s.paid_amount > 0) || [];
+      const totalHistoricalRevenue = allPaidAmounts.reduce((sum, s) => sum + (s.paid_amount! / 100), 0);
+      const uniquePayingUsers = new Set(allPaidAmounts.map(s => s.user_id)).size;
+      const ltv = uniquePayingUsers > 0 ? totalHistoricalRevenue / uniquePayingUsers : 0;
 
       // User growth for current month only
       const userGrowth: Array<{ date: string; count: number }> = [];
@@ -409,7 +415,7 @@ export function useAdminAnalytics() {
         skillGapDistribution,
         conversionRate,
         mrr,
-        arr,
+        ltv,
         arpu,
         averageAssessmentScore,
         recentActivePeriod: "30 días",
