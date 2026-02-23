@@ -7,13 +7,15 @@ const STATIC_ROUTES = [
   { path: '/', priority: '1.0', changefreq: 'weekly' },
   { path: '/planes', priority: '0.9', changefreq: 'weekly' },
   { path: '/cursos-info', priority: '0.9', changefreq: 'weekly' },
+  { path: '/autoevaluacion', priority: '0.9', changefreq: 'monthly' },
   { path: '/preguntas', priority: '0.8', changefreq: 'monthly' },
   { path: '/starterpack', priority: '0.8', changefreq: 'monthly' },
   { path: '/starterpack/build', priority: '0.7', changefreq: 'monthly' },
   { path: '/starterpack/lead', priority: '0.7', changefreq: 'monthly' },
   { path: '/soy-dev', priority: '0.8', changefreq: 'monthly' },
   { path: '/blog', priority: '0.8', changefreq: 'weekly' },
-  { path: '/auth', priority: '0.5', changefreq: 'monthly' },
+  { path: '/descargables', priority: '0.7', changefreq: 'monthly' },
+  { path: '/mejoras', priority: '0.6', changefreq: 'monthly' },
 ]
 
 Deno.serve(async () => {
