@@ -1,51 +1,76 @@
 
-## Solución: Sitemap estático en `public/sitemap.xml`
 
-### El problema
+## Programar publicación de artículos del blog
 
-El custom domain `productprepa.com` apunta al hosting de Lovable, no a Supabase. Por eso, la URL `productprepa.com/functions/v1/sitemap` devuelve el `index.html` de la SPA (HTML) en vez del XML del sitemap. Google Search Console necesita que el sitemap esté en el mismo dominio.
+### Resumen
 
-### La solución
+Agregar la posibilidad de programar la publicación de artículos del blog desde `/admin/blog`. Cuando un post se marca como "Programado" con una fecha futura, permanece invisible para los visitantes hasta que un cron job lo publique automáticamente.
 
-Crear un archivo **estático** `public/sitemap.xml` con todas las rutas (estaticas + dinamicas actuales). Al estar en `public/`, Vite lo sirve directamente en `productprepa.com/sitemap.xml`.
+Google no penaliza las publicaciones programadas. Es una práctica estándar en todos los CMS (WordPress, Ghost, etc.). Google indexa el contenido cuando lo encuentra publicado, sin importar el mecanismo.
 
-### Contenido del sitemap
+---
 
-Se incluiran las 16 URLs actuales:
+### Cambios necesarios
 
-**12 rutas estaticas:**
-- `/` (priority 1.0)
-- `/planes`, `/cursos-info`, `/autoevaluacion` (priority 0.9)
-- `/preguntas`, `/starterpack`, `/soy-dev`, `/blog` (priority 0.8)
-- `/starterpack/build`, `/starterpack/lead`, `/descargables` (priority 0.7)
-- `/mejoras` (priority 0.6)
+#### 1. Base de datos
 
-**1 curso publicado:**
-- `/cursos/product-management-101`
+Agregar el valor `scheduled` como estado válido en `blog_posts.status`. Actualmente acepta `draft` y `published`; se agrega `scheduled`.
 
-**3 blog posts publicados:**
-- `/blog/como-saber-si-eres-un-buen-product-manager-en-una-startup-y-que-mejorar`
-- `/blog/como-prepararse-para-entrevistas-pm`
-- `/blog/diferencia-entre-pm-y-po`
+Agregar columna `scheduled_at` (timestamp with time zone, nullable) para guardar la fecha/hora programada.
 
-### Tambien actualizar `robots.txt`
+#### 2. Admin UI (`src/pages/admin/AdminBlog.tsx`)
 
-Agregar la linea `Sitemap: https://productprepa.com/sitemap.xml` al archivo `public/robots.txt` para que los bots lo encuentren automaticamente.
+- Agregar opción "Programado" al selector de estado
+- Mostrar un campo de fecha/hora (datetime-local input) cuando el estado es `scheduled`
+- Guardar `scheduled_at` junto con el post
+- Mostrar badge "Programado" en la tabla con la fecha/hora
+- Validar que si el estado es `scheduled`, la fecha sea futura
 
-### Archivos a modificar
+#### 3. Edge Function: `publish-scheduled-blog`
 
-| Archivo | Cambio |
+Nueva edge function (similar a `publish-scheduled-courses`) que:
+- Busca posts con `status = 'scheduled'` y `scheduled_at <= now()`
+- Los actualiza a `status = 'published'` y setea `published_at = scheduled_at`
+- Loguea cuantos posts publicó
+
+#### 4. Cron Job
+
+Configurar un cron job en Supabase (via `pg_cron` + `pg_net`) que llame a la edge function cada 5 minutos.
+
+#### 5. Query pública (BlogList)
+
+No necesita cambios. Ya filtra por `status = 'published'`, asi que los posts programados no se muestran hasta que el cron los publique.
+
+#### 6. RLS
+
+No necesita cambios. La policy pública ya filtra por `status = 'published'`, y la policy de admin permite ALL. Los posts `scheduled` solo son visibles para el admin.
+
+---
+
+### Archivos a crear/modificar
+
+| Archivo | Accion |
 |---------|--------|
-| `public/sitemap.xml` | Crear archivo estatico con las 16 URLs |
-| `public/robots.txt` | Agregar referencia al sitemap |
+| Migracion SQL | Agregar `scheduled` como status valido y columna `scheduled_at` |
+| `src/pages/admin/AdminBlog.tsx` | Agregar UI de programacion (selector + datetime picker) |
+| `supabase/functions/publish-scheduled-blog/index.ts` | Nueva edge function para publicar posts programados |
+| `supabase/config.toml` | Registrar la nueva edge function |
+| SQL (insert tool) | Crear cron job que ejecute la edge function cada 5 minutos |
 
-### Importante
+---
 
-Cada vez que publiques un nuevo blog post o curso, hay que actualizar manualmente este archivo (o pedirme que lo haga). La edge function de Supabase sigue funcionando como respaldo si en el futuro se configura un proxy.
+### Flujo del usuario
 
-### Despues de implementar
+1. Crea un post en el admin
+2. Selecciona estado "Programado"
+3. Elige fecha y hora de publicacion
+4. Guarda el post
+5. El post queda invisible para visitantes
+6. Cada 5 minutos el cron revisa si hay posts para publicar
+7. Cuando llega la hora, se publica automaticamente
 
-1. Publica los cambios
-2. Anda a Google Search Console > Sitemaps
-3. Envia: `sitemap.xml`
-4. Deberia mostrar ~16 URLs descubiertas sin errores
+---
+
+### Nota sobre el sitemap
+
+Cuando un post se publique (manual o programado), hay que actualizar `public/sitemap.xml` manualmente pidiendome que lo haga, ya que es un archivo estatico.
