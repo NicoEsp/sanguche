@@ -1,20 +1,20 @@
 
 
-## Pasar usuario Premium a Free desde Suscripciones
+## Corregir datos de Lemon Squeezy para juchambo@gmail.com
 
 ### Resumen
 
-Agregar un boton "Pasar a Free" en la columna de Acciones de la tabla de suscripciones, visible solo para usuarios con plan distinto de `free`. Al hacer click, muestra un dialog de confirmacion y luego usa la funcion de base de datos `admin_update_subscription` que ya existe para cambiar el plan.
+Actualizar el registro de `user_subscriptions` de juchambo@gmail.com con los IDs de Lemon Squeezy que llegaron por webhook pero no se guardaron correctamente.
 
-### Cambios
+### Cambio
 
-#### `src/pages/admin/AdminSubscriptions.tsx`
+Ejecutar un UPDATE en `user_subscriptions` usando el insert tool para agregar los datos faltantes:
 
-1. Agregar un boton "Pasar a Free" al lado del boton de "Marcar Bonif." en la columna Acciones, visible cuando `sub.plan !== 'free'`
-2. Agregar un `AlertDialog` de confirmacion que muestre el nombre del usuario y su plan actual antes de ejecutar la accion
-3. Al confirmar, llamar a `supabase.rpc('admin_update_subscription', { p_target_profile_id: sub.user_id, p_new_plan: 'free', p_notes: 'Downgraded by admin' })`
-4. Invalidar queries de suscripciones y stats tras el exito
-5. Mostrar toast de exito/error
+- `lemon_squeezy_customer_id`: `'7150814'`
+- `lemon_squeezy_subscription_id`: `'1640512'`
+- `lemon_squeezy_order_id`: `'6828911'`
 
-No se necesitan cambios en base de datos ni edge functions. La funcion `admin_update_subscription` ya soporta cualquier valor del enum `subscription_plan`, incluyendo `free`.
+Se identificara al usuario buscando su profile ID a traves de su email en la tabla `profiles`.
+
+No se requieren cambios de codigo ni migraciones de esquema.
 
