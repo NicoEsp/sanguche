@@ -1,56 +1,45 @@
 
 
-## Mejorar responsividad y metricas del Admin Dashboard
+## Plan de SEO técnico: Sitemap + article:published_time
 
-### Problemas actuales
+### 1. Sitemap (supabase/functions/sitemap/index.ts)
 
-1. Los valores grandes de MRR/ARR/ARPU en formato moneda ("$1.234.567") desbordan las cards en pantallas chicas
-2. Las KPI cards del grid de 5 columnas no tienen altura uniforme
-3. ARR no es la metrica mas util para el negocio -- se reemplaza por Lifetime Value (LTV)
+**Quitar:**
+- `/auth` (no tiene valor SEO, es una pagina de login)
 
-### Cambios
+**Agregar:**
+- `/autoevaluacion` (priority 0.9, changefreq monthly) -- pagina clave de conversion
+- `/descargables` (priority 0.7, changefreq monthly)
+- `/mejoras` (priority 0.6, changefreq monthly)
 
-#### 1. Responsividad de las KPI cards (AdminDashboard.tsx)
+### 2. Routes metadata (src/seo/routes.ts)
 
-- Agregar `truncate` y `text-base sm:text-2xl` a todos los valores numericos grandes para que escalen en mobile
-- Agregar `min-h-[120px]` (o similar) a todas las cards KPI para que tengan la misma altura
-- En el grid principal de 5 columnas: cambiar a `grid-cols-2 sm:grid-cols-3 lg:grid-cols-5` para que no queden apretadas
-- En el grid secundario de 4 columnas: mantener `grid-cols-2 lg:grid-cols-4`
-- Agregar `overflow-hidden` a las cards que muestran montos
-- Los badges en "Resumen Financiero" necesitan `whitespace-nowrap` y `text-xs` para no colapsar
+**Agregar entrada para `/descargables`:**
+- title: "Recursos Descargables | ProductPrepa"
+- description: "Descarga guias y recursos practicos para prepararte como Product Manager."
+- canonical, keywords, image estandar
 
-#### 2. Cards con mismo alto y ancho (AdminDashboard.tsx)
+### 3. article:published_time en Seo.tsx
 
-- Agregar `h-full` a cada `<Card>` dentro de los grids de KPI para que se estiren uniformemente
-- Esto aplica a los dos grids superiores (5 cols y 4 cols) y al grid de actividad reciente
+**Agregar prop opcional `articlePublishedTime?: string` a SeoProps.**
 
-#### 3. Reemplazar ARR por LTV (useAdminAnalytics.ts + AdminDashboard.tsx)
+En el useEffect, cuando `articlePublishedTime` tenga valor, crear/actualizar la meta tag:
+```
+<meta property="article:published_time" content="2025-01-15T..." />
+```
 
-**En `useAdminAnalytics.ts`:**
-- Renombrar `arr` a `ltv` en la interface `AdminAnalytics`
-- Calcular LTV como: `arpu * avgLifetimeMonths` (estimacion simple con meses promedio de vida de suscriptor)
-- Alternativa mas simple si no hay datos de churn: `LTV = totalRevenue / totalPaidUsers` usando la suma de todos los `paid_amount` de suscripciones activas e inactivas
-- Para hacerlo simple y realista: LTV = suma total de paid_amount de TODOS los suscriptores (activos e historicos) / cantidad total de suscriptores unicos
+Tambien agregar `article:author` apuntando a ProductPrepa.
 
-**En `AdminDashboard.tsx`:**
-- Cambiar la card "ARR" por "LTV" con icono `TrendingUp`
-- Actualizar el "Resumen Financiero" para mostrar LTV en lugar de ARR
-- Label: "Lifetime Value" con descripcion "Ingreso promedio por cliente"
+### 4. BlogPost.tsx -- pasar published_at al Seo
+
+Agregar `articlePublishedTime={post.published_at}` al componente `<Seo>` que ya esta en BlogPost.tsx.
 
 ### Archivos a modificar
 
 | Archivo | Cambio |
 |---------|--------|
-| `src/hooks/useAdminAnalytics.ts` | Reemplazar `arr` por `ltv`, calcular LTV real |
-| `src/pages/admin/AdminDashboard.tsx` | Responsividad, alturas uniformes, ARR -> LTV |
-
-### Detalle de calculo LTV
-
-Se calcula sumando todos los `paid_amount` historicos (no solo activos) y dividiendo por la cantidad de usuarios unicos que alguna vez pagaron. Esto da el ingreso promedio real por cliente a lo largo de su vida.
-
-```text
-LTV = SUM(paid_amount de todas las suscripciones con pago) / COUNT(usuarios unicos que pagaron)
-```
-
-Para esto se necesita incluir suscripciones con status `expired` o `cancelled` ademas de `active` en la query de subscriptions.
+| `supabase/functions/sitemap/index.ts` | Quitar /auth, agregar /autoevaluacion, /descargables, /mejoras |
+| `src/seo/routes.ts` | Agregar entrada /descargables |
+| `src/components/Seo.tsx` | Agregar prop articlePublishedTime y meta tag article:published_time |
+| `src/pages/BlogPost.tsx` | Pasar articlePublishedTime al Seo |
 
