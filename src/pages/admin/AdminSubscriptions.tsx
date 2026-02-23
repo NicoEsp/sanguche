@@ -24,6 +24,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
@@ -36,7 +46,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Gift
+  Gift,
+  UserMinus
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -52,6 +63,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 function StatCard({ 
   title, 
@@ -88,9 +100,33 @@ function SubscriptionsTable() {
     comped: 'all',
   });
 
+  const [downgradeTarget, setDowngradeTarget] = useState<{ user_id: string; name: string; plan: string } | null>(null);
+  const [isDowngrading, setIsDowngrading] = useState(false);
+
   const { data: subscriptions, isLoading, refetch } = useAdminSubscriptions(filters);
   const toggleComped = useToggleCompedStatus();
   const queryClient = useQueryClient();
+
+  const handleDowngradeToFree = async () => {
+    if (!downgradeTarget) return;
+    setIsDowngrading(true);
+    try {
+      const { data, error } = await supabase.rpc('admin_update_subscription', {
+        p_target_profile_id: downgradeTarget.user_id,
+        p_new_plan: 'free',
+        p_notes: 'Downgraded to free by admin',
+      });
+      if (error) throw error;
+      toast.success(`${downgradeTarget.name} pasado a plan Free`);
+      queryClient.invalidateQueries({ queryKey: ['admin-subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-subscription-stats'] });
+    } catch (error) {
+      toast.error('Error al cambiar el plan');
+    } finally {
+      setIsDowngrading(false);
+      setDowngradeTarget(null);
+    }
+  };
 
   const handleToggleComped = async (subscriptionId: string, currentComped: boolean) => {
     try {
@@ -267,15 +303,30 @@ function SubscriptionsTable() {
                   </TableCell>
                   <TableCell>
                     {sub.plan !== 'free' && (
-                      <Button
-                        variant={sub.is_comped ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleToggleComped(sub.id, sub.is_comped)}
-                        className="text-xs"
-                      >
-                        <Gift className="h-3 w-3 mr-1" />
-                        {sub.is_comped ? 'Quitar Bonif.' : 'Marcar Bonif.'}
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant={sub.is_comped ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => handleToggleComped(sub.id, sub.is_comped)}
+                          className="text-xs"
+                        >
+                          <Gift className="h-3 w-3 mr-1" />
+                          {sub.is_comped ? 'Quitar Bonif.' : 'Marcar Bonif.'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDowngradeTarget({
+                            user_id: sub.user_id,
+                            name: sub.profiles?.name || sub.profiles?.email || 'Usuario',
+                            plan: sub.plan,
+                          })}
+                          className="text-xs text-destructive hover:text-destructive"
+                        >
+                          <UserMinus className="h-3 w-3 mr-1" />
+                          Pasar a Free
+                        </Button>
+                      </div>
                     )}
                   </TableCell>
                 </TableRow>
@@ -284,6 +335,29 @@ function SubscriptionsTable() {
           </TableBody>
         </Table>
       </div>
+      {/* Downgrade Confirmation Dialog */}
+      <AlertDialog open={!!downgradeTarget} onOpenChange={(open) => !open && setDowngradeTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Pasar a plan Free?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vas a cambiar a <strong>{downgradeTarget?.name}</strong> del plan{' '}
+              <strong>{downgradeTarget?.plan}</strong> al plan <strong>Free</strong>. 
+              Esta acción se puede revertir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDowngrading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDowngradeToFree} 
+              disabled={isDowngrading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDowngrading ? 'Procesando...' : 'Confirmar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
