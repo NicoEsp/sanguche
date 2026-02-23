@@ -121,6 +121,15 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     imageAlt: DEFAULT_IMAGE_ALT,
   },
 
+  '/descargables': {
+    title: 'Recursos Descargables | ProductPrepa',
+    description: 'Descarga guías y recursos prácticos para prepararte como Product Manager.',
+    canonical: `${SITE_URL}/descargables`,
+    keywords: 'recursos product management, descargables PM, guías producto, materiales PM',
+    image: DEFAULT_IMAGE,
+    imageAlt: DEFAULT_IMAGE_ALT,
+  },
+
   '/blog': {
     title: 'Blog de Producto | ProductPrepa',
     description: 'Artículos prácticos sobre Product Management: cómo preparar entrevistas, diferencias de roles, métricas, estrategia y más.',

@@ -13,6 +13,8 @@ export type SeoProps = Partial<SeoRouteData> & {
   twitterSite?: string;
   twitterCreator?: string;
   robots?: string;
+  /** ISO date string for article:published_time (blog posts) */
+  articlePublishedTime?: string;
 };
 
 /**
@@ -108,6 +110,14 @@ export function Seo(props: SeoProps) {
     if (twitterSiteTag && twitterSite) twitterSiteTag.setAttribute('content', twitterSite);
     if (twitterCreatorTag && twitterCreator) twitterCreatorTag.setAttribute('content', twitterCreator);
 
+    // Article meta tags (for blog posts)
+    if (props.articlePublishedTime) {
+      const publishedTimeMeta = ensureMeta('property', 'article:published_time');
+      publishedTimeMeta.setAttribute('content', props.articlePublishedTime);
+      const authorMeta = ensureMeta('property', 'article:author');
+      authorMeta.setAttribute('content', 'ProductPrepa');
+    }
+
     // Meta keywords tag
     if (keywords) {
       let keywordsMeta = document.querySelector('meta[name="keywords"]');
@@ -132,7 +142,7 @@ export function Seo(props: SeoProps) {
       script.textContent = JSON.stringify(jsonLd);
       document.head.appendChild(script);
     }
-  }, [title, description, canonical, image, imageAlt, url, ogType, siteName, twitterSite, twitterCreator, robots, keywords, jsonLd]);
+  }, [title, description, canonical, image, imageAlt, url, ogType, siteName, twitterSite, twitterCreator, robots, keywords, jsonLd, props.articlePublishedTime]);
 
   return null;
 }

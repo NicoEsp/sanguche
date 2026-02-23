@@ -93,6 +93,7 @@ export default function BlogPost() {
         ogType="article"
         image={post.thumbnail_url || undefined}
         jsonLd={articleSchema}
+        articlePublishedTime={post.published_at || undefined}
       />
 
       <div className="container max-w-3xl py-12 space-y-8">
