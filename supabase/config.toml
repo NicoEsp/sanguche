@@ -89,6 +89,9 @@ verify_jwt = false
 [functions.sitemap]
 verify_jwt = false
 
+[functions.publish-scheduled-blog]
+verify_jwt = false
+
 [edge_runtime]
 policy = "per_worker"
 inspector_port = 8083
