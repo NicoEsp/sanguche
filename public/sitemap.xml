@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://productprepa.com/</loc><priority>1.0</priority><changefreq>weekly</changefreq></url>
+  <url><loc>https://productprepa.com/planes</loc><priority>0.9</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://productprepa.com/cursos-info</loc><priority>0.9</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://productprepa.com/autoevaluacion</loc><priority>0.9</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://productprepa.com/preguntas</loc><priority>0.8</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://productprepa.com/starterpack</loc><priority>0.8</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://productprepa.com/soy-dev</loc><priority>0.8</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://productprepa.com/blog</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>
+  <url><loc>https://productprepa.com/starterpack/build</loc><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://productprepa.com/starterpack/lead</loc><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://productprepa.com/descargables</loc><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://productprepa.com/mejoras</loc><priority>0.6</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://productprepa.com/cursos/product-management-101</loc><priority>0.8</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://productprepa.com/blog/como-saber-si-eres-un-buen-product-manager-en-una-startup-y-que-mejorar</loc><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://productprepa.com/blog/como-prepararse-para-entrevistas-pm</loc><priority>0.7</priority><changefreq>monthly</changefreq></url>
+  <url><loc>https://productprepa.com/blog/diferencia-entre-pm-y-po</loc><priority>0.7</priority><changefreq>monthly</changefreq></url>
+</urlset>
