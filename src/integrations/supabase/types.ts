@@ -108,6 +108,7 @@ export type Database = {
           meta_keywords: string | null
           meta_title: string | null
           published_at: string | null
+          scheduled_at: string | null
           slug: string
           status: string
           thumbnail_url: string | null
@@ -123,6 +124,7 @@ export type Database = {
           meta_keywords?: string | null
           meta_title?: string | null
           published_at?: string | null
+          scheduled_at?: string | null
           slug: string
           status?: string
           thumbnail_url?: string | null
@@ -138,6 +140,7 @@ export type Database = {
           meta_keywords?: string | null
           meta_title?: string | null
           published_at?: string | null
+          scheduled_at?: string | null
           slug?: string
           status?: string
           thumbnail_url?: string | null
