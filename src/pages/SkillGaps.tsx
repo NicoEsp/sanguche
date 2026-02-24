@@ -8,7 +8,7 @@ import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useCallback, useEffect, useMemo } from "react";
-import { StickyBanner } from "@/components/StickyBanner";
+
 import { PremiumCTACard } from "@/components/PremiumCTACard";
 import { ContextualCTA } from "@/components/ContextualCTA";
 
@@ -65,13 +65,7 @@ export default function SkillGaps() {
   }, [loading, result, gaps, strengths, neutralAreas, trackEvent]);
   return <>
       <Seo />
-      {!hasActivePremium && hasAssessment && !loading && (
-        <StickyBanner
-          priorityAreasCount={priorityAreasCount}
-          ctaPath="/premium"
-          onCtaClick={() => handleCtaClick('sticky_banner')}
-        />
-      )}
+      
       <section className="container py-6 sm:py-10 px-4 sm:px-6 animate-fade-in">
         <h1 className="text-2xl sm:text-3xl font-semibold mb-3">Resultados de tu evaluación</h1>
         {loading && <div className="space-y-4 mb-6">
