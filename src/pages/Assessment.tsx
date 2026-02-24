@@ -12,11 +12,9 @@ import { saveAssessment } from "@/utils/storage";
 import { supabase } from "@/integrations/supabase/client";
 import { DomainInfoPopup } from "@/components/DomainInfoPopup";
 import { OptionalQuestionTooltip } from "@/components/OptionalQuestionTooltip";
-import { Info, Star, Trophy, Target, Calendar, ArrowRight } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Info, Star, Trophy, Target, Calendar, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,9 +54,11 @@ export default function Assessment() {
   const [localResult, setLocalResult] = useState<AssessmentResult | null>(null);
   const [localValues, setLocalValues] = useState<AssessmentValues | null>(null);
   
-  const isMobile = useIsMobile();
   const totalSteps = DOMAINS.length + OPTIONAL_DOMAINS.length;
   const { trackEvent, setUserProperties } = useMixpanelTracking();
+
+  // Ref para trackear el tiempo en cada pregunta
+  const questionStartTimeRef = useRef<number>(Date.now());
 
   const {
     result: savedResult,
@@ -114,15 +114,13 @@ export default function Assessment() {
       if (assessmentInProgress) {
         const partialAnswers = localStorage.getItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
         if (partialAnswers) {
-          try {
-            const parsedAnswers = JSON.parse(partialAnswers);
-            form.reset(parsedAnswers);
-            
-            // En mobile, posicionar en el siguiente paso sin responder
-            if (isMobile) {
+            try {
+              const parsedAnswers = JSON.parse(partialAnswers);
+              form.reset(parsedAnswers);
+              
+              // Posicionar en el siguiente paso sin responder
               const answeredCount = Object.keys(parsedAnswers).length;
               setCurrentStep(Math.min(answeredCount, DOMAINS.length - 1));
-            }
           } catch (e) {
             if (import.meta.env.DEV) {
               console.error('Error recuperando respuestas parciales:', e);
@@ -131,7 +129,7 @@ export default function Assessment() {
         }
       }
     }
-  }, [assessmentLoading, hasAssessment, trackEvent, form, isMobile]);
+  }, [assessmentLoading, hasAssessment, trackEvent, form]);
 
   useEffect(() => {
     if (isReevaluating) {
@@ -263,8 +261,33 @@ export default function Assessment() {
     localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
   };
 
+  // Helper para mensaje motivacional según progreso
+  const getProgressMessage = useCallback((pct: number) => {
+    if (pct >= 90) return "¡Un último esfuerzo!";
+    if (pct >= 75) return "¡Ya casi terminás!";
+    if (pct >= 50) return "¡Estás a mitad de camino!";
+    if (pct >= 25) return "Buen inicio, seguí así";
+    return "";
+  }, []);
+
+  // Track per-question answer
+  const trackQuestionAnswer = useCallback((questionId: string, questionNumber: number, answerValue: number, isOptional: boolean) => {
+    const timeOnQuestion = Math.round((Date.now() - questionStartTimeRef.current) / 1000);
+    trackEvent('assessment_question_answered', {
+      question_number: questionNumber,
+      question_id: questionId,
+      answer_value: answerValue,
+      is_optional: isOptional,
+      time_on_question: timeOnQuestion,
+    });
+  }, [trackEvent]);
+
+  // Reset question timer when step changes
+  useEffect(() => {
+    questionStartTimeRef.current = Date.now();
+  }, [currentStep]);
+
   const handleNextStep = () => {
-    // Si estamos en las preguntas obligatorias
     if (currentStep < DOMAINS.length) {
       const currentDomain = DOMAINS[currentStep];
       const currentValue = watchedValues?.[currentDomain.key];
@@ -278,20 +301,13 @@ export default function Assessment() {
         return;
       }
     }
-    // Las preguntas opcionales se pueden saltar sin responder
     
-    // Guardar respuestas parciales
     localStorage.setItem(ASSESSMENT_PARTIAL_ANSWERS_KEY, JSON.stringify(watchedValues));
-    
-    // Avanzar al siguiente paso
     setCurrentStep(currentStep + 1);
-    
-    // Scroll suave al top
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSkipOptional = () => {
-    // Saltar la pregunta opcional actual
     if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1);
     }
@@ -552,37 +568,42 @@ export default function Assessment() {
 
         {isReevaluating && (
           <>
-            {/* Barra de progreso - sticky en mobile, normal en desktop */}
-            {isMobile ? (
-              <div className="sticky top-0 z-10 bg-background border-b shadow-sm p-4 mb-6 -mx-4 sm:mx-0">
+            {/* Barra de progreso sticky unificada */}
+            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b shadow-sm p-4 mb-6 -mx-4 sm:mx-0 sm:rounded-lg sm:border">
+              <div className="max-w-2xl mx-auto">
                 <div className="flex items-center justify-between mb-2 text-sm">
                   <span className="font-medium">
                     {currentStep < DOMAINS.length 
-                      ? `Paso ${currentStep + 1} de ${DOMAINS.length}` 
+                      ? `Pregunta ${currentStep + 1} de ${DOMAINS.length}` 
                       : `Opcional ${currentStep - DOMAINS.length + 1} de ${OPTIONAL_DOMAINS.length}`
                     }
                   </span>
-                  <span className="text-muted-foreground">{progress}% completado</span>
+                  <span className="text-muted-foreground">{progress}%</span>
                 </div>
-                <Progress value={progress} className="h-2" />
+                <Progress value={progress} className="h-4" />
+                {/* Mensaje motivacional */}
+                {getProgressMessage(progress) && (
+                  <p className="text-sm font-medium text-primary mt-2 text-center animate-fade-in">
+                    {getProgressMessage(progress)}
+                  </p>
+                )}
                 {/* Indicador de pasos */}
                 <div className="flex gap-1 mt-3">
                   {DOMAINS.map((_, idx) => (
                     <div
                       key={idx}
-                      className={`h-1 flex-1 rounded transition-colors ${
+                      className={`h-1.5 flex-1 rounded-full transition-colors ${
                         idx < currentStep ? 'bg-primary' : 
                         idx === currentStep ? 'bg-primary/60' : 
                         'bg-muted'
                       }`}
                     />
                   ))}
-                  {/* Separador visual para opcionales */}
                   <div className="w-1" />
                   {OPTIONAL_DOMAINS.map((_, idx) => (
                     <div
                       key={`opt-${idx}`}
-                      className={`h-1 flex-1 rounded transition-colors ${
+                      className={`h-1.5 flex-1 rounded-full transition-colors ${
                         DOMAINS.length + idx < currentStep ? 'bg-purple-500' : 
                         DOMAINS.length + idx === currentStep ? 'bg-purple-400' : 
                         'bg-purple-200'
@@ -591,253 +612,226 @@ export default function Assessment() {
                   ))}
                 </div>
               </div>
-            ) : (
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2 text-sm">
-                  <span>Progreso</span>
-                  <span>{answered}/{total} ({progress}%)</span>
-                </div>
-                <Progress value={progress} />
-              </div>
-            )}
+            </div>
 
             {hasAssessment && (
-              <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 max-w-2xl mx-auto">
                 Estás por actualizar tu autoevaluación. Al guardar, tus resultados y áreas de mejora se recalcularán automáticamente.
               </div>
             )}
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {/* Preguntas obligatorias */}
-                {(!isMobile || currentStep < DOMAINS.length) && (
-                  <div className="grid gap-6">
-                    {(isMobile ? [DOMAINS[currentStep]] : DOMAINS).filter(Boolean).map((d) => (
-                      <fieldset key={d.key} className="rounded-lg border p-4 bg-card space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-2xl mx-auto">
+                {/* Pregunta actual - siempre una sola card */}
+                {currentStep < DOMAINS.length && (() => {
+                  const d = DOMAINS[currentStep];
+                  return (
+                    <fieldset key={d.key} className="rounded-lg border p-5 sm:p-6 bg-card space-y-4 animate-fade-in">
+                      <legend className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-base sm:text-lg leading-snug">
+                            {d.question}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">{d.label}</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => setSelectedDomain(d.key)}
+                          aria-label={`Ver más información sobre ${d.label}`}
+                        >
+                          <Info className="h-4 w-4" />
+                        </Button>
+                      </legend>
+                      <FormField
+                        control={form.control}
+                        name={d.key as keyof AssessmentValues}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="sr-only">{d.label}</FormLabel>
+                            <FormControl>
+                              <RadioGroup
+                                className="space-y-3"
+                                value={field.value ? String(field.value) : undefined}
+                                onValueChange={(val) => {
+                                  const numVal = parseInt(val);
+                                  field.onChange(numVal);
+                                  trackQuestionAnswer(d.key, currentStep + 1, numVal, false);
+                                }}
+                              >
+                                {d.statements.map((option) => {
+                                  const optionId = `${d.key}-${option.value}`;
+                                  const isSelected = field.value === option.value;
+                                  return (
+                                    <label
+                                      key={option.value}
+                                      htmlFor={optionId}
+                                      className={`flex items-start gap-3 rounded-lg border p-3 sm:p-4 cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-primary/40 ${
+                                        isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-input hover:bg-muted/40"
+                                      }`}
+                                    >
+                                      <RadioGroupItem id={optionId} value={String(option.value)} className="mt-1" />
+                                      <span className="text-sm sm:text-base leading-snug text-left">
+                                        {option.label}
+                                      </span>
+                                    </label>
+                                  );
+                                })}
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </fieldset>
+                  );
+                })()}
+
+                {/* Pregunta opcional actual */}
+                {currentStep >= DOMAINS.length && (() => {
+                  const optIdx = currentStep - DOMAINS.length;
+                  const d = OPTIONAL_DOMAINS[optIdx];
+                  if (!d) return null;
+                  const currentOptionalValue = optionalValues[d.key as keyof OptionalAssessmentValues];
+
+                  return (
+                    <div className="space-y-4 animate-fade-in">
+                      {/* Header opcionales - solo en la primera opcional */}
+                      {optIdx === 0 && (
+                        <div className="p-4 rounded-lg bg-purple-50 border border-purple-200">
+                          <h3 className="text-sm font-medium text-purple-800 flex items-center gap-2">
+                            🟣 Dominios opcionales
+                          </h3>
+                          <p className="text-xs text-purple-600 mt-1">
+                            Estas preguntas son opcionales y no impactan tu puntaje general.
+                          </p>
+                        </div>
+                      )}
+                      
+                      <fieldset className="rounded-lg border border-purple-200 p-5 sm:p-6 bg-card space-y-4">
                         <legend className="flex items-start justify-between gap-3">
                           <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="outline" className="border-purple-300 text-purple-700 text-xs">
+                                Opcional · no afecta tu puntaje
+                              </Badge>
+                              <OptionalQuestionTooltip />
+                            </div>
                             <p className="font-semibold text-base sm:text-lg leading-snug">
                               {d.question}
                             </p>
                             <p className="text-sm text-muted-foreground mt-1">{d.label}</p>
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0"
-                            onClick={() => setSelectedDomain(d.key)}
-                            aria-label={`Ver más información sobre ${d.label}`}
-                          >
-                            <Info className="h-4 w-4" />
-                          </Button>
                         </legend>
-                        <FormField
-                          control={form.control}
-                          name={d.key as keyof AssessmentValues}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="sr-only">{d.label}</FormLabel>
-                              <FormControl>
-                                <RadioGroup
-                                  className="space-y-3"
-                                  value={field.value ? String(field.value) : undefined}
-                                  onValueChange={(val) => field.onChange(parseInt(val))}
-                                >
-                                  {d.statements.map((option) => {
-                                    const optionId = `${d.key}-${option.value}`;
-                                    const isSelected = field.value === option.value;
-                                    return (
-                                      <label
-                                        key={option.value}
-                                        htmlFor={optionId}
-                                        className={`flex items-start gap-3 rounded-lg border p-3 sm:p-4 cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-primary/40 ${
-                                          isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-input hover:bg-muted/40"
-                                        }`}
-                                      >
-                                        <RadioGroupItem id={optionId} value={String(option.value)} className="mt-1" />
-                                        <span className="text-sm sm:text-base leading-snug text-left">
-                                          {option.label}
-                                        </span>
-                                      </label>
-                                    );
-                                  })}
-                                </RadioGroup>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <RadioGroup
+                          className="space-y-3"
+                          value={currentOptionalValue ? String(currentOptionalValue) : undefined}
+                          onValueChange={(val) => {
+                            const numVal = parseInt(val);
+                            setOptionalValues(prev => ({
+                              ...prev,
+                              [d.key]: numVal
+                            }));
+                            trackQuestionAnswer(d.key, currentStep + 1, numVal, true);
+                          }}
+                        >
+                          {d.statements.map((option) => {
+                            const optionId = `optional-${d.key}-${option.value}`;
+                            const isSelected = currentOptionalValue === option.value;
+                            return (
+                              <label
+                                key={option.value}
+                                htmlFor={optionId}
+                                className={`flex items-start gap-3 rounded-lg border p-3 sm:p-4 cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-purple-400/40 ${
+                                  isSelected ? "border-purple-400 bg-purple-50 shadow-sm" : "border-input hover:bg-muted/40"
+                                }`}
+                              >
+                                <RadioGroupItem id={optionId} value={String(option.value)} className="mt-1" />
+                                <span className="text-sm sm:text-base leading-snug text-left">
+                                  {option.label}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </RadioGroup>
                       </fieldset>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  );
+                })()}
 
-                {/* Sección de preguntas opcionales */}
-                {(!isMobile || currentStep >= DOMAINS.length) && (
-                  <div className="space-y-6">
-                    {/* Header de dominios opcionales - solo desktop o primer paso opcional */}
-                    {(!isMobile || currentStep === DOMAINS.length) && (
-                      <div className="p-4 rounded-lg bg-purple-50 border border-purple-200">
-                        <h3 className="text-sm font-medium text-purple-800 flex items-center gap-2">
-                          🟣 Dominios opcionales
-                        </h3>
-                        <p className="text-xs text-purple-600 mt-1">
-                          Estas preguntas son opcionales y no impactan tu puntaje general.
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* Preguntas opcionales */}
-                    {(isMobile 
-                      ? [OPTIONAL_DOMAINS[currentStep - DOMAINS.length]].filter(Boolean)
-                      : OPTIONAL_DOMAINS
-                    ).map((d) => {
-                      const currentOptionalValue = optionalValues[d.key as keyof OptionalAssessmentValues];
-                      return (
-                        <fieldset key={d.key} className="rounded-lg border border-purple-200 p-4 bg-card space-y-4">
-                          <legend className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge variant="outline" className="border-purple-300 text-purple-700 text-xs">
-                                  Opcional · no afecta tu puntaje
-                                </Badge>
-                                <OptionalQuestionTooltip />
-                              </div>
-                              <p className="font-semibold text-base sm:text-lg leading-snug">
-                                {d.question}
-                              </p>
-                              <p className="text-sm text-muted-foreground mt-1">{d.label}</p>
-                            </div>
-                          </legend>
-                          <RadioGroup
-                            className="space-y-3"
-                            value={currentOptionalValue ? String(currentOptionalValue) : undefined}
-                            onValueChange={(val) => {
-                              setOptionalValues(prev => ({
-                                ...prev,
-                                [d.key]: parseInt(val)
-                              }));
-                            }}
-                          >
-                            {d.statements.map((option) => {
-                              const optionId = `optional-${d.key}-${option.value}`;
-                              const isSelected = currentOptionalValue === option.value;
-                              return (
-                                <label
-                                  key={option.value}
-                                  htmlFor={optionId}
-                                  className={`flex items-start gap-3 rounded-lg border p-3 sm:p-4 cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-purple-400/40 ${
-                                    isSelected ? "border-purple-400 bg-purple-50 shadow-sm" : "border-input hover:bg-muted/40"
-                                  }`}
-                                >
-                                  <RadioGroupItem id={optionId} value={String(option.value)} className="mt-1" />
-                                  <span className="text-sm sm:text-base leading-snug text-left">
-                                    {option.label}
-                                  </span>
-                                </label>
-                              );
-                            })}
-                          </RadioGroup>
-                        </fieldset>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Navegación - diferente para mobile vs desktop */}
-                {isMobile ? (
-                  <div className="flex gap-3 mt-6">
-                    {currentStep > 0 && (
+                {/* Navegación unificada */}
+                <div className="flex gap-3 mt-6">
+                  {currentStep > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePreviousStep}
+                      className="w-full"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Anterior
+                    </Button>
+                  )}
+                  {currentStep < DOMAINS.length - 1 ? (
+                    <Button
+                      type="button"
+                      onClick={handleNextStep}
+                      className="w-full"
+                      disabled={!watchedValues?.[DOMAINS[currentStep].key]}
+                    >
+                      Siguiente
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  ) : currentStep === DOMAINS.length - 1 ? (
+                    <Button
+                      type="button"
+                      onClick={handleNextStep}
+                      className="w-full"
+                      disabled={!watchedValues?.[DOMAINS[currentStep].key]}
+                    >
+                      Siguiente (Opcionales)
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  ) : currentStep < totalSteps - 1 ? (
+                    <div className="flex gap-2 w-full">
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={handlePreviousStep}
-                        className="w-full"
+                        onClick={handleSkipOptional}
+                        className="flex-1"
                       >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Anterior
+                        Saltar
                       </Button>
-                    )}
-                    {currentStep < DOMAINS.length - 1 ? (
-                      // Navegación preguntas obligatorias
                       <Button
                         type="button"
                         onClick={handleNextStep}
-                        className="w-full"
-                        disabled={!watchedValues?.[DOMAINS[currentStep].key]}
+                        className="flex-1"
                       >
                         Siguiente
                         <ChevronRight className="h-4 w-4 ml-1" />
                       </Button>
-                    ) : currentStep === DOMAINS.length - 1 ? (
-                      // Última pregunta obligatoria -> ir a opcionales
-                      <Button
-                        type="button"
-                        onClick={handleNextStep}
-                        className="w-full"
-                        disabled={!watchedValues?.[DOMAINS[currentStep].key]}
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 w-full">
+                      <Button 
+                        type="submit" 
+                        className="w-full" 
+                        disabled={isSaving}
                       >
-                        Siguiente (Opcionales)
-                        <ChevronRight className="h-4 w-4 ml-1" />
+                        {isSaving ? (
+                          <>
+                            <span className="inline-block animate-spin mr-2">⏳</span>
+                            Guardando...
+                          </>
+                        ) : (
+                          'Guardar y continuar'
+                        )}
                       </Button>
-                    ) : currentStep < totalSteps - 1 ? (
-                      // Preguntas opcionales - pueden saltarse
-                      <div className="flex gap-2 w-full">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleSkipOptional}
-                          className="flex-1"
-                        >
-                          Saltar
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={handleNextStep}
-                          className="flex-1"
-                        >
-                          Siguiente
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </div>
-                    ) : (
-                      // Última pregunta (opcional) - enviar
-                      <div className="flex gap-2 w-full">
-                        <Button 
-                          type="submit" 
-                          className="w-full" 
-                          disabled={isSaving}
-                        >
-                          {isSaving ? (
-                            <>
-                              <span className="inline-block animate-spin mr-2">⏳</span>
-                              Guardando...
-                            </>
-                          ) : (
-                            'Guardar y continuar'
-                          )}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Button type="submit" className="w-full sm:w-auto" disabled={isSaving}>
-                      {isSaving ? (
-                        <>
-                          <span className="inline-block animate-spin mr-2">⏳</span>
-                          Guardando...
-                        </>
-                      ) : (
-                        'Guardar y continuar'
-                      )}
-                    </Button>
-                    <Button asChild variant="outline" className="w-full sm:w-auto" disabled={isSaving}>
-                      <Link to="/">Volver</Link>
-                    </Button>
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
               </form>
             </Form>
           </>
