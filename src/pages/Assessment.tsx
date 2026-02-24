@@ -298,8 +298,8 @@ export default function Assessment() {
   const getProgressMessage = useCallback((pct: number) => {
     if (pct >= 90) return "¡Un último esfuerzo!";
     if (pct >= 75) return "¡Ya casi terminás!";
-    if (pct >= 50) return "¡Estás a mitad de camino!";
-    if (pct >= 25) return "Buen inicio, seguí así";
+    if (pct >= 50) return "Quedan las más difíciles, ya casi estás";
+    if (pct >= 25) return "Vas bien. Las preguntas que siguen son fundamentales";
     return "";
   }, []);
 
@@ -819,15 +819,25 @@ export default function Assessment() {
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   ) : currentStep === DOMAINS.length - 1 ? (
-                    <Button
-                      type="button"
-                      onClick={handleNextStep}
-                      className="w-full"
-                      disabled={!watchedValues?.[DOMAINS[currentStep].key]}
-                    >
-                      Siguiente (Opcionales)
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
+                    <>
+                      <Button
+                        type="button"
+                        onClick={handleNextStep}
+                        className="w-full"
+                        disabled={!watchedValues?.[DOMAINS[currentStep].key]}
+                      >
+                        Siguiente (Opcionales)
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        className="w-full mt-2"
+                        disabled={isSaving || answered < DOMAINS.length}
+                      >
+                        {isSaving ? "Guardando..." : "Ver resultados"}
+                      </Button>
+                    </>
                   ) : currentStep < totalSteps - 1 ? (
                     <div className="flex gap-2 w-full">
                       <Button
