@@ -154,6 +154,39 @@ export default function Assessment() {
     }
   }, [isReevaluating, form]);
 
+  // Refs para el evento de abandono (se inicializan después de `answered`)
+  const isReevaluatingRef = useRef(isReevaluating);
+  const currentStepRef = useRef(currentStep);
+  const answeredRef = useRef(0);
+  const assessmentStartTimeRef = useRef(assessmentStartTime);
+
+  useEffect(() => { isReevaluatingRef.current = isReevaluating; }, [isReevaluating]);
+  useEffect(() => { currentStepRef.current = currentStep; }, [currentStep]);
+
+  useEffect(() => {
+    // Disparar assessment_abandoned al desmontar el componente o cerrar pestaña
+    const fireAbandon = () => {
+      if (!isReevaluatingRef.current) return;
+      if (answeredRef.current === 0) return; // nunca respondió nada
+      const timeSpent = Math.round((Date.now() - assessmentStartTimeRef.current) / 1000);
+      trackEvent('assessment_abandoned', {
+        last_question_number: currentStepRef.current + 1,
+        questions_answered: answeredRef.current,
+        total_questions: DOMAINS.length,
+        progress_pct: Math.round((answeredRef.current / DOMAINS.length) * 100),
+        time_spent_seconds: timeSpent,
+      });
+    };
+
+    const handleBeforeUnload = () => fireAbandon();
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      fireAbandon(); // component unmount (navegación interna)
+    };
+  }, [trackEvent]);
+
   // Guardar antes de cerrar la ventana/pestaña
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -171,7 +204,6 @@ export default function Assessment() {
           }
         }
         
-        // Mostrar advertencia de navegador
         e.preventDefault();
         e.returnValue = '';
       }
@@ -238,6 +270,7 @@ export default function Assessment() {
     return Object.values(watchedValues).filter((v) => typeof v === "number").length;
   }, [watchedValues]);
   const progress = total ? Math.round((answered / total) * 100) : 0;
+  useEffect(() => { answeredRef.current = answered; }, [answered]);
 
   const formattedUpdatedAt = useMemo(() => {
     if (!updatedAt) return null;
@@ -362,6 +395,7 @@ export default function Assessment() {
       
       // Resetear estado de re-evaluación para mostrar los resultados
       setIsReevaluating(false);
+      isReevaluatingRef.current = false; // prevent abandon event on unmount
       
       // Scroll suave al top para que vea su resultado
       window.scrollTo({ top: 0, behavior: 'smooth' });
