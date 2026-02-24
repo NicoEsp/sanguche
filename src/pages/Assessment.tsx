@@ -858,21 +858,34 @@ export default function Assessment() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex gap-2 w-full">
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={isSaving}
-                      >
-                        {isSaving ? (
-                          <>
-                            <span className="inline-block animate-spin mr-2">⏳</span>
-                            Guardando...
-                          </>
-                        ) : (
-                          'Guardar y continuar'
-                        )}
-                      </Button>
+                    <div className="flex flex-col gap-2 w-full">
+                      <div className="flex gap-2 w-full">
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          className="flex-1"
+                          disabled={isSaving}
+                        >
+                          {isSaving ? "Guardando..." : "Saltar y ver resultados"}
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            form.handleSubmit(onSubmit)();
+                          }}
+                          className="flex-1"
+                          disabled={isSaving || !optionalValues[OPTIONAL_DOMAINS[currentStep - DOMAINS.length]?.key as keyof OptionalAssessmentValues]}
+                        >
+                          {isSaving ? (
+                            <>
+                              <span className="inline-block animate-spin mr-2">⏳</span>
+                              Guardando...
+                            </>
+                          ) : (
+                            'Guardar y ver resultados'
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
