@@ -1,29 +1,36 @@
+## Tres cambios puntuales
 
+### 1. Aclarar "Pesos Argentinos" en /planes (PlanCard)
 
-## Ajustes a mensajes motivacionales + boton "Ver resultados"
-
-### 1. Mensajes motivacionales por porcentaje
-
-Reemplazar los textos en `getProgressMessage` (linea 298-304 de `src/pages/Assessment.tsx`):
+En `src/pages/Planes.tsx`, linea 64, despues del `priceLabel` ("/mes"), agregar:
 
 ```
->= 90  ->  "Un ultimo esfuerzo!"           (sin cambio)
->= 75  ->  "Ya casi terminas!"             (sin cambio)
->= 50  ->  "Quedan las mas dificiles, ya casi estas"   (NUEVO, reemplaza "Estas a mitad de camino")
->= 25  ->  "Vas bien. Las preguntas que siguen son fundamentales"  (NUEVO, reemplaza "Buen inicio, segui asi")
+<p className="text-xs text-muted-foreground mt-0.5">Pesos Argentinos</p>
 ```
 
-No se necesita pasar `currentStep` a la funcion, se mantiene solo con porcentaje.
+Esto queda dentro del `div` existente del precio, no agrega altura significativa a las cards porque ya tienen `min-h` en titulo y features.
 
-### 2. Boton "Ver resultados" en la ultima pregunta obligatoria
+### 2. Aclarar "Pesos Argentinos" en /cursos-info (3 cards de pricing)
 
-Cuando `currentStep === DOMAINS.length - 1` (pregunta 11, la ultima obligatoria), agregar debajo de los botones "Anterior" / "Siguiente (Opcionales)" un boton centrado:
+En `src/pages/CursosInfo.tsx`, en las tres cards de precio:
 
-- Texto: **"Ver resultados"**
-- Tipo: `submit` (dispara `form.handleSubmit(onSubmit)`)
-- Variante: `outline`, `w-full mt-2`
-- Deshabilitado si `isSaving` o si no estan respondidas todas las obligatorias
+- **Curso Individual** (linea 381): debajo de "pago unico", agregar `<p className="text-xs text-muted-foreground">Pesos Argentinos</p>`
+- **Todos los Cursos** (linea 411): idem
+- **Con Mentoria** (linea 442): debajo de "/mes", agregar lo mismo
 
-### Archivo a modificar
+Tambien en el precio del hero del curso (linea 261), debajo de "pago unico", agregar la misma aclaracion.
 
-`src/pages/Assessment.tsx` unicamente.
+### 3. Aclarar en landing page (/)
+
+En `src/pages/Index.tsx`, las 3 mini-cards de pricing (lineas 189, 222, 254): agregar `<p className="text-xs text-muted-foreground">Pesos Argentinos</p>` debajo de cada precio.
+
+### 4. Cambiar titulo post-evaluacion
+
+En `src/pages/Assessment.tsx` linea 425, cambiar "Autoevaluacion de seniority" por "Tu diagnostico en Producto".
+
+### Archivos a modificar
+
+- `src/pages/Planes.tsx` - texto en PlanCard
+- `src/pages/CursosInfo.tsx` - texto en 3 cards + hero
+- `src/pages/Index.tsx` - texto en 3 mini-cards de landing
+- `src/pages/Assessment.tsx` - cambiar titulo
