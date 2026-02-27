@@ -61,6 +61,7 @@ function PlanCard({
         <div className="mt-3">
           <span className="text-3xl font-bold">{price}</span>
           <span className="text-sm text-muted-foreground ml-1">{priceLabel}</span>
+          <p className="text-xs text-muted-foreground mt-0.5">Pesos Argentinos</p>
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">

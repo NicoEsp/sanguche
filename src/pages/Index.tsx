@@ -187,6 +187,7 @@ const Index = () => {
                 </div>
                 <div className="bg-muted/50 p-3 rounded-lg text-center mt-4">
                   <div className="text-xl font-bold">$0 <span className="text-sm font-normal text-muted-foreground">/mes</span></div>
+                  <p className="text-xs text-muted-foreground mt-0.5">Pesos Argentinos</p>
                 </div>
                 <Button asChild className="w-full mt-4" variant="outline" onClick={() => trackEvent('landing_page_cta_click', {
                 cta_location: 'pricing_free'
@@ -221,6 +222,7 @@ const Index = () => {
                   <div className="text-xl font-bold text-primary">
                     {pricingLoading ? <span className="inline-block animate-pulse">...</span> : <>{premium.formatted} <span className="text-sm font-normal text-muted-foreground">/mes</span></>}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">Pesos Argentinos</p>
                 </div>
                 <div className="mt-4">
                   <LemonSqueezyCheckout plan="premium" onCheckoutStart={() => trackEvent('landing_page_cta_click', {
@@ -253,6 +255,7 @@ const Index = () => {
                   <div className="text-xl font-bold text-amber-600">
                     {pricingLoading ? <span className="inline-block animate-pulse">...</span> : <>{repremium.formatted} <span className="text-sm font-normal text-muted-foreground">/mes</span></>}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">Pesos Argentinos</p>
                 </div>
                 <div className="mt-4">
                   <LemonSqueezyCheckout plan="repremium" onCheckoutStart={() => trackEvent('landing_page_cta_click', {

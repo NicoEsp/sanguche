@@ -259,6 +259,7 @@ export default function CursosInfo() {
                           </Badge>
                         </div>
                         <span className="text-sm text-muted-foreground">pago único</span>
+                        <p className="text-xs text-muted-foreground">Pesos Argentinos</p>
                       </div>
                       <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <LemonSqueezyCheckout 
@@ -378,7 +379,8 @@ export default function CursosInfo() {
                 <p className="text-2xl font-bold mb-1">
                   {pricingLoading ? "..." : curso_estrategia.formatted}
                 </p>
-                <p className="text-sm text-muted-foreground mb-4">pago único</p>
+                <p className="text-sm text-muted-foreground mb-1">pago único</p>
+                <p className="text-xs text-muted-foreground mb-4">Pesos Argentinos</p>
                 <ul className="text-sm text-left space-y-2 mb-6">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
@@ -408,7 +410,8 @@ export default function CursosInfo() {
                 <p className="text-2xl font-bold mb-1">
                   {pricingLoading ? "..." : cursos_all.formatted}
                 </p>
-                <p className="text-sm text-muted-foreground mb-4">pago único</p>
+                <p className="text-sm text-muted-foreground mb-1">pago único</p>
+                <p className="text-xs text-muted-foreground mb-4">Pesos Argentinos</p>
                 <ul className="text-sm text-left space-y-2 mb-6">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
@@ -439,7 +442,8 @@ export default function CursosInfo() {
                 <p className="text-2xl font-bold mb-1">
                   {pricingLoading ? "..." : repremium.formatted}
                 </p>
-                <p className="text-sm text-muted-foreground mb-4">/mes</p>
+                <p className="text-sm text-muted-foreground mb-1">/mes</p>
+                <p className="text-xs text-muted-foreground mb-4">Pesos Argentinos</p>
                 <ul className="text-sm text-left space-y-2 mb-6">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
