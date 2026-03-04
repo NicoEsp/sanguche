@@ -288,6 +288,8 @@ export default function Assessment() {
     // Limpiar resultado local para permitir nueva evaluación
     setLocalResult(null);
     setLocalValues(null);
+    // Limpiar respuestas opcionales previas
+    setOptionalValues({});
     // Marcar que hay una evaluación en progreso
     localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
     // Limpiar respuestas parciales previas
@@ -603,7 +605,7 @@ export default function Assessment() {
         {isReevaluating && (
           <>
             {/* Barra de progreso sticky unificada */}
-            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b shadow-sm p-4 mb-6 -mx-4 sm:mx-0 sm:rounded-lg sm:border">
+            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b shadow-sm p-4 mb-6 -mx-4 sm:mx-0 sm:rounded-lg sm:border sm:max-w-2xl sm:mx-auto">
               <div className="max-w-2xl mx-auto">
                 <div className="flex items-center justify-between mb-2 text-sm">
                   <span className="font-medium">
@@ -707,7 +709,7 @@ export default function Assessment() {
                                       }`}
                                     >
                                       <RadioGroupItem id={optionId} value={String(option.value)} className="mt-1" />
-                                      <span className="text-sm sm:text-base leading-snug text-left">
+                                      <span className="text-sm sm:text-base leading-snug text-left" style={{ textWrap: 'pretty' }}>
                                         {option.label}
                                       </span>
                                     </label>
@@ -761,7 +763,7 @@ export default function Assessment() {
                         </legend>
                         <RadioGroup
                           className="space-y-3"
-                          value={currentOptionalValue ? String(currentOptionalValue) : undefined}
+                          value={currentOptionalValue !== undefined ? String(currentOptionalValue) : ""}
                           onValueChange={(val) => {
                             const numVal = parseInt(val);
                             setOptionalValues(prev => ({
@@ -783,7 +785,7 @@ export default function Assessment() {
                                 }`}
                               >
                                 <RadioGroupItem id={optionId} value={String(option.value)} className="mt-1" />
-                                <span className="text-sm sm:text-base leading-snug text-left">
+                                <span className="text-sm sm:text-base leading-snug text-left" style={{ textWrap: 'pretty' }}>
                                   {option.label}
                                 </span>
                               </label>
@@ -823,7 +825,7 @@ export default function Assessment() {
                       <Button
                         type="button"
                         onClick={handleNextStep}
-                        className="w-full"
+                        className="flex-1"
                         disabled={!watchedValues?.[DOMAINS[currentStep].key]}
                       >
                         Siguiente (Opcionales)
@@ -832,7 +834,7 @@ export default function Assessment() {
                       <Button
                         type="submit"
                         variant="outline"
-                        className="w-full mt-2"
+                        className="flex-1"
                         disabled={isSaving || answered < DOMAINS.length}
                       >
                         {isSaving ? "Guardando..." : "Ver resultados"}
