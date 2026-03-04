@@ -74,7 +74,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* KPIs Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card className="h-full overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Usuarios Totales</CardTitle>
@@ -86,6 +86,44 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+        <Card className="h-full overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Evaluaciones</CardTitle>
+            <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.totalAssessments}</div>
+            <p className="text-xs text-muted-foreground">
+              +{analytics.assessmentsToday} hoy
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="h-full overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Esta Semana</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.assessmentsThisWeek}</div>
+            <p className="text-xs text-muted-foreground">Evaluaciones completadas</p>
+          </CardContent>
+        </Card>
+
+        <Card className="h-full overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Conversión</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground shrink-0" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.conversionRate.toFixed(1)}%</div>
+            <p className="text-xs text-muted-foreground">Free to Premium</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Financial KPIs */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <Card className="h-full overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Premium Pagados</CardTitle>
@@ -125,44 +163,6 @@ export default function AdminDashboard() {
 
         <Card className="h-full overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">LTV</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{formatCurrency(ltv)}</div>
-            <p className="text-xs text-muted-foreground">Ingreso promedio por cliente</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Secondary Metrics */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card className="h-full overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Evaluaciones</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.totalAssessments}</div>
-            <p className="text-xs text-muted-foreground">
-              +{analytics.assessmentsToday} hoy
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="h-full overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Esta Semana</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.assessmentsThisWeek}</div>
-            <p className="text-xs text-muted-foreground">Evaluaciones completadas</p>
-          </CardContent>
-        </Card>
-
-        <Card className="h-full overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">ARPU</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardHeader>
@@ -176,12 +176,12 @@ export default function AdminDashboard() {
 
         <Card className="h-full overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversión</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground shrink-0" />
+            <CardTitle className="text-sm font-medium">LTV</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.conversionRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground">Free to Premium</p>
+            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{formatCurrency(ltv)}</div>
+            <p className="text-xs text-muted-foreground">Ingreso promedio por cliente</p>
           </CardContent>
         </Card>
       </div>
