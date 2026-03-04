@@ -1,36 +1,26 @@
-## Tres cambios puntuales
 
-### 1. Aclarar "Pesos Argentinos" en /planes (PlanCard)
 
-En `src/pages/Planes.tsx`, linea 64, despues del `priceLabel` ("/mes"), agregar:
+## 4 fixes en la pantalla de autoevaluacion
 
-```
-<p className="text-xs text-muted-foreground mt-0.5">Pesos Argentinos</p>
-```
+### 1. Botones alineados en pregunta 11 (lineas 821-840)
 
-Esto queda dentro del `div` existente del precio, no agrega altura significativa a las cards porque ya tienen `min-h` en titulo y features.
+El boton "Ver resultados" tiene `mt-2` y esta fuera del flow horizontal. Hay que poner los 3 botones (Anterior, Siguiente Opcionales, Ver resultados) en el mismo `flex` row. Cambiar la estructura para que en el step `DOMAINS.length - 1`, los botones "Siguiente (Opcionales)" y "Ver resultados" esten en la misma fila junto con "Anterior", sin `mt-2`.
 
-### 2. Aclarar "Pesos Argentinos" en /cursos-info (3 cards de pricing)
+### 2. Evitar texto huerfano "(1)" en opciones (lineas 710-712)
 
-En `src/pages/CursosInfo.tsx`, en las tres cards de precio:
+Agregar `text-wrap: pretty` o `text-wrap: balance` al `<span>` que muestra `option.label` tanto en preguntas obligatorias (linea 710) como opcionales (linea 786). Esto le indica al navegador que redistribuya el texto para evitar que queden pocas palabras solas en la ultima linea. Como fallback, tambien se puede usar `text-balance` de Tailwind si esta disponible, o aplicar inline style `textWrap: 'pretty'`.
 
-- **Curso Individual** (linea 381): debajo de "pago unico", agregar `<p className="text-xs text-muted-foreground">Pesos Argentinos</p>`
-- **Todos los Cursos** (linea 411): idem
-- **Con Mentoria** (linea 442): debajo de "/mes", agregar lo mismo
+### 3. Ultima pregunta opcional pre-selecciona la primera opcion
 
-Tambien en el precio del hero del curso (linea 261), debajo de "pago unico", agregar la misma aclaracion.
+El problema es que cuando el usuario navega "atras" desde la ultima pregunta opcional y vuelve, o cuando llega por primera vez, el `RadioGroup` puede tener un valor residual. Revisando el codigo, `optionalValues` se inicializa como `{}` y nunca se resetea al hacer `handleStartReevaluation`. Hay que agregar `setOptionalValues({})` en `handleStartReevaluation` (linea 286-295). Tambien verificar que el `value` prop del RadioGroup en opcionales (linea 764) pase `undefined` correctamente cuando no hay valor, asegurandose que `currentOptionalValue` sea `undefined` y no `0` o falsy que el RadioGroup interprete mal.
 
-### 3. Aclarar en landing page (/)
+### 4. Bordes de la card de progreso demasiado anchos
 
-En `src/pages/Index.tsx`, las 3 mini-cards de pricing (lineas 189, 222, 254): agregar `<p className="text-xs text-muted-foreground">Pesos Argentinos</p>` debajo de cada precio.
-
-### 4. Cambiar titulo post-evaluacion
-
-En `src/pages/Assessment.tsx` linea 425, cambiar "Autoevaluacion de seniority" por "Tu diagnostico en Producto".
+La barra de progreso sticky (linea 606) usa `-mx-4 sm:mx-0 sm:rounded-lg sm:border` pero no tiene `max-w-2xl mx-auto` como el form (linea 658). Hay que:
+- En el contenedor sticky, agregar `max-w-2xl mx-auto` en desktop para que quede alineado con el form
+- El warning de reevaluacion (linea 652) ya tiene `max-w-2xl mx-auto`, esta OK
+- Ajustar para que progress bar, pregunta, y botones compartan la misma columna
 
 ### Archivos a modificar
+- `src/pages/Assessment.tsx` - los 4 cambios
 
-- `src/pages/Planes.tsx` - texto en PlanCard
-- `src/pages/CursosInfo.tsx` - texto en 3 cards + hero
-- `src/pages/Index.tsx` - texto en 3 mini-cards de landing
-- `src/pages/Assessment.tsx` - cambiar titulo
