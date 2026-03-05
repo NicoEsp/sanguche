@@ -318,6 +318,54 @@ export type Database = {
         }
         Relationships: []
       }
+      discount_email_queue: {
+        Row: {
+          assessment_data: Json | null
+          assessment_id: string
+          email: string
+          error_message: string | null
+          id: string
+          sent_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          assessment_data?: Json | null
+          assessment_id: string
+          email: string
+          error_message?: string | null
+          id?: string
+          sent_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          assessment_data?: Json | null
+          assessment_id?: string
+          email?: string
+          error_message?: string | null
+          id?: string
+          sent_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_email_queue_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: true
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_email_queue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dismissed_recommended_objectives: {
         Row: {
           dismissed_at: string | null
