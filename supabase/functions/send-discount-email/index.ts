@@ -61,7 +61,7 @@ function buildEmailHtml(
     Hace unos días completaste tu diagnóstico en ProductPrepa y detectamos <strong>${gapCount} áreas de mejora</strong> en tu perfil de <strong>PM ${nivel}</strong>.
   </p>
   <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 24px;">
-    Eso no es malo — al contrario, significa que tenés mucho espacio para crecer rápido si enfocás bien tus esfuerzos.
+    Eso no es malo, al contrario: significa que tenés mucho espacio para crecer rápido si enfocás bien tus esfuerzos.
   </p>
 
   <!-- Value Prop Box -->
