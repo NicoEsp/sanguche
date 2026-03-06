@@ -126,6 +126,9 @@ Deno.serve(async (req: Request) => {
     const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
     const fourDaysAgo = new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000);
 
+    console.log(`[send-discount-email] Date window: ${fourDaysAgo.toISOString()} to ${threeDaysAgo.toISOString()}`);
+    console.log(`[send-discount-email] Current time: ${now.toISOString()}`);
+
     const { data: assessments, error: assessError } = await supabase
       .from("assessments")
       .select("id, user_id, assessment_result, created_at")
@@ -133,14 +136,17 @@ Deno.serve(async (req: Request) => {
       .lt("created_at", threeDaysAgo.toISOString());
 
     if (assessError) {
-      console.error("Error fetching assessments:", assessError);
+      console.error("[send-discount-email] Error fetching assessments:", assessError);
       return new Response(
         JSON.stringify({ error: "Failed to fetch assessments" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    console.log(`[send-discount-email] Assessments found in window: ${assessments?.length ?? 0}`);
+
     if (!assessments || assessments.length === 0) {
+      console.log("[send-discount-email] No assessments in 3-4 day window. Exiting.");
       return new Response(
         JSON.stringify({ message: "No assessments found in window", sent: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -157,7 +163,10 @@ Deno.serve(async (req: Request) => {
     const sentIds = new Set((alreadySent || []).map((s) => s.assessment_id));
     const pendingAssessments = assessments.filter((a) => !sentIds.has(a.id));
 
+    console.log(`[send-discount-email] Already sent: ${sentIds.size}, Pending: ${pendingAssessments.length}`);
+
     if (pendingAssessments.length === 0) {
+      console.log("[send-discount-email] All emails already sent. Exiting.");
       return new Response(
         JSON.stringify({ message: "All emails already sent", sent: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -184,10 +193,15 @@ Deno.serve(async (req: Request) => {
       (subscriptions || []).map((s) => [s.user_id, s])
     );
 
+    console.log(`[send-discount-email] Profiles loaded: ${profiles?.length ?? 0}, Subscriptions loaded: ${subscriptions?.length ?? 0}`);
+
     const checkoutUrl =
       "https://nicoproducto.lemonsqueezy.com/checkout/buy/0e2df4bf-c8da-4a40-ae06-625beaec3986?checkout[discount_code]=SANGUCHITO15";
 
     let sentCount = 0;
+    let skippedNoEmail = 0;
+    let skippedNotFree = 0;
+    let skippedNotCandidate = 0;
     const errors: string[] = [];
 
     for (const assessment of pendingAssessments) {
@@ -195,14 +209,28 @@ Deno.serve(async (req: Request) => {
       const sub = subMap.get(assessment.user_id);
 
       // Skip if no profile/email
-      if (!profile?.email) continue;
+      if (!profile?.email) {
+        skippedNoEmail++;
+        console.log(`[send-discount-email] SKIP user ${assessment.user_id}: no email`);
+        continue;
+      }
 
       // Skip if not free plan
-      if (sub?.plan !== "free") continue;
+      if (sub?.plan !== "free") {
+        skippedNotFree++;
+        console.log(`[send-discount-email] SKIP ${profile.email}: plan is '${sub?.plan}' (not free)`);
+        continue;
+      }
 
       // Check discount candidate logic
       const result = assessment.assessment_result as AssessmentResult;
-      if (!result || !isDiscountCandidate(result)) continue;
+      if (!result || !isDiscountCandidate(result)) {
+        skippedNotCandidate++;
+        console.log(`[send-discount-email] SKIP ${profile.email}: not discount candidate (gaps: ${result?.gaps?.length ?? 0}, avg: ${result?.promedioGlobal ?? 'N/A'}, nivel: ${result?.nivel ?? 'N/A'})`);
+        continue;
+      }
+
+      console.log(`[send-discount-email] SENDING to ${profile.email} (nivel: ${result.nivel}, gaps: ${result.gaps.length}, avg: ${result.promedioGlobal})`);
 
       // Send email via Resend
       try {
