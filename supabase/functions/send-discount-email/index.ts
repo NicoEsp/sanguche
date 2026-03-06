@@ -294,6 +294,10 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    console.log(`[send-discount-email] === SUMMARY ===`);
+    console.log(`[send-discount-email] Total in window: ${assessments.length}, Pending: ${pendingAssessments.length}`);
+    console.log(`[send-discount-email] Sent: ${sentCount}, Skipped (no email): ${skippedNoEmail}, Skipped (not free): ${skippedNotFree}, Skipped (not candidate): ${skippedNotCandidate}, Errors: ${errors.length}`);
+
     return new Response(
       JSON.stringify({
         message: `Processed ${pendingAssessments.length} assessments`,
