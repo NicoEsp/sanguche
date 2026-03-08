@@ -103,16 +103,17 @@ const SoyDev = () => {
           </Badge>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 max-w-4xl mx-auto leading-tight">
-            ¿Sos Dev? Convertite en Product Builder.
+            Sos Dev. Aprender Producto es tu{" "}
+            <span className="text-primary">superpoder</span>.
             <br className="hidden sm:block" />
-            <span className="text-orange-500"> Es el momento.</span>
+            <span className="text-primary"> Es el momento.</span>
           </h1>
 
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            El mundo cambió. AI escribe código, pero no sabe qué construir ni
-            para quién. Los devs que entienden producto son los que definen el
-            futuro. ¿Estás listo?
-          </p>
+            El mundo cambió. AI escribe código, pero no "sabe" qué construir ni para quién. Los devs que entienden de Producto son los que definen el futuro. ¿Estás listo?
+          
+
+        </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button asChild size="lg" className="text-lg px-10 py-7 font-semibold shadow-lg">
@@ -154,7 +155,7 @@ const SoyDev = () => {
               Los números hablan
             </h2>
             <div className="grid gap-8 sm:grid-cols-3 max-w-3xl mx-auto text-center">
-              {stats.map(stat => <div key={stat.value}>
+              {stats.map((stat) => <div key={stat.value}>
                   <div className="text-4xl sm:text-5xl font-bold text-primary mb-2">
                     {stat.value}
                   </div>
