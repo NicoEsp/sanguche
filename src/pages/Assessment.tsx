@@ -481,7 +481,7 @@ export default function Assessment() {
               {/* Promedio destacado en círculo */}
               <div className="flex flex-col items-center justify-center py-6 space-y-2">
                 <div className="relative">
-                  <div className="w-36 h-36 rounded-full border-4 border-primary/20 bg-primary/5 flex flex-col items-center justify-center animate-scale-in">
+                  <div className="w-36 h-36 rounded-full border-4 border-primary/20 bg-primary/5 flex flex-col items-center justify-center animate-fade-in">
                     <Star className="h-6 w-6 text-primary mb-1" />
                     <span className="text-4xl font-bold text-primary">
                       {effectiveResult.promedioGlobal}
@@ -558,7 +558,6 @@ export default function Assessment() {
                   <Button
                     asChild
                     size="lg"
-                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
                   >
                     <Link to="/mejoras" className="flex items-center gap-2">
                       <span>Ver áreas de mejora</span>

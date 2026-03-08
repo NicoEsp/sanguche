@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Crown, BookOpen, Sparkles, X, ArrowRight } from "lucide-react";
+import { Check, Star, Crown, X, ArrowRight } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -275,21 +275,21 @@ export default function Planes() {
   return <>
       <Seo jsonLd={planesSchema} />
       
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      <div className="min-h-screen bg-background">
         {/* Hero Section */}
-        <section className="pt-12 pb-8 px-4">
+        <section className="pt-12 pb-6 px-4">
           <div className="max-w-6xl mx-auto text-center">
-            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent md:text-4xl">
-              Elige el plan que mejor se adapte a tu momento
+            <h1 className="text-3xl sm:text-4xl font-bold mb-4 tracking-tight">
+              Elegí el plan que mejor se adapte a tu momento
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4 leading-relaxed">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados.
             </p>
           </div>
         </section>
 
-        {/* Subscription Plans - Row 1 */}
-        <section className="px-4 py-6">
+        {/* Subscription Plans */}
+        <section className="px-4 py-8">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl font-bold text-center mb-8">Planes de Suscripción</h2>
             
@@ -318,30 +318,23 @@ export default function Planes() {
         </section>
 
         {/* Courses Info Block */}
-        <section className="px-4 py-8">
+        <section className="px-4 py-10">
           <div className="max-w-4xl mx-auto">
-            <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-                <div className="flex-shrink-0">
-                  <div className="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center">
-                    <BookOpen className="w-8 h-8 text-primary" />
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold mb-2">¿Estás buscando un buen curso relacionado a Producto?</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Además de los planes de suscripción,  ProductPrepa cuenta con cursos especializados con acceso de por vida. Comprá un curso individual o el bundle completo.
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    <strong>Tip:</strong> Los usuarios RePremium tienen incluido el acceso a todos los cursos. 
-                  </p>
-                  <Button asChild>
-                    <Link to="/cursos-info">
-                      Ver cursos disponibles
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Link>
-                  </Button>
-                </div>
+            <Card className="p-6 border-primary/20">
+              <div className="flex-1">
+                <h3 className="text-xl font-bold mb-2">¿Buscás un buen curso de Producto?</h3>
+                <p className="text-muted-foreground mb-2">
+                  Además de los planes de suscripción, ProductPrepa tiene cursos especializados con acceso de por vida. Comprá uno individual o el bundle completo.
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  <strong>Tip:</strong> Los usuarios RePremium tienen incluido el acceso a todos los cursos.
+                </p>
+                <Button asChild>
+                  <Link to="/cursos-info">
+                    Ver cursos disponibles
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
               </div>
             </Card>
           </div>
