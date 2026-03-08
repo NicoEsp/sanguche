@@ -49,7 +49,7 @@ const Index = () => {
               
               NicoProducto
             </a>
-            , para identificar tus fortalezas y áreas de mejora.
+            , para identificar tus fortalezas y áreas de mejora. No importa tu experiencia previa.
           </p>
 
           <div className="flex flex-col sm:flex-row items-start gap-4">
