@@ -1,17 +1,15 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, ArrowRight, Zap, Rocket, Crown, Users } from "lucide-react";
+import { ArrowRight, Zap, Rocket } from "lucide-react";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { SocialProofStrip } from "@/components/landing/SocialProofStrip";
 import { StickyMobileCTA } from "@/components/landing/StickyMobileCTA";
 import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
 import { useAuth } from '@/contexts/AuthContext';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
-import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
-import { usePricing } from "@/hooks/usePricing";
 import { useHomeRedirect } from '@/hooks/useHomeRedirect';
 import { LoadingScreen } from '@/components/LoadingScreen';
 const Index = () => {
@@ -27,18 +25,10 @@ const Index = () => {
   const {
     trackEvent
   } = useMixpanelTracking();
-  const {
-    premium,
-    repremium,
-    loading: pricingLoading
-  } = usePricing();
-
   // Mostrar skeleton loading específico según página destino
   if (isRedirecting) {
     return <LoadingScreen isFading={isFading} variant="skeleton" destination={destination as '/progreso' | '/mejoras' | '/autoevaluacion' | null} />;
   }
-  const premiumBenefits = ["Todo lo incluido en Gratis", "1 sesión mensual 1:1 con NicoProducto", "Tu Career Path con objetivos concretos", "Acceso al Starter Pack completo", "Recursos curados según tus áreas de mejora"];
-  const repremiumBenefits = ["Todo lo incluido en Premium", "2 sesiones mensuales 1:1 con NicoProducto", "Acceso completo a todos los Cursos", "Feedback personalizado en ejercicios", "Acceso prioritario a nuevos contenidos"];
   return <>
       <Seo />
       <main className="min-h-screen bg-background">
@@ -147,130 +137,20 @@ const Index = () => {
           </Card>
         </section>
 
-        {/* Planes Section */}
+        {/* Upgrade teaser */}
         <section className="container py-12 sm:py-16 px-4 sm:px-6">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-4">Elige tu plan</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados.
+          <div className="text-center max-w-2xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3">
+              Empezá gratis. Crecé a tu ritmo.
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              La autoevaluación es completamente gratuita. Cuando quieras mentoría 1:1, cursos y un career path personalizado, tenemos planes pensados para cada etapa.
             </p>
-          </div>
-          
-          <div className="grid gap-6 md:grid-cols-3 md:gap-6 max-w-5xl mx-auto">
-            {/* Plan Gratuito */}
-            <Card className="flex flex-col h-full">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl">Gratis</CardTitle>
-                  <Badge variant="secondary">Siempre gratis</Badge>
-                </div>
-                <p className="text-muted-foreground text-sm">Perfecto para comenzar</p>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
-                <div className="space-y-3 flex-1">
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">Autoevaluación completa</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">Áreas de mejora priorizadas</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">Estimación de seniority</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">PDFs gratuitos</span>
-                  </div>
-                </div>
-                <div className="bg-muted/50 p-3 rounded-lg text-center mt-4">
-                  <div className="text-xl font-bold">$0 <span className="text-sm font-normal text-muted-foreground">/mes</span></div>
-                  <p className="text-xs text-muted-foreground mt-0.5">Pesos Argentinos</p>
-                </div>
-                <Button asChild className="w-full mt-4" variant="outline" onClick={() => trackEvent('landing_page_cta_click', {
-                cta_location: 'pricing_free'
-              })}>
-                  <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
-                    {isAuthenticated ? "Ir a evaluación" : "Comenzar gratis"}
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Plan Premium */}
-            <Card className="border-primary flex flex-col h-full">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-primary" />
-                    <CardTitle className="text-xl">Premium</CardTitle>
-                  </div>
-                  <Badge variant="secondary">+35 usuarios</Badge>
-                </div>
-                <p className="text-muted-foreground text-sm">Para crecer con mentoría</p>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
-                <div className="space-y-3 flex-1">
-                  {premiumBenefits.map((benefit, index) => <div key={index} className="flex items-start gap-3">
-                      <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">{benefit}</span>
-                    </div>)}
-                </div>
-                <div className="bg-muted/50 p-3 rounded-lg text-center mt-4">
-                  <div className="text-xl font-bold text-primary">
-                    {pricingLoading ? <span className="inline-block animate-pulse">...</span> : <>{premium.formatted} <span className="text-sm font-normal text-muted-foreground">/mes</span></>}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">Pesos Argentinos</p>
-                </div>
-                <div className="mt-4">
-                  <LemonSqueezyCheckout plan="premium" onCheckoutStart={() => trackEvent('landing_page_cta_click', {
-                  cta_location: 'pricing_premium'
-                })} />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Plan RePremium */}
-            <Card className="border-amber-500/50 flex flex-col h-full bg-gradient-to-b from-amber-500/5 to-transparent">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Crown className="h-4 w-4 text-amber-500" />
-                    <CardTitle className="text-xl">RePremium</CardTitle>
-                  </div>
-                  <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20">Nuevo</Badge>
-                </div>
-                <p className="text-muted-foreground text-sm">Mentoría + Cursos completos</p>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
-                <div className="space-y-3 flex-1">
-                  {repremiumBenefits.map((benefit, index) => <div key={index} className="flex items-start gap-3">
-                      <Check className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">{benefit}</span>
-                    </div>)}
-                </div>
-                <div className="bg-amber-500/10 p-3 rounded-lg text-center mt-4">
-                  <div className="text-xl font-bold text-amber-600">
-                    {pricingLoading ? <span className="inline-block animate-pulse">...</span> : <>{repremium.formatted} <span className="text-sm font-normal text-muted-foreground">/mes</span></>}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">Pesos Argentinos</p>
-                </div>
-                <div className="mt-4">
-                  <LemonSqueezyCheckout plan="repremium" onCheckoutStart={() => trackEvent('landing_page_cta_click', {
-                  cta_location: 'pricing_repremium'
-                })} />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Ver más detalles */}
-          <div className="flex justify-center mt-8">
-            <Button asChild variant="outline" size="lg">
+            <Button asChild variant="outline" size="lg" onClick={() => trackEvent('landing_page_cta_click', {
+              cta_location: 'upgrade_teaser'
+            })}>
               <Link to="/planes">
-                Ver más detalles
+                Ver planes
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
