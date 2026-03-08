@@ -36,7 +36,7 @@ const Index = () => {
         <div className="max-w-3xl">
           <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6">
             Descubrí tu nivel real como{" "}
-            <span className="text-primary">Product Manager</span>
+            <span className="text-primary">Product Builder</span>
           </h1>
 
           <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mb-10 leading-relaxed">
@@ -45,8 +45,8 @@ const Index = () => {
               href="https://www.linkedin.com/in/nicolas-espindola/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-foreground underline underline-offset-4 hover:text-primary transition-colors"
-            >
+              className="text-foreground underline underline-offset-4 hover:text-primary transition-colors">
+              
               NicoProducto
             </a>
             , para identificar tus fortalezas y áreas de mejora.
@@ -60,8 +60,8 @@ const Index = () => {
               onClick={() => trackEvent('landing_page_cta_click', {
                 cta_location: 'hero',
                 cta_text: 'Comenzar evaluación gratis'
-              })}
-            >
+              })}>
+              
               <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
                 Comenzar evaluación gratis
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -71,8 +71,8 @@ const Index = () => {
             <Link
               to="/soy-dev"
               onClick={() => trackEvent('landing_soy_dev_click', { cta_location: 'hero' })}
-              className="inline-flex items-center gap-1 font-mono text-sm bg-slate-900/80 text-slate-300 border border-slate-700 hover:border-slate-400 rounded-md px-4 py-2 transition-colors duration-200"
-            >
+              className="inline-flex items-center gap-1 font-mono text-sm bg-slate-900/80 text-slate-300 border border-slate-700 hover:border-slate-400 rounded-md px-4 py-2 transition-colors duration-200">
+              
               <span className="text-green-400 mr-1">&gt;</span>
               <span className="text-sky-400">soyDev</span>
               <span className="text-slate-500">.</span>
@@ -104,8 +104,8 @@ const Index = () => {
               asChild
               size="lg"
               variant="secondary"
-              className="shrink-0 font-semibold"
-            >
+              className="shrink-0 font-semibold">
+              
               <Link to="/starterpack">
                 Ver Starter Pack
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -130,8 +130,8 @@ const Index = () => {
             size="lg"
             onClick={() => trackEvent('landing_page_cta_click', {
               cta_location: 'upgrade_teaser'
-            })}
-          >
+            })}>
+            
             <Link to="/planes">
               Ver planes
               <ArrowRight className="ml-2 h-4 w-4" />
