@@ -103,10 +103,9 @@ const SoyDev = () => {
           </Badge>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 max-w-4xl mx-auto leading-tight">
-            Sos Dev. Aprender Producto es tu{" "}
-            <span className="text-primary">superpoder</span>.
+            ¿Sos Dev? Convertite en Product Builder.
             <br className="hidden sm:block" />
-            <span className="text-primary"> Es el momento.</span>
+            <span className="text-orange-500"> Es el momento.</span>
           </h1>
 
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
