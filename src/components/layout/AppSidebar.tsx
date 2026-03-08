@@ -322,8 +322,8 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                       to="/planes"
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
-                        "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium",
-                        "hover:from-primary/90 hover:to-primary/70 hover:shadow-md",
+                        "bg-primary text-primary-foreground font-medium",
+                        "hover:bg-primary/90",
                         isActive("/planes") && "ring-2 ring-primary/30"
                       )}
                     >

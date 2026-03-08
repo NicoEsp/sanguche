@@ -47,8 +47,7 @@ import {
   RefreshCw,
   ShoppingBag,
   Sparkles,
-  GraduationCap,
-  ArrowUpRight
+  GraduationCap
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -347,11 +346,8 @@ export default function Profile() {
               if (!upgradeInfo) return null;
               
               return (
-                <div className="p-4 bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-950/20 dark:to-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800">
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center">
-                      <ArrowUpRight className="w-4 h-4 text-amber-700 dark:text-amber-300" />
-                    </div>
                     <div className="flex-1 space-y-3">
                       <div>
                         <p className="font-medium text-amber-900 dark:text-amber-100">{upgradeInfo.title}</p>
