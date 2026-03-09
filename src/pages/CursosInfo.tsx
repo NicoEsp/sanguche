@@ -68,7 +68,7 @@ export default function CursosInfo() {
       "@context": "https://schema.org",
       "@type": "ItemList",
       "name": "Cursos de Producto - ProductPrepa",
-      "description": "Cursos especializados para Product Managers. Aprende Estrategia de Producto con videos cortos y ejercicios prácticos.",
+      "description": "Cursos especializados para Product Builders. Aprendé Estrategia de Producto con videos cortos y ejercicios prácticos.",
       "itemListElement": [
         {
           "@type": "Course",

@@ -8,7 +8,7 @@ const steps = [
     number: 1,
     icon: ClipboardCheck,
     title: 'Hacé tu autoevaluación',
-    description: 'Descubrí tu nivel actual en las 11 competencias clave de Product Management en solo 5 minutos.',
+    description: 'Descubrí tu nivel actual en las 11 competencias clave de Producto en solo 5 minutos.',
   },
   {
     number: 2,
@@ -44,7 +44,7 @@ export function HowItWorksSection() {
             ¿Cómo funciona?
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Un camino claro para crecer como Product Manager
+            Un camino claro para crecer como Product Builder
           </p>
         </div>
         

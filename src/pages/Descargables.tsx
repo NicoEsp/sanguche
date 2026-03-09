@@ -28,7 +28,7 @@ export default function Descargables() {
             <Badge className="bg-green-500/90 text-white">Nuevo</Badge>
           </div>
           <p className="text-muted-foreground">
-            Recursos exclusivos para Product Managers. Descarga documentos, templates y guías.
+            Recursos exclusivos para Product Builders. Descargá documentos, templates y guías.
           </p>
         </div>
 

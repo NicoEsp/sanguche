@@ -18,7 +18,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     title: 'ProductPrepa - Plataforma para crecer en Producto',
     description: 'Aprendé Producto en una plataforma que combina Cursos, evaluación de habilidades, tu propio Career Path y mentoría personalizada.',
     canonical: `${SITE_URL}/`,
-    keywords: 'product management, autoevaluación PM, seniority, carrera producto, product manager, evaluación profesional, desarrollo PM',
+    keywords: 'product builder, product management, autoevaluación PM, seniority, carrera producto, product manager, evaluación profesional, desarrollo PM',
     image: DEFAULT_IMAGE,
     imageAlt: DEFAULT_IMAGE_ALT,
     jsonLd: [
@@ -59,8 +59,8 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
   },
 
   '/starterpack': {
-    title: 'Starter Pack para Product Managers | ProductPrepa',
-    description: 'Recursos curados y guía paso a paso para quienes comienzan en Product Management o dan el salto a liderar equipos de producto.',
+    title: 'Starter Pack para Product Builders | ProductPrepa',
+    description: 'Recursos curados y guía paso a paso para quienes comienzan en Producto o dan el salto a liderar equipos.',
     canonical: `${SITE_URL}/starterpack`,
     keywords: 'starter pack PM, recursos product management, guía PM principiante, comenzar en producto',
     image: DEFAULT_IMAGE,
@@ -68,8 +68,8 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'LearningResource',
-      name: 'Starter Pack para Product Managers',
-      description: 'Recursos curados y guía paso a paso para quienes comienzan en Product Management o dan el salto a liderar equipos de producto.',
+      name: 'Starter Pack para Product Builders',
+      description: 'Recursos curados y guía paso a paso para quienes comienzan en Producto o dan el salto a liderar equipos.',
       provider: { '@type': 'Organization', name: 'ProductPrepa', url: SITE_URL },
       educationalLevel: 'Beginner',
       url: `${SITE_URL}/starterpack`,
@@ -79,7 +79,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
 
   '/soy-dev': {
     title: 'Soy Dev - Por qué aprender Producto | ProductPrepa',
-    description: 'Descubrí por qué aprender Product Management es clave para desarrolladores. Evaluá tus habilidades de producto y crecé profesionalmente.',
+    description: 'Descubrí por qué aprender Producto es clave para desarrolladores. Evaluá tus habilidades y crecé profesionalmente.',
     canonical: `${SITE_URL}/soy-dev`,
     keywords: 'desarrollador producto, dev product management, programador PM, software developer product skills, carrera desarrollador',
     image: DEFAULT_IMAGE,
@@ -88,7 +88,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
       '@context': 'https://schema.org',
       '@type': 'WebPage',
       name: 'Soy Dev - Por qué aprender Producto',
-      description: 'Descubrí por qué aprender Product Management es clave para desarrolladores.',
+      description: 'Descubrí por qué aprender Producto es clave para desarrolladores.',
       url: `${SITE_URL}/soy-dev`,
       publisher: { '@type': 'Organization', name: 'ProductPrepa', url: SITE_URL },
     },
@@ -104,8 +104,8 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
   },
 
   '/autoevaluacion': {
-    title: 'Autoevaluación Product Manager Gratis | Descubre tu nivel PM',
-    description: 'Test gratuito de 5 minutos para conocer tu nivel como Product Manager. Identifica fortalezas, áreas de mejora y recibe un roadmap personalizado.',
+    title: 'Autoevaluación Product Builder Gratis | Descubrí tu nivel',
+    description: 'Test gratuito de 5 minutos para conocer tu nivel como Product Builder. Identificá fortalezas, áreas de mejora y recibí un roadmap personalizado.',
     canonical: `${SITE_URL}/autoevaluacion`,
     keywords: 'test product manager gratis, autoevaluación PM, nivel seniority PM, evaluación habilidades producto',
     image: DEFAULT_IMAGE,
@@ -123,7 +123,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
 
   '/descargables': {
     title: 'Recursos Descargables | ProductPrepa',
-    description: 'Descarga guías y recursos prácticos para prepararte como Product Manager.',
+    description: 'Descargá guías y recursos prácticos para crecer como Product Builder.',
     canonical: `${SITE_URL}/descargables`,
     keywords: 'recursos product management, descargables PM, guías producto, materiales PM',
     image: DEFAULT_IMAGE,
@@ -132,7 +132,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
 
   '/blog': {
     title: 'Blog de Producto | ProductPrepa',
-    description: 'Artículos prácticos sobre Product Management: cómo preparar entrevistas, diferencias de roles, métricas, estrategia y más.',
+    description: 'Artículos prácticos sobre Producto: cómo preparar entrevistas, diferencias de roles, métricas, estrategia y más.',
     canonical: `${SITE_URL}/blog`,
     keywords: 'blog product management, artículos PM, aprender producto, product manager consejos, carrera en producto',
     image: DEFAULT_IMAGE,
@@ -142,7 +142,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
       '@context': 'https://schema.org',
       '@type': 'Blog',
       name: 'Blog de ProductPrepa',
-      description: 'Artículos prácticos sobre Product Management.',
+      description: 'Artículos prácticos sobre Producto.',
       url: `${SITE_URL}/blog`,
       publisher: {
         '@type': 'Organization',
@@ -156,9 +156,9 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
 
   '/starterpack/build': {
     title: 'Construir Productos - Starter Pack | ProductPrepa',
-    description: 'Guía paso a paso con recursos curados para quienes comienzan en Product Management.',
+    description: 'Guía paso a paso con recursos curados para quienes comienzan en Producto.',
     canonical: `${SITE_URL}/starterpack/build`,
-    keywords: 'construir productos, PM principiante, guía product management',
+    keywords: 'construir productos, PM principiante, guía producto, product builder',
     image: DEFAULT_IMAGE,
     imageAlt: DEFAULT_IMAGE_ALT,
     jsonLd: [
@@ -166,7 +166,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
         '@context': 'https://schema.org',
         '@type': 'LearningResource',
         name: 'Construir Productos - Starter Pack',
-        description: 'Guía paso a paso con recursos curados para quienes comienzan en Product Management.',
+        description: 'Guía paso a paso con recursos curados para quienes comienzan en Producto.',
         provider: { '@type': 'Organization', name: 'ProductPrepa', url: SITE_URL },
         educationalLevel: 'Beginner',
         inLanguage: 'es',
@@ -187,7 +187,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
 
   '/starterpack/lead': {
     title: 'Liderar Equipos - Starter Pack | ProductPrepa',
-    description: 'Guía paso a paso para PMs que buscan dar el salto a roles de liderazgo como Lead PM, GPM o Head of Product.',
+    description: 'Guía paso a paso para quienes buscan dar el salto a roles de liderazgo como Lead PM, GPM o Head of Product.',
     canonical: `${SITE_URL}/starterpack/lead`,
     keywords: 'liderar equipos producto, lead PM, GPM, head of product, liderazgo PM',
     image: DEFAULT_IMAGE,
@@ -197,7 +197,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
         '@context': 'https://schema.org',
         '@type': 'LearningResource',
         name: 'Liderar Equipos - Starter Pack',
-        description: 'Guía paso a paso para PMs que buscan dar el salto a roles de liderazgo como Lead PM, GPM o Head of Product.',
+        description: 'Guía paso a paso para quienes buscan dar el salto a roles de liderazgo como Lead PM, GPM o Head of Product.',
         provider: { '@type': 'Organization', name: 'ProductPrepa', url: SITE_URL },
         educationalLevel: 'Intermediate',
         inLanguage: 'es',

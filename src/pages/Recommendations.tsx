@@ -85,7 +85,7 @@ export default function Recommendations() {
       <>
         <Seo
           title="Mentoría personalizada — ProductPrepa"
-          description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
+          description="Descubrí mentoría curada para cerrar tus áreas de mejora en Producto."
           canonical="/mentoria"
           keywords="mentoría PM, coaching producto, recomendaciones personalizadas, guía producto, mentor PM"
         />
@@ -104,7 +104,7 @@ export default function Recommendations() {
       <>
         <Seo
           title="Mentoría personalizada — ProductPrepa"
-          description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
+          description="Descubrí mentoría curada para cerrar tus áreas de mejora en Producto."
           canonical="/mentoria"
           keywords="mentoría PM, coaching producto, recomendaciones personalizadas, guía producto, mentor PM"
         />
@@ -122,7 +122,7 @@ export default function Recommendations() {
     <>
       <Seo
         title="Mentoría personalizada — ProductPrepa"
-        description="Descubre mentoría curada para cerrar tus áreas de mejora en Product Management."
+        description="Descubrí mentoría curada para cerrar tus áreas de mejora en Producto."
         canonical="/mentoria"
         keywords="mentoría PM, coaching producto, recomendaciones personalizadas, guía producto, mentor PM"
       />
@@ -147,7 +147,7 @@ export default function Recommendations() {
             <AlertDescription className="text-warning-foreground">
               Para obtener recomendaciones personalizadas, primero necesitas completar tu{" "}
               <Link to="/autoevaluacion" className="underline font-medium">
-                autoevaluación de Product Management
+                autoevaluación de Producto
               </Link>
               .
             </AlertDescription>

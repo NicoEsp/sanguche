@@ -27,8 +27,8 @@ export function WhatIsProductPrepa() {
               ¿Qué es Product Prepa?
             </h2>
             <p className="text-muted-foreground mb-4">
-              Product Prepa es una plataforma de desarrollo profesional para Product Managers 
-              en Latinoamérica. Te ayudamos a identificar tus fortalezas, cerrar brechas de 
+              Product Prepa es una plataforma de desarrollo profesional para Product Builders
+              en Latinoamérica. Te ayudamos a identificar tus fortalezas, cerrar brechas de
               habilidades y acelerar tu carrera con mentoría personalizada.
             </p>
             <button 

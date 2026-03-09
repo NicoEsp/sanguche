@@ -64,7 +64,7 @@ export default function Courses() {
   const coursesSchema = courses && courses.length > 0 ? {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    "name": "Cursos de Product Management",
+    "name": "Cursos de Producto",
     "description": "Cursos cortos y prácticos para desarrollar habilidades de producto",
     "itemListElement": courses.map((course, index) => ({
       "@type": "ListItem",

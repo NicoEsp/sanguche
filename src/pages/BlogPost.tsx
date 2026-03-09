@@ -148,7 +148,7 @@ export default function BlogPost() {
         <div className="border-t border-border pt-8">
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 space-y-3 text-center">
             <h3 className="font-semibold text-foreground text-lg">
-              ¿Querés crecer como Product Manager?
+              ¿Querés crecer como Product Builder?
             </h3>
             <p className="text-muted-foreground text-sm">
               Hacé la autoevaluación gratuita y descubrí qué habilidades necesitás desarrollar.

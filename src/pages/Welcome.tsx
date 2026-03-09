@@ -57,7 +57,7 @@ export default function Welcome() {
   // Página de bienvenida genérica (sin parámetro success)
   if (!success) {
     return <>
-        <Seo title="Bienvenido a ProductPrepa" description="Acelera tu crecimiento como Product Manager con mentoría personalizada" keywords="bienvenida productprepa, onboarding PM, inicio mentoría" />
+        <Seo title="Bienvenido a ProductPrepa" description="Acelerá tu crecimiento como Product Builder con mentoría personalizada" keywords="bienvenida productprepa, onboarding PM, inicio mentoría" />
         
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
           <Card className="max-w-2xl w-full">
@@ -67,14 +67,14 @@ export default function Welcome() {
               </div>
               <CardTitle className="text-3xl">¡Bienvenido a ProductPrepa!</CardTitle>
               <CardDescription className="text-lg">
-                Tu plataforma para acelerar tu carrera como Product Manager
+                Tu plataforma para acelerar tu carrera como Product Builder
               </CardDescription>
             </CardHeader>
             
             <CardContent className="space-y-6">
               <div className="space-y-4 text-center">
                 <p className="text-muted-foreground">
-                  ProductPrepa te ayuda a desarrollar las habilidades clave para destacar en Product Management.
+                  ProductPrepa te ayuda a desarrollar las habilidades clave para destacar en Producto.
                 </p>
                 
                 <div className="space-y-2 text-sm text-muted-foreground text-left">

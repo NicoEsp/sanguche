@@ -284,8 +284,8 @@ export const OPTIONAL_DOMAINS = [
   {
     key: "ia_aplicada",
     label: "IA aplicada a Producto",
-    description: "Nivel de incorporación de IA en tu forma de trabajar como Product Manager.",
-    question: "¿Qué tan incorporada tenés la IA en tu forma de trabajar como Product Manager?",
+    description: "Nivel de incorporación de IA en tu forma de trabajar como Product Builder.",
+    question: "¿Qué tan incorporada tenés la IA en tu forma de trabajar como Product Builder?",
     statements: [
       { value: 1, label: "Todavía no la uso y no tengo claro en qué podría ayudarme en el día a día. (1)" },
       { value: 2, label: "La uso de vez en cuando, pero sin un proceso o criterio definido. (2)" },
