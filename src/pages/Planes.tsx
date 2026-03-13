@@ -111,15 +111,47 @@ export default function Planes() {
     loading: pricingLoading
   } = usePricing();
 
-  // Track page view
+  // Assessment personalization
+  const { result: assessmentResult, hasAssessment } = useAssessmentData();
+  const topGaps = useMemo(() => {
+    if (!assessmentResult?.gaps) return [];
+    return assessmentResult.gaps
+      .filter((g) => g.prioridad === 'Alta')
+      .slice(0, 2);
+  }, [assessmentResult]);
+
+  const personalizationTracked = useRef(false);
+
+  // Track page view — immediate, no async dependency
   useEffect(() => {
     trackEvent('planes_page_viewed', {
+      is_authenticated: isAuthenticated,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Track enriched data once pricing finishes loading
+  useEffect(() => {
+    if (pricingLoading || !isAuthenticated) return;
+    trackEvent('planes_page_enriched', {
       has_premium: hasActivePremium,
       has_repremium: hasActiveRePremium,
       has_curso_estrategia: hasCursoEstrategia,
-      has_cursos_all: hasCursosAll
+      has_cursos_all: hasCursosAll,
     });
-  }, [hasActivePremium, hasActiveRePremium, hasCursoEstrategia, hasCursosAll, trackEvent]);
+  }, [pricingLoading, isAuthenticated, hasActivePremium, hasActiveRePremium, hasCursoEstrategia, hasCursosAll, trackEvent]);
+
+  // Track personalization shown
+  useEffect(() => {
+    if (personalizationTracked.current) return;
+    if (topGaps.length > 0) {
+      personalizationTracked.current = true;
+      trackEvent('planes_personalization_shown', {
+        gaps_shown: topGaps.map((g) => g.label),
+        gap_count: topGaps.length,
+      });
+    }
+  }, [topGaps, trackEvent]);
 
   // Track page abandonment
   useEffect(() => {
