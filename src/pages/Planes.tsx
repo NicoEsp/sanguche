@@ -307,6 +307,32 @@ export default function Planes() {
   }];
   return <>
       <Seo jsonLd={planesSchema} />
+
+      {/* Personalization banner */}
+      {hasAssessment && topGaps.length > 0 && !hasActivePremium && !hasActiveRePremium && (
+        <div className="max-w-4xl mx-auto px-4 pt-8">
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-foreground mb-1">
+                  Tu evaluación detectó áreas críticas a mejorar
+                </p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {topGaps.map((gap) => (
+                    <Badge key={gap.label} variant="outline" className="border-primary/50 text-primary">
+                      {gap.label}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Con un plan Premium, trabajás estas áreas con mentoría 1:1 y recursos personalizados para tu perfil.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       <div className="min-h-screen bg-background">
         {/* Hero Section */}
