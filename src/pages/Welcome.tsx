@@ -38,6 +38,14 @@ export default function Welcome() {
     }
   }, [success, isAnonymous, isAuthenticated, trackEvent, queryClient]);
 
+  // Determine redirect destination based on plan
+  const getPostPaymentRoute = () => {
+    if (plan === 'curso_estrategia' || plan === 'cursos_all') return '/cursos';
+    return '/mentoria';
+  };
+  
+  const postPaymentRoute = getPostPaymentRoute();
+
   // Auto-redirect authenticated users after countdown
   useEffect(() => {
     if (isAuthenticated && success) {
@@ -45,7 +53,7 @@ export default function Welcome() {
         setCountdown(prev => {
           if (prev <= 1) {
             clearInterval(timer);
-            navigate('/mentoria');
+            navigate(postPaymentRoute);
             return 0;
           }
           return prev - 1;
