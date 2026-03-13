@@ -1,0 +1,1 @@
+UPDATE user_subscriptions SET status = 'active', updated_at = now() WHERE user_id = 'a8b1d5fb-4c20-4e12-92ba-2e0ab1095936' AND plan = 'repremium';
