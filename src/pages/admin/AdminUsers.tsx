@@ -105,7 +105,8 @@ export default function AdminUsers() {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, name, user_id, created_at, mentoria_completed, is_founder')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(2000);
 
       if (profilesError) throw profilesError;
 
@@ -116,7 +117,6 @@ export default function AdminUsers() {
         }
         return;
       }
-      const profileIds = profiles.map(p => p.id);
 
       // SECURITY: Fetch emails using secure edge function instead of direct auth.admin call
       const emailMap = new Map<string, string>();
@@ -128,20 +128,22 @@ export default function AdminUsers() {
         return { data: null, error };
       });
 
+      // Admin RLS policies grant access to all rows, so no need for .in() filter
+      // which breaks with 200+ UUIDs due to URL length limits
       const [emailResult, subscriptionsResult, rolesResult, assessmentsResult] = await Promise.all([
         emailPromise,
         supabase
           .from('user_subscriptions')
           .select('user_id, plan, status')
-          .in('user_id', profileIds),
+          .limit(2000),
         supabase
           .from('user_roles')
           .select('user_id, role')
-          .in('user_id', profileIds),
+          .limit(2000),
         supabase
           .from('assessments')
           .select('user_id, assessment_result, created_at')
-          .in('user_id', profileIds)
+          .limit(5000)
       ]);
 
       const { data: subscriptions, error: subscriptionsError } = subscriptionsResult;
