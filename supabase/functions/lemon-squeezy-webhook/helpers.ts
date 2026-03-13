@@ -104,7 +104,7 @@ export async function findOrCreateUser(email: string, name: string | null, supab
         // Profile not found, search auth again with limited pagination
         console.log('[findOrCreateUser] Profile not found after delay, searching auth...');
         let retryPage = 1;
-        const maxRetryPages = 20; // Reduced pages for retry to avoid timeout
+        const maxRetryPages = 10; // Reduced to avoid timeout
         
         while (!authUser && retryPage <= maxRetryPages) {
           const { data: retryAuthPage } = await supabase.auth.admin.listUsers({
