@@ -405,10 +405,30 @@ serve(async (req) => {
 
       case 'subscription_updated':
         console.log(`[Webhook] Processing subscription_updated - Status: ${status}`);
+        
+        // Map Lemon Squeezy statuses to our DB statuses
+        // LS statuses: active, paused, past_due, unpaid, cancelled, expired
+        const mappedStatus = (() => {
+          switch (status) {
+            case 'active':
+              return 'active' as const;
+            case 'cancelled':
+            case 'expired':
+              return 'cancelled' as const;
+            case 'paused':
+            case 'past_due':
+            case 'unpaid':
+            default:
+              return 'inactive' as const;
+          }
+        })();
+        
+        console.log(`[Webhook] Mapped LS status "${status}" -> DB status "${mappedStatus}"`);
+        
         await supabase
           .from('user_subscriptions')
           .update({
-            status: status === 'active' ? 'active' : 'inactive',
+            status: mappedStatus,
             current_period_end: event!.data.attributes.renews_at
               ? new Date(event!.data.attributes.renews_at).toISOString()
               : null,

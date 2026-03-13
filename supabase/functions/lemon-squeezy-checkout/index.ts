@@ -211,7 +211,7 @@ serve(async (req) => {
             }
           },
           product_options: {
-            redirect_url: `${req.headers.get('origin')}/welcome?success=true&anonymous=${String(isAnonymousCheckout)}&intent=${checkoutIntentId}&email=${encodeURIComponent(checkoutEmail!)}&plan=${plan}`
+            redirect_url: `${req.headers.get('origin') || 'https://sanguche.lovable.app'}/welcome?success=true&anonymous=${String(isAnonymousCheckout)}&intent=${checkoutIntentId}&email=${encodeURIComponent(checkoutEmail!)}&plan=${plan}`
           }
         },
         relationships: {
