@@ -28,28 +28,35 @@ export async function findOrCreateUser(email: string, name: string | null, supab
       return existingProfile.id;
     }
     
-    // 2. Profile not found by email, check auth with pagination
-    console.log('[findOrCreateUser] Step 2: Profile not found, checking auth with pagination...');
+    // 2. Profile not found by email, look up auth user directly
+    console.log('[findOrCreateUser] Step 2: Profile not found, looking up auth user by email...');
     let authUser = null;
+    
+    // Use listUsers with a single page - Supabase GoTrue doesn't have getUserByEmail
+    // but we can search efficiently by checking the first match
+    const { data: authList, error: listError } = await supabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 1,
+    });
+    
+    // Try to find user by iterating - but first try a more targeted approach
+    // Search through auth users by fetching pages until we find the email
     let page = 1;
     const perPage = 50;
-    const maxPages = 100;
+    const maxPages = 20; // Reduced from 100 - if user isn't found in 1000 users, create new
     
     while (!authUser && page <= maxPages) {
-      const { data: authPage, error: listError } = await supabase.auth.admin.listUsers({
+      const { data: authPage, error: pageError } = await supabase.auth.admin.listUsers({
         page: page,
         perPage: perPage
       });
       
-      if (listError) {
-        console.error(`[findOrCreateUser] Error listing users page ${page}:`, listError);
+      if (pageError) {
+        console.error(`[findOrCreateUser] Error listing users page ${page}:`, pageError);
         break;
       }
       
-      if (!authPage?.users?.length) {
-        console.log('[findOrCreateUser] No more users to check');
-        break;
-      }
+      if (!authPage?.users?.length) break;
       
       authUser = authPage.users.find((u: any) => u.email === email);
       
@@ -58,12 +65,7 @@ export async function findOrCreateUser(email: string, name: string | null, supab
         break;
       }
       
-      // If we got fewer users than perPage, we've reached the end
-      if (authPage.users.length < perPage) {
-        console.log('[findOrCreateUser] Reached last page of users');
-        break;
-      }
-      
+      if (authPage.users.length < perPage) break;
       page++;
     }
     
@@ -102,7 +104,7 @@ export async function findOrCreateUser(email: string, name: string | null, supab
         // Profile not found, search auth again with limited pagination
         console.log('[findOrCreateUser] Profile not found after delay, searching auth...');
         let retryPage = 1;
-        const maxRetryPages = 20; // Reduced pages for retry to avoid timeout
+        const maxRetryPages = 10; // Reduced to avoid timeout
         
         while (!authUser && retryPage <= maxRetryPages) {
           const { data: retryAuthPage } = await supabase.auth.admin.listUsers({

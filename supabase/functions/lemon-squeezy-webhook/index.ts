@@ -5,7 +5,7 @@ import { findOrCreateUser } from './helpers.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-signature',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-signature, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 // Mapping from variant ID to plan configuration
@@ -309,15 +309,22 @@ serve(async (req) => {
             
           console.log('[Webhook] One-time purchase activated successfully');
         } else {
-          // For subscriptions, record the order with paid_amount (subscription_created will complete activation)
+          // For subscriptions, record the order with paid_amount and set plan proactively
+          // This ensures the user has access even if subscription_created webhook is delayed
+          const subPlan = planConfig?.plan || 'premium';
+          console.log('[Webhook] Subscription order - setting plan proactively:', subPlan);
+          
           await supabase
             .from('user_subscriptions')
             .upsert({
               user_id: userId,
+              plan: subPlan,
+              status: 'active',
+              purchase_type: 'subscription',
               lemon_squeezy_order_id: orderId,
               lemon_squeezy_customer_id: customerId,
               lemon_squeezy_variant_id: variantId,
-              paid_amount: orderTotal || null, // Store actual paid amount
+              paid_amount: orderTotal || null,
               updated_at: new Date().toISOString(),
             }, { 
               onConflict: 'user_id',
