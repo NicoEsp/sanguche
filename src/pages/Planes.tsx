@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Crown, X, ArrowRight } from "lucide-react";
+import { Check, Star, Crown, X, ArrowRight, AlertTriangle } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,13 +9,14 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { Seo } from "@/components/Seo";
 import { LemonSqueezyCheckout, PlanType } from "@/components/LemonSqueezyCheckout";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePricing } from "@/hooks/usePricing";
 import { CourseInquiryCta } from "@/components/planes/CourseInquiryCta";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useAssessmentData } from "@/hooks/useAssessmentData";
 interface PlanCardProps {
   name: React.ReactNode;
   price: string;
