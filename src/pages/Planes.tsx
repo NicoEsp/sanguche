@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Crown, X, ArrowRight } from "lucide-react";
+import { Check, Star, Crown, X, ArrowRight, AlertTriangle } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,13 +9,14 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { Seo } from "@/components/Seo";
 import { LemonSqueezyCheckout, PlanType } from "@/components/LemonSqueezyCheckout";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePricing } from "@/hooks/usePricing";
 import { CourseInquiryCta } from "@/components/planes/CourseInquiryCta";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useAssessmentData } from "@/hooks/useAssessmentData";
 interface PlanCardProps {
   name: React.ReactNode;
   price: string;
@@ -110,15 +111,47 @@ export default function Planes() {
     loading: pricingLoading
   } = usePricing();
 
-  // Track page view
+  // Assessment personalization
+  const { result: assessmentResult, hasAssessment } = useAssessmentData();
+  const topGaps = useMemo(() => {
+    if (!assessmentResult?.gaps) return [];
+    return assessmentResult.gaps
+      .filter((g) => g.prioridad === 'Alta')
+      .slice(0, 2);
+  }, [assessmentResult]);
+
+  const personalizationTracked = useRef(false);
+
+  // Track page view — immediate, no async dependency
   useEffect(() => {
     trackEvent('planes_page_viewed', {
+      is_authenticated: isAuthenticated,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Track enriched data once pricing finishes loading
+  useEffect(() => {
+    if (pricingLoading || !isAuthenticated) return;
+    trackEvent('planes_page_enriched', {
       has_premium: hasActivePremium,
       has_repremium: hasActiveRePremium,
       has_curso_estrategia: hasCursoEstrategia,
-      has_cursos_all: hasCursosAll
+      has_cursos_all: hasCursosAll,
     });
-  }, [hasActivePremium, hasActiveRePremium, hasCursoEstrategia, hasCursosAll, trackEvent]);
+  }, [pricingLoading, isAuthenticated, hasActivePremium, hasActiveRePremium, hasCursoEstrategia, hasCursosAll, trackEvent]);
+
+  // Track personalization shown
+  useEffect(() => {
+    if (personalizationTracked.current) return;
+    if (topGaps.length > 0) {
+      personalizationTracked.current = true;
+      trackEvent('planes_personalization_shown', {
+        gaps_shown: topGaps.map((g) => g.label),
+        gap_count: topGaps.length,
+      });
+    }
+  }, [topGaps, trackEvent]);
 
   // Track page abandonment
   useEffect(() => {
@@ -274,6 +307,32 @@ export default function Planes() {
   }];
   return <>
       <Seo jsonLd={planesSchema} />
+
+      {/* Personalization banner */}
+      {hasAssessment && topGaps.length > 0 && !hasActivePremium && !hasActiveRePremium && (
+        <div className="max-w-4xl mx-auto px-4 pt-8">
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-foreground mb-1">
+                  Tu evaluación detectó áreas críticas a mejorar
+                </p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {topGaps.map((gap) => (
+                    <Badge key={gap.label} variant="outline" className="border-primary/50 text-primary">
+                      {gap.label}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Con un plan Premium, trabajás estas áreas con mentoría 1:1 y recursos personalizados para tu perfil.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       <div className="min-h-screen bg-background">
         {/* Hero Section */}
