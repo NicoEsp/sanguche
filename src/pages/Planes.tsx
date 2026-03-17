@@ -405,9 +405,16 @@ export default function Planes() {
             <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">¿Ya tenés tu propio producto?</h3>
             <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">Conseguí una mirada profesional externa sobre lo que construiste</p>
             
-            <div className="relative group">
+            <div className="relative group pt-4">
+              {/* Badge - outside card to avoid clipping */}
+              <div className="absolute -top-0 left-1/2 transform -translate-x-1/2 z-10">
+                <Badge className="px-4 py-1.5 shadow-lg shadow-emerald-900/30 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold tracking-wide border-0 text-xs uppercase">
+                  Pago único
+                </Badge>
+              </div>
+
               {/* Outer glow */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-60 group-hover:opacity-100" />
+              <div className="absolute -inset-1 top-3 bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-60 group-hover:opacity-100" />
               
               <Card className="relative flex flex-col overflow-hidden border-emerald-500/30 bg-gradient-to-br from-emerald-950/90 via-emerald-900/80 to-teal-950/90 text-white shadow-2xl shadow-emerald-900/20 rounded-2xl">
                 {/* Top accent bar */}
@@ -415,13 +422,6 @@ export default function Planes() {
                 
                 {/* Subtle background pattern */}
                 <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-
-                {/* Badge */}
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-                  <Badge className="px-4 py-1.5 shadow-lg shadow-emerald-900/30 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold tracking-wide border-0 text-xs uppercase">
-                    Pago único
-                  </Badge>
-                </div>
 
                 <CardHeader className="text-center pb-2 pt-8">
                   {/* Icon */}
