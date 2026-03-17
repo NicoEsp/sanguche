@@ -397,40 +397,61 @@ export default function Planes() {
               </div>
             </Card>
           </div>
-        </section>
 
-        {/* Product Review - One-time payment */}
-        <section className="px-4 py-10">
-          <div className="max-w-4xl mx-auto">
-            <Card className="p-6 border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10">
-              <div className="flex flex-col sm:flex-row gap-4 items-start">
-                <div className="p-3 rounded-full bg-emerald-500/10 shrink-0">
-                  <Search className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+            {/* Product Review - One-time payment */}
+            <div className="max-w-sm mx-auto mt-10">
+              <h3 className="text-xl font-bold text-center mb-4">¿Ya tenés tu propio producto?</h3>
+              <Card className="relative flex flex-col h-full border-emerald-500/40 bg-emerald-500/5">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <Badge className="px-3 py-1 shadow-sm bg-emerald-600 hover:bg-emerald-600 text-white">
+                    Pago único
+                  </Badge>
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-xl font-bold">Review de tu Producto</h3>
-                    <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30">
-                      Pago único
-                    </Badge>
+                <CardHeader className="text-center pb-4">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Search className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                    <CardTitle className="text-xl min-h-[56px] flex items-center justify-center text-center">
+                      Review de tu Producto
+                    </CardTitle>
                   </div>
-                  <p className="text-muted-foreground mb-4">
-                    ¿Ya tenés tu propio producto? Pedí una review profesional de punta a punta: UX, propuesta de valor, flujos críticos y oportunidades de mejora. Un pago único — en 72 hs recibís un informe detallado con recomendaciones accionables.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="border-emerald-500/30 hover:bg-emerald-500/10"
-                    onClick={() => {
-                      trackEvent('product_review_interest_clicked');
-                      window.location.href = 'mailto:nicoproducto@hey.com?subject=Me interesa la Review de Producto';
-                    }}
-                  >
-                    <Mail className="w-4 h-4 mr-2" />
-                    Quiero saber más
-                  </Button>
-                </div>
-              </div>
-            </Card>
+                  <CardDescription className="min-h-[48px]">
+                    Pedí una review profesional de punta a punta de tu producto digital
+                  </CardDescription>
+                  <div className="mt-3">
+                    <span className="text-3xl font-bold">Próximamente</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col">
+                  <ul className="space-y-2 flex-1 min-h-[160px]">
+                    {[
+                      "Análisis de UX y flujos críticos",
+                      "Revisión de propuesta de valor",
+                      "Oportunidades de mejora priorizadas",
+                      "Informe detallado en 72 hs",
+                      "Recomendaciones accionables",
+                    ].map((feature, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-6">
+                    <Button
+                      variant="outline"
+                      className="w-full border-emerald-500/40 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                      onClick={() => {
+                        trackEvent('product_review_interest_clicked');
+                        window.location.href = 'mailto:nicoproducto@hey.com?subject=Me interesa la Review de Producto';
+                      }}
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      Quiero saber más
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </section>
 
