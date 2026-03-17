@@ -399,6 +399,41 @@ export default function Planes() {
           </div>
         </section>
 
+        {/* Product Review - One-time payment */}
+        <section className="px-4 py-10">
+          <div className="max-w-4xl mx-auto">
+            <Card className="p-6 border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10">
+              <div className="flex flex-col sm:flex-row gap-4 items-start">
+                <div className="p-3 rounded-full bg-emerald-500/10 shrink-0">
+                  <Search className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-xl font-bold">Review de tu Producto</h3>
+                    <Badge variant="secondary" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30">
+                      Pago único
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground mb-4">
+                    ¿Ya tenés tu propio producto? Pedí una review profesional de punta a punta: UX, propuesta de valor, flujos críticos y oportunidades de mejora. Un pago único — en 72 hs recibís un informe detallado con recomendaciones accionables.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="border-emerald-500/30 hover:bg-emerald-500/10"
+                    onClick={() => {
+                      trackEvent('product_review_interest_clicked');
+                      window.location.href = 'mailto:nicoproducto@hey.com?subject=Me interesa la Review de Producto';
+                    }}
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Quiero saber más
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </section>
+
         {/* Comparison Table */}
         <section className="py-12 px-4">
           <div className="max-w-5xl mx-auto">
