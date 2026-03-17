@@ -400,59 +400,87 @@ export default function Planes() {
         </section>
 
         {/* Product Review - One-time payment */}
-        <section className="px-4 py-10">
-          <div className="max-w-sm mx-auto">
-            <h3 className="text-xl font-bold text-center mb-4">¿Ya tenés tu propio producto?</h3>
-            <Card className="relative flex flex-col h-full border-emerald-500/40 bg-emerald-500/5">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="px-3 py-1 shadow-sm bg-emerald-600 hover:bg-emerald-600 text-white">
-                  Pago único
-                </Badge>
-              </div>
-              <CardHeader className="text-center pb-4">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Search className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                  <CardTitle className="text-xl min-h-[56px] flex items-center justify-center text-center">
-                    Product Review 
-                  </CardTitle>
-                </div>
-                <CardDescription className="min-h-[48px]">
-                  ¿ Ya tenes un producto digital? Pedí una review profesional punta a punta 
+        <section className="px-4 py-16">
+          <div className="max-w-lg mx-auto">
+            <div className="relative group">
+              {/* Glow effect behind the card */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-70 group-hover:opacity-100" />
+              
+              <Card className="relative flex flex-col overflow-hidden border-emerald-500/30 bg-gradient-to-br from-emerald-950/90 via-emerald-900/80 to-teal-950/90 text-white shadow-2xl shadow-emerald-900/20 rounded-2xl">
+                {/* Top accent bar */}
+                <div className="h-1 w-full bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500" />
                 
+                {/* Decorative background pattern */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-emerald-500/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-teal-500/8 to-transparent rounded-full translate-y-1/3 -translate-x-1/4 pointer-events-none" />
 
-              </CardDescription>
-                <div className="mt-3">
-                  <span className="text-3xl font-bold">Próximamente</span>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
-                <ul className="space-y-2 flex-1 min-h-[160px]">
-                  {["Análisis de UX y flujos críticos", "Revisión de propuesta de valor",
-                "Oportunidades de mejora priorizadas",
-                "Informe detallado en 72 hs",
-                "Recomendaciones accionables"].
-                map((feature, index) =>
-                <li key={index} className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                )}
-                </ul>
-                <div className="mt-6">
-                  <Button
-                  variant="outline"
-                  className="w-full border-emerald-500/40 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                  onClick={() => {
-                    trackEvent('product_review_interest_clicked');
-                    window.location.href = 'mailto:nicoproducto@hey.com?subject=Me interesa la Review de Producto';
-                  }}>
+                <CardHeader className="relative text-center pb-2 pt-8">
+                  <Badge className="mx-auto mb-4 px-4 py-1.5 text-xs font-semibold tracking-wider uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 backdrop-blur-sm">
+                    Pago único
+                  </Badge>
                   
-                    <Mail className="w-4 h-4 mr-2" />
-                    Quiero saber más
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="flex items-center justify-center mb-3">
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/20 backdrop-blur-sm">
+                      <Search className="w-7 h-7 text-emerald-400" />
+                    </div>
+                  </div>
+                  
+                  <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white via-emerald-100 to-white bg-clip-text text-transparent">
+                    Review de tu Producto
+                  </CardTitle>
+                  
+                  <p className="text-emerald-200/80 text-sm sm:text-base mt-3 max-w-sm mx-auto leading-relaxed">
+                    Pedí una review profesional de punta a punta de tu producto digital. UX, propuesta de valor, flujos críticos y oportunidades de mejora.
+                  </p>
+                  
+                  <div className="mt-5 flex items-baseline justify-center gap-2">
+                    <span className="text-lg text-emerald-300/60 line-through">USD 199</span>
+                    <span className="text-sm text-emerald-300/70">→</span>
+                    <span className="text-3xl sm:text-4xl font-extrabold text-white">Próximamente</span>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="relative flex-1 flex flex-col px-8 pb-8">
+                  <div className="w-full h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent my-6" />
+                  
+                  <ul className="space-y-3.5 flex-1">
+                    {[
+                      { text: "Análisis de UX y flujos críticos", highlight: true },
+                      { text: "Revisión de propuesta de valor", highlight: false },
+                      { text: "Oportunidades de mejora priorizadas", highlight: true },
+                      { text: "Informe detallado en 72 hs", highlight: false },
+                      { text: "Recomendaciones accionables paso a paso", highlight: false },
+                    ].map((feature, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <div className={`mt-0.5 p-0.5 rounded-full ${feature.highlight ? 'bg-emerald-400/20' : 'bg-emerald-500/10'}`}>
+                          <Check className={`w-3.5 h-3.5 ${feature.highlight ? 'text-emerald-300' : 'text-emerald-400/70'}`} />
+                        </div>
+                        <span className={`text-sm leading-relaxed ${feature.highlight ? 'text-white font-medium' : 'text-emerald-100/80'}`}>
+                          {feature.text}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  <div className="mt-8">
+                    <Button
+                      size="lg"
+                      className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold shadow-lg shadow-emerald-900/40 transition-all duration-300 hover:shadow-emerald-800/50 hover:scale-[1.02] active:scale-[0.98]"
+                      onClick={() => {
+                        trackEvent('product_review_interest_clicked');
+                        window.location.href = 'mailto:nicoproducto@hey.com?subject=Me interesa la Review de Producto';
+                      }}
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      Quiero saber más
+                    </Button>
+                    <p className="text-center text-xs text-emerald-400/50 mt-3">
+                      Sin compromiso · Te respondemos en menos de 24 hs
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </section>
 
