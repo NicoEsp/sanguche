@@ -400,59 +400,85 @@ export default function Planes() {
         </section>
 
         {/* Product Review - One-time payment */}
-        <section className="px-4 py-10">
-          <div className="max-w-sm mx-auto">
-            <h3 className="text-xl font-bold text-center mb-4">¿Ya tenés tu propio producto?</h3>
-            <Card className="relative flex flex-col h-full border-emerald-500/40 bg-emerald-500/5">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="px-3 py-1 shadow-sm bg-emerald-600 hover:bg-emerald-600 text-white">
-                  Pago único
-                </Badge>
-              </div>
-              <CardHeader className="text-center pb-4">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Search className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                  <CardTitle className="text-xl min-h-[56px] flex items-center justify-center text-center">
-                    Product Review 
-                  </CardTitle>
-                </div>
-                <CardDescription className="min-h-[48px]">
-                  ¿ Ya tenes un producto digital? Pedí una review profesional punta a punta 
+        <section className="px-4 py-16">
+          <div className="max-w-lg mx-auto">
+            <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">¿Ya tenés tu propio producto?</h3>
+            <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">Conseguí una mirada profesional externa sobre lo que construiste</p>
+            
+            <div className="relative group">
+              {/* Outer glow */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-60 group-hover:opacity-100" />
+              
+              <Card className="relative flex flex-col overflow-hidden border-emerald-500/30 bg-gradient-to-br from-emerald-950/90 via-emerald-900/80 to-teal-950/90 text-white shadow-2xl shadow-emerald-900/20 rounded-2xl">
+                {/* Top accent bar */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500" />
                 
+                {/* Subtle background pattern */}
+                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
-              </CardDescription>
-                <div className="mt-3">
-                  <span className="text-3xl font-bold">Próximamente</span>
+                {/* Badge */}
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                  <Badge className="px-4 py-1.5 shadow-lg shadow-emerald-900/30 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold tracking-wide border-0 text-xs uppercase">
+                    Pago único
+                  </Badge>
                 </div>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
-                <ul className="space-y-2 flex-1 min-h-[160px]">
-                  {["Análisis de UX y flujos críticos", "Revisión de propuesta de valor",
-                "Oportunidades de mejora priorizadas",
-                "Informe detallado en 72 hs",
-                "Recomendaciones accionables"].
-                map((feature, index) =>
-                <li key={index} className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                )}
-                </ul>
-                <div className="mt-6">
-                  <Button
-                  variant="outline"
-                  className="w-full border-emerald-500/40 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                  onClick={() => {
-                    trackEvent('product_review_interest_clicked');
-                    window.location.href = 'mailto:nicoproducto@hey.com?subject=Me interesa la Review de Producto';
-                  }}>
+
+                <CardHeader className="text-center pb-2 pt-8">
+                  {/* Icon */}
+                  <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/20 flex items-center justify-center">
+                    <Search className="w-7 h-7 text-emerald-300" />
+                  </div>
                   
-                    <Mail className="w-4 h-4 mr-2" />
-                    Quiero saber más
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white via-emerald-100 to-teal-200 bg-clip-text text-transparent">
+                    Review de tu Producto
+                  </CardTitle>
+                  
+                  <CardDescription className="text-emerald-200/70 mt-2 text-sm leading-relaxed max-w-sm mx-auto">
+                    UX, propuesta de valor, flujos críticos y oportunidades de mejora. En 72 hs recibís un informe detallado con recomendaciones accionables.
+                  </CardDescription>
+
+                  <div className="mt-5 flex items-baseline justify-center gap-2">
+                    <span className="text-lg text-emerald-400/50 line-through font-medium">USD 199</span>
+                    <span className="text-2xl font-bold text-white/90">Próximamente</span>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="flex-1 flex flex-col px-8 pb-8">
+                  {/* Divider */}
+                  <div className="w-full h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent my-4" />
+                  
+                  <ul className="space-y-3 flex-1">
+                    {[
+                      { text: "Análisis de UX y flujos críticos", highlight: true },
+                      { text: "Revisión de propuesta de valor", highlight: true },
+                      { text: "Oportunidades de mejora priorizadas", highlight: false },
+                      { text: "Informe detallado en 72 hs", highlight: false },
+                      { text: "Recomendaciones accionables paso a paso", highlight: false },
+                    ].map((feature, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${feature.highlight ? 'bg-emerald-500/20 ring-1 ring-emerald-500/30' : 'bg-white/5'}`}>
+                          <Check className={`w-3 h-3 ${feature.highlight ? 'text-emerald-300' : 'text-emerald-400/60'}`} />
+                        </div>
+                        <span className={`text-sm ${feature.highlight ? 'text-white font-medium' : 'text-emerald-100/70'}`}>{feature.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-8">
+                    <Button
+                      className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold shadow-lg shadow-emerald-900/30 border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-emerald-500/20 hover:shadow-xl"
+                      onClick={() => {
+                        trackEvent('product_review_interest_clicked');
+                        window.location.href = 'mailto:nicoproducto@hey.com?subject=Me interesa la Review de Producto';
+                      }}
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      Quiero saber más
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </section>
 
