@@ -434,12 +434,11 @@ export default function Planes() {
                   </CardTitle>
                   
                   <CardDescription className="text-emerald-200/70 mt-2 text-sm leading-relaxed max-w-sm mx-auto">
-                    UX, propuesta de valor, flujos críticos y oportunidades de mejora. En 72 hs recibís un informe detallado con recomendaciones accionables.
+                    Ideal si ya tenés un producto digital y querés que alguien externo y con experiencia lo revise
                   </CardDescription>
 
                   <div className="mt-5 flex items-baseline justify-center gap-2">
-                    <span className="text-lg text-emerald-400/50 line-through font-medium">USD 199</span>
-                    <span className="text-2xl font-bold text-white/90">Próximamente</span>
+                    <span className="text-2xl font-bold text-white/90">USD ñam ñam 🥪</span>
                   </div>
                 </CardHeader>
 
