@@ -115,9 +115,9 @@ export default function Planes() {
   const { result: assessmentResult, hasAssessment } = useAssessmentData();
   const topGaps = useMemo(() => {
     if (!assessmentResult?.gaps) return [];
-    return assessmentResult.gaps
-      .filter((g) => g.prioridad === 'Alta')
-      .slice(0, 2);
+    return assessmentResult.gaps.
+    filter((g) => g.prioridad === 'Alta').
+    slice(0, 2);
   }, [assessmentResult]);
 
   const personalizationTracked = useRef(false);
@@ -125,7 +125,7 @@ export default function Planes() {
   // Track page view — immediate, no async dependency
   useEffect(() => {
     trackEvent('planes_page_viewed', {
-      is_authenticated: isAuthenticated,
+      is_authenticated: isAuthenticated
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -137,7 +137,7 @@ export default function Planes() {
       has_premium: hasActivePremium,
       has_repremium: hasActiveRePremium,
       has_curso_estrategia: hasCursoEstrategia,
-      has_cursos_all: hasCursosAll,
+      has_cursos_all: hasCursosAll
     });
   }, [pricingLoading, isAuthenticated, hasActivePremium, hasActiveRePremium, hasCursoEstrategia, hasCursosAll, trackEvent]);
 
@@ -148,7 +148,7 @@ export default function Planes() {
       personalizationTracked.current = true;
       trackEvent('planes_personalization_shown', {
         gaps_shown: topGaps.map((g) => g.label),
-        gap_count: topGaps.length,
+        gap_count: topGaps.length
       });
     }
   }, [topGaps, trackEvent]);
@@ -189,7 +189,7 @@ export default function Planes() {
       await queryClient.invalidateQueries({
         queryKey: ['subscription']
       });
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
       const currentSubscription: any = queryClient.getQueryData(['subscription', user?.id]);
       if (currentSubscription?.status === 'active') {
         trackEvent('checkout_completed', {
@@ -277,7 +277,7 @@ export default function Planes() {
   {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "mainEntity": planesFaqs.map(faq => ({
+    "mainEntity": planesFaqs.map((faq) => ({
       "@type": "Question",
       "name": faq.question,
       "acceptedAnswer": {
@@ -291,26 +291,26 @@ export default function Planes() {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Inicio",
-        "item": "https://productprepa.com"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": "Planes y Precios",
-        "item": "https://productprepa.com/planes"
-      }
-    ]
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Inicio",
+      "item": "https://productprepa.com"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Planes y Precios",
+      "item": "https://productprepa.com/planes"
+    }]
+
   }];
   return <>
       <Seo jsonLd={planesSchema} />
 
       {/* Personalization banner */}
-      {hasAssessment && topGaps.length > 0 && !hasActivePremium && !hasActiveRePremium && (
-        <div className="max-w-4xl mx-auto px-4 pt-8">
+      {hasAssessment && topGaps.length > 0 && !hasActivePremium && !hasActiveRePremium &&
+    <div className="max-w-4xl mx-auto px-4 pt-8">
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-5">
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
@@ -319,11 +319,11 @@ export default function Planes() {
                   Tu evaluación detectó áreas críticas a mejorar
                 </p>
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {topGaps.map((gap) => (
-                    <Badge key={gap.label} variant="outline" className="border-primary/50 text-primary">
+                  {topGaps.map((gap) =>
+              <Badge key={gap.label} variant="outline" className="border-primary/50 text-primary">
                       {gap.label}
                     </Badge>
-                  ))}
+              )}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Con un plan Premium, trabajás estas áreas con mentoría 1:1 y recursos personalizados para tu perfil.
@@ -332,7 +332,7 @@ export default function Planes() {
             </div>
           </div>
         </div>
-      )}
+    }
       
       <div className="min-h-screen bg-background">
         {/* Hero Section */}
@@ -413,40 +413,40 @@ export default function Planes() {
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Search className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                   <CardTitle className="text-xl min-h-[56px] flex items-center justify-center text-center">
-                    Review de tu Producto
+                    Product Review 
                   </CardTitle>
                 </div>
                 <CardDescription className="min-h-[48px]">
-                  Pedí una review profesional de punta a punta de tu producto digital
-                </CardDescription>
+                  ¿ Ya tenes un producto digital? Pedí una review profesional punta a punta 
+                
+
+              </CardDescription>
                 <div className="mt-3">
                   <span className="text-3xl font-bold">Próximamente</span>
                 </div>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <ul className="space-y-2 flex-1 min-h-[160px]">
-                  {[
-                    "Análisis de UX y flujos críticos",
-                    "Revisión de propuesta de valor",
-                    "Oportunidades de mejora priorizadas",
-                    "Informe detallado en 72 hs",
-                    "Recomendaciones accionables",
-                  ].map((feature, index) => (
-                    <li key={index} className="flex items-start gap-2">
+                  {["Análisis de UX y flujos críticos", "Revisión de propuesta de valor",
+                "Oportunidades de mejora priorizadas",
+                "Informe detallado en 72 hs",
+                "Recomendaciones accionables"].
+                map((feature, index) =>
+                <li key={index} className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
                       <span className="text-sm">{feature}</span>
                     </li>
-                  ))}
+                )}
                 </ul>
                 <div className="mt-6">
                   <Button
-                    variant="outline"
-                    className="w-full border-emerald-500/40 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                    onClick={() => {
-                      trackEvent('product_review_interest_clicked');
-                      window.location.href = 'mailto:nicoproducto@hey.com?subject=Me interesa la Review de Producto';
-                    }}
-                  >
+                  variant="outline"
+                  className="w-full border-emerald-500/40 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                  onClick={() => {
+                    trackEvent('product_review_interest_clicked');
+                    window.location.href = 'mailto:nicoproducto@hey.com?subject=Me interesa la Review de Producto';
+                  }}>
+                  
                     <Mail className="w-4 h-4 mr-2" />
                     Quiero saber más
                   </Button>
