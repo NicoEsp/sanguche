@@ -425,7 +425,7 @@ export default function Planes() {
                 {/* Subtle background pattern */}
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
-                <CardHeader className="text-center pb-2 pt-8">
+                <CardHeader className="relative z-10 text-center pb-2 pt-8">
                   {/* Icon */}
                   <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/20 flex items-center justify-center">
                     <Search className="w-7 h-7 text-emerald-300" />
