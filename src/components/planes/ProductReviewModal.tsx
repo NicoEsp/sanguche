@@ -27,6 +27,15 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
   const { trackEvent } = useMixpanelTracking();
   const { toast } = useToast();
 
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      trackEvent("productastic_review_modal_opened");
+    } else {
+      trackEvent("productastic_review_modal_closed", { submitted });
+    }
+    onOpenChange(isOpen);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
