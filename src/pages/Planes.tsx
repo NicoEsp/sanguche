@@ -121,6 +121,7 @@ export default function Planes() {
     slice(0, 2);
   }, [assessmentResult]);
 
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const personalizationTracked = useRef(false);
 
   // Track page view — immediate, no async dependency
