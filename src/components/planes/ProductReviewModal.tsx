@@ -63,7 +63,7 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
   ];
 
   const notReviewItems = [
-    "No opinamos sobre tu producto porque sí",
+    "No opino sobre tu producto porque sí",
     "No es una auditoría técnica ni de código",
     "No reemplaza un discovery completo",
   ];
@@ -125,7 +125,8 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
             <p className="text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-2">Cómo funciona</p>
             <ol className="space-y-1 text-sm text-emerald-100/70 list-decimal list-inside">
               <li>Te anotás en la lista de espera</li>
-              <li>Te contactamos para coordinar el envío de materiales</li>
+              <li>Te contacto para coordinar el envío de materiales</li>
+              <li>Realizás el pago único de USD 50</li>
               <li>En 72 hs recibís el informe detallado</li>
             </ol>
           </div>
@@ -137,7 +138,7 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
                 <Check className="w-6 h-6 text-emerald-300" />
               </div>
               <p className="font-semibold text-white">¡Estás en la lista!</p>
-              <p className="text-sm text-emerald-200/60 mt-1">Te contactamos pronto por email.</p>
+              <p className="text-sm text-emerald-200/60 mt-1">Te contacto pronto por email.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex gap-2">
