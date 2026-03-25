@@ -435,8 +435,9 @@ export default function Planes() {
                     Productastic Review
                   </CardTitle>
                   
-                  <CardDescription className="text-emerald-200/70 mt-2 text-sm leading-relaxed max-w-sm mx-auto">
-                    ¿Tomaste decisiones de producto y querés validarlas con alguien externo? Reviso tu research, hipótesis y decisiones hasta acá. No opino sobre tu producto porque sí, analizo tu proceso de construcción.
+                  <CardDescription className="text-emerald-200/70 mt-2 text-sm leading-relaxed max-w-sm mx-auto shadow-none font-bold">
+                    ¿Tomaste decisiones de producto y querés validarlas con alguien externo?
+                    {"\n"}Reviso tu research, hipótesis y decisiones hasta acá. No importa como construiste tu producto, analizo tu proceso hasta acá.
                   </CardDescription>
 
                   <div className="mt-5 flex items-baseline justify-center gap-3">
