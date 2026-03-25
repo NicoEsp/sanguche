@@ -17,6 +17,7 @@ import { CourseInquiryCta } from "@/components/planes/CourseInquiryCta";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
+import { ProductReviewModal } from "@/components/planes/ProductReviewModal";
 interface PlanCardProps {
   name: React.ReactNode;
   price: string;
