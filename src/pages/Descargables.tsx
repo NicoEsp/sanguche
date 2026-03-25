@@ -20,11 +20,11 @@ export default function Descargables() {
     <>
       <Seo />
 
-      <div className="container max-w-4xl py-8 space-y-8">
+      <div className="container max-w-4xl py-8 sm:py-12 px-4 sm:px-6 space-y-8">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <FileDown className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">Descargables</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Descargables</h1>
             <Badge className="bg-green-500/90 text-white">Nuevo</Badge>
           </div>
           <p className="text-muted-foreground">

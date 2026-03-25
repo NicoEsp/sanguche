@@ -253,7 +253,7 @@ export default function Profile() {
         keywords="perfil usuario, configuración cuenta, suscripción PM"
       />
       
-      <div className="container py-8 space-y-6">
+      <div className="container py-8 sm:py-12 px-4 sm:px-6 space-y-6">
         {/* Sección 1: Información Personal */}
         <Card>
           <CardHeader>

@@ -127,7 +127,7 @@ export default function Courses() {
         jsonLd={coursesSchema}
       />
 
-      <div className="container max-w-6xl py-8 space-y-8">
+      <div className="container max-w-6xl py-8 sm:py-12 px-4 sm:px-6 space-y-8">
         {/* Hero section */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-primary">
