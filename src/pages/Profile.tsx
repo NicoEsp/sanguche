@@ -437,7 +437,7 @@ export default function Profile() {
 
         {/* Sección 3: Estadísticas de Career Path */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">Estadísticas de Career Path</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">Estadísticas de Career Path</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <ProfileStats 
               icon={FileText} 
