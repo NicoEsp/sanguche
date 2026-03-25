@@ -134,7 +134,7 @@ export default function Courses() {
             <Sparkles className="h-5 w-5" />
             <span className="text-sm font-medium">Nuevo</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
             Cursos de Producto
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl">
