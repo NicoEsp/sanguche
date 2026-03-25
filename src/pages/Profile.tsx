@@ -63,6 +63,7 @@ export default function Profile() {
   const [editNameOpen, setEditNameOpen] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
   const { toast } = useToast();
+  const pricing = usePricing();
 
   const handleCancelSubscription = async () => {
     setIsCanceling(true);
