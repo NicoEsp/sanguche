@@ -416,7 +416,7 @@ export default function Planes() {
               </div>
 
               {/* Outer glow */}
-              <div className="absolute -inset-1 top-3 bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-60 group-hover:opacity-100" />
+              <div className="absolute -inset-1 top-3 bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-60 group-hover:opacity-100 pointer-events-none" />
               
               <Card className="relative flex flex-col overflow-hidden border-emerald-500/30 bg-gradient-to-br from-emerald-950/90 via-emerald-900/80 to-teal-950/90 text-white shadow-2xl shadow-emerald-900/20 rounded-2xl">
                 {/* Top accent bar */}
