@@ -9,7 +9,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { Seo } from "@/components/Seo";
 import { LemonSqueezyCheckout, PlanType } from "@/components/LemonSqueezyCheckout";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePricing } from "@/hooks/usePricing";
