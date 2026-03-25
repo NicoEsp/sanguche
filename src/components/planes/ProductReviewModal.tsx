@@ -45,11 +45,21 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
       return;
     }
 
+    if (!user) {
+      toast({ title: "Iniciá sesión", description: "Necesitás estar logueado para anotarte.", variant: "destructive" });
+      return;
+    }
+
+    if (!profile?.id) {
+      toast({ title: "Error", description: "Tu perfil aún no cargó. Intentá de nuevo en unos segundos.", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase
         .from("product_review_waitlist" as any)
-        .insert({ email: result.data, user_id: profile?.id || null } as any);
+        .insert({ email: result.data, user_id: profile.id } as any);
 
       if (error) throw error;
 
