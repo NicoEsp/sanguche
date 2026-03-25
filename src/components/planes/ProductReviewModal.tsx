@@ -63,7 +63,7 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
   ];
 
   const notReviewItems = [
-    "No opinamos sobre tu producto porque sí",
+    "No opino sobre tu producto porque sí",
     "No es una auditoría técnica ni de código",
     "No reemplaza un discovery completo",
   ];
