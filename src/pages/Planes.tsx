@@ -448,7 +448,7 @@ export default function Planes() {
                   </Badge>
                 </CardHeader>
 
-                <CardContent className="flex-1 flex flex-col px-8 pb-8">
+                <CardContent className="relative z-10 flex-1 flex flex-col px-8 pb-8">
                   {/* Divider */}
                   <div className="w-full h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent my-4" />
                   
