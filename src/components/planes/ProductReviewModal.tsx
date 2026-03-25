@@ -27,6 +27,15 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
   const { trackEvent } = useMixpanelTracking();
   const { toast } = useToast();
 
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      trackEvent("productastic_review_modal_opened");
+    } else {
+      trackEvent("productastic_review_modal_closed", { submitted });
+    }
+    onOpenChange(isOpen);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -69,7 +78,7 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 text-white border-emerald-500/30 sm:rounded-2xl">
         <DialogHeader className="text-center items-center">
           <div className="mx-auto mb-3 w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
