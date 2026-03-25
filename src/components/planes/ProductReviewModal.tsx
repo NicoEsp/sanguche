@@ -138,7 +138,7 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
                 <Check className="w-6 h-6 text-emerald-300" />
               </div>
               <p className="font-semibold text-white">¡Estás en la lista!</p>
-              <p className="text-sm text-emerald-200/60 mt-1">Te contactamos pronto por email.</p>
+              <p className="text-sm text-emerald-200/60 mt-1">Te contacto pronto por email.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex gap-2">
