@@ -66,8 +66,8 @@ export default function SkillGaps() {
   return <>
       <Seo />
       
-      <section className="container py-6 sm:py-10 px-4 sm:px-6 animate-fade-in">
-        <h1 className="text-2xl sm:text-3xl font-semibold mb-3">Resultados de tu evaluación</h1>
+      <section className="container py-8 sm:py-12 px-4 sm:px-6 animate-fade-in">
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">Resultados de tu evaluación</h1>
         {loading && <div className="space-y-4 mb-6">
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-48 w-full" />

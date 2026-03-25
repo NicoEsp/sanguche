@@ -127,14 +127,14 @@ export default function Courses() {
         jsonLd={coursesSchema}
       />
 
-      <div className="container max-w-6xl py-8 space-y-8">
+      <div className="container max-w-6xl py-8 sm:py-12 px-4 sm:px-6 space-y-8">
         {/* Hero section */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-primary">
             <Sparkles className="h-5 w-5" />
             <span className="text-sm font-medium">Nuevo</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
             Cursos de Producto
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl">
