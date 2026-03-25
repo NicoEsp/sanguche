@@ -126,7 +126,15 @@ export default function Profile() {
   const formatNextBillingDate = () => {
     if (!subscription?.current_period_end) return null;
     const date = format(new Date(subscription.current_period_end), "dd/MM/yyyy", { locale: es });
-    return `Próximo cobro: ${date} - USD 9,99/mes`;
+    const plan = subscription?.plan;
+    const priceMap: Record<string, string> = {
+      premium: pricing.premium.formatted,
+      repremium: pricing.repremium.formatted,
+      curso_estrategia: pricing.curso_estrategia.formatted,
+      cursos_all: pricing.cursos_all.formatted,
+    };
+    const price = plan ? priceMap[plan] || '' : '';
+    return `Próximo cobro: ${date}${price ? ` - ${price}/mes` : ''}`;
   };
 
   const formatLastAssessmentDate = () => {
