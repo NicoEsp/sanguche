@@ -71,7 +71,7 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 text-white border-emerald-500/30 sm:rounded-2xl">
-        <DialogHeader className="text-center">
+        <DialogHeader className="text-center items-center">
           <div className="mx-auto mb-3 w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
             <Search className="w-6 h-6 text-emerald-300" />
           </div>
@@ -82,17 +82,17 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
             <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">Pago único</Badge>
             <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">Precio de lanzamiento</Badge>
           </div>
-          <DialogDescription className="text-emerald-200/70 mt-3">
-            Analizo tu proceso de construcción de producto — no opino, reviso tus decisiones.
+          <DialogDescription className="text-emerald-200/70 mt-3 text-center max-w-sm mx-auto">
+            Analizo tu proceso de construcción de producto. No opino, reviso tus decisiones.
           </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-5 mt-2">
           {/* Pricing */}
-          <div className="text-center">
+          <div className="text-center pt-2">
             <span className="text-lg text-white/40 line-through decoration-emerald-500/50 mr-3">USD 100</span>
             <span className="text-3xl font-bold text-white">USD 50</span>
           </div>
+        </DialogHeader>
+
+        <div className="space-y-5 mt-2">
 
           {/* What we review */}
           <div>
