@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Crown, X, ArrowRight, AlertTriangle, Search, Mail } from "lucide-react";
+import { Check, Star, Crown, X, ArrowRight, AlertTriangle, Search } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,7 +9,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { Seo } from "@/components/Seo";
 import { LemonSqueezyCheckout, PlanType } from "@/components/LemonSqueezyCheckout";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePricing } from "@/hooks/usePricing";
@@ -17,6 +17,7 @@ import { CourseInquiryCta } from "@/components/planes/CourseInquiryCta";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
+import { ProductReviewModal } from "@/components/planes/ProductReviewModal";
 interface PlanCardProps {
   name: React.ReactNode;
   price: string;
@@ -120,6 +121,7 @@ export default function Planes() {
     slice(0, 2);
   }, [assessmentResult]);
 
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const personalizationTracked = useRef(false);
 
   // Track page view — immediate, no async dependency
@@ -403,7 +405,7 @@ export default function Planes() {
         <section className="px-4 py-16">
           <div className="max-w-lg mx-auto">
             <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">¿Ya tenés tu propio producto?</h3>
-            <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">Conseguí una mirada profesional externa sobre lo que construiste</p>
+            <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">Validá tus decisiones con alguien externo y con experiencia</p>
             
             <div className="relative group pt-4">
               {/* Badge - outside card to avoid clipping */}
@@ -430,16 +432,20 @@ export default function Planes() {
                   </div>
                   
                   <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white via-emerald-100 to-teal-200 bg-clip-text text-transparent">
-                    Review de tu Producto
+                    Productastic Review
                   </CardTitle>
                   
                   <CardDescription className="text-emerald-200/70 mt-2 text-sm leading-relaxed max-w-sm mx-auto">
-                    Ideal si ya tenés un producto digital y querés que alguien externo y con experiencia lo revise
+                    ¿Tomaste decisiones de producto y querés validarlas con alguien externo? Reviso tu research, hipótesis y decisiones hasta acá. No opino sobre tu producto porque sí, analizo tu proceso de construcción.
                   </CardDescription>
 
-                  <div className="mt-5 flex items-baseline justify-center gap-2">
-                    <span className="text-2xl font-bold text-white/90">USD ñam ñam 🥪</span>
+                  <div className="mt-5 flex items-baseline justify-center gap-3">
+                    <span className="text-lg text-white/40 line-through decoration-emerald-500/50">USD 100</span>
+                    <span className="text-2xl font-bold text-white/90">USD 50</span>
                   </div>
+                  <Badge className="mt-2 mx-auto bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
+                    Precio de lanzamiento
+                  </Badge>
                 </CardHeader>
 
                 <CardContent className="flex-1 flex flex-col px-8 pb-8">
@@ -448,9 +454,9 @@ export default function Planes() {
                   
                   <ul className="space-y-3 flex-1">
                     {[
-                      { text: "Análisis de UX y flujos críticos", highlight: true },
-                      { text: "Revisión de propuesta de valor", highlight: true },
-                      { text: "Oportunidades de mejora priorizadas", highlight: false },
+                      { text: "Revisión de tu research y hallazgos clave", highlight: true },
+                      { text: "Análisis de hipótesis y decisiones de producto", highlight: true },
+                      { text: "Feedback sobre flujos críticos y priorización", highlight: false },
                       { text: "Informe detallado en 72 hs", highlight: false },
                       { text: "Recomendaciones accionables paso a paso", highlight: false },
                     ].map((feature, index) => (
@@ -468,10 +474,9 @@ export default function Planes() {
                       className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold shadow-lg shadow-emerald-900/30 border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-emerald-500/20 hover:shadow-xl"
                       onClick={() => {
                         trackEvent('product_review_interest_clicked');
-                        window.location.href = 'mailto:nicoproducto@hey.com?subject=Me interesa la Review de Producto';
+                        setReviewModalOpen(true);
                       }}
                     >
-                      <Mail className="w-4 h-4 mr-2" />
                       Quiero saber más
                     </Button>
                   </div>
@@ -480,6 +485,8 @@ export default function Planes() {
             </div>
           </div>
         </section>
+
+        <ProductReviewModal open={reviewModalOpen} onOpenChange={setReviewModalOpen} />
 
         {/* Comparison Table */}
         <section className="py-12 px-4">
