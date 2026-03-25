@@ -51,6 +51,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { usePricing } from '@/hooks/usePricing';
 
 export default function Profile() {
   const { user, signOut, isSigningOut } = useAuth();
