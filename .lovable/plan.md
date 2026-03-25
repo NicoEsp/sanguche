@@ -1,48 +1,50 @@
-## Plan: Productastic Review — nueva card + modal waitlist
-
-### Cambios en la card existente (src/pages/Planes.tsx)
-
-1. **Renombrar** "Review de tu Producto" → "Productastic Review"
-2. **Pricing**: mostrar USD 100 tachado + USD 50 destacado + sub-label "precio de lanzamiento"
-3. **Reescribir el copy** basado en el feedback del usuario — enfocar en revisión de research, hipótesis y decisiones de producto (no "opinión sobre el producto"):
-  - Descripción: "¿Tomaste decisiones de producto y querés validarlas con alguien externo? Reviso tu research, hipótesis y decisiones hasta acá No opino sobre tu producto porqué si, analizo tu proceso de construcción."
-  - Features actualizadas:
-    - "Revisión de tu research y hallazgos clave"
-    - "Análisis de hipótesis y decisiones de producto"
-    - "Feedback sobre flujos críticos y priorización"
-    - "Informe detallado en 72 hs"
-    - "Recomendaciones accionables paso a paso"
-4. **CTA "Quiero saber más"** → abre un modal en vez de mailto
-
-### Nuevo componente: ProductReviewModal
-
-**Archivo:** `src/components/planes/ProductReviewModal.tsx`
-
-Un Dialog que contiene:
-
-- Título "Productastic Review" con badge "Precio de lanzamiento"
-- Explicación expandida del servicio (qué se revisa, qué NO se revisa, cómo funciona)
-- Pricing visible (USD 100 → USD 50)
-- Formulario de waitlist: solo campo de email + botón "Anotarme en la lista de espera"
-- Al submit: inserta en una nueva tabla `product_review_waitlist` y dispara evento de tracking `productastic_review_waitlist_joined`
-- Toast de confirmación
-
-### Nueva tabla en Supabase
-
-**Tabla:** `product_review_waitlist`
-
-- `id` uuid PK default gen_random_uuid()
-- `email` text NOT NULL
-- `user_id` uuid nullable (si está logueado, se asocia)
-- `created_at` timestamptz default now()
-
-RLS: admin SELECT all, service_role ALL, authenticated INSERT own (con user_id = profile id), anon denied.
-
-### Resumen de archivos
 
 
-| Archivo                                        | Cambio                                                                                   |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `src/pages/Planes.tsx`                         | Card renombrada, pricing actualizado, copy reescrito, botón abre modal, import del modal |
-| `src/components/planes/ProductReviewModal.tsx` | Nuevo componente con detalle + formulario email waitlist                                 |
-| Migration SQL                                  | Tabla `product_review_waitlist` con RLS                                                  |
+## Problem
+
+Currently, non-logged-in users cannot join the Productastic Review waitlist because:
+1. **Code blocks it**: Line 48-51 shows a toast saying "Necesitás estar logueado" if no user session exists
+2. **RLS blocks it**: The `product_review_waitlist_insert_own` policy requires `user_id = get_profile_id_for_auth()`, and anonymous users are explicitly denied by `product_review_waitlist_deny_anon`
+3. **The `user_id` column** is nullable (good), but no policy allows anonymous inserts
+
+## Plan
+
+### 1. Database migration: Allow anonymous inserts
+
+- Add a new RLS policy `product_review_waitlist_insert_anon` for `anon` role on INSERT, with `WITH CHECK (true)` so unauthenticated users can insert rows (with `user_id` as NULL)
+- Modify the existing `product_review_waitlist_deny_anon` policy to only deny SELECT (not ALL), so anon users can insert but not read
+
+Specifically:
+```sql
+-- Remove the blanket deny for anon
+DROP POLICY "product_review_waitlist_deny_anon" ON product_review_waitlist;
+
+-- Anon can't read waitlist data
+CREATE POLICY "product_review_waitlist_deny_anon_select"
+  ON product_review_waitlist FOR SELECT TO anon USING (false);
+
+-- Anon can insert into waitlist (user_id will be NULL)
+CREATE POLICY "product_review_waitlist_insert_anon"
+  ON product_review_waitlist FOR INSERT TO anon
+  WITH CHECK (user_id IS NULL);
+```
+
+### 2. Update ProductReviewModal.tsx
+
+- Remove the `if (!user)` block that blocks submission
+- Remove the `if (!profile?.id)` block
+- When inserting, pass `user_id: profile?.id ?? null` so logged-in users get linked and anonymous users insert with NULL
+- Keep the `useAuth` and `useUserProfile` hooks but make them optional for the flow
+
+The key change in `handleSubmit`:
+```typescript
+// No longer block non-logged-in users
+const { error } = await supabase
+  .from("product_review_waitlist")
+  .insert({ email: result.data, user_id: profile?.id ?? null });
+```
+
+### Files changed
+- **Migration**: New SQL migration for RLS policy updates
+- **`src/components/planes/ProductReviewModal.tsx`**: Remove auth gates, pass nullable user_id
+
