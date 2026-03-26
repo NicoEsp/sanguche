@@ -118,7 +118,7 @@ export default function Profile() {
     .slice(0, 5) || [];
 
   const getObjectiveProgress = (objective: any) => {
-    if (!objective.steps || !Array.isArray(objective.steps)) return 0;
+    if (!objective.steps || !Array.isArray(objective.steps) || objective.steps.length === 0) return 0;
     const completed = objective.steps.filter((step: any) => step.completed).length;
     return (completed / objective.steps.length) * 100;
   };
@@ -250,7 +250,7 @@ export default function Profile() {
         title="Mi Perfil - ProductPrepa"
         description="Gestiona tu perfil, revisa tu Career Path y mantén el control de tu plan de suscripción"
         canonical="/perfil"
-        keywords="perfil usuario, configuración cuenta, suscripción PM"
+        keywords="perfil usuario, configuración cuenta, suscripción Product Builder"
       />
       
       <div className="container py-8 sm:py-12 px-4 sm:px-6 space-y-6">
@@ -259,15 +259,15 @@ export default function Profile() {
           <CardHeader>
             <CardTitle>Información Personal</CardTitle>
           </CardHeader>
-          <CardContent className="flex items-center gap-6">
-            <Avatar className="h-20 w-20">
-              <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+          <CardContent className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+            <Avatar className="h-16 w-16 sm:h-20 sm:w-20 shrink-0">
+              <AvatarFallback className="text-xl sm:text-2xl bg-primary/10 text-primary">
                 {getInitials(profile?.name || null)}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 space-y-2 min-w-0">
               <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-bold">{profile?.name || 'Usuario'}</h2>
+                <h2 className="text-xl sm:text-2xl font-bold truncate">{profile?.name || 'Usuario'}</h2>
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -333,7 +333,7 @@ export default function Profile() {
               <>
                 <Separator />
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground font-medium">Otras Badges obtenidas</p>
+                  <p className="text-sm text-muted-foreground font-medium">Otras badges obtenidas</p>
                   <div className="flex flex-wrap items-center gap-2">
                     {profile?.is_founder && <ShareFounderBadge />}
                   </div>
@@ -383,7 +383,7 @@ export default function Profile() {
             {subscription?.plan !== 'free' && subscription?.status === 'active' && !subscription?.isOneTimePurchase && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                  <Button variant="outline" size="sm" className="text-destructive border-destructive/20 hover:bg-destructive/10 hover:text-destructive">
                     <XCircle className="h-4 w-4 mr-2" />
                     Cancelar suscripción
                   </Button>
@@ -500,9 +500,10 @@ export default function Profile() {
                   );
                 })
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No tienes objetivos activos
-                </p>
+                <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+                  <Target className="h-6 w-6 text-muted-foreground/50" />
+                  <p className="text-sm text-muted-foreground">No tienes objetivos activos</p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -542,9 +543,10 @@ export default function Profile() {
                   );
                 })
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No tienes ejercicios próximos
-                </p>
+                <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+                  <Clock className="h-6 w-6 text-muted-foreground/50" />
+                  <p className="text-sm text-muted-foreground">No tienes ejercicios próximos</p>
+                </div>
               )}
             </CardContent>
           </Card>
