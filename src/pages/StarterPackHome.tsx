@@ -46,7 +46,7 @@ const StarterPackHome = () => {
               title="Quiero construir productos" 
               description="Para quienes están comenzando su carrera en producto o vienen de otras áreas." 
               bullets={[
-                "Fundamentos de Product Management", 
+                "Fundamentos de Producto",
                 "Frameworks para priorización", 
                 "Herramientas esenciales del día a día"
               ]} 

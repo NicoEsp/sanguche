@@ -645,7 +645,7 @@ export default function Progress() {
               <div className="bg-card border shadow-sm rounded-xl px-4 py-3 md:px-6 md:py-4">
                 <div className="flex items-center justify-between gap-6">
                   <div className="flex items-center gap-3">
-                    <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
                     <div>
                       <p className="text-xs text-muted-foreground">Completados</p>
                   <p className="text-2xl md:text-3xl font-semibold">
@@ -688,8 +688,8 @@ export default function Progress() {
 
           {/* Locked banner */}
           {isMapLocked && (
-            <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
-              <Lock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <Alert>
+              <Lock className="h-4 w-4" />
               <AlertTitle>Career Path Guardado</AlertTitle>
               <AlertDescription>
                 Tu mapa ha sido guardado. Podés seguir completando los pasos de tus objetivos. Para agregar o mover objetivos, contactanos.
@@ -978,7 +978,7 @@ const DragOverlayCard = memo(function DragOverlayCard({ data }: { data: DragOver
       : "Personalizado";
 
   return (
-    <div className="rounded-2xl border-2 border-primary bg-background/95 p-4 shadow-2xl ring-2 ring-primary/40 scale-105 max-w-[300px] transform-gpu">
+    <div className="rounded-xl border-2 border-primary bg-background/95 p-4 shadow-2xl ring-2 ring-primary/40 scale-105 max-w-[300px] transform-gpu">
       <div className="flex items-center gap-2 mb-2">
         <Badge variant="outline" className="bg-primary/10 border-primary/30 text-primary text-xs">
           {data.type}
@@ -1206,7 +1206,7 @@ const SortableCanvasCard = memo(function SortableCanvasCard({
           }
         }}
         className={cn(
-          "relative rounded-2xl border bg-background/80 backdrop-blur p-3 md:p-5 shadow-sm",
+          "relative rounded-xl border bg-background/80 backdrop-blur p-3 md:p-5 shadow-sm",
           "flex flex-col",
           "transform-gpu", // GPU acceleration for smoother animations
           complete && "border-emerald-400/60 shadow-[0_0_0_1px_rgba(16,185,129,0.25)]",
@@ -1290,6 +1290,7 @@ const SortableCanvasCard = memo(function SortableCanvasCard({
               onDeleteCustom(objective.id);
             }}
             title="Eliminar objetivo"
+            aria-label="Eliminar objetivo"
           >
             <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
           </Button>
@@ -1499,7 +1500,7 @@ const DraggableObjectiveCard = memo(function DraggableObjectiveCard({ objective,
             }}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Agregar a En Foco
+            Agregar al Canvas
           </Button>
         </div>
       )}
@@ -1628,7 +1629,7 @@ const DraggableRecommendedCard = memo(function DraggableRecommendedCard({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+          className="h-7 w-7 text-muted-foreground opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
           onClick={(e) => {
             e.stopPropagation();
             onDismiss(objective.key);

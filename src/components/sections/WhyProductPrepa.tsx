@@ -1,7 +1,7 @@
 const statements = [
   {
     bold: "No es un test genérico.",
-    body: "Diseñado específicamente para evaluar las 11 competencias core de Product Management.",
+    body: "Diseñado específicamente para evaluar las 11 competencias core de Producto.",
   },
   {
     bold: "No es contenido automático.",

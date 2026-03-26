@@ -54,7 +54,7 @@ const StarterPackBuild = () => {
         <StarterPackHero
           chip="Build"
           title="Construye productos que importen"
-          subtitle="Sigue este camino paso a paso para dominar los fundamentos de Product Management."
+          subtitle="Seguí este camino paso a paso para dominar los fundamentos de Producto."
         />
 
         {/* Path Overview - recursos incluidos */}

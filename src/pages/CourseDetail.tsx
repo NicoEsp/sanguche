@@ -165,7 +165,7 @@ export default function CourseDetail() {
           description={course.description || ""}
           canonical={`/cursos/${course.slug}`}
           ogType="course"
-          keywords={`curso ${course.slug}, product management, formación PM, aprender producto`}
+          keywords={`curso ${course.slug}, producto, formación PM, aprender producto, product builder`}
           jsonLd={courseSchema}
         />
 
@@ -293,7 +293,7 @@ export default function CourseDetail() {
           description={course.description || ""}
           canonical={`/cursos/${course.slug}`}
           ogType="course"
-          keywords={`curso ${course.slug}, product management, formación PM, aprender producto`}
+          keywords={`curso ${course.slug}, producto, formación PM, aprender producto, product builder`}
           jsonLd={courseSchema}
         />
         <CoursePaywall courseTitle={course.title} />
@@ -310,7 +310,7 @@ export default function CourseDetail() {
           description={course.description || ""}
           canonical={`/cursos/${course.slug}`}
           ogType="course"
-          keywords={`curso ${course.slug}, product management, formación PM, aprender producto`}
+          keywords={`curso ${course.slug}, producto, formación PM, aprender producto, product builder`}
           jsonLd={courseSchema}
         />
 
@@ -400,7 +400,7 @@ export default function CourseDetail() {
         description={course.description || ""}
         canonical={`/cursos/${course.slug}`}
         ogType="course"
-        keywords={`curso ${course.slug}, product management, formación PM, aprender producto`}
+        keywords={`curso ${course.slug}, producto, formación PM, aprender producto, product builder`}
         jsonLd={courseSchema}
       />
 

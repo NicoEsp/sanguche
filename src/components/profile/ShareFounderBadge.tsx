@@ -19,13 +19,13 @@ import { Star, Copy, Linkedin, Share2 } from 'lucide-react';
 
 const LINKEDIN_MESSAGE = `🎉 ¡Obtuve la badge de Founder en ProductPrepa!
 
-Soy parte de los primeros usuarios que apoyaron a ProductPrepa desde su etapa inicial. Esta plataforma me ha ayudado a crecer y mejorar mis habilidades y conocimientos como Product Manager.
+Soy parte de los primeros usuarios que apoyaron a ProductPrepa desde su etapa inicial. Esta plataforma me ha ayudado a crecer y mejorar mis habilidades y conocimientos como Product Builder.
 
-Si quieres potenciar tu carrera en producto, te invito a conocerla 👇
+Si querés potenciar tu carrera en producto, te invito a conocerla 👇
 
 https://productprepa.com
 
-#ProductManagement #CareerGrowth #ProductPrepa`;
+#ProductBuilder #CareerGrowth #ProductPrepa`;
 
 export function ShareFounderBadge() {
   const [isOpen, setIsOpen] = useState(false);
@@ -82,7 +82,7 @@ export function ShareFounderBadge() {
               <DialogTitle>🎉 ¡Comparte tu badge de Founder!</DialogTitle>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">
-              "Soy parte de los primeros usuarios que apoyaron a ProductPrepa desde su etapa inicial. Esta plataforma me ha ayudado a crecer y mejorar mis habilidades y conocimientos como Product Manager..."
+              "Soy parte de los primeros usuarios que apoyaron a ProductPrepa desde su etapa inicial. Esta plataforma me ha ayudado a crecer y mejorar mis habilidades y conocimientos como Product Builder..."
             </p>
             <div className="flex gap-2 pt-2">
               <Button 

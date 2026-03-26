@@ -13,7 +13,7 @@ VALUES
   ('template-user-story-mapping', 'Template de User Story Mapping', 'Organiza historias de usuario de forma visual', 'template', 'build', 'requires_account', NULL, 11, 'intermediate', true, false, 'starterpack'),
 
 -- LEAD path resources (step_order 1-4)
-  ('guia-liderazgo-pms', 'Guía de Liderazgo para Product Managers', 'Principios fundamentales para liderar equipos de producto', 'pdf', 'lead', 'public', 1, 1, 'intermediate', true, false, 'starterpack'),
+  ('guia-liderazgo-pms', 'Guía de Liderazgo para Product Builders', 'Principios fundamentales para liderar equipos de producto', 'pdf', 'lead', 'public', 1, 1, 'intermediate', true, false, 'starterpack'),
   ('template-1-1-equipo', 'Template de 1:1 con tu equipo', 'Estructura tus reuniones one-on-one para mayor impacto', 'template', 'lead', 'requires_account', 2, 2, 'beginner', true, false, 'starterpack'),
   ('framework-delegacion-efectiva', 'Framework de Delegación Efectiva', 'Aprende a delegar de forma efectiva como líder', 'template', 'lead', 'public', 3, 3, 'intermediate', true, false, 'starterpack'),
   ('checklist-onboarding-pms', 'Checklist de Onboarding para nuevos PMs', 'Guía completa para incorporar nuevos PMs a tu equipo', 'checklist', 'lead', 'requires_account', 4, 4, 'advanced', true, false, 'starterpack'),

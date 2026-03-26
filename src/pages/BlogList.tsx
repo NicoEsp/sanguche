@@ -31,7 +31,7 @@ export default function BlogList() {
             Blog de Producto
           </h1>
           <p className="text-lg text-muted-foreground">
-            Artículos prácticos sobre Product Management, carrera y habilidades de producto.
+            Artículos prácticos sobre Producto, carrera y habilidades para builders.
           </p>
         </div>
 

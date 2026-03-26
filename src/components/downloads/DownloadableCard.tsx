@@ -121,7 +121,7 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
           <div className="flex flex-col sm:flex-row gap-3">
             <Button variant="outline" onClick={handlePreview} disabled={isLoading || isLocked}>
               {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Eye className="w-4 h-4 mr-2" />}
-              Ver PDF
+              Vista previa
             </Button>
             <Button onClick={handleDownload} disabled={isLoading || isLocked}>
               {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
