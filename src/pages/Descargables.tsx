@@ -1,4 +1,4 @@
-import { FileDown } from 'lucide-react';
+import { FileDown, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Seo } from '@/components/Seo';
@@ -25,22 +25,32 @@ export default function Descargables() {
           <div className="flex items-center gap-2">
             <FileDown className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-bold">Descargables</h1>
-            <Badge className="bg-green-500/90 text-white">Nuevo</Badge>
+            <Badge className="bg-emerald-500/90 text-white">Nuevo</Badge>
           </div>
           <p className="text-muted-foreground">
             Recursos exclusivos para Product Builders. Descargá documentos, templates y guías.
           </p>
         </div>
 
+        {showAssessmentBanner && <AssessmentInviteBanner />}
+
         {isLoading ? (
           <div className="space-y-4">
-            <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-36 w-full" />
+            <Skeleton className="h-36 w-full" />
+            <Skeleton className="h-36 w-full" />
           </div>
         ) : error ? (
-          <p className="text-destructive">Error al cargar los recursos</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+            <AlertCircle className="h-8 w-8 text-destructive" />
+            <p className="font-medium text-destructive">No pudimos cargar los recursos</p>
+            <p className="text-sm text-muted-foreground">Intentá recargar la página.</p>
+          </div>
         ) : resources?.length === 0 ? (
-          <p className="text-muted-foreground">No hay recursos disponibles</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
+            <FileDown className="h-8 w-8 text-muted-foreground" />
+            <p className="text-muted-foreground">Todavía no hay recursos disponibles. ¡Pronto habrá novedades!</p>
+          </div>
         ) : (
           <div className="space-y-4">
             {resources?.map((resource) => (
@@ -48,8 +58,6 @@ export default function Descargables() {
             ))}
           </div>
         )}
-
-        {showAssessmentBanner && <AssessmentInviteBanner />}
       </div>
     </>
   );
