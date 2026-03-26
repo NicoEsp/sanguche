@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -14,12 +15,12 @@ interface EditNameDialogProps {
   onSuccess: () => void;
 }
 
-export function EditNameDialog({ 
-  open, 
-  onOpenChange, 
-  currentName, 
-  profileId, 
-  onSuccess 
+export function EditNameDialog({
+  open,
+  onOpenChange,
+  currentName,
+  profileId,
+  onSuccess
 }: EditNameDialogProps) {
   const [name, setName] = useState(currentName || '');
   const [loading, setLoading] = useState(false);
@@ -60,25 +61,33 @@ export function EditNameDialog({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nombre completo</Label>
-            <Input 
+            <Input
               id="name"
-              value={name} 
+              value={name}
               onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !loading) handleSave(); }}
               placeholder="Tu nombre"
               disabled={loading}
             />
           </div>
         </div>
         <DialogFooter>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
             Cancelar
           </Button>
           <Button onClick={handleSave} disabled={loading}>
-            {loading ? 'Guardando...' : 'Guardar'}
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              'Guardar'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
