@@ -10,6 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 export default function Welcome() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const plan = searchParams.get('plan');
   const {
     isAuthenticated,
     user
@@ -37,6 +38,14 @@ export default function Welcome() {
     }
   }, [success, isAnonymous, isAuthenticated, trackEvent, queryClient]);
 
+  // Determine redirect destination based on plan
+  const getPostPaymentRoute = () => {
+    if (plan === 'curso_estrategia' || plan === 'cursos_all') return '/cursos';
+    return '/mentoria';
+  };
+  
+  const postPaymentRoute = getPostPaymentRoute();
+
   // Auto-redirect authenticated users after countdown
   useEffect(() => {
     if (isAuthenticated && success) {
@@ -44,7 +53,7 @@ export default function Welcome() {
         setCountdown(prev => {
           if (prev <= 1) {
             clearInterval(timer);
-            navigate('/mentoria');
+            navigate(postPaymentRoute);
             return 0;
           }
           return prev - 1;
@@ -138,8 +147,8 @@ export default function Welcome() {
                   <span>Redirigiendo a tu dashboard en {countdown}...</span>
                 </div>
                 
-                <Button onClick={() => navigate('/mentoria')} size="lg" className="w-full">
-                  Ir ahora a Premium
+                <Button onClick={() => navigate(postPaymentRoute)} size="lg" className="w-full">
+                  {plan === 'curso_estrategia' || plan === 'cursos_all' ? 'Ir a mis cursos' : 'Ir ahora a Premium'}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div> : isAnonymous ?

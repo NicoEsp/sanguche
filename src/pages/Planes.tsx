@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Crown, BookOpen, Sparkles, X, ArrowRight } from "lucide-react";
+import { Check, Star, Crown, X, ArrowRight, AlertTriangle, Search } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,13 +9,15 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { Seo } from "@/components/Seo";
 import { LemonSqueezyCheckout, PlanType } from "@/components/LemonSqueezyCheckout";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePricing } from "@/hooks/usePricing";
 import { CourseInquiryCta } from "@/components/planes/CourseInquiryCta";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useAssessmentData } from "@/hooks/useAssessmentData";
+import { ProductReviewModal } from "@/components/planes/ProductReviewModal";
 interface PlanCardProps {
   name: React.ReactNode;
   price: string;
@@ -110,15 +112,48 @@ export default function Planes() {
     loading: pricingLoading
   } = usePricing();
 
-  // Track page view
+  // Assessment personalization
+  const { result: assessmentResult, hasAssessment } = useAssessmentData();
+  const topGaps = useMemo(() => {
+    if (!assessmentResult?.gaps) return [];
+    return assessmentResult.gaps.
+    filter((g) => g.prioridad === 'Alta').
+    slice(0, 2);
+  }, [assessmentResult]);
+
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const personalizationTracked = useRef(false);
+
+  // Track page view — immediate, no async dependency
   useEffect(() => {
     trackEvent('planes_page_viewed', {
+      is_authenticated: isAuthenticated
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Track enriched data once pricing finishes loading
+  useEffect(() => {
+    if (pricingLoading || !isAuthenticated) return;
+    trackEvent('planes_page_enriched', {
       has_premium: hasActivePremium,
       has_repremium: hasActiveRePremium,
       has_curso_estrategia: hasCursoEstrategia,
       has_cursos_all: hasCursosAll
     });
-  }, [hasActivePremium, hasActiveRePremium, hasCursoEstrategia, hasCursosAll, trackEvent]);
+  }, [pricingLoading, isAuthenticated, hasActivePremium, hasActiveRePremium, hasCursoEstrategia, hasCursosAll, trackEvent]);
+
+  // Track personalization shown
+  useEffect(() => {
+    if (personalizationTracked.current) return;
+    if (topGaps.length > 0) {
+      personalizationTracked.current = true;
+      trackEvent('planes_personalization_shown', {
+        gaps_shown: topGaps.map((g) => g.label),
+        gap_count: topGaps.length
+      });
+    }
+  }, [topGaps, trackEvent]);
 
   // Track page abandonment
   useEffect(() => {
@@ -156,7 +191,7 @@ export default function Planes() {
       await queryClient.invalidateQueries({
         queryKey: ['subscription']
       });
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
       const currentSubscription: any = queryClient.getQueryData(['subscription', user?.id]);
       if (currentSubscription?.status === 'active') {
         trackEvent('checkout_completed', {
@@ -244,7 +279,7 @@ export default function Planes() {
   {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "mainEntity": planesFaqs.map(faq => ({
+    "mainEntity": planesFaqs.map((faq) => ({
       "@type": "Question",
       "name": faq.question,
       "acceptedAnswer": {
@@ -258,38 +293,64 @@ export default function Planes() {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Inicio",
-        "item": "https://productprepa.com"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": "Planes y Precios",
-        "item": "https://productprepa.com/planes"
-      }
-    ]
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Inicio",
+      "item": "https://productprepa.com"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Planes y Precios",
+      "item": "https://productprepa.com/planes"
+    }]
+
   }];
   return <>
       <Seo jsonLd={planesSchema} />
+
+      {/* Personalization banner */}
+      {hasAssessment && topGaps.length > 0 && !hasActivePremium && !hasActiveRePremium &&
+    <div className="max-w-4xl mx-auto px-4 pt-8">
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-5">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-foreground mb-1">
+                  Tu evaluación detectó áreas críticas a mejorar
+                </p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {topGaps.map((gap) =>
+              <Badge key={gap.label} variant="outline" className="border-primary/50 text-primary">
+                      {gap.label}
+                    </Badge>
+              )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Con un plan Premium, trabajás estas áreas con mentoría 1:1 y recursos personalizados para tu perfil.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+    }
       
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      <div className="min-h-screen bg-background">
         {/* Hero Section */}
-        <section className="pt-12 pb-8 px-4">
+        <section className="pt-12 pb-6 px-4">
           <div className="max-w-6xl mx-auto text-center">
-            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent md:text-4xl">
-              Elige el plan que mejor se adapte a tu momento
+            <h1 className="text-3xl sm:text-4xl font-bold mb-4 tracking-tight">
+              Elegí el plan que mejor se adapte a tu momento
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-4 leading-relaxed">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados.
             </p>
           </div>
         </section>
 
-        {/* Subscription Plans - Row 1 */}
-        <section className="px-4 py-6">
+        {/* Subscription Plans */}
+        <section className="px-4 py-8">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl font-bold text-center mb-8">Planes de Suscripción</h2>
             
@@ -318,34 +379,115 @@ export default function Planes() {
         </section>
 
         {/* Courses Info Block */}
-        <section className="px-4 py-8">
+        <section className="px-4 py-10">
           <div className="max-w-4xl mx-auto">
-            <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-                <div className="flex-shrink-0">
-                  <div className="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center">
-                    <BookOpen className="w-8 h-8 text-primary" />
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold mb-2">¿Estás buscando un buen curso relacionado a Producto?</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Además de los planes de suscripción,  ProductPrepa cuenta con cursos especializados con acceso de por vida. Comprá un curso individual o el bundle completo.
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    <strong>Tip:</strong> Los usuarios RePremium tienen incluido el acceso a todos los cursos. 
-                  </p>
-                  <Button asChild>
-                    <Link to="/cursos-info">
-                      Ver cursos disponibles
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Link>
-                  </Button>
-                </div>
+            <Card className="p-6 border-primary/20">
+              <div className="flex-1">
+                <h3 className="text-xl font-bold mb-2">¿Buscás un buen curso de Producto?</h3>
+                <p className="text-muted-foreground mb-2">
+                  Además de los planes de suscripción, ProductPrepa tiene cursos especializados con acceso de por vida. Comprá uno individual o el bundle completo.
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  <strong>Tip:</strong> Los usuarios RePremium tienen incluido el acceso a todos los cursos.
+                </p>
+                <Button asChild>
+                  <Link to="/cursos-info">
+                    Ver cursos disponibles
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
               </div>
             </Card>
           </div>
         </section>
+
+        {/* Product Review - One-time payment */}
+        <section className="px-4 py-16">
+          <div className="max-w-lg mx-auto">
+            <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">¿Ya tenés tu propio producto?</h3>
+            <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">Validá tus decisiones con alguien externo y con experiencia</p>
+            
+            <div className="relative group pt-4">
+              {/* Badge - outside card to avoid clipping */}
+              <div className="absolute -top-0 left-1/2 transform -translate-x-1/2 z-10">
+                <Badge className="px-4 py-1.5 shadow-lg shadow-emerald-900/30 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold tracking-wide border-0 text-xs uppercase">
+                  Pago único
+                </Badge>
+              </div>
+
+              {/* Outer glow */}
+              <div className="absolute -inset-1 top-3 bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-60 group-hover:opacity-100 pointer-events-none" />
+              
+              <Card className="relative flex flex-col overflow-hidden border-emerald-500/30 bg-gradient-to-br from-emerald-950/90 via-emerald-900/80 to-teal-950/90 text-white shadow-2xl shadow-emerald-900/20 rounded-2xl">
+                {/* Top accent bar */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 pointer-events-none" />
+                
+                {/* Subtle background pattern */}
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+
+                <CardHeader className="relative z-10 text-center pb-2 pt-8">
+                  {/* Icon */}
+                  <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/20 flex items-center justify-center">
+                    <Search className="w-7 h-7 text-emerald-300" />
+                  </div>
+                  
+                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white via-emerald-100 to-teal-200 bg-clip-text text-transparent">
+                    Productastic Review
+                  </CardTitle>
+                  
+                  <CardDescription className="text-emerald-200/70 mt-2 text-sm leading-relaxed max-w-sm mx-auto shadow-none font-bold">
+                    ¿Tomaste decisiones de producto y querés validarlas con alguien externo?<br />
+                    Reviso tu research, hipótesis y decisiones hasta acá. No importa como construiste tu producto, analizo tu proceso hasta acá.
+                  </CardDescription>
+
+                  <div className="mt-5 flex items-baseline justify-center gap-3">
+                    <span className="text-lg text-white/40 line-through decoration-emerald-500/50">USD 100</span>
+                    <span className="text-2xl font-bold text-white/90">USD 50</span>
+                  </div>
+                  <Badge className="mt-2 mx-auto bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
+                    Precio de lanzamiento
+                  </Badge>
+                </CardHeader>
+
+                <CardContent className="relative z-10 flex-1 flex flex-col px-8 pb-8">
+                  {/* Divider */}
+                  <div className="w-full h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent my-4" />
+                  
+                  <ul className="space-y-3 flex-1">
+                    {[
+                      { text: "Revisión de tu research y hallazgos clave", highlight: true },
+                      { text: "Análisis de hipótesis y decisiones de producto", highlight: true },
+                      { text: "Feedback sobre flujos críticos y priorización", highlight: false },
+                      { text: "Informe detallado en 72 hs", highlight: false },
+                      { text: "Recomendaciones accionables paso a paso", highlight: false },
+                    ].map((feature, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${feature.highlight ? 'bg-emerald-500/20 ring-1 ring-emerald-500/30' : 'bg-white/5'}`}>
+                          <Check className={`w-3 h-3 ${feature.highlight ? 'text-emerald-300' : 'text-emerald-400/60'}`} />
+                        </div>
+                        <span className={`text-sm ${feature.highlight ? 'text-white font-medium' : 'text-emerald-100/70'}`}>{feature.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-8">
+                    <Button
+                      className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold shadow-lg shadow-emerald-900/30 border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-emerald-500/20 hover:shadow-xl"
+                      onClick={() => {
+                        trackEvent('product_review_interest_clicked');
+                        setReviewModalOpen(true);
+                      }}
+                    >
+                      Quiero saber más
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        <ProductReviewModal open={reviewModalOpen} onOpenChange={setReviewModalOpen} />
 
         {/* Comparison Table */}
         <section className="py-12 px-4">
@@ -365,7 +507,7 @@ export default function Planes() {
                 <TableBody>
                   {/* Autoevaluación */}
                   <TableRow className="bg-muted/30">
-                    <TableCell colSpan={4} className="font-semibold text-primary">Autoevaluación</TableCell>
+                    <TableCell colSpan={4} className="font-semibold text-primary">Sin compromiso · Te respondo en menos de 24 hs</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>Autoevaluación completa de habilidades PM</TableCell>

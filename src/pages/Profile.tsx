@@ -47,11 +47,11 @@ import {
   RefreshCw,
   ShoppingBag,
   Sparkles,
-  GraduationCap,
-  ArrowUpRight
+  GraduationCap
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { usePricing } from '@/hooks/usePricing';
 
 export default function Profile() {
   const { user, signOut, isSigningOut } = useAuth();
@@ -63,6 +63,7 @@ export default function Profile() {
   const [editNameOpen, setEditNameOpen] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
   const { toast } = useToast();
+  const pricing = usePricing();
 
   const handleCancelSubscription = async () => {
     setIsCanceling(true);
@@ -125,7 +126,15 @@ export default function Profile() {
   const formatNextBillingDate = () => {
     if (!subscription?.current_period_end) return null;
     const date = format(new Date(subscription.current_period_end), "dd/MM/yyyy", { locale: es });
-    return `Próximo cobro: ${date} - USD 9,99/mes`;
+    const plan = subscription?.plan;
+    const priceMap: Record<string, string> = {
+      premium: pricing.premium.formatted,
+      repremium: pricing.repremium.formatted,
+      curso_estrategia: pricing.curso_estrategia.formatted,
+      cursos_all: pricing.cursos_all.formatted,
+    };
+    const price = plan ? priceMap[plan] || '' : '';
+    return `Próximo cobro: ${date}${price ? ` - ${price}/mes` : ''}`;
   };
 
   const formatLastAssessmentDate = () => {
@@ -244,7 +253,7 @@ export default function Profile() {
         keywords="perfil usuario, configuración cuenta, suscripción PM"
       />
       
-      <div className="container py-8 space-y-6">
+      <div className="container py-8 sm:py-12 px-4 sm:px-6 space-y-6">
         {/* Sección 1: Información Personal */}
         <Card>
           <CardHeader>
@@ -347,11 +356,8 @@ export default function Profile() {
               if (!upgradeInfo) return null;
               
               return (
-                <div className="p-4 bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-950/20 dark:to-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800">
+                <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 bg-amber-200 dark:bg-amber-800 rounded-full flex items-center justify-center">
-                      <ArrowUpRight className="w-4 h-4 text-amber-700 dark:text-amber-300" />
-                    </div>
                     <div className="flex-1 space-y-3">
                       <div>
                         <p className="font-medium text-amber-900 dark:text-amber-100">{upgradeInfo.title}</p>
@@ -431,7 +437,7 @@ export default function Profile() {
 
         {/* Sección 3: Estadísticas de Career Path */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">Estadísticas de Career Path</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">Estadísticas de Career Path</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <ProfileStats 
               icon={FileText} 

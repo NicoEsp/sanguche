@@ -126,9 +126,9 @@ export default function Recommendations() {
         canonical="/mentoria"
         keywords="mentoría PM, coaching producto, recomendaciones personalizadas, guía producto, mentor PM"
       />
-      <section className="container py-10 space-y-8 animate-fade-in">
+      <section className="container py-8 sm:py-12 px-4 sm:px-6 space-y-8 animate-fade-in">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Mentoría personalizada</h1>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Mentoría personalizada</h1>
           <p className="text-lg text-muted-foreground">
             Plan de crecimiento curado específicamente para tu perfil
           </p>

@@ -5,7 +5,7 @@ import { findOrCreateUser } from './helpers.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-signature',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-signature, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 // Mapping from variant ID to plan configuration
@@ -309,15 +309,22 @@ serve(async (req) => {
             
           console.log('[Webhook] One-time purchase activated successfully');
         } else {
-          // For subscriptions, record the order with paid_amount (subscription_created will complete activation)
+          // For subscriptions, record the order with paid_amount and set plan proactively
+          // This ensures the user has access even if subscription_created webhook is delayed
+          const subPlan = planConfig?.plan || 'premium';
+          console.log('[Webhook] Subscription order - setting plan proactively:', subPlan);
+          
           await supabase
             .from('user_subscriptions')
             .upsert({
               user_id: userId,
+              plan: subPlan,
+              status: 'active',
+              purchase_type: 'subscription',
               lemon_squeezy_order_id: orderId,
               lemon_squeezy_customer_id: customerId,
               lemon_squeezy_variant_id: variantId,
-              paid_amount: orderTotal || null, // Store actual paid amount
+              paid_amount: orderTotal || null,
               updated_at: new Date().toISOString(),
             }, { 
               onConflict: 'user_id',
@@ -398,10 +405,30 @@ serve(async (req) => {
 
       case 'subscription_updated':
         console.log(`[Webhook] Processing subscription_updated - Status: ${status}`);
+        
+        // Map Lemon Squeezy statuses to our DB statuses
+        // LS statuses: active, paused, past_due, unpaid, cancelled, expired
+        const mappedStatus = (() => {
+          switch (status) {
+            case 'active':
+              return 'active' as const;
+            case 'cancelled':
+            case 'expired':
+              return 'cancelled' as const;
+            case 'paused':
+            case 'past_due':
+            case 'unpaid':
+            default:
+              return 'inactive' as const;
+          }
+        })();
+        
+        console.log(`[Webhook] Mapped LS status "${status}" -> DB status "${mappedStatus}"`);
+        
         await supabase
           .from('user_subscriptions')
           .update({
-            status: status === 'active' ? 'active' : 'inactive',
+            status: mappedStatus,
             current_period_end: event!.data.attributes.renews_at
               ? new Date(event!.data.attributes.renews_at).toISOString()
               : null,

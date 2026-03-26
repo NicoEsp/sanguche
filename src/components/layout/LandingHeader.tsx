@@ -39,6 +39,7 @@ export function LandingHeader() {
               href="https://x.com/nicoproducto"
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="NicoProducto en X (Twitter)"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <Twitter className="h-4 w-4" />
@@ -47,6 +48,7 @@ export function LandingHeader() {
               href="https://www.linkedin.com/in/nicolas-espindola/"
               target="_blank"
               rel="noopener noreferrer"
+              aria-label="NicoProducto en LinkedIn"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <Linkedin className="h-4 w-4" />
@@ -107,6 +109,7 @@ export function LandingHeader() {
                       href="https://x.com/nicoproducto"
                       target="_blank"
                       rel="noopener noreferrer"
+                      aria-label="NicoProducto en X (Twitter)"
                       className="text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <Twitter className="h-4 w-4" />
@@ -115,6 +118,7 @@ export function LandingHeader() {
                       href="https://www.linkedin.com/in/nicolas-espindola/"
                       target="_blank"
                       rel="noopener noreferrer"
+                      aria-label="NicoProducto en LinkedIn"
                       className="text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <Linkedin className="h-4 w-4" />

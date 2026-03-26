@@ -10,11 +10,14 @@ interface ProfileStatsProps {
 }
 
 export function ProfileStats({ icon: Icon, label, value, link }: ProfileStatsProps) {
+  const isStringValue = typeof value === 'string';
   const content = (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer">
-      <CardContent className="pt-6 flex flex-col items-center text-center gap-2">
-        <Icon className="h-8 w-8 text-primary" />
-        <div className="text-3xl font-bold">{value}</div>
+    <Card className="hover:shadow-md transition-shadow cursor-pointer min-w-0">
+      <CardContent className="pt-6 px-3 flex flex-col items-center text-center gap-2 min-w-0">
+        <Icon className="h-8 w-8 text-primary shrink-0" />
+        <div className={`font-bold break-words overflow-hidden text-ellipsis w-full ${isStringValue ? 'text-xl sm:text-2xl' : 'text-3xl'}`}>
+          {value}
+        </div>
         <div className="text-sm text-muted-foreground">{label}</div>
       </CardContent>
     </Card>

@@ -4,7 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 // Variant configuration for all products
@@ -211,7 +211,7 @@ serve(async (req) => {
             }
           },
           product_options: {
-            redirect_url: `${req.headers.get('origin')}/welcome?success=true&anonymous=${String(isAnonymousCheckout)}&intent=${checkoutIntentId}&email=${encodeURIComponent(checkoutEmail!)}&plan=${plan}`
+            redirect_url: `${req.headers.get('origin') || 'https://sanguche.lovable.app'}/welcome?success=true&anonymous=${String(isAnonymousCheckout)}&intent=${checkoutIntentId}&email=${encodeURIComponent(checkoutEmail!)}&plan=${plan}`
           }
         },
         relationships: {

@@ -71,7 +71,26 @@ export function LemonSqueezyCheckout({
       });
 
       if (error) {
-        throw error;
+        // supabase.functions.invoke wraps non-2xx as FunctionsHttpError
+        // Try to extract the actual JSON error from the response context
+        let serverMessage: string | undefined;
+        try {
+          // FunctionsHttpError has a context with the original response
+          const context = (error as any)?.context;
+          if (context instanceof Response) {
+            const body = await context.json();
+            serverMessage = body?.message || body?.error;
+          }
+        } catch {
+          // Could not parse server response, fall through
+        }
+        
+        // If it's a rate limit (429), throw with identifiable message
+        if (serverMessage?.includes('Demasiados') || serverMessage?.includes('rate') || (error as any)?.context?.status === 429) {
+          throw new Error('429: ' + (serverMessage || 'Rate limited'));
+        }
+        
+        throw new Error(serverMessage || 'Error al crear el checkout');
       }
 
       if (data?.checkoutUrl) {
