@@ -13,7 +13,7 @@ import { MentoriaHero } from "@/components/mentoria/MentoriaHero";
 import { ProfileAnalysis } from "@/components/mentoria/ProfileAnalysis";
 import { DedicatedResources } from "@/components/mentoria/DedicatedResources";
 import { UserExercises } from "@/components/mentoria/UserExercises";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useQueryClient } from "@tanstack/react-query";
@@ -83,15 +83,10 @@ export default function Recommendations() {
   if (subscriptionLoading || assessmentLoading || profileLoading || hasActivePremium === undefined) {
     return (
       <>
-        <Seo
-          title="Mentoría personalizada — ProductPrepa"
-          description="Descubrí mentoría curada para cerrar tus áreas de mejora en Producto."
-          canonical="/mentoria"
-          keywords="mentoría PM, coaching producto, recomendaciones personalizadas, guía producto, mentor PM"
-        />
+        <Seo />
         <div className="container py-10 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
             <p className="text-muted-foreground">Cargando...</p>
           </div>
         </div>
@@ -102,15 +97,10 @@ export default function Recommendations() {
   if (isFullyLoaded && !hasAccess) {
     return (
       <>
-        <Seo
-          title="Mentoría personalizada — ProductPrepa"
-          description="Descubrí mentoría curada para cerrar tus áreas de mejora en Producto."
-          canonical="/mentoria"
-          keywords="mentoría PM, coaching producto, recomendaciones personalizadas, guía producto, mentor PM"
-        />
+        <Seo />
         <div className="container mx-auto p-6 max-w-6xl">
-          <PaywallCard 
-            title="Accede a Recomendaciones Personalizadas"
+          <PaywallCard
+            title="Accede a tu Mentoría Personalizada"
             feature="mentoría personalizada"
           />
         </div>
@@ -120,12 +110,7 @@ export default function Recommendations() {
 
   return (
     <>
-      <Seo
-        title="Mentoría personalizada — ProductPrepa"
-        description="Descubrí mentoría curada para cerrar tus áreas de mejora en Producto."
-        canonical="/mentoria"
-        keywords="mentoría PM, coaching producto, recomendaciones personalizadas, guía producto, mentor PM"
-      />
+      <Seo />
       <section className="container py-8 sm:py-12 px-4 sm:px-6 space-y-8 animate-fade-in">
         <div className="text-center space-y-2">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Mentoría personalizada</h1>
@@ -142,9 +127,9 @@ export default function Recommendations() {
 
         {/* Assessment Required Alert */}
         {!hasAssessment && (
-          <Alert className="border-warning/50 bg-warning/5">
-            <AlertTriangle className="h-4 w-4 text-warning" />
-            <AlertDescription className="text-warning-foreground">
+          <Alert className="border-amber-500/50 bg-amber-500/5">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <AlertDescription className="text-amber-700 dark:text-amber-400">
               Para obtener recomendaciones personalizadas, primero necesitas completar tu{" "}
               <Link to="/autoevaluacion" className="underline font-medium">
                 autoevaluación de Producto

@@ -16,7 +16,7 @@ export const ProfileAnalysis = memo(function ProfileAnalysis({ result }: Profile
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            Tu perfil de PM
+            Tu perfil de Product Builder
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -30,8 +30,8 @@ export const ProfileAnalysis = memo(function ProfileAnalysis({ result }: Profile
               <div className="text-sm text-muted-foreground">Promedio global</div>
             </div>
             <div className="text-center p-4 bg-accent/50 rounded-lg">
-              <div className="text-sm font-medium text-foreground">Especialización</div>
-              <div className="text-sm text-muted-foreground">{result.specialization}</div>
+              <div className="text-sm font-bold text-foreground">{result.specialization}</div>
+              <div className="text-sm text-muted-foreground">Especialización</div>
             </div>
           </div>
           <div className="p-4 bg-muted/50 rounded-lg">
@@ -44,7 +44,7 @@ export const ProfileAnalysis = memo(function ProfileAnalysis({ result }: Profile
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-warning" />
+            <Target className="h-5 w-5 text-amber-500" />
             Áreas de oportunidad identificadas
           </CardTitle>
         </CardHeader>
@@ -56,14 +56,14 @@ export const ProfileAnalysis = memo(function ProfileAnalysis({ result }: Profile
               </p>
               <div className="grid gap-3">
                 {result.neutralAreas?.map((area, index) => (
-                  <div key={area.key} className="flex items-center justify-between p-3 bg-warning/5 border border-warning/20 rounded-lg">
+                  <div key={area.key} className="flex items-center justify-between p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
                     <div className="flex-1">
                       <div className="font-medium text-foreground">{area.label}</div>
                       <div className="text-sm text-muted-foreground">
                         Nivel actual: {area.value}/5 • Objetivo: 4+/5
                       </div>
                     </div>
-                    <Badge variant="secondary" className="bg-warning/10 text-warning-foreground">
+                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-700 dark:text-amber-400">
                       {area.value === 3 ? "Desarrollo" : "Optimización"}
                     </Badge>
                   </div>

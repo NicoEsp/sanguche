@@ -64,7 +64,7 @@ export function MentoriaHero({ mentoriaCompleted, lastMentoriaDate }: MentoriaHe
             <Button 
               size="lg" 
               onClick={handleScheduleClick}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3 text-lg"
+              className="px-8 text-lg"
             >
               <Calendar className="mr-2 h-5 w-5" />
               Agendar Sesión Mensual
@@ -108,7 +108,7 @@ export function MentoriaHero({ mentoriaCompleted, lastMentoriaDate }: MentoriaHe
             <Button 
               size="lg" 
               onClick={handleProgressClick}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3 text-lg"
+              className="px-8 text-lg"
             >
               <TrendingUp className="mr-2 h-5 w-5" />
               Ver mi Career Path
@@ -152,7 +152,7 @@ export function MentoriaHero({ mentoriaCompleted, lastMentoriaDate }: MentoriaHe
           <Button 
             size="lg" 
             onClick={handleScheduleClick}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3 text-lg"
+            className="px-8 text-lg"
           >
             <Calendar className="mr-2 h-5 w-5" />
             Agendar Sesión

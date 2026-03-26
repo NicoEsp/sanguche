@@ -8,7 +8,7 @@ import { useMyExercises, useUpdateExercise } from "@/hooks/useUserExercises";
 import { useState, memo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { FileText, Calendar, Link as LinkIcon, Send, Save, CheckCircle2 } from "lucide-react";
+import { FileText, Calendar, Link as LinkIcon, Send, Save, CheckCircle2, Briefcase, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const statusLabels = {
@@ -175,19 +175,25 @@ export const UserExercises = memo(function UserExercises() {
             </Button>
             {!isReadOnly && (
               <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={handleSaveDraft}
                   disabled={updateExercise.isPending}
                 >
-                  <Save className="h-4 w-4 mr-2" />
+                  {updateExercise.isPending
+                    ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    : <Save className="h-4 w-4 mr-2" />
+                  }
                   Guardar Borrador
                 </Button>
-                <Button 
+                <Button
                   onClick={handleSubmit}
                   disabled={updateExercise.isPending || !submissionText.trim()}
                 >
-                  <Send className="h-4 w-4 mr-2" />
+                  {updateExercise.isPending
+                    ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    : <Send className="h-4 w-4 mr-2" />
+                  }
                   Enviar Respuesta
                 </Button>
               </div>
@@ -201,7 +207,10 @@ export const UserExercises = memo(function UserExercises() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>💼 Mis Ejercicios</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Briefcase className="h-5 w-5 text-primary" />
+          Mis Ejercicios
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="pending">
@@ -216,8 +225,9 @@ export const UserExercises = memo(function UserExercises() {
 
           <TabsContent value="pending" className="space-y-4 mt-4">
             {pendingExercises.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                No tienes ejercicios pendientes
+              <div className="text-center py-10 space-y-2">
+                <FileText className="h-8 w-8 text-muted-foreground/40 mx-auto" />
+                <p className="text-sm text-muted-foreground">No tienes ejercicios pendientes</p>
               </div>
             ) : (
               pendingExercises.map(exercise => (
@@ -250,8 +260,9 @@ export const UserExercises = memo(function UserExercises() {
 
           <TabsContent value="completed" className="space-y-4 mt-4">
             {completedExercises.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                Aún no has completado ningún ejercicio
+              <div className="text-center py-10 space-y-2">
+                <CheckCircle2 className="h-8 w-8 text-muted-foreground/40 mx-auto" />
+                <p className="text-sm text-muted-foreground">Aún no has completado ningún ejercicio</p>
               </div>
             ) : (
               completedExercises.map(exercise => (

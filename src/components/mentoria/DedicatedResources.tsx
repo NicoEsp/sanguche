@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, BookOpen, Sparkles, RefreshCcw, Gift } from "lucide-react";
+import { ExternalLink, BookOpen, Sparkles, RefreshCcw, Gift, Loader2 } from "lucide-react";
 import { useUserDedicatedResources, ResourceType } from "@/hooks/useUserDedicatedResources";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { formatDistanceToNow } from "date-fns";
@@ -46,7 +46,7 @@ export function DedicatedResources() {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </CardContent>
       </Card>
     );
@@ -116,7 +116,10 @@ export function DedicatedResources() {
             onClick={() => refetchDedicated()}
             disabled={loadingDedicated}
           >
-            <RefreshCcw className="h-4 w-4" />
+            {loadingDedicated
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <RefreshCcw className="h-4 w-4" />
+            }
             Actualizar
           </Button>
         </div>
