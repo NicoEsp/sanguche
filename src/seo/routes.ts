@@ -130,6 +130,15 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     imageAlt: DEFAULT_IMAGE_ALT,
   },
 
+  '/mentoria': {
+    title: 'Mentoría personalizada — ProductPrepa',
+    description: 'Descubrí mentoría curada para cerrar tus áreas de mejora en Producto.',
+    canonical: `${SITE_URL}/mentoria`,
+    keywords: 'mentoría PM, coaching producto, recomendaciones personalizadas, guía producto, mentor product builder',
+    image: DEFAULT_IMAGE,
+    imageAlt: DEFAULT_IMAGE_ALT,
+  },
+
   '/blog': {
     title: 'Blog de Producto | ProductPrepa',
     description: 'Artículos prácticos sobre Producto: cómo preparar entrevistas, diferencias de roles, métricas, estrategia y más.',
