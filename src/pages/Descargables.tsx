@@ -24,7 +24,7 @@ export default function Descargables() {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <FileDown className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">Descargables</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Descargables</h1>
             <Badge className="bg-emerald-500/90 text-white">Nuevo</Badge>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Descargables</h1>
             <Badge className="bg-green-500/90 text-white">Nuevo</Badge>
