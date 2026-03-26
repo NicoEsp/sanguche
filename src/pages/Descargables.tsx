@@ -26,8 +26,6 @@ export default function Descargables() {
             <FileDown className="h-8 w-8 text-primary" />
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Descargables</h1>
             <Badge className="bg-emerald-500/90 text-white">Nuevo</Badge>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Descargables</h1>
-            <Badge className="bg-green-500/90 text-white">Nuevo</Badge>
           </div>
           <p className="text-muted-foreground">
             Recursos exclusivos para Product Builders. Descargá documentos, templates y guías.
