@@ -437,7 +437,7 @@ export default function AdminBlog() {
                   id="meta_keywords"
                   value={formData.meta_keywords}
                   onChange={(e) => setFormData(prev => ({ ...prev, meta_keywords: e.target.value }))}
-                  placeholder="product manager, entrevistas PM, carrera producto"
+                  placeholder="product builder, entrevistas PM, carrera producto"
                 />
               </div>
             </div>

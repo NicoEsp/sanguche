@@ -1,6 +1,6 @@
 # ProductPrepa
 
-Plataforma de crecimiento profesional para Product Managers. Permite evaluarse en dominios clave, identificar áreas de mejora, acceder a mentoría personalizada, cursos, recursos descargables y un Career Path estructurado.
+Plataforma de crecimiento profesional para Product Builders. Permite evaluarse en dominios clave, identificar áreas de mejora, acceder a mentoría personalizada, cursos, recursos descargables y un Career Path estructurado.
 
 **URL de producción:** https://productprepa.com
 

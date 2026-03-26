@@ -17,7 +17,7 @@ INSERT INTO public.downloadable_resources (
 ) VALUES (
   'Prepárate para una entrevista de PM',
   'preparate-entrevista-pm',
-  'Guía para preparar tu narrativa profesional y destacar en entrevistas de Product Manager. Incluye frameworks para logros, liderazgo y decisiones difíciles.',
+  'Guía para preparar tu narrativa profesional y destacar en entrevistas de Product Builder. Incluye frameworks para logros, liderazgo y decisiones difíciles.',
   'guide',
   'preparate-entrevista-pm.pdf',
   'downloads',
