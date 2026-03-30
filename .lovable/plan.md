@@ -1,50 +1,47 @@
 
 
-## Problem
+## Agregar metadata SEO de Productastic Review a la ruta /planes
 
-Currently, non-logged-in users cannot join the Productastic Review waitlist because:
-1. **Code blocks it**: Line 48-51 shows a toast saying "Necesitás estar logueado" if no user session exists
-2. **RLS blocks it**: The `product_review_waitlist_insert_own` policy requires `user_id = get_profile_id_for_auth()`, and anonymous users are explicitly denied by `product_review_waitlist_deny_anon`
-3. **The `user_id` column** is nullable (good), but no policy allows anonymous inserts
+### Qué se hará
 
-## Plan
+Enriquecer la entrada de `/planes` en `src/seo/routes.ts` para que incluya referencias a Productastic Review en el título y descripción, y agregar un bloque JSON-LD de tipo `Service` que posicione el servicio en buscadores.
 
-### 1. Database migration: Allow anonymous inserts
+### Cambios
 
-- Add a new RLS policy `product_review_waitlist_insert_anon` for `anon` role on INSERT, with `WITH CHECK (true)` so unauthenticated users can insert rows (with `user_id` as NULL)
-- Modify the existing `product_review_waitlist_deny_anon` policy to only deny SELECT (not ALL), so anon users can insert but not read
+**Archivo: `src/seo/routes.ts`**
 
-Specifically:
-```sql
--- Remove the blanket deny for anon
-DROP POLICY "product_review_waitlist_deny_anon" ON product_review_waitlist;
+1. Actualizar el `title` y `description` de la ruta `/planes` para mencionar Productastic Review junto a los planes existentes.
+2. Agregar un campo `jsonLd` con schema `Service` para Productastic Review (nombre, descripción, precio USD 50, provider ProductPrepa).
 
--- Anon can't read waitlist data
-CREATE POLICY "product_review_waitlist_deny_anon_select"
-  ON product_review_waitlist FOR SELECT TO anon USING (false);
+**Archivo: `src/pages/Planes.tsx`** (si no usa `<Seo />` aún)
 
--- Anon can insert into waitlist (user_id will be NULL)
-CREATE POLICY "product_review_waitlist_insert_anon"
-  ON product_review_waitlist FOR INSERT TO anon
-  WITH CHECK (user_id IS NULL);
+3. Verificar que el componente `<Seo />` esté presente para que consuma los metadatos automáticamente.
+
+### Ejemplo de JSON-LD a incluir
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Service",
+  "name": "Productastic Review",
+  "description": "Revisión experta de tu proceso de producto: research, hipótesis y decisiones con recomendaciones accionables.",
+  "provider": {
+    "@type": "Organization",
+    "name": "ProductPrepa",
+    "url": "https://productprepa.com"
+  },
+  "offers": {
+    "@type": "Offer",
+    "price": "50",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/PreOrder"
+  }
+}
 ```
 
-### 2. Update ProductReviewModal.tsx
+### Impacto
 
-- Remove the `if (!user)` block that blocks submission
-- Remove the `if (!profile?.id)` block
-- When inserting, pass `user_id: profile?.id ?? null` so logged-in users get linked and anonymous users insert with NULL
-- Keep the `useAuth` and `useUserProfile` hooks but make them optional for the flow
-
-The key change in `handleSubmit`:
-```typescript
-// No longer block non-logged-in users
-const { error } = await supabase
-  .from("product_review_waitlist")
-  .insert({ email: result.data, user_id: profile?.id ?? null });
-```
-
-### Files changed
-- **Migration**: New SQL migration for RLS policy updates
-- **`src/components/planes/ProductReviewModal.tsx`**: Remove auth gates, pass nullable user_id
+- Sin nuevas rutas ni componentes.
+- Mejora el posicionamiento de "Productastic Review" en búsquedas sin necesidad de landing dedicada.
+- Compatible con la estrategia SEO existente (SPA + `Seo.tsx` automático).
 
