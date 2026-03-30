@@ -41,12 +41,30 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
   },
 
   '/planes': {
-    title: 'Planes y Precios | ProductPrepa',
-    description: 'Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados.',
+    title: 'Planes, Precios y Productastic Review | ProductPrepa',
+    description: 'Elegí tu plan ideal: autoevaluación gratuita, mentoría personalizada, cursos y Productastic Review — revisión experta de tu proceso de producto por USD 50.',
     canonical: `${SITE_URL}/planes`,
-    keywords: 'precios productprepa, planes suscripción, premium PM, mentoría producto, cursos PM, mentoría product builder precio, curso PM con tutor, inversión formación producto',
+    keywords: 'precios productprepa, planes suscripción, premium PM, mentoría producto, cursos PM, mentoría product builder precio, curso PM con tutor, inversión formación producto, productastic review, revisión de producto',
     image: DEFAULT_IMAGE,
     imageAlt: DEFAULT_IMAGE_ALT,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      name: 'Productastic Review',
+      description: 'Revisión experta de tu proceso de producto: research, hipótesis y decisiones con recomendaciones accionables.',
+      provider: {
+        '@type': 'Organization',
+        name: 'ProductPrepa',
+        url: SITE_URL,
+      },
+      offers: {
+        '@type': 'Offer',
+        price: '50',
+        priceCurrency: 'USD',
+        availability: 'https://schema.org/PreOrder',
+      },
+      url: `${SITE_URL}/planes`,
+    },
   },
 
   '/cursos-info': {
