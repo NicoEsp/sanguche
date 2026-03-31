@@ -13,6 +13,7 @@ const VARIANT_CONFIG: Record<string, { variantId: string; purchaseType: 'subscri
   'repremium': { variantId: '1170898', purchaseType: 'subscription' },
   'curso_estrategia': { variantId: '1170897', purchaseType: 'one_time' },
   'cursos_all': { variantId: '1170900', purchaseType: 'one_time' },
+  'productastic_review': { variantId: '1467096', purchaseType: 'one_time' },
 };
 
 type PlanType = keyof typeof VARIANT_CONFIG;

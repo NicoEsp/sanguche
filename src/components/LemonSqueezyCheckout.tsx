@@ -178,6 +178,8 @@ export function LemonSqueezyCheckout({
         return `Comprar Curso`;
       case 'cursos_all':
         return `Comprar Todos los Cursos`;
+      case 'productastic_review':
+        return `Pagar USD 50`;
       default:
         return `Comprar`;
     }
