@@ -8,7 +8,7 @@ import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { EmailCaptureDialog } from "./EmailCaptureDialog";
 import { usePricing } from "@/hooks/usePricing";
 
-export type PlanType = 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all';
+export type PlanType = 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'productastic_review';
 
 interface LemonSqueezyCheckoutProps {
   plan?: PlanType;
