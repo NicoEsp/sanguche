@@ -471,11 +471,12 @@ export default function Planes() {
                   </ul>
 
                   <div className="mt-8">
-                    <LemonSqueezyCheckout
-                      plan="productastic_review"
-                      buttonText="Pagar USD 50"
+                    <Button
+                      onClick={() => setReviewModalOpen(true)}
                       className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold shadow-lg shadow-emerald-900/30 border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-emerald-500/20 hover:shadow-xl"
-                    />
+                    >
+                      Quiero mi review
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
