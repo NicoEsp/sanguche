@@ -18,6 +18,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { ProductReviewModal } from "@/components/planes/ProductReviewModal";
+import { SocialProofBlock } from "@/components/planes/SocialProofBlock";
 interface PlanCardProps {
   name: React.ReactNode;
   price: string;
@@ -31,6 +32,9 @@ interface PlanCardProps {
   ctaText?: string;
   ctaLink?: string;
   isCurrentPlan?: boolean;
+  onHover?: () => void;
+  enrichedCtaText?: string;
+  enrichedSubtext?: string;
 }
 function PlanCard({
   name,
@@ -44,9 +48,12 @@ function PlanCard({
   icon,
   ctaText,
   ctaLink,
-  isCurrentPlan = false
+  isCurrentPlan = false,
+  onHover,
+  enrichedCtaText,
+  enrichedSubtext
 }: PlanCardProps) {
-  return <Card className={`relative flex flex-col h-full ${isHighlighted ? 'border-primary bg-primary/5' : ''}`}>
+  return <Card className={`relative flex flex-col h-full ${isHighlighted ? 'border-primary bg-primary/5' : ''}`} onMouseEnter={onHover}>
       {badge && <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
           <Badge variant={badge === "Nuevo" ? "nuevo" : "default"} className="px-3 py-1 shadow-sm">
             {badge}
@@ -78,11 +85,32 @@ function PlanCard({
               Plan actual
             </Button> : ctaLink ? <Button asChild className="w-full" variant={isHighlighted ? "default" : "outline"}>
               <Link to={ctaLink}>{ctaText}</Link>
-            </Button> : plan ? <LemonSqueezyCheckout plan={plan} buttonText={ctaText} /> : null}
+            </Button> : plan ? <>
+              <LemonSqueezyCheckout plan={plan} buttonText={enrichedCtaText || ctaText} />
+              {enrichedSubtext && (
+                <p className="text-xs text-muted-foreground text-center mt-2 leading-relaxed">
+                  {enrichedSubtext}
+                </p>
+              )}
+            </> : null}
         </div>
       </CardContent>
     </Card>;
 }
+const GAP_CONTEXT_MAP: Record<string, { area: string; context: string }> = {
+  estrategia: { area: "Estrategia de Producto", context: "el plan Premium incluye mentoría específica en eso" },
+  roadmap: { area: "Roadmap", context: "trabajamos juntos tu roadmap con objetivos claros" },
+  ejecucion: { area: "Ejecución", context: "en el plan Premium definimos procesos de ejecución concretos" },
+  discovery: { area: "Discovery", context: "te ayudamos a construir el proceso de discovery desde cero" },
+  analitica: { area: "Analítica", context: "el plan Premium incluye guías y mentoría en analítica de producto" },
+  ux: { area: "UX", context: "trabajamos tu mirada de UX con recursos y mentoría dedicada" },
+  stakeholders: { area: "Stakeholders", context: "en el plan Premium practicamos gestión de stakeholders" },
+  comunicacion: { area: "Comunicación", context: "el plan Premium incluye frameworks de comunicación para PMs" },
+  tecnico: { area: "Técnica", context: "trabajamos tu perfil técnico con recursos específicos" },
+  monetizacion: { area: "Monetización", context: "el plan Premium cubre estrategias de monetización de producto" },
+  liderazgo: { area: "Liderazgo", context: "en el plan Premium trabajamos tu liderazgo de producto" },
+};
+
 export default function Planes() {
   const {
     user,
@@ -121,8 +149,22 @@ export default function Planes() {
     slice(0, 2);
   }, [assessmentResult]);
 
+  const enrichedPremiumCta = useMemo(() => {
+    if (!hasAssessment || !assessmentResult?.gaps?.length) return null;
+    const topGap = assessmentResult.gaps.find((g) => g.prioridad === 'Alta') || assessmentResult.gaps[0];
+    const mapping = GAP_CONTEXT_MAP[topGap.key];
+    if (!mapping) return null;
+    return {
+      ctaText: "Empezar con Premium — ideal para tu perfil",
+      subtext: `Tu assessment muestra oportunidad en ${mapping.area} — ${mapping.context}.`,
+    };
+  }, [hasAssessment, assessmentResult]);
+
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const personalizationTracked = useRef(false);
+  const maxScrollDepth = useRef(0);
+  const lastHoveredPlan = useRef<string | null>(null);
+  const pageLoadTime = useRef(Date.now());
 
   // Track page view — immediate, no async dependency
   useEffect(() => {
@@ -155,17 +197,44 @@ export default function Planes() {
     }
   }, [topGaps, trackEvent]);
 
+  // Track scroll depth
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const docHeight = document.documentElement.scrollHeight;
+      const windowHeight = window.innerHeight;
+      const scrollable = docHeight - windowHeight;
+      if (scrollable <= 0) return;
+      const pct = Math.round((scrollTop / scrollable) * 100);
+      if (pct > maxScrollDepth.current) {
+        maxScrollDepth.current = Math.min(pct, 100);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Keep a stable ref for hasAssessment so the beforeunload effect
+  // doesn't tear down / reset pageLoadTime when assessment data arrives
+  const hasAssessmentRef = useRef(hasAssessment);
+  useEffect(() => {
+    hasAssessmentRef.current = hasAssessment;
+  }, [hasAssessment]);
+
   // Track page abandonment
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (!hasActivePremium && !hasActiveRePremium) {
         trackEvent('planes_page_abandoned', {
-          time_on_page: Date.now() - pageLoadTime,
+          time_on_page: Date.now() - pageLoadTime.current,
+          time_on_page_seconds: Math.round((Date.now() - pageLoadTime.current) / 1000),
+          scroll_depth_pct: maxScrollDepth.current,
+          plan_last_hovered: lastHoveredPlan.current,
+          is_enriched: hasAssessmentRef.current,
           is_authenticated: !!user
         });
       }
     };
-    const pageLoadTime = Date.now();
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -356,13 +425,13 @@ export default function Planes() {
             
             <div className="grid md:grid-cols-3 gap-6 mb-12">
               {/* Free Plan */}
-              <PlanCard name="Plan Gratuito" price="$0" priceLabel="/mes" description="Ideal para dar el primer paso" icon={<span className="text-2xl">🥪</span>} features={["Autoevaluación completa de habilidades PM", "Identificación de áreas de mejora", "Recursos introductorios", "PDFs y guías gratuitas"]} ctaText={user ? "Ir a evaluación" : "Comenzar gratis"} ctaLink={user ? "/autoevaluacion" : "/auth"} isCurrentPlan={isFreePlan} />
+              <PlanCard name="Plan Gratuito" price="$0" priceLabel="/mes" description="Ideal para dar el primer paso" icon={<span className="text-2xl">🥪</span>} features={["Autoevaluación completa de habilidades PM", "Identificación de áreas de mejora", "Recursos introductorios", "PDFs y guías gratuitas"]} ctaText={user ? "Ir a evaluación" : "Comenzar gratis"} ctaLink={user ? "/autoevaluacion" : "/auth"} isCurrentPlan={isFreePlan} onHover={() => { lastHoveredPlan.current = 'gratuito'; }} />
 
               {/* Premium Plan */}
-              <PlanCard name="Plan Premium" price={pricingLoading ? "..." : premium.formatted} priceLabel="/mes" description="Pensado para quienes quieren crecer en serio" icon={<Star className="w-6 h-6 text-primary" />} isHighlighted={true} badge="+35 usuarios activos" features={["Todo lo incluido en el plan gratuito", <>Sesión mensual 1:1 con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>, "Tu Career Path con objetivos concretos", "Recursos curados según tus áreas de mejora", "Acceso al Starter Pack completo", "Nuevos contenidos cada mes"]} plan="premium" ctaText={hasActivePremium ? "Ir a tu mentoría" : "Suscribirse a Premium"} ctaLink={hasActivePremium ? "/mentoria" : undefined} isCurrentPlan={hasActivePremium && !hasActiveRePremium} />
+              <PlanCard name="Plan Premium" price={pricingLoading ? "..." : premium.formatted} priceLabel="/mes" description="Pensado para quienes quieren crecer en serio" icon={<Star className="w-6 h-6 text-primary" />} isHighlighted={true} badge="+35 usuarios activos" features={["Todo lo incluido en el plan gratuito", <>Sesión mensual 1:1 con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>, "Tu Career Path con objetivos concretos", "Recursos curados según tus áreas de mejora", "Acceso al Starter Pack completo", "Nuevos contenidos cada mes"]} plan="premium" ctaText={hasActivePremium ? "Ir a tu mentoría" : "Suscribirse a Premium"} ctaLink={hasActivePremium ? "/mentoria" : undefined} isCurrentPlan={hasActivePremium && !hasActiveRePremium} onHover={() => { lastHoveredPlan.current = 'premium'; }} enrichedCtaText={!hasActivePremium ? enrichedPremiumCta?.ctaText : undefined} enrichedSubtext={!hasActivePremium ? enrichedPremiumCta?.subtext : undefined} />
 
               {/* RePremium Plan */}
-              <PlanCard name="Plan RePremium" price={pricingLoading ? "..." : repremium.formatted} priceLabel="/mes" description="Para quienes buscan el máximo acompañamiento" icon={<Crown className="w-6 h-6 text-amber-500" />} badge="Nuevo" features={["Todo lo incluido en Premium", <>2 sesiones mensuales 1:1 con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>, <><strong>Acceso completo a Cursos</strong></>, "Feedback personalizado en ejercicios", "Acceso prioritario a nuevos contenidos", "Canal directo de comunicación"]} plan="repremium" ctaText={hasActiveRePremium ? "Ir a tu mentoría" : "Suscribirse a RePremium"} ctaLink={hasActiveRePremium ? "/mentoria" : undefined} isCurrentPlan={hasActiveRePremium} />
+              <PlanCard name="Plan RePremium" price={pricingLoading ? "..." : repremium.formatted} priceLabel="/mes" description="Para quienes buscan el máximo acompañamiento" icon={<Crown className="w-6 h-6 text-amber-500" />} badge="Nuevo" features={["Todo lo incluido en Premium", <>2 sesiones mensuales 1:1 con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>, <><strong>Acceso completo a Cursos</strong></>, "Feedback personalizado en ejercicios", "Acceso prioritario a nuevos contenidos", "Canal directo de comunicación"]} plan="repremium" ctaText={hasActiveRePremium ? "Ir a tu mentoría" : "Suscribirse a RePremium"} ctaLink={hasActiveRePremium ? "/mentoria" : undefined} isCurrentPlan={hasActiveRePremium} onHover={() => { lastHoveredPlan.current = 'repremium'; }} />
             </div>
 
             {/* Upgrade CTAs for subscription users */}
@@ -377,6 +446,9 @@ export default function Planes() {
               </div>}
           </div>
         </section>
+
+        {/* Social Proof */}
+        <SocialProofBlock />
 
         {/* Courses Info Block */}
         <section className="px-4 py-10">
@@ -472,10 +544,13 @@ export default function Planes() {
 
                   <div className="mt-8">
                     <Button
-                      onClick={() => setReviewModalOpen(true)}
                       className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold shadow-lg shadow-emerald-900/30 border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-emerald-500/20 hover:shadow-xl"
+                      onClick={() => {
+                        trackEvent('product_review_interest_clicked');
+                        setReviewModalOpen(true);
+                      }}
                     >
-                      Quiero mi review
+                      Quiero saber más
                     </Button>
                   </div>
                 </CardContent>
@@ -624,7 +699,6 @@ export default function Planes() {
           </div>
         </section>
 
-        {/* Social Proof - Hidden for now */}
 
         {/* FAQ Section */}
         <section className="py-12 px-4 bg-muted/30">
