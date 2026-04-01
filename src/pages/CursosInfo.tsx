@@ -1,25 +1,26 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Seo } from "@/components/Seo";
-import { CourseInquiryCta } from "@/components/planes/CourseInquiryCta";
 import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserProfile } from "@/hooks/useUserProfile";
 import { usePricing } from "@/hooks/usePricing";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
-  BookOpen, 
-  Clock, 
-  Calendar, 
-  CheckCircle2, 
-  Play, 
+  BookOpen,
+  Clock,
+  CheckCircle2,
+  Play,
   ArrowRight,
-  Sparkles,
   Target,
   Users,
-  Crown
+  Crown,
+  Mail
 } from "lucide-react";
 import {
   Accordion,
@@ -30,16 +31,59 @@ import {
 
 export default function CursosInfo() {
   const { user, isAuthenticated } = useAuth();
-  const { profile } = useUserProfile();
-  const { curso_estrategia, cursos_all, repremium, loading: pricingLoading } = usePricing();
-  const { 
-    hasActiveRePremium, 
-    hasCursoEstrategia, 
-    hasCursosAll 
+  const { curso_estrategia, repremium, loading: pricingLoading } = usePricing();
+  const {
+    hasActiveRePremium,
+    hasCursoEstrategia,
   } = useSubscription();
+  const { toast } = useToast();
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = waitlistEmail.trim();
+    if (!email) return;
+
+    setWaitlistLoading(true);
+    try {
+      const { error } = await (supabase as any)
+        .from('course_waitlist')
+        .insert({ email });
+
+      if (error) {
+        if (error.code === '23505') {
+          toast({
+            title: "Ya estás en la lista",
+            description: "Este email ya está registrado. Te avisamos cuando haya novedades.",
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        toast({
+          title: "¡Listo!",
+          description: "Te avisamos cuando los nuevos módulos estén disponibles.",
+        });
+      }
+      setWaitlistEmail("");
+    } catch {
+      toast({
+        title: "No pudimos registrarte",
+        description: "Intentá de nuevo en unos minutos.",
+        variant: "destructive",
+      });
+    } finally {
+      setWaitlistLoading(false);
+    }
+  };
 
   // FAQs data
   const faqs = [
+    {
+      question: "¿Para quién es este curso?",
+      answer: "Para personas que vienen de otro rol (diseño, desarrollo, Scrum) y quieren entender Producto desde la base. También para juniors que arrancaron en producto y nunca tuvieron un marco claro de estrategia. No necesitás experiencia previa en Product Management."
+    },
     {
       question: "¿Cuánto dura el curso Estrategia de Producto?",
       answer: "El curso tiene una duración de 80 minutos, dividido en videos cortos de menos de 10 minutos cada uno para que puedas avanzar a tu ritmo."
@@ -54,7 +98,7 @@ export default function CursosInfo() {
     },
     {
       question: "¿Qué pasa si compro el curso y lanzan nuevos contenidos?",
-      answer: "Al comprar el curso tienes acceso a todas las actualizaciones futuras del mismo curso sin costo adicional. Si quieres acceso a nuevos cursos, puedes optar por el bundle 'Todos los Cursos'."
+      answer: "Al comprar el curso tienes acceso a todas las actualizaciones futuras del mismo curso sin costo adicional."
     },
     {
       question: "¿Los cursos tienen certificado?",
@@ -74,8 +118,8 @@ export default function CursosInfo() {
           "@type": "Course",
           "@id": "https://productprepa.com/cursos/estrategia-producto",
           "position": 1,
-          "name": "Estrategia de Producto para principiantes",
-          "description": "Aprende los conceptos básicos de lo que implica una Estrategia de Producto y cuáles son los frameworks más importantes.",
+          "name": "Estrategia de Producto desde cero",
+          "description": "Aprende los conceptos básicos de lo que implica una Estrategia de Producto con un framework concreto de 6 dimensiones.",
           "provider": {
             "@type": "Organization",
             "name": "ProductPrepa",
@@ -93,7 +137,7 @@ export default function CursosInfo() {
             "@type": "Offer",
             "price": pricingLoading ? 0 : curso_estrategia.amount / 100,
             "priceCurrency": "ARS",
-            "availability": "https://schema.org/PreOrder"
+            "availability": "https://schema.org/InStock"
           }
         },
         {
@@ -153,6 +197,33 @@ export default function CursosInfo() {
     }
   ];
 
+  const dimensiones = [
+    {
+      bold: "A quién le estás resolviendo un problema",
+      text: "Definir tu Target Audience con criterio, no por intuición"
+    },
+    {
+      bold: "Qué problema resolvés exactamente",
+      text: "Formular un Problem Statement que guíe cada decisión de producto"
+    },
+    {
+      bold: "Por qué tu solución vale la pena",
+      text: "Construir una Value Proposition que se sostenga ante cualquier pregunta"
+    },
+    {
+      bold: "Qué te diferencia de las alternativas",
+      text: "Entender tu Strategic Differentiation antes de construir una feature más"
+    },
+    {
+      bold: "Cómo llegás a tu usuario",
+      text: "Elegir una Channel Strategy que tenga sentido para tu contexto"
+    },
+    {
+      bold: "Cómo el producto genera valor económico",
+      text: "Definir tu Monetization Strategy con lógica, no por copia"
+    }
+  ];
+
   return (
     <>
       <Seo jsonLd={cursosInfoSchema} />
@@ -166,20 +237,19 @@ export default function CursosInfo() {
               Cursos de ProductPrepa
             </Badge>
             <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              Cursos de Producto diseñados para aprender haciendo
+              Estrategia de Producto desde cero
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-6 leading-relaxed">
-              Videos cortos de menos de 10 minutos, ejercicios prácticos y acceso de por vida. 
-              Pensados para que puedas aplicar lo que aprendes desde el día uno.
+              Para diseñadores, desarrolladores, Scrum Masters y Marketers que quieren entender Producto de verdad. Sin supuestos, sin jerga. En menos de 80 minutos.
             </p>
             <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
-                Videos cortos
+                Videos de menos de 10 minutos
               </span>
               <span className="flex items-center gap-1">
                 <Target className="w-4 h-4" />
-                Ejercicios prácticos
+                Ejercicios prácticos aplicables
               </span>
               <span className="flex items-center gap-1">
                 <CheckCircle2 className="w-4 h-4" />
@@ -197,17 +267,11 @@ export default function CursosInfo() {
                 <div className="flex flex-col">
                   {/* Course Image - Full width, no cropping */}
                   <div className="relative w-full">
-                    <img 
+                    <img
                       src="https://lgscevufwnetegglgpnw.supabase.co/storage/v1/object/public/course-thumbnails/estrategia-de-producto-para-principiantes-1768839792745.jpeg"
-                      alt="Curso Estrategia de Producto para principiantes"
+                      alt="Curso Estrategia de Producto desde cero"
                       className="w-full h-auto rounded-t-lg"
                     />
-                    <div className="absolute bottom-4 left-4">
-                      <Badge variant="nuevo">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        Lanza 20 de marzo
-                      </Badge>
-                    </div>
                   </div>
 
                   {/* Course Details - Below image */}
@@ -221,31 +285,33 @@ export default function CursosInfo() {
                     </div>
 
                     <h2 className="text-2xl font-bold mb-3">
-                      Estrategia de Producto para principiantes
+                      Estrategia de Producto desde cero
                     </h2>
 
-                    <p className="text-muted-foreground mb-4">
-                      Vas a aprender los conceptos básicos de lo que implica una Estrategia de Producto 
-                      y cuáles son los frameworks más importantes para que puedas empezar a aplicarlos 
-                      desde el día uno.
-                    </p>
+                    {/* ¿Qué vas a aprender? */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-3">¿Qué vas a aprender?</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Estrategia de Producto es uno de los conceptos más mal entendidos en el mundo del producto, quedate tranquilo que no es culpa tuya. Este curso lo desmitifica desde cero, con un framework concreto de 6 dimensiones que podés aplicar a cualquier producto, en cualquier etapa.
+                      </p>
 
-                    <div className="space-y-2 mb-6">
-                      <h3 className="font-semibold text-sm">Lo que vas a aprender:</h3>
-                      <ul className="space-y-2">
-                        {[
-                          "Fundamentos de Estrategia de Producto",
-                          "Las Seis Dimensiones",
-                          "Frameworks esenciales para empezar",
-                          "Cómo alinear producto con negocio",
-                          "Ejercicios prácticos aplicables",
-                        ].map((item, index) => (
-                          <li key={index} className="flex items-start gap-2 text-sm">
-                            <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-sm text-primary">Las Seis Dimensiones de la Estrategia de Producto</h4>
+                        <ul className="space-y-3">
+                          {dimensiones.map((dim, index) => (
+                            <li key={index} className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                              <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                              <span className="text-sm">
+                                <strong>{dim.bold}</strong>. {dim.text}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <p className="text-muted-foreground mt-4 text-sm">
+                        Al terminar el curso vas a tener un mapa claro de la estrategia de tu producto. O la claridad de que falta construirla.
+                      </p>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -254,28 +320,25 @@ export default function CursosInfo() {
                           <span className="text-2xl font-bold">
                             {pricingLoading ? "..." : curso_estrategia.formatted}
                           </span>
-                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800">
-                            Precio pre-lanzamiento
-                          </Badge>
                         </div>
-                        <span className="text-sm text-muted-foreground">pago único</span>
-                        <p className="text-xs text-muted-foreground">Pesos Argentinos</p>
+                        <span className="text-sm text-muted-foreground">Pago único · Acceso de por vida</span>
+                        <p className="text-xs text-muted-foreground">Pesos Argentinos · Todos los medios de pago</p>
                       </div>
-                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                        <LemonSqueezyCheckout 
-                          plan="curso_estrategia"
-                          variant="default"
-                          size="default"
-                          className="w-full sm:w-auto"
-                        >
-                          Comprar ahora
-                        </LemonSqueezyCheckout>
-                        <Button asChild variant="outline">
-                          <Link to="/planes">
-                            Ver planes
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </Link>
-                        </Button>
+                      <div className="w-full sm:w-auto">
+                        {hasCursoEstrategia ? (
+                          <Button asChild variant="outline" className="w-full sm:w-auto">
+                            <Link to="/cursos">Acceder al curso</Link>
+                          </Button>
+                        ) : (
+                          <LemonSqueezyCheckout
+                            plan="curso_estrategia"
+                            variant="default"
+                            size="default"
+                            className="w-full sm:w-auto"
+                          >
+                            Quiero empezar
+                          </LemonSqueezyCheckout>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -308,7 +371,7 @@ export default function CursosInfo() {
                       </Badge>
                     </div>
                     <p className="text-muted-foreground mb-3">
-                      Introducción a Product Management. Perfecto para quienes recién comienzan 
+                      Introducción a Product Management. Perfecto para quienes recién comienzan
                       o quieren repasar los fundamentos.
                     </p>
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-muted-foreground">
@@ -334,53 +397,24 @@ export default function CursosInfo() {
           </div>
         </section>
 
-        {/* Upcoming Courses */}
-        <section className="px-4 py-8 bg-muted/30">
-          <div className="max-w-4xl mx-auto text-center">
-            <Badge variant="outline" className="mb-4">
-              <Sparkles className="w-3 h-3 mr-1" />
-              Próximamente
-            </Badge>
-            <h2 className="text-2xl font-bold mb-4">Más cursos en camino</h2>
-            <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Estamos preparando más contenido sobre Discovery, Métricas, Roadmaps y más. 
-              Los suscriptores de RePremium tendrán acceso automático a todos los nuevos cursos.
-            </p>
-
-            <div className="grid sm:grid-cols-3 gap-4 mb-8">
-              {[
-                { title: "Discovery", icon: "🔍", description: "Técnicas de investigación" },
-                { title: "Métricas", icon: "📊", description: "KPIs y análisis de datos" },
-                { title: "Roadmaps", icon: "🗺️", description: "Planificación de producto" },
-              ].map((course, index) => (
-                <Card key={index} className="p-4 bg-background/50">
-                  <div className="text-3xl mb-2">{course.icon}</div>
-                  <h3 className="font-semibold mb-1">{course.title}</h3>
-                  <p className="text-sm text-muted-foreground">{course.description}</p>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Pricing Options Section */}
         <section className="px-4 py-12 bg-background">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-3xl mx-auto">
             <h2 className="text-2xl font-bold text-center mb-2">Opciones de compra</h2>
             <p className="text-center text-muted-foreground mb-8">
               Elegí la opción que mejor se adapte a tus necesidades
             </p>
-            
-            <div className="grid md:grid-cols-3 gap-6">
+
+            <div className="grid md:grid-cols-2 gap-6">
               {/* Curso individual */}
               <Card className={`p-6 text-center ${hasCursoEstrategia ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : ''}`}>
                 <BookOpen className="w-8 h-8 text-primary mx-auto mb-4" />
-                <h3 className="font-bold mb-2">Curso Individual</h3>
+                <h3 className="font-bold mb-2">Estrategia de Producto desde cero</h3>
                 <p className="text-2xl font-bold mb-1">
                   {pricingLoading ? "..." : curso_estrategia.formatted}
                 </p>
-                <p className="text-sm text-muted-foreground mb-1">pago único</p>
-                <p className="text-xs text-muted-foreground mb-4">Pesos Argentinos</p>
+                <p className="text-sm text-muted-foreground mb-1">Pago único</p>
+                <p className="text-xs text-muted-foreground mb-4">Acceso de por vida · Todos los medios de pago</p>
                 <ul className="text-sm text-left space-y-2 mb-6">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
@@ -396,49 +430,14 @@ export default function CursosInfo() {
                     <Link to="/cursos">Acceder al curso</Link>
                   </Button>
                 ) : (
-                  <LemonSqueezyCheckout plan="curso_estrategia" buttonText="Comprar curso" className="w-full" />
+                  <LemonSqueezyCheckout plan="curso_estrategia" buttonText="Quiero empezar" className="w-full" />
                 )}
               </Card>
-              
-              {/* Todos los cursos */}
-              <Card className={`p-6 text-center relative ${hasCursosAll ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : 'border-primary bg-primary/5'}`}>
-                {!hasCursosAll && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Mejor valor</Badge>
-                )}
-                <Sparkles className="w-8 h-8 text-amber-500 mx-auto mb-4" />
-                <h3 className="font-bold mb-2">Todos los Cursos</h3>
-                <p className="text-2xl font-bold mb-1">
-                  {pricingLoading ? "..." : cursos_all.formatted}
-                </p>
-                <p className="text-sm text-muted-foreground mb-1">pago único</p>
-                <p className="text-xs text-muted-foreground mb-4">Pesos Argentinos</p>
-                <ul className="text-sm text-left space-y-2 mb-6">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span>Todos los cursos actuales</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span>Cursos futuros incluidos</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span>Acceso de por vida</span>
-                  </li>
-                </ul>
-                {hasCursosAll ? (
-                  <Button asChild variant="outline" className="w-full">
-                    <Link to="/cursos">Acceder a cursos</Link>
-                  </Button>
-                ) : (
-                  <LemonSqueezyCheckout plan="cursos_all" buttonText="Comprar bundle" className="w-full" />
-                )}
-              </Card>
-              
-              {/* RePremium */}
+
+              {/* Mentoría personalizada */}
               <Card className={`p-6 text-center ${hasActiveRePremium ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : ''}`}>
                 <Crown className="w-8 h-8 text-amber-500 mx-auto mb-4" />
-                <h3 className="font-bold mb-2">Con Mentoría</h3>
+                <h3 className="font-bold mb-2">Mentoría personalizada</h3>
                 <p className="text-2xl font-bold mb-1">
                   {pricingLoading ? "..." : repremium.formatted}
                 </p>
@@ -447,15 +446,15 @@ export default function CursosInfo() {
                 <ul className="text-sm text-left space-y-2 mb-6">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span>Todos los cursos incluidos</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span>2 sesiones mensuales 1:1</span>
+                    <span>2 sesiones 1:1 por mes con Nico</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
                     <span>Career Path personalizado</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span>Acceso a todos los cursos incluido</span>
                   </li>
                 </ul>
                 {hasActiveRePremium ? (
@@ -463,45 +462,67 @@ export default function CursosInfo() {
                     <Link to="/mentoria">Ir a tu mentoría</Link>
                   </Button>
                 ) : (
-                  <LemonSqueezyCheckout plan="repremium" buttonText="Suscribirse" className="w-full" />
+                  <Button asChild variant="default" className="w-full">
+                    <Link to="/planes">
+                      Ver qué incluye
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
                 )}
               </Card>
             </div>
-            
-            {/* Upgrade CTA for curso_estrategia users */}
-            {hasCursoEstrategia && !hasCursosAll && !hasActiveRePremium && (
-              <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-center sm:text-left">
-                    <p className="font-medium">Ya tenés el curso Estrategia de Producto</p>
-                    <p className="text-sm text-muted-foreground">¿Querés acceder a todos los cursos actuales y futuros?</p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <LemonSqueezyCheckout 
-                      plan="cursos_all" 
-                      buttonText="Upgrade a Todos los Cursos"
-                      variant="outline"
-                    />
-                    <LemonSqueezyCheckout 
-                      plan="repremium" 
-                      buttonText="Upgrade a RePremium"
-                      variant="default"
-                    />
-                  </div>
-                </div>
+          </div>
+        </section>
+
+        {/* Próximamente / Lo que viene */}
+        <section className="px-4 py-8 bg-muted/30">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-2xl font-bold mb-4">Lo que viene</h2>
+            <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
+              Estamos produciendo los próximos módulos. Si querés que te avisemos cuando estén disponibles, dejá tu mail acá.
+            </p>
+
+            <div className="grid sm:grid-cols-3 gap-4 mb-8">
+              {[
+                { title: "Discovery de usuarios", icon: "🔍" },
+                { title: "Métricas y North Star", icon: "📊" },
+                { title: "Roadmaps que funcionan", icon: "🗺️" },
+              ].map((course, index) => (
+                <Card key={index} className="p-4 bg-background/50">
+                  <div className="text-3xl mb-2">{course.icon}</div>
+                  <h3 className="font-semibold">{course.title}</h3>
+                </Card>
+              ))}
+            </div>
+
+            {/* Email capture */}
+            <form onSubmit={handleWaitlistSubmit} className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+              <div className="relative flex-1">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={waitlistEmail}
+                  onChange={(e) => setWaitlistEmail(e.target.value)}
+                  required
+                  className="pl-9"
+                />
               </div>
-            )}
+              <Button type="submit" disabled={waitlistLoading}>
+                {waitlistLoading ? "Registrando..." : "Avisame cuando estén listos"}
+              </Button>
+            </form>
           </div>
         </section>
 
         {/* FAQ Section */}
-        <section className="px-4 py-12 bg-muted/30">
+        <section className="px-4 py-12 bg-background">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-2xl font-bold text-center mb-2">Preguntas frecuentes</h2>
             <p className="text-center text-muted-foreground mb-8">
               Todo lo que necesitás saber sobre nuestros cursos
             </p>
-            
+
             <Accordion type="single" collapsible className="w-full">
               {faqs.map((faq, index) => (
                 <AccordionItem key={index} value={`item-${index}`}>
@@ -520,24 +541,13 @@ export default function CursosInfo() {
         {/* Final CTA */}
         <section className="px-4 py-12">
           <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-2xl font-bold mb-4">¿Tenés otras dudas sobre los cursos?</h2>
-            <p className="text-muted-foreground mb-6">
-              Escribinos y te ayudamos a elegir el mejor camino para vos.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              <Button asChild size="lg">
-                <Link to="/planes">
-                  Ver planes y precios
-                </Link>
-              </Button>
-            </div>
-
-            <CourseInquiryCta
-              isAuthenticated={isAuthenticated}
-              profileName={profile?.name}
-              userEmail={user?.email}
-            />
+            <h2 className="text-2xl font-bold mb-6">¿Tenés dudas antes de arrancar?</h2>
+            <Button asChild size="lg">
+              <a href="mailto:nicoproducto@hey.com">
+                <Mail className="w-4 h-4 mr-2" />
+                Escribime directo
+              </a>
+            </Button>
           </div>
         </section>
       </div>
