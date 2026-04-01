@@ -4,56 +4,21 @@ import { Check, X, Search } from "lucide-react";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
 
-const emailSchema = z.string().trim().email("Ingresá un email válido").max(255);
-
 interface ProductReviewModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalProps) => {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const { user } = useAuth();
-  const { profile } = useUserProfile();
   const { trackEvent } = useMixpanelTracking();
-  const { toast } = useToast();
 
   const handleOpenChange = (isOpen: boolean) => {
     if (isOpen) {
       trackEvent("productastic_review_modal_opened");
     } else {
-      trackEvent("productastic_review_modal_closed", { submitted });
+      trackEvent("productastic_review_modal_closed");
     }
     onOpenChange(isOpen);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const result = emailSchema.safeParse(email);
-    if (!result.success) {
-      toast({ title: "Email inválido", description: result.error.errors[0].message, variant: "destructive" });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from("product_review_waitlist" as any)
-        .insert({ email: result.data, user_id: profile?.id ?? null } as any);
-
-      if (error) throw error;
-
-      trackEvent("productastic_review_waitlist_joined", { email: result.data });
-      setSubmitted(true);
-      toast({ title: "¡Listo!", description: "Te anotaste en la lista de espera. Te contactamos pronto." });
-    } catch {
-      toast({ title: "Error", description: "No pudimos registrarte. Intentá de nuevo.", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
   };
 
   const reviewItems = [
