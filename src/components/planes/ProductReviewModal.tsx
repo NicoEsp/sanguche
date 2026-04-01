@@ -97,35 +97,12 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
             </ol>
           </div>
 
-          {/* Waitlist form */}
-          {submitted ? (
-            <div className="text-center py-4">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-3">
-                <Check className="w-6 h-6 text-emerald-300" />
-              </div>
-              <p className="font-semibold text-white">¡Estás en la lista!</p>
-              <p className="text-sm text-emerald-200/60 mt-1">Te contacto pronto por email.</p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex gap-2">
-              <Input
-                type="email"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-white/5 border-emerald-500/20 text-white placeholder:text-emerald-300/30 focus-visible:ring-emerald-500/50"
-                maxLength={255}
-                required
-              />
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold border-0 whitespace-nowrap"
-              >
-                {loading ? "..." : "Anotarme"}
-              </Button>
-            </form>
-          )}
+          {/* Checkout CTA */}
+          <LemonSqueezyCheckout
+            plan="productastic_review"
+            buttonText="Solicitar mi review · USD 50"
+            className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold shadow-lg shadow-emerald-900/30 border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-emerald-500/20 hover:shadow-xl"
+          />
         </div>
       </DialogContent>
     </Dialog>
