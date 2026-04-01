@@ -106,9 +106,9 @@ const GAP_CONTEXT_MAP: Record<string, { area: string; context: string }> = {
   ux: { area: "UX", context: "trabajamos tu mirada de UX con recursos y mentoría dedicada" },
   stakeholders: { area: "Stakeholders", context: "en el plan Premium practicamos gestión de stakeholders" },
   comunicacion: { area: "Comunicación", context: "el plan Premium incluye frameworks de comunicación para PMs" },
-  tecnica: { area: "Técnica", context: "trabajamos tu perfil técnico con recursos específicos" },
+  tecnico: { area: "Técnica", context: "trabajamos tu perfil técnico con recursos específicos" },
   monetizacion: { area: "Monetización", context: "el plan Premium cubre estrategias de monetización de producto" },
-  leadership: { area: "Leadership", context: "en el plan Premium trabajamos tu liderazgo de producto" },
+  liderazgo: { area: "Liderazgo", context: "en el plan Premium trabajamos tu liderazgo de producto" },
 };
 
 export default function Planes() {
@@ -164,6 +164,7 @@ export default function Planes() {
   const personalizationTracked = useRef(false);
   const maxScrollDepth = useRef(0);
   const lastHoveredPlan = useRef<string | null>(null);
+  const pageLoadTime = useRef(Date.now());
 
   // Track page view — immediate, no async dependency
   useEffect(() => {
@@ -213,17 +214,23 @@ export default function Planes() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Keep a stable ref for hasAssessment so the beforeunload effect
+  // doesn't tear down / reset pageLoadTime when assessment data arrives
+  const hasAssessmentRef = useRef(hasAssessment);
+  useEffect(() => {
+    hasAssessmentRef.current = hasAssessment;
+  }, [hasAssessment]);
+
   // Track page abandonment
   useEffect(() => {
-    const pageLoadTime = Date.now();
     const handleBeforeUnload = () => {
       if (!hasActivePremium && !hasActiveRePremium) {
         trackEvent('planes_page_abandoned', {
-          time_on_page: Date.now() - pageLoadTime,
-          time_on_page_seconds: Math.round((Date.now() - pageLoadTime) / 1000),
+          time_on_page: Date.now() - pageLoadTime.current,
+          time_on_page_seconds: Math.round((Date.now() - pageLoadTime.current) / 1000),
           scroll_depth_pct: maxScrollDepth.current,
           plan_last_hovered: lastHoveredPlan.current,
-          is_enriched: hasAssessment,
+          is_enriched: hasAssessmentRef.current,
           is_authenticated: !!user
         });
       }
@@ -232,7 +239,7 @@ export default function Planes() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [user, hasActivePremium, hasActiveRePremium, hasAssessment, trackEvent]);
+  }, [user, hasActivePremium, hasActiveRePremium, trackEvent]);
 
   // Check for success payment
   useEffect(() => {
