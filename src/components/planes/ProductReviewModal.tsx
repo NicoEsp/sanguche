@@ -91,9 +91,8 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
           <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4">
             <p className="text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-2">Cómo funciona</p>
             <ol className="space-y-1 text-sm text-emerald-100/70 list-decimal list-inside">
-              <li>Te anotás en la lista de espera</li>
+              <li>Pagás y te llega la confirmación</li>
               <li>Te contacto para coordinar el envío de materiales</li>
-              <li>Realizás el pago único de USD 50</li>
               <li>En 72 hs recibís el informe detallado</li>
             </ol>
           </div>
