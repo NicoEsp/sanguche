@@ -1,51 +1,26 @@
 
 
-## Conectar Productastic Review al checkout de Lemon Squeezy
+## Recuperar el detalle de Productastic Review y mejorar el CTA
 
-### Resumen
+### Problema
 
-Reemplazar el botón "Quiero saber más" (que abre un modal de waitlist) por un botón "Pagar USD 50" que lleva directo al checkout de Lemon Squeezy con el producto ID 933251 / variant 1467096.
+Al reemplazar el botón por el checkout directo, se perdió el contenido rico del modal: "Qué se revisa", "Qué NO es esto" y "Cómo funciona". Además, "Pagar USD 50" es un CTA frío y transaccional.
+
+### Solución
+
+Convertir el flujo en dos pasos: el botón de la card abre el modal existente (`ProductReviewModal`) con todo el detalle, pero **reemplazando el formulario de waitlist** al final por el componente `LemonSqueezyCheckout` con un CTA más atractivo.
 
 ### Cambios
 
-**1. `src/components/LemonSqueezyCheckout.tsx`** — Agregar `productastic_review` al tipo `PlanType`:
-```ts
-export type PlanType = 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'productastic_review';
-```
-Y agregar el texto default del botón para este plan.
+**1. `src/pages/Planes.tsx`**
+- Volver a conectar el botón de la card al modal: reemplazar `<LemonSqueezyCheckout>` por un `<Button>` que haga `setReviewModalOpen(true)` con texto "Quiero mi review".
 
-**2. `supabase/functions/lemon-squeezy-checkout/index.ts`** — Agregar variant en `VARIANT_CONFIG`:
-```ts
-'productastic_review': { variantId: '1467096', purchaseType: 'one_time' },
-```
+**2. `src/components/planes/ProductReviewModal.tsx`**
+- Actualizar el paso "Cómo funciona" para reflejar el flujo directo (sin lista de espera): 1. Pagás, 2. Te contacto para coordinar materiales, 3. En 72 hs recibís el informe.
+- Reemplazar el formulario de waitlist (líneas 143-171) por `<LemonSqueezyCheckout>` con CTA "Quiero mi review. USD 50" y el mismo estilo esmeralda.
+- Importar `LemonSqueezyCheckout`.
 
-**3. `supabase/functions/lemon-squeezy-webhook/index.ts`** — Agregar mapping en `VARIANT_TO_PLAN`:
-```ts
-'1467096': { plan: 'productastic_review', purchaseType: 'one_time' },
-```
+### CTA final
 
-**4. `src/pages/Planes.tsx`** — Reemplazar el botón actual (líneas 474-482) que abre el modal por el componente `<LemonSqueezyCheckout>`:
-```tsx
-<LemonSqueezyCheckout
-  plan="productastic_review"
-  buttonText="Pagar USD 50"
-  className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold shadow-lg rounded-xl border-0"
-/>
-```
-El `ProductReviewModal` y su estado se pueden mantener como referencia informativa (o eliminar si preferís), pero el CTA principal pasará a ser checkout directo.
-
-### Qué NO cambia
-
-- No se crea nueva ruta ni página.
-- No se modifica `constants/plans.ts` porque Productastic Review no es un plan de suscripción ni otorga acceso a features premium/cursos.
-- La Edge Function ya soporta `one_time` purchases y checkouts anónimos.
-
-### Flujo resultante
-
-```text
-Usuario en /planes → Click "Pagar USD 50"
-  ├─ Logueado → checkout directo en Lemon Squeezy
-  └─ No logueado → EmailCaptureDialog → checkout con email
-→ Lemon Squeezy procesa pago → webhook registra en user_subscriptions
-```
+El botón en la card dirá **"Quiero mi review"** (invita a explorar). El botón dentro del modal dirá **"Solicitar mi review. USD 50"** (cierra la venta con contexto).
 
