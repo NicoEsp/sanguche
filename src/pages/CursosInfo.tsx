@@ -1,4 +1,5 @@
 import { useState } from "react";
+import cursoEstrategiaThumbnail from "@/assets/curso-estrategia-thumbnail.jpg";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
