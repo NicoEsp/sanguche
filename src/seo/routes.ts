@@ -41,35 +41,17 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
   },
 
   '/planes': {
-    title: 'Planes, Precios y Productastic Review | ProductPrepa',
-    description: 'Elegí tu plan ideal: autoevaluación gratuita, mentoría personalizada, cursos y Productastic Review — revisión experta de tu proceso de producto por USD 50.',
+    title: 'Planes y Precios | ProductPrepa',
+    description: 'Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados.',
     canonical: `${SITE_URL}/planes`,
-    keywords: 'precios productprepa, planes suscripción, premium PM, mentoría producto, cursos PM, mentoría product builder precio, curso PM con tutor, inversión formación producto, productastic review, revisión de producto',
+    keywords: 'precios productprepa, planes suscripción, premium PM, mentoría producto, cursos PM, mentoría product builder precio, curso PM con tutor, inversión formación producto',
     image: DEFAULT_IMAGE,
     imageAlt: DEFAULT_IMAGE_ALT,
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'Service',
-      name: 'Productastic Review',
-      description: 'Revisión experta de tu proceso de producto: research, hipótesis y decisiones con recomendaciones accionables.',
-      provider: {
-        '@type': 'Organization',
-        name: 'ProductPrepa',
-        url: SITE_URL,
-      },
-      offers: {
-        '@type': 'Offer',
-        price: '50',
-        priceCurrency: 'USD',
-        availability: 'https://schema.org/PreOrder',
-      },
-      url: `${SITE_URL}/planes`,
-    },
   },
 
   '/cursos-info': {
-    title: 'Cursos de Producto | Estrategia, Discovery y más - ProductPrepa',
-    description: 'Aprende Estrategia de Producto con cursos cortos y prácticos. Videos de menos de 10 minutos, ejercicios aplicables y acceso de por vida. Ideal para principiantes.',
+    title: 'Estrategia de Producto desde cero | Curso online - ProductPrepa',
+    description: 'Curso de Estrategia de Producto para diseñadores, desarrolladores, Scrum Masters y Marketers. Framework de 6 dimensiones, videos cortos y ejercicios prácticos. Acceso de por vida.',
     canonical: `${SITE_URL}/cursos-info`,
     keywords: 'cursos product management, curso estrategia producto, formación PM, aprender producto, curso PM online',
     image: DEFAULT_IMAGE,
