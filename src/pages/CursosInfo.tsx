@@ -1,4 +1,5 @@
 import { useState } from "react";
+import cursoEstrategiaThumbnail from "@/assets/curso-estrategia-thumbnail.jpg";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -268,7 +269,7 @@ export default function CursosInfo() {
                   {/* Course Image - Full width, no cropping */}
                   <div className="relative w-full">
                     <img
-                      src="https://lgscevufwnetegglgpnw.supabase.co/storage/v1/object/public/course-thumbnails/estrategia-de-producto-para-principiantes-1768839792745.jpeg"
+                      src={cursoEstrategiaThumbnail}
                       alt="Curso Estrategia de Producto desde cero"
                       className="w-full h-auto rounded-t-lg"
                     />
