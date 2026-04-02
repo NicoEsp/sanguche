@@ -269,7 +269,7 @@ export default function CursosInfo() {
                   {/* Course Image - Full width, no cropping */}
                   <div className="relative w-full">
                     <img
-                      src="https://lgscevufwnetegglgpnw.supabase.co/storage/v1/object/public/course-thumbnails/estrategia-de-producto-para-principiantes-1768839792745.jpeg"
+                      src={cursoEstrategiaThumbnail}
                       alt="Curso Estrategia de Producto desde cero"
                       className="w-full h-auto rounded-t-lg"
                     />
