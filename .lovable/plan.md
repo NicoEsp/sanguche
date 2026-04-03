@@ -1,26 +1,22 @@
 
 
-## Recuperar el detalle de Productastic Review y mejorar el CTA
+## Forzar actualización de imagen OG en redes sociales
 
 ### Problema
 
-Al reemplazar el botón por el checkout directo, se perdió el contenido rico del modal: "Qué se revisa", "Qué NO es esto" y "Cómo funciona". Además, "Pagar USD 50" es un CTA frío y transaccional.
+La imagen fue reemplazada en `public/social-image.png`, pero Twitter y LinkedIn cachean agresivamente las imágenes OG. Como la URL no cambió (`/social-image.png`), siguen mostrando la versión anterior.
 
 ### Solución
 
-Convertir el flujo en dos pasos: el botón de la card abre el modal existente (`ProductReviewModal`) con todo el detalle, pero **reemplazando el formulario de waitlist** al final por el componente `LemonSqueezyCheckout` con un CTA más atractivo.
+1. Copiar la nueva imagen con un nombre distinto: `public/og-preview-v2.png`
+2. Actualizar todas las referencias en `index.html` (líneas 23 y ~31) para apuntar a `https://productprepa.com/og-preview-v2.png`
+3. Actualizar `src/seo/routes.ts` si tiene referencias a la imagen OG
 
-### Cambios
+Al cambiar la URL, las plataformas tratarán la imagen como nueva y la descargarán de cero.
 
-**1. `src/pages/Planes.tsx`**
-- Volver a conectar el botón de la card al modal: reemplazar `<LemonSqueezyCheckout>` por un `<Button>` que haga `setReviewModalOpen(true)` con texto "Quiero mi review".
+### Post-deploy
 
-**2. `src/components/planes/ProductReviewModal.tsx`**
-- Actualizar el paso "Cómo funciona" para reflejar el flujo directo (sin lista de espera): 1. Pagás, 2. Te contacto para coordinar materiales, 3. En 72 hs recibís el informe.
-- Reemplazar el formulario de waitlist (líneas 143-171) por `<LemonSqueezyCheckout>` con CTA "Quiero mi review. USD 50" y el mismo estilo esmeralda.
-- Importar `LemonSqueezyCheckout`.
-
-### CTA final
-
-El botón en la card dirá **"Quiero mi review"** (invita a explorar). El botón dentro del modal dirá **"Solicitar mi review. USD 50"** (cierra la venta con contexto).
+Después de publicar, validar con:
+- https://cards-dev.twitter.com/validator
+- https://www.linkedin.com/post-inspector/
 
