@@ -10,7 +10,7 @@ export interface SeoRouteData {
 }
 
 const SITE_URL = 'https://productprepa.com';
-const DEFAULT_IMAGE = `${SITE_URL}/social-image.png`;
+const DEFAULT_IMAGE = `${SITE_URL}/og-preview-v2.png`;
 const DEFAULT_IMAGE_ALT = 'ProductPrepa - Plataforma para crecer en Producto';
 
 export const SEO_ROUTES: Record<string, SeoRouteData> = {
