@@ -274,7 +274,12 @@ export default function Assessment() {
     return Object.values(watchedValues).filter((v) => typeof v === "number").length;
   }, [watchedValues]);
   const progress = total ? Math.round((answered / total) * 100) : 0;
-  useEffect(() => { answeredRef.current = answered; }, [answered]);
+  useEffect(() => {
+    answeredRef.current = answered;
+    if (answered > 0 && isReevaluating) {
+      sessionActiveRef.current = true;
+    }
+  }, [answered, isReevaluating]);
 
   const formattedUpdatedAt = useMemo(() => {
     if (!updatedAt) return null;
