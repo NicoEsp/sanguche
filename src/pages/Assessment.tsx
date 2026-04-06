@@ -159,6 +159,8 @@ export default function Assessment() {
   const currentStepRef = useRef(currentStep);
   const answeredRef = useRef(0);
   const assessmentStartTimeRef = useRef(assessmentStartTime);
+  const completedThisSessionRef = useRef(false);
+  const sessionActiveRef = useRef(false);
 
   useEffect(() => { isReevaluatingRef.current = isReevaluating; }, [isReevaluating]);
   useEffect(() => { currentStepRef.current = currentStep; }, [currentStep]);
