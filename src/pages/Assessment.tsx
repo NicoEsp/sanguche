@@ -159,6 +159,8 @@ export default function Assessment() {
   const currentStepRef = useRef(currentStep);
   const answeredRef = useRef(0);
   const assessmentStartTimeRef = useRef(assessmentStartTime);
+  const completedThisSessionRef = useRef(false);
+  const sessionActiveRef = useRef(false);
 
   useEffect(() => { isReevaluatingRef.current = isReevaluating; }, [isReevaluating]);
   useEffect(() => { currentStepRef.current = currentStep; }, [currentStep]);
@@ -166,6 +168,8 @@ export default function Assessment() {
   useEffect(() => {
     // Disparar assessment_abandoned al desmontar el componente o cerrar pestaña
     const fireAbandon = () => {
+      if (completedThisSessionRef.current) return; // completó en esta sesión
+      if (!sessionActiveRef.current) return; // nunca interactuó activamente
       if (!isReevaluatingRef.current) return;
       if (answeredRef.current === 0) return; // nunca respondió nada
       const timeSpent = Math.round((Date.now() - assessmentStartTimeRef.current) / 1000);
@@ -270,7 +274,12 @@ export default function Assessment() {
     return Object.values(watchedValues).filter((v) => typeof v === "number").length;
   }, [watchedValues]);
   const progress = total ? Math.round((answered / total) * 100) : 0;
-  useEffect(() => { answeredRef.current = answered; }, [answered]);
+  useEffect(() => {
+    answeredRef.current = answered;
+    if (answered > 0 && isReevaluating) {
+      sessionActiveRef.current = true;
+    }
+  }, [answered, isReevaluating]);
 
   const formattedUpdatedAt = useMemo(() => {
     if (!updatedAt) return null;
@@ -394,6 +403,9 @@ export default function Assessment() {
       // Limpiar las flags de evaluación en progreso
       localStorage.removeItem(ASSESSMENT_IN_PROGRESS_KEY);
       localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
+      
+      // Marcar completado ANTES de cambiar isReevaluating para evitar race condition
+      completedThisSessionRef.current = true;
       
       // Resetear estado de re-evaluación para mostrar los resultados
       setIsReevaluating(false);
