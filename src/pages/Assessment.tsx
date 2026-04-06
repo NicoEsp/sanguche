@@ -168,6 +168,8 @@ export default function Assessment() {
   useEffect(() => {
     // Disparar assessment_abandoned al desmontar el componente o cerrar pestaña
     const fireAbandon = () => {
+      if (completedThisSessionRef.current) return; // completó en esta sesión
+      if (!sessionActiveRef.current) return; // nunca interactuó activamente
       if (!isReevaluatingRef.current) return;
       if (answeredRef.current === 0) return; // nunca respondió nada
       const timeSpent = Math.round((Date.now() - assessmentStartTimeRef.current) / 1000);
