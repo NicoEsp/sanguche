@@ -404,6 +404,9 @@ export default function Assessment() {
       localStorage.removeItem(ASSESSMENT_IN_PROGRESS_KEY);
       localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
       
+      // Marcar completado ANTES de cambiar isReevaluating para evitar race condition
+      completedThisSessionRef.current = true;
+      
       // Resetear estado de re-evaluación para mostrar los resultados
       setIsReevaluating(false);
       isReevaluatingRef.current = false; // prevent abandon event on unmount
