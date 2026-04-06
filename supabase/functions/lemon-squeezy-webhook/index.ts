@@ -365,6 +365,17 @@ serve(async (req) => {
               ignoreDuplicates: false 
             });
         }
+
+        // Server-side checkout completed tracking (captures 100% of conversions)
+        await trackMixpanelServerEvent('checkout_completed_server', userId!, {
+          plan: planConfig?.plan || 'unknown',
+          purchase_type: planConfig?.purchaseType || 'unknown',
+          variant_id: variantId,
+          paid_amount_cents: orderTotal || 0,
+          email: userEmail,
+          order_id: orderId,
+          source: 'webhook',
+        });
         break;
 
       case 'subscription_created':
