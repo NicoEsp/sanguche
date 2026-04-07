@@ -134,7 +134,7 @@ const App = () => (
                       <Route path="/starterpack/lead" element={<StarterPackLead />} />
                       <Route path="/preguntas" element={<Descargables />} />
                       <Route path="/soy-dev" element={<SoyDev />} />
-                      <Route path="/blog" element={<BlogList />} />
+                      <Route path="/sesion/:slug" element={<SessionReservation />} />
                       <Route path="/blog/:slug" element={<BlogPost />} />
                       <Route path="/cursos" element={
                         <ProtectedRoute fallbackPath="/cursos-info">
