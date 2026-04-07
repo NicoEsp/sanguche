@@ -1392,6 +1392,10 @@ export type Database = {
       create_admin_user: { Args: { admin_user_id: string }; Returns: boolean }
       ensure_user_defaults: { Args: never; Returns: undefined }
       get_profile_id_for_auth: { Args: never; Returns: string }
+      get_session_spots_left: {
+        Args: { p_session_id: string }
+        Returns: number
+      }
       get_social_proof_metrics: {
         Args: never
         Returns: {
