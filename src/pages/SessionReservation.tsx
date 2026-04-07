@@ -167,32 +167,52 @@ const SessionReservation = () => {
     <>
       <Seo title={`${session.title} | ProductPrepa`} description={session.description || 'Reserva tu lugar en esta sesión exclusiva'} />
       <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
-        <Card className="max-w-lg w-full p-8 space-y-6">
-          {/* Session info */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-primary">Sesión exclusiva</span>
+        <Card className="max-w-lg w-full overflow-hidden">
+          {/* Header banner */}
+          <div className="bg-primary/10 px-8 py-6 border-b border-primary/20">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-primary">Evento exclusivo</span>
             </div>
             <h1 className="text-2xl font-bold text-foreground">{session.title}</h1>
-            {session.description && (
-              <p className="text-muted-foreground">{session.description}</p>
-            )}
-            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+          </div>
+
+          <div className="px-8 py-6 space-y-6">
+            {/* Event details */}
+            <div className="space-y-3">
               {session.session_date && (
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4" />
-                  {format(new Date(session.session_date), "EEEE d 'de' MMMM, HH:mm 'hs'", { locale: es })}
-                </span>
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 rounded-lg p-2.5 shrink-0">
+                    <Calendar className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {format(new Date(session.session_date), "EEEE d 'de' MMMM", { locale: es })}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(session.session_date), "h:mm a")} (Argentina)
+                    </p>
+                  </div>
+                </div>
               )}
               {spotsLeft !== null && (
-                <span className="flex items-center gap-1.5">
-                  <Users className="h-4 w-4" />
-                  {isFull ? 'Sin lugares disponibles' : `${spotsLeft} lugares disponibles`}
-                </span>
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 rounded-lg p-2.5 shrink-0">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {isFull ? 'Sin lugares disponibles' : `${spotsLeft} lugares disponibles`}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Cupos limitados</p>
+                  </div>
+                </div>
               )}
             </div>
-          </div>
+
+            {session.description && (
+              <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">{session.description}</p>
+            )}
 
           <div className="border-t border-border" />
 
