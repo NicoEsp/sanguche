@@ -54,13 +54,11 @@ const SessionReservation = () => {
 
       setSession(data);
 
-      // Count reservations
-      const { count } = await supabase
-        .from('session_reservations')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', data.id);
+      // Count remaining spots using secure RPC function
+      const { data: spots } = await supabase
+        .rpc('get_session_spots_left', { p_session_id: data.id });
 
-      setSpotsLeft(data.max_spots ? data.max_spots - (count || 0) : null);
+      setSpotsLeft(spots ?? data.max_spots);
       setLoading(false);
     };
     fetchSession();
