@@ -464,6 +464,42 @@ export type Database = {
         }
         Relationships: []
       }
+      exclusive_sessions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_spots: number | null
+          session_date: string | null
+          slug: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_spots?: number | null
+          session_date?: string | null
+          slug: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_spots?: number | null
+          session_date?: string | null
+          slug?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       lesson_notes: {
         Row: {
           content: string
@@ -751,6 +787,42 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "security_audit_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_reservations: {
+        Row: {
+          id: string
+          reserved_at: string | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          reserved_at?: string | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          reserved_at?: string | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_reservations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "exclusive_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_reservations_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
