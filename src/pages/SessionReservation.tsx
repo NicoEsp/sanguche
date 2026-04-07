@@ -167,88 +167,109 @@ const SessionReservation = () => {
     <>
       <Seo title={`${session.title} | ProductPrepa`} description={session.description || 'Reserva tu lugar en esta sesión exclusiva'} />
       <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
-        <Card className="max-w-lg w-full p-8 space-y-6">
-          {/* Session info */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-primary">Sesión exclusiva</span>
+        <Card className="max-w-lg w-full overflow-hidden">
+          {/* Header banner */}
+          <div className="bg-primary/10 px-8 py-6 border-b border-primary/20">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-primary">Evento exclusivo</span>
             </div>
             <h1 className="text-2xl font-bold text-foreground">{session.title}</h1>
-            {session.description && (
-              <p className="text-muted-foreground">{session.description}</p>
-            )}
-            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-              {session.session_date && (
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4" />
-                  {format(new Date(session.session_date), "EEEE d 'de' MMMM, HH:mm 'hs'", { locale: es })}
-                </span>
-              )}
-              {spotsLeft !== null && (
-                <span className="flex items-center gap-1.5">
-                  <Users className="h-4 w-4" />
-                  {isFull ? 'Sin lugares disponibles' : `${spotsLeft} lugares disponibles`}
-                </span>
-              )}
-            </div>
           </div>
 
-          <div className="border-t border-border" />
+          <div className="px-8 py-6 space-y-6">
+            {/* Event details */}
+            <div className="space-y-3">
+              {session.session_date && (
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 rounded-lg p-2.5 shrink-0">
+                    <Calendar className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {format(new Date(session.session_date), "EEEE d 'de' MMMM", { locale: es })}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(session.session_date), "h:mm a")} (Argentina)
+                    </p>
+                  </div>
+                </div>
+              )}
+              {spotsLeft !== null && (
+                <div className="flex items-center gap-3">
+                  <div className="bg-primary/10 rounded-lg p-2.5 shrink-0">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {isFull ? 'Sin lugares disponibles' : `${spotsLeft} lugares disponibles`}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Cupos limitados</p>
+                  </div>
+                </div>
+              )}
+            </div>
 
-          {/* Funnel steps */}
-          {isFull && !alreadyReserved ? (
-            <div className="text-center py-4">
-              <p className="text-muted-foreground font-medium">Esta sesión ya está llena 😔</p>
-            </div>
-          ) : step === 'done' ? (
-            <div className="text-center py-4 space-y-3">
-              <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
-              <p className="text-lg font-semibold text-foreground">¡Tu lugar está reservado!</p>
-              <p className="text-sm text-muted-foreground">Te avisaremos con los detalles de la sesión.</p>
-            </div>
-          ) : step === 'auth' ? (
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-                <div className="bg-primary/10 rounded-full p-2 mt-0.5">
-                  <span className="text-sm font-bold text-primary">1</span>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Creá tu cuenta</p>
-                  <p className="text-sm text-muted-foreground">Registrate gratis para empezar.</p>
-                </div>
+            {session.description && (
+              <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">{session.description}</p>
+            )}
+
+            <div className="border-t border-border" />
+
+            {/* Funnel steps */}
+            {isFull && !alreadyReserved ? (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground font-medium">Esta sesión ya está llena 😔</p>
               </div>
-              <Button onClick={handleGoToAuth} className="w-full" size="lg">
-                Registrarme <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          ) : step === 'loading' ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            </div>
-          ) : step === 'upgrade' ? (
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-                <div className="bg-primary/10 rounded-full p-2 mt-0.5">
-                  <Lock className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Sesión exclusiva para Premium</p>
-                  <p className="text-sm text-muted-foreground">Suscribite al plan Premium para reservar tu lugar.</p>
-                </div>
+            ) : step === 'done' ? (
+              <div className="text-center py-4 space-y-3">
+                <CheckCircle2 className="h-12 w-12 text-primary mx-auto" />
+                <p className="text-lg font-semibold text-foreground">¡Tu lugar está reservado!</p>
+                <p className="text-sm text-muted-foreground">Te avisaremos con los detalles de la sesión.</p>
               </div>
-              <Button onClick={handleGoToPlanes} className="w-full" size="lg">
-                Ver planes Premium <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <Button onClick={handleReserve} className="w-full" size="lg" disabled={reserving}>
-                {reserving ? 'Reservando...' : 'Reservar mi lugar'} 
-                {!reserving && <CheckCircle2 className="ml-2 h-4 w-4" />}
-              </Button>
-            </div>
-          )}
+            ) : step === 'auth' ? (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                  <div className="bg-primary/10 rounded-full p-2 mt-0.5">
+                    <span className="text-sm font-bold text-primary">1</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">Creá tu cuenta</p>
+                    <p className="text-sm text-muted-foreground">Registrate gratis para empezar.</p>
+                  </div>
+                </div>
+                <Button onClick={handleGoToAuth} className="w-full" size="lg">
+                  Registrarme <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            ) : step === 'loading' ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              </div>
+            ) : step === 'upgrade' ? (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                  <div className="bg-primary/10 rounded-full p-2 mt-0.5">
+                    <Lock className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">Sesión exclusiva para Premium</p>
+                    <p className="text-sm text-muted-foreground">Suscribite al plan Premium para reservar tu lugar.</p>
+                  </div>
+                </div>
+                <Button onClick={handleGoToPlanes} className="w-full" size="lg">
+                  Ver planes Premium <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <Button onClick={handleReserve} className="w-full" size="lg" disabled={reserving}>
+                  {reserving ? 'Reservando...' : 'Reservar mi lugar'} 
+                  {!reserving && <CheckCircle2 className="ml-2 h-4 w-4" />}
+                </Button>
+              </div>
+            )}
+          </div>
         </Card>
       </div>
     </>
