@@ -42,6 +42,9 @@ const Descargables = lazy(() => import("./pages/Descargables"));
 // Soy Dev
 const SoyDev = lazy(() => import("./pages/SoyDev"));
 
+// Session Reservation
+const SessionReservation = lazy(() => import("./pages/SessionReservation"));
+
 // Skeleton components for better perceived performance
 // Skeletons cargados directamente (son críticos para UX y pequeños)
 import SkeletonProgress from "./components/skeletons/SkeletonProgress";
