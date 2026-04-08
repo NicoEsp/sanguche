@@ -25,7 +25,8 @@ import {
   BookOpen,
   CreditCard,
   FileDown,
-  PenLine
+  PenLine,
+  Calendar
 } from 'lucide-react';
 
 import { GraduationCap } from 'lucide-react';
@@ -42,6 +43,7 @@ const adminNavItems = [
   { title: 'Starter Pack', url: '/admin/starterpack', icon: Rocket },
   { title: 'Descargables', url: '/admin/descargables', icon: FileDown },
   { title: 'Blog', url: '/admin/blog', icon: PenLine },
+  { title: 'Sesiones', url: '/admin/sesiones', icon: Calendar },
 ];
 
 const generalNavItems = [
