@@ -122,12 +122,6 @@ const SoyDev = () => {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link to="/starterpack">
-                Ver Starter Pack
-                <Rocket className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
           </div>
         </section>
 
