@@ -176,12 +176,6 @@ export default function Courses() {
                 Te notificaremos cuando {planMessage.singular ? 'esté listo' : 'estén listos'}.
               </p>
 
-              <Link to="/starter-pack">
-                <Button variant="outline" className="mt-4">
-                  Explorar Starter Pack
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </Link>
             </div>
           ) : (
             // Generic empty state for non-buyers

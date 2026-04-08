@@ -5,8 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Planes con acceso a recursos premium del Starter Pack
-// Solo premium y repremium tienen este beneficio (cursos_all y curso_estrategia solo tienen acceso a cursos)
+// Planes con acceso a recursos premium
 const PREMIUM_PLANS = ['premium', 'repremium'];
 
 Deno.serve(async (req) => {

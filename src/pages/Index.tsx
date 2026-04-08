@@ -88,33 +88,6 @@ const Index = () => {
 
       <WhyProductPrepa />
 
-      {/* Starter Pack — bold full-width band */}
-      <section className="bg-primary text-primary-foreground">
-        <div className="container py-14 sm:py-20 px-4 sm:px-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 max-w-4xl mx-auto">
-            <div>
-              <h3 className="text-xl sm:text-2xl font-bold mb-1">
-                ¿Empezando en Producto?
-              </h3>
-              <p className="text-primary-foreground/80 max-w-lg">
-                Un Starter Pack con recursos concretos y un camino claro para dar tus primeros pasos como PM.
-              </p>
-            </div>
-            <Button
-              asChild
-              size="lg"
-              variant="secondary"
-              className="shrink-0 font-semibold">
-              
-              <Link to="/starterpack">
-                Ver Starter Pack
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
       {/* Upgrade teaser */}
       <section className="container py-16 sm:py-24 px-4 sm:px-6">
         <div className="max-w-2xl mx-auto text-center">
