@@ -1,5 +1,4 @@
 import {
-  Rocket,
   CheckSquare,
   Target,
   TrendingUp,
@@ -54,12 +53,6 @@ export const navItems: NavItemType[] = [
 ];
 
 export const extraItems: NavItemType[] = [
-  {
-    href: "/starterpack",
-    label: "Starter Pack",
-    icon: Rocket,
-    premium: false,
-  },
   {
     href: "/preguntas",
     label: "Descargables",

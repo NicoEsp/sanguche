@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText, Download, Eye, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useAvailableResources, Resource } from '@/hooks/useResources';
 import { AssessmentResult } from '@/utils/scoring';
 import { getResourceBadgeType } from '@/utils/resourceFilters';
-import { useSecureResourceAccess } from '@/hooks/useSecureResourceAccess';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ResourcesListProps {
   assessmentResult: AssessmentResult | null;
@@ -15,7 +15,21 @@ interface ResourcesListProps {
 
 function ResourceCard({ resource, assessmentResult }: { resource: Resource; assessmentResult: AssessmentResult | null }) {
   const [previewResource, setPreviewResource] = useState<{ name: string; url: string } | null>(null);
-  const { signedUrl, loading: urlLoading } = useSecureResourceAccess(resource);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [urlLoading, setUrlLoading] = useState(false);
+
+  useEffect(() => {
+    if (resource.access_level === 'public') {
+      setSignedUrl(resource.file_url);
+      return;
+    }
+    setUrlLoading(true);
+    supabase.functions.invoke('get-resource-access', {
+      body: { resourceId: resource.id },
+    }).then(({ data }) => {
+      setSignedUrl(data?.signedUrl || null);
+    }).finally(() => setUrlLoading(false));
+  }, [resource.id, resource.access_level, resource.file_url]);
   const badgeType = getResourceBadgeType(resource, assessmentResult);
 
   // Use signed URL for private resources, direct URL for public bucket
