@@ -67,6 +67,7 @@ const AdminCourses = lazy(() => import("./pages/admin/AdminCourses"));
 const AdminDescargables = lazy(() => import("./pages/admin/AdminDescargables"));
 const AdminCourseDetail = lazy(() => import("./pages/admin/AdminCourseDetail"));
 const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
+const AdminSessions = lazy(() => import("./pages/admin/AdminSessions"));
 
 // Blog pages
 const BlogList = lazy(() => import("./pages/BlogList"));
@@ -118,6 +119,7 @@ const App = () => (
                   <Route path="starterpack" element={<AdminStarterPack />} />
                   <Route path="descargables" element={<AdminDescargables />} />
                   <Route path="blog" element={<AdminBlog />} />
+                  <Route path="sesiones" element={<AdminSessions />} />
                   <Route path="configuracion" element={<AdminSettings />} />
                 </Route>
                 <Route path="/*" element={
