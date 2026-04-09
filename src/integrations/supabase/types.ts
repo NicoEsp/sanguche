@@ -466,35 +466,53 @@ export type Database = {
       }
       exclusive_sessions: {
         Row: {
+          agenda: Json | null
           created_at: string | null
           description: string | null
           id: string
           is_active: boolean | null
+          learning_outcomes: string | null
           max_spots: number | null
           session_date: string | null
           slug: string
+          speaker_bio: string | null
+          speaker_image_url: string | null
+          speaker_name: string | null
+          target_audience: string | null
           title: string
           updated_at: string | null
         }
         Insert: {
+          agenda?: Json | null
           created_at?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
+          learning_outcomes?: string | null
           max_spots?: number | null
           session_date?: string | null
           slug: string
+          speaker_bio?: string | null
+          speaker_image_url?: string | null
+          speaker_name?: string | null
+          target_audience?: string | null
           title: string
           updated_at?: string | null
         }
         Update: {
+          agenda?: Json | null
           created_at?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
+          learning_outcomes?: string | null
           max_spots?: number | null
           session_date?: string | null
           slug?: string
+          speaker_bio?: string | null
+          speaker_image_url?: string | null
+          speaker_name?: string | null
+          target_audience?: string | null
           title?: string
           updated_at?: string | null
         }
