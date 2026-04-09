@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Calendar, ChevronDown, ChevronUp, Plus, Trash2, Users } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronUp, Plus, Trash2, Users, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -25,6 +25,12 @@ interface Session {
   max_spots: number | null;
   is_active: boolean | null;
   created_at: string | null;
+  agenda: unknown;
+  speaker_name: string | null;
+  speaker_bio: string | null;
+  speaker_image_url: string | null;
+  target_audience: string | null;
+  learning_outcomes: string | null;
 }
 
 interface Reservation {
@@ -34,13 +40,17 @@ interface Reservation {
   profiles: { name: string | null; email: string | null } | null;
 }
 
+const emptyForm = {
+  title: '', slug: '', description: '', session_date: '', max_spots: 10,
+  speaker_name: '', speaker_bio: '', speaker_image_url: '', target_audience: '', learning_outcomes: '', agenda: '',
+};
+
 const AdminSessions = () => {
   const queryClient = useQueryClient();
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [newSession, setNewSession] = useState({
-    title: '', slug: '', description: '', session_date: '', max_spots: 10,
-  });
+  const [editSession, setEditSession] = useState<Session | null>(null);
+  const [form, setForm] = useState(emptyForm);
 
   const { data: sessions, isLoading } = useQuery({
     queryKey: ['admin-sessions'],
@@ -99,22 +109,61 @@ const AdminSessions = () => {
     },
   });
 
+  const parseAgenda = (text: string): string[] =>
+    text.split('\n').map(l => l.trim()).filter(Boolean);
+
+  const agendaToText = (agenda: unknown): string =>
+    Array.isArray(agenda) ? agenda.map(String).join('\n') : '';
+
   const createSession = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from('exclusive_sessions').insert({
-        title: newSession.title,
-        slug: newSession.slug,
-        description: newSession.description || null,
-        session_date: newSession.session_date || null,
-        max_spots: newSession.max_spots,
+        title: form.title,
+        slug: form.slug,
+        description: form.description || null,
+        session_date: form.session_date || null,
+        max_spots: form.max_spots,
+        speaker_name: form.speaker_name || null,
+        speaker_bio: form.speaker_bio || null,
+        speaker_image_url: form.speaker_image_url || null,
+        target_audience: form.target_audience || null,
+        learning_outcomes: form.learning_outcomes || null,
+        agenda: parseAgenda(form.agenda),
       });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-sessions'] });
       setCreateOpen(false);
-      setNewSession({ title: '', slug: '', description: '', session_date: '', max_spots: 10 });
+      setForm(emptyForm);
       toast.success('Sesión creada');
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateSession = useMutation({
+    mutationFn: async () => {
+      if (!editSession) return;
+      const { error } = await supabase.from('exclusive_sessions').update({
+        title: form.title,
+        slug: form.slug,
+        description: form.description || null,
+        session_date: form.session_date || null,
+        max_spots: form.max_spots,
+        speaker_name: form.speaker_name || null,
+        speaker_bio: form.speaker_bio || null,
+        speaker_image_url: form.speaker_image_url || null,
+        target_audience: form.target_audience || null,
+        learning_outcomes: form.learning_outcomes || null,
+        agenda: parseAgenda(form.agenda),
+      }).eq('id', editSession.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-sessions'] });
+      setEditSession(null);
+      setForm(emptyForm);
+      toast.success('Sesión actualizada');
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -130,8 +179,85 @@ const AdminSessions = () => {
     },
   });
 
+  const openEdit = (s: Session) => {
+    setEditSession(s);
+    setForm({
+      title: s.title,
+      slug: s.slug,
+      description: s.description || '',
+      session_date: s.session_date ? s.session_date.slice(0, 16) : '',
+      max_spots: s.max_spots ?? 10,
+      speaker_name: s.speaker_name || '',
+      speaker_bio: s.speaker_bio || '',
+      speaker_image_url: s.speaker_image_url || '',
+      target_audience: s.target_audience || '',
+      learning_outcomes: s.learning_outcomes || '',
+      agenda: agendaToText(s.agenda),
+    });
+  };
+
   const getReservationCount = (sessionId: string) =>
     reservationsMap?.[sessionId]?.length ?? 0;
+
+  const SessionFormFields = () => (
+    <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Título *</Label>
+          <Input value={form.title} onChange={e => setForm(s => ({ ...s, title: e.target.value }))} />
+        </div>
+        <div>
+          <Label>Slug *</Label>
+          <Input value={form.slug} onChange={e => setForm(s => ({ ...s, slug: e.target.value }))} />
+        </div>
+      </div>
+      <div>
+        <Label>Descripción</Label>
+        <Textarea value={form.description} onChange={e => setForm(s => ({ ...s, description: e.target.value }))} rows={2} />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Fecha</Label>
+          <Input type="datetime-local" value={form.session_date} onChange={e => setForm(s => ({ ...s, session_date: e.target.value }))} />
+        </div>
+        <div>
+          <Label>Cupos máximos</Label>
+          <Input type="number" value={form.max_spots} onChange={e => setForm(s => ({ ...s, max_spots: parseInt(e.target.value) || 10 }))} />
+        </div>
+      </div>
+
+      <div className="border-t border-border pt-4 mt-2">
+        <p className="text-sm font-semibold text-foreground mb-3">Información adicional</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Nombre del speaker</Label>
+          <Input value={form.speaker_name} onChange={e => setForm(s => ({ ...s, speaker_name: e.target.value }))} />
+        </div>
+        <div>
+          <Label>Imagen del speaker (URL)</Label>
+          <Input value={form.speaker_image_url} onChange={e => setForm(s => ({ ...s, speaker_image_url: e.target.value }))} placeholder="https://..." />
+        </div>
+      </div>
+      <div>
+        <Label>Bio del speaker</Label>
+        <Textarea value={form.speaker_bio} onChange={e => setForm(s => ({ ...s, speaker_bio: e.target.value }))} rows={2} />
+      </div>
+      <div>
+        <Label>¿Para quién es la sesión?</Label>
+        <Textarea value={form.target_audience} onChange={e => setForm(s => ({ ...s, target_audience: e.target.value }))} rows={2} placeholder="Ej: PMs con 1-3 años de experiencia que quieren..." />
+      </div>
+      <div>
+        <Label>¿Qué van a aprender?</Label>
+        <Textarea value={form.learning_outcomes} onChange={e => setForm(s => ({ ...s, learning_outcomes: e.target.value }))} rows={2} placeholder="Ej: Cómo definir y medir leading indicators..." />
+      </div>
+      <div>
+        <Label>Agenda (un tema por línea)</Label>
+        <Textarea value={form.agenda} onChange={e => setForm(s => ({ ...s, agenda: e.target.value }))} rows={4} placeholder={"¿Qué son los leading indicators?\nCómo elegir las métricas correctas\nEjemplos reales"} />
+      </div>
+    </div>
+  );
 
   if (isLoading) {
     return (
@@ -149,42 +275,34 @@ const AdminSessions = () => {
           <h1 className="text-2xl font-bold text-foreground">Sesiones Exclusivas</h1>
           <p className="text-muted-foreground text-sm">Gestión de sesiones y reservas</p>
         </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) setForm(emptyForm); }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" />Nueva Sesión</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Crear Sesión</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Título</Label>
-                <Input value={newSession.title} onChange={e => setNewSession(s => ({ ...s, title: e.target.value }))} />
-              </div>
-              <div>
-                <Label>Slug</Label>
-                <Input value={newSession.slug} onChange={e => setNewSession(s => ({ ...s, slug: e.target.value }))} />
-              </div>
-              <div>
-                <Label>Descripción</Label>
-                <Textarea value={newSession.description} onChange={e => setNewSession(s => ({ ...s, description: e.target.value }))} />
-              </div>
-              <div>
-                <Label>Fecha</Label>
-                <Input type="datetime-local" value={newSession.session_date} onChange={e => setNewSession(s => ({ ...s, session_date: e.target.value }))} />
-              </div>
-              <div>
-                <Label>Cupos máximos</Label>
-                <Input type="number" value={newSession.max_spots} onChange={e => setNewSession(s => ({ ...s, max_spots: parseInt(e.target.value) || 10 }))} />
-              </div>
-              <Button onClick={() => createSession.mutate()} disabled={!newSession.title || !newSession.slug}>
-                Crear
-              </Button>
-            </div>
+            <SessionFormFields />
+            <Button onClick={() => createSession.mutate()} disabled={!form.title || !form.slug}>
+              Crear
+            </Button>
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editSession} onOpenChange={(open) => { if (!open) { setEditSession(null); setForm(emptyForm); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Sesión</DialogTitle>
+          </DialogHeader>
+          <SessionFormFields />
+          <Button onClick={() => updateSession.mutate()} disabled={!form.title || !form.slug}>
+            Guardar cambios
+          </Button>
+        </DialogContent>
+      </Dialog>
 
       <div className="space-y-4">
         {sessions?.map(session => {
@@ -204,6 +322,9 @@ const AdminSessions = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(session)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
                     <Badge variant={session.is_active ? 'default' : 'secondary'}>
                       {session.is_active ? 'Activa' : 'Inactiva'}
                     </Badge>
