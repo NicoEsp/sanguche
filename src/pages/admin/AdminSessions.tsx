@@ -199,7 +199,7 @@ const AdminSessions = () => {
   const getReservationCount = (sessionId: string) =>
     reservationsMap?.[sessionId]?.length ?? 0;
 
-  const SessionFormFields = () => (
+  const sessionFormFields = (
     <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
       <div className="grid grid-cols-2 gap-4">
         <div>
