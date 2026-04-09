@@ -40,17 +40,169 @@ interface Reservation {
   profiles: { name: string | null; email: string | null } | null;
 }
 
-const emptyForm = {
-  title: '', slug: '', description: '', session_date: '', max_spots: 10,
-  speaker_name: '', speaker_bio: '', speaker_image_url: '', target_audience: '', learning_outcomes: '', agenda: '',
+type SessionFormState = {
+  title: string;
+  slug: string;
+  description: string;
+  session_date: string;
+  max_spots: number;
+  speaker_name: string;
+  speaker_bio: string;
+  speaker_image_url: string;
+  target_audience: string;
+  learning_outcomes: string;
+  agenda: string;
 };
+
+const emptyForm: SessionFormState = {
+  title: '',
+  slug: '',
+  description: '',
+  session_date: '',
+  max_spots: 10,
+  speaker_name: '',
+  speaker_bio: '',
+  speaker_image_url: '',
+  target_audience: '',
+  learning_outcomes: '',
+  agenda: '',
+};
+
+interface SessionFormFieldsProps {
+  form: SessionFormState;
+  setForm: React.Dispatch<React.SetStateAction<SessionFormState>>;
+}
+
+function SessionFormFields({ form, setForm }: SessionFormFieldsProps) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="session-title">Título *</Label>
+          <Input
+            id="session-title"
+            value={form.title}
+            onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))}
+          />
+        </div>
+        <div>
+          <Label htmlFor="session-slug">Slug *</Label>
+          <Input
+            id="session-slug"
+            value={form.slug}
+            onChange={(e) => setForm((s) => ({ ...s, slug: e.target.value }))}
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="session-description">Descripción</Label>
+        <Textarea
+          id="session-description"
+          value={form.description}
+          onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
+          rows={2}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="session-date">Fecha</Label>
+          <Input
+            id="session-date"
+            type="datetime-local"
+            value={form.session_date}
+            onChange={(e) => setForm((s) => ({ ...s, session_date: e.target.value }))}
+          />
+        </div>
+        <div>
+          <Label htmlFor="session-spots">Cupos máximos</Label>
+          <Input
+            id="session-spots"
+            type="number"
+            value={form.max_spots}
+            onChange={(e) => setForm((s) => ({ ...s, max_spots: parseInt(e.target.value, 10) || 10 }))}
+          />
+        </div>
+      </div>
+
+      <div className="border-t border-border pt-4 mt-2">
+        <p className="text-sm font-semibold text-foreground mb-3">Información adicional</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="session-speaker-name">Nombre del speaker</Label>
+          <Input
+            id="session-speaker-name"
+            value={form.speaker_name}
+            onChange={(e) => setForm((s) => ({ ...s, speaker_name: e.target.value }))}
+          />
+        </div>
+        <div>
+          <Label htmlFor="session-speaker-image">Imagen del speaker (URL)</Label>
+          <Input
+            id="session-speaker-image"
+            value={form.speaker_image_url}
+            onChange={(e) => setForm((s) => ({ ...s, speaker_image_url: e.target.value }))}
+            placeholder="https://..."
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="session-speaker-bio">Bio del speaker</Label>
+        <Textarea
+          id="session-speaker-bio"
+          value={form.speaker_bio}
+          onChange={(e) => setForm((s) => ({ ...s, speaker_bio: e.target.value }))}
+          rows={2}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="session-target-audience">¿Para quién es la sesión?</Label>
+        <Textarea
+          id="session-target-audience"
+          value={form.target_audience}
+          onChange={(e) => setForm((s) => ({ ...s, target_audience: e.target.value }))}
+          rows={2}
+          placeholder="Ej: PMs con 1-3 años de experiencia que quieren..."
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="session-learning-outcomes">¿Qué van a aprender?</Label>
+        <Textarea
+          id="session-learning-outcomes"
+          value={form.learning_outcomes}
+          onChange={(e) => setForm((s) => ({ ...s, learning_outcomes: e.target.value }))}
+          rows={2}
+          placeholder="Ej: Cómo definir y medir leading indicators..."
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="session-agenda">Agenda (un tema por línea)</Label>
+        <Textarea
+          id="session-agenda"
+          value={form.agenda}
+          onChange={(e) => setForm((s) => ({ ...s, agenda: e.target.value }))}
+          rows={4}
+          placeholder={"¿Qué son los leading indicators?\nCómo elegir las métricas correctas\nEjemplos reales"}
+        />
+      </div>
+    </div>
+  );
+}
 
 const AdminSessions = () => {
   const queryClient = useQueryClient();
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editSession, setEditSession] = useState<Session | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [createForm, setCreateForm] = useState<SessionFormState>(emptyForm);
+  const [editForm, setEditForm] = useState<SessionFormState>(emptyForm);
 
   const { data: sessions, isLoading } = useQuery({
     queryKey: ['admin-sessions'],
@@ -110,7 +262,7 @@ const AdminSessions = () => {
   });
 
   const parseAgenda = (text: string): string[] =>
-    text.split('\n').map(l => l.trim()).filter(Boolean);
+    text.split('\n').map((l) => l.trim()).filter(Boolean);
 
   const agendaToText = (agenda: unknown): string =>
     Array.isArray(agenda) ? agenda.map(String).join('\n') : '';
@@ -118,24 +270,24 @@ const AdminSessions = () => {
   const createSession = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from('exclusive_sessions').insert({
-        title: form.title,
-        slug: form.slug,
-        description: form.description || null,
-        session_date: form.session_date || null,
-        max_spots: form.max_spots,
-        speaker_name: form.speaker_name || null,
-        speaker_bio: form.speaker_bio || null,
-        speaker_image_url: form.speaker_image_url || null,
-        target_audience: form.target_audience || null,
-        learning_outcomes: form.learning_outcomes || null,
-        agenda: parseAgenda(form.agenda),
+        title: createForm.title,
+        slug: createForm.slug,
+        description: createForm.description || null,
+        session_date: createForm.session_date || null,
+        max_spots: createForm.max_spots,
+        speaker_name: createForm.speaker_name || null,
+        speaker_bio: createForm.speaker_bio || null,
+        speaker_image_url: createForm.speaker_image_url || null,
+        target_audience: createForm.target_audience || null,
+        learning_outcomes: createForm.learning_outcomes || null,
+        agenda: parseAgenda(createForm.agenda),
       });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-sessions'] });
       setCreateOpen(false);
-      setForm(emptyForm);
+      setCreateForm(emptyForm);
       toast.success('Sesión creada');
     },
     onError: (e: any) => toast.error(e.message),
@@ -145,24 +297,24 @@ const AdminSessions = () => {
     mutationFn: async () => {
       if (!editSession) return;
       const { error } = await supabase.from('exclusive_sessions').update({
-        title: form.title,
-        slug: form.slug,
-        description: form.description || null,
-        session_date: form.session_date || null,
-        max_spots: form.max_spots,
-        speaker_name: form.speaker_name || null,
-        speaker_bio: form.speaker_bio || null,
-        speaker_image_url: form.speaker_image_url || null,
-        target_audience: form.target_audience || null,
-        learning_outcomes: form.learning_outcomes || null,
-        agenda: parseAgenda(form.agenda),
+        title: editForm.title,
+        slug: editForm.slug,
+        description: editForm.description || null,
+        session_date: editForm.session_date || null,
+        max_spots: editForm.max_spots,
+        speaker_name: editForm.speaker_name || null,
+        speaker_bio: editForm.speaker_bio || null,
+        speaker_image_url: editForm.speaker_image_url || null,
+        target_audience: editForm.target_audience || null,
+        learning_outcomes: editForm.learning_outcomes || null,
+        agenda: parseAgenda(editForm.agenda),
       }).eq('id', editSession.id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-sessions'] });
       setEditSession(null);
-      setForm(emptyForm);
+      setEditForm(emptyForm);
       toast.success('Sesión actualizada');
     },
     onError: (e: any) => toast.error(e.message),
@@ -180,8 +332,7 @@ const AdminSessions = () => {
   });
 
   const openEdit = (s: Session) => {
-    setEditSession(s);
-    setForm({
+    setEditForm({
       title: s.title,
       slug: s.slug,
       description: s.description || '',
@@ -194,70 +345,11 @@ const AdminSessions = () => {
       learning_outcomes: s.learning_outcomes || '',
       agenda: agendaToText(s.agenda),
     });
+    setEditSession(s);
   };
 
   const getReservationCount = (sessionId: string) =>
     reservationsMap?.[sessionId]?.length ?? 0;
-
-  const sessionFormFields = (
-    <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Título *</Label>
-          <Input value={form.title} onChange={e => setForm(s => ({ ...s, title: e.target.value }))} />
-        </div>
-        <div>
-          <Label>Slug *</Label>
-          <Input value={form.slug} onChange={e => setForm(s => ({ ...s, slug: e.target.value }))} />
-        </div>
-      </div>
-      <div>
-        <Label>Descripción</Label>
-        <Textarea value={form.description} onChange={e => setForm(s => ({ ...s, description: e.target.value }))} rows={2} />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Fecha</Label>
-          <Input type="datetime-local" value={form.session_date} onChange={e => setForm(s => ({ ...s, session_date: e.target.value }))} />
-        </div>
-        <div>
-          <Label>Cupos máximos</Label>
-          <Input type="number" value={form.max_spots} onChange={e => setForm(s => ({ ...s, max_spots: parseInt(e.target.value) || 10 }))} />
-        </div>
-      </div>
-
-      <div className="border-t border-border pt-4 mt-2">
-        <p className="text-sm font-semibold text-foreground mb-3">Información adicional</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Nombre del speaker</Label>
-          <Input value={form.speaker_name} onChange={e => setForm(s => ({ ...s, speaker_name: e.target.value }))} />
-        </div>
-        <div>
-          <Label>Imagen del speaker (URL)</Label>
-          <Input value={form.speaker_image_url} onChange={e => setForm(s => ({ ...s, speaker_image_url: e.target.value }))} placeholder="https://..." />
-        </div>
-      </div>
-      <div>
-        <Label>Bio del speaker</Label>
-        <Textarea value={form.speaker_bio} onChange={e => setForm(s => ({ ...s, speaker_bio: e.target.value }))} rows={2} />
-      </div>
-      <div>
-        <Label>¿Para quién es la sesión?</Label>
-        <Textarea value={form.target_audience} onChange={e => setForm(s => ({ ...s, target_audience: e.target.value }))} rows={2} placeholder="Ej: PMs con 1-3 años de experiencia que quieren..." />
-      </div>
-      <div>
-        <Label>¿Qué van a aprender?</Label>
-        <Textarea value={form.learning_outcomes} onChange={e => setForm(s => ({ ...s, learning_outcomes: e.target.value }))} rows={2} placeholder="Ej: Cómo definir y medir leading indicators..." />
-      </div>
-      <div>
-        <Label>Agenda (un tema por línea)</Label>
-        <Textarea value={form.agenda} onChange={e => setForm(s => ({ ...s, agenda: e.target.value }))} rows={4} placeholder={"¿Qué son los leading indicators?\nCómo elegir las métricas correctas\nEjemplos reales"} />
-      </div>
-    </div>
-  );
 
   if (isLoading) {
     return (
@@ -275,37 +367,50 @@ const AdminSessions = () => {
           <h1 className="text-2xl font-bold text-foreground">Sesiones Exclusivas</h1>
           <p className="text-muted-foreground text-sm">Gestión de sesiones y reservas</p>
         </div>
-        <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) setForm(emptyForm); }}>
+        <Dialog
+          open={createOpen}
+          onOpenChange={(open) => {
+            setCreateOpen(open);
+            if (!open) setCreateForm(emptyForm);
+          }}
+        >
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" />Nueva Sesión</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Crear Sesión</DialogTitle>
             </DialogHeader>
-            {sessionFormFields}
-            <Button onClick={() => createSession.mutate()} disabled={!form.title || !form.slug}>
+            <SessionFormFields form={createForm} setForm={setCreateForm} />
+            <Button onClick={() => createSession.mutate()} disabled={!createForm.title || !createForm.slug}>
               Crear
             </Button>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Edit dialog */}
-      <Dialog open={!!editSession} onOpenChange={(open) => { if (!open) { setEditSession(null); setForm(emptyForm); } }}>
-        <DialogContent className="max-w-2xl">
+      <Dialog
+        open={!!editSession}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditSession(null);
+            setEditForm(emptyForm);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Sesión</DialogTitle>
           </DialogHeader>
-          {sessionFormFields}
-          <Button onClick={() => updateSession.mutate()} disabled={!form.title || !form.slug}>
+          <SessionFormFields form={editForm} setForm={setEditForm} />
+          <Button onClick={() => updateSession.mutate()} disabled={!editForm.title || !editForm.slug}>
             Guardar cambios
           </Button>
         </DialogContent>
       </Dialog>
 
       <div className="space-y-4">
-        {sessions?.map(session => {
+        {sessions?.map((session) => {
           const count = getReservationCount(session.id);
           const isExpanded = expandedSession === session.id;
           const reservations = reservationsMap?.[session.id] || [];
@@ -356,8 +461,8 @@ const AdminSessions = () => {
                       type="number"
                       className="w-20 h-8"
                       defaultValue={session.max_spots ?? 10}
-                      onBlur={e => {
-                        const val = parseInt(e.target.value);
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value, 10);
                         if (val && val !== session.max_spots) {
                           updateSpots.mutate({ id: session.id, max_spots: val });
                         }
@@ -391,13 +496,13 @@ const AdminSessions = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {reservations.map(r => (
+                          {reservations.map((r) => (
                             <TableRow key={r.id}>
                               <TableCell>{r.profiles?.name || '—'}</TableCell>
                               <TableCell>{r.profiles?.email || '—'}</TableCell>
                               <TableCell>
                                 {r.reserved_at
-                                  ? format(new Date(r.reserved_at), "d MMM yyyy, HH:mm", { locale: es })
+                                  ? format(new Date(r.reserved_at), 'd MMM yyyy, HH:mm', { locale: es })
                                   : '—'}
                               </TableCell>
                               <TableCell>
