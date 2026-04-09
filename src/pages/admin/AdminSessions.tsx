@@ -283,7 +283,7 @@ const AdminSessions = () => {
             <DialogHeader>
               <DialogTitle>Crear Sesión</DialogTitle>
             </DialogHeader>
-            <SessionFormFields />
+            {sessionFormFields}
             <Button onClick={() => createSession.mutate()} disabled={!form.title || !form.slug}>
               Crear
             </Button>
@@ -297,7 +297,7 @@ const AdminSessions = () => {
           <DialogHeader>
             <DialogTitle>Editar Sesión</DialogTitle>
           </DialogHeader>
-          <SessionFormFields />
+          {sessionFormFields}
           <Button onClick={() => updateSession.mutate()} disabled={!form.title || !form.slug}>
             Guardar cambios
           </Button>
