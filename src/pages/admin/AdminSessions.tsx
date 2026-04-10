@@ -31,6 +31,8 @@ interface Session {
   speaker_image_url: string | null;
   target_audience: string | null;
   learning_outcomes: string | null;
+  reserved_spots: number;
+  reserved_spots_notes: string | null;
 }
 
 interface Reservation {
@@ -435,7 +437,14 @@ const AdminSessions = () => {
                     </Badge>
                     <div className="flex items-center gap-1 text-sm">
                       <Users className="h-4 w-4" />
-                      <span className="font-medium">{count}/{session.max_spots ?? '∞'}</span>
+                      <span className="font-medium">
+                        {count}/{(session.max_spots ?? 0) - session.reserved_spots}
+                        {session.reserved_spots > 0 && (
+                          <span className="text-muted-foreground ml-1">
+                            (+{session.reserved_spots} reservados)
+                          </span>
+                        )}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -469,9 +478,62 @@ const AdminSessions = () => {
                       }}
                     />
                   </div>
-                </div>
+                  </div>
 
-                <Button
+                  {session.reserved_spots > 0 && session.reserved_spots_notes && (
+                    <div className="text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+                      🔒 Cupos reservados: <span className="font-medium">{session.reserved_spots_notes}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm whitespace-nowrap">🔒 Reservar cupos:</Label>
+                      <Input
+                        type="number"
+                        className="w-20 h-8"
+                        defaultValue={session.reserved_spots}
+                        key={`reserved-${session.id}-${session.reserved_spots}`}
+                        onBlur={(e) => {
+                          const val = parseInt(e.target.value, 10) || 0;
+                          if (val !== session.reserved_spots) {
+                            supabase.from('exclusive_sessions')
+                              .update({ reserved_spots: val })
+                              .eq('id', session.id)
+                              .then(({ error }) => {
+                                if (error) { toast.error(error.message); return; }
+                                queryClient.invalidateQueries({ queryKey: ['admin-sessions'] });
+                                toast.success('Cupos reservados actualizados');
+                              });
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 flex-1">
+                      <Label className="text-sm whitespace-nowrap">Nota:</Label>
+                      <Input
+                        className="h-8"
+                        placeholder="Ej: 5 - Paisanos"
+                        defaultValue={session.reserved_spots_notes || ''}
+                        key={`notes-${session.id}-${session.reserved_spots_notes}`}
+                        onBlur={(e) => {
+                          const val = e.target.value || null;
+                          if (val !== (session.reserved_spots_notes || null)) {
+                            supabase.from('exclusive_sessions')
+                              .update({ reserved_spots_notes: val })
+                              .eq('id', session.id)
+                              .then(({ error }) => {
+                                if (error) { toast.error(error.message); return; }
+                                queryClient.invalidateQueries({ queryKey: ['admin-sessions'] });
+                                toast.success('Nota actualizada');
+                              });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setExpandedSession(isExpanded ? null : session.id)}

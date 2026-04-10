@@ -473,6 +473,8 @@ export type Database = {
           is_active: boolean | null
           learning_outcomes: string | null
           max_spots: number | null
+          reserved_spots: number
+          reserved_spots_notes: string | null
           session_date: string | null
           slug: string
           speaker_bio: string | null
@@ -490,6 +492,8 @@ export type Database = {
           is_active?: boolean | null
           learning_outcomes?: string | null
           max_spots?: number | null
+          reserved_spots?: number
+          reserved_spots_notes?: string | null
           session_date?: string | null
           slug: string
           speaker_bio?: string | null
@@ -507,6 +511,8 @@ export type Database = {
           is_active?: boolean | null
           learning_outcomes?: string | null
           max_spots?: number | null
+          reserved_spots?: number
+          reserved_spots_notes?: string | null
           session_date?: string | null
           slug?: string
           speaker_bio?: string | null
