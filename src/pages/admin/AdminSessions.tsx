@@ -437,7 +437,14 @@ const AdminSessions = () => {
                     </Badge>
                     <div className="flex items-center gap-1 text-sm">
                       <Users className="h-4 w-4" />
-                      <span className="font-medium">{count}/{session.max_spots ?? '∞'}</span>
+                      <span className="font-medium">
+                        {count}/{(session.max_spots ?? 0) - session.reserved_spots}
+                        {session.reserved_spots > 0 && (
+                          <span className="text-muted-foreground ml-1">
+                            (+{session.reserved_spots} reservados)
+                          </span>
+                        )}
+                      </span>
                     </div>
                   </div>
                 </div>
