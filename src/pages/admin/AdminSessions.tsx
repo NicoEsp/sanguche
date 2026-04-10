@@ -31,6 +31,8 @@ interface Session {
   speaker_image_url: string | null;
   target_audience: string | null;
   learning_outcomes: string | null;
+  reserved_spots: number;
+  reserved_spots_notes: string | null;
 }
 
 interface Reservation {
