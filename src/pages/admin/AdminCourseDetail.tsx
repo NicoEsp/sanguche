@@ -22,7 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Plus, Pencil, Trash2, Video, BookOpen, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, Video, BookOpen, ExternalLink, Upload, Link } from 'lucide-react';
 import {
   useAdminCourse,
   useAdminCourseLessons,
@@ -34,14 +34,19 @@ import {
   useUpdateExercise,
   useDeleteExercise,
 } from '@/hooks/useAdminCourses';
+import { supabase } from '@/integrations/supabase/client';
 import { CourseLesson, CourseExercise } from '@/types/courses';
+import { toast } from 'sonner';
 
 // ============= LESSON FORM =============
+
+type VideoSourceType = 'external' | 'storage';
 
 interface LessonFormData {
   title: string;
   description: string;
   video_url: string;
+  video_source: VideoSourceType;
   duration_minutes: string;
   order_index: string;
   is_published: boolean;
@@ -51,6 +56,7 @@ const defaultLessonFormData: LessonFormData = {
   title: '',
   description: '',
   video_url: '',
+  video_source: 'external',
   duration_minutes: '',
   order_index: '0',
   is_published: true,
