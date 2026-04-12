@@ -22,7 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Plus, Pencil, Trash2, Video, BookOpen, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, Video, BookOpen, ExternalLink, Upload, Link } from 'lucide-react';
 import {
   useAdminCourse,
   useAdminCourseLessons,
@@ -34,14 +34,19 @@ import {
   useUpdateExercise,
   useDeleteExercise,
 } from '@/hooks/useAdminCourses';
+import { supabase } from '@/integrations/supabase/client';
 import { CourseLesson, CourseExercise } from '@/types/courses';
+import { toast } from 'sonner';
 
 // ============= LESSON FORM =============
+
+type VideoSourceType = 'external' | 'storage';
 
 interface LessonFormData {
   title: string;
   description: string;
   video_url: string;
+  video_source: VideoSourceType;
   duration_minutes: string;
   order_index: string;
   is_published: boolean;
@@ -51,6 +56,7 @@ const defaultLessonFormData: LessonFormData = {
   title: '',
   description: '',
   video_url: '',
+  video_source: 'external',
   duration_minutes: '',
   order_index: '0',
   is_published: true,
@@ -127,6 +133,8 @@ const AdminCourseDetail = () => {
   const [isExerciseDialogOpen, setIsExerciseDialogOpen] = useState(false);
   const [editingExercise, setEditingExercise] = useState<CourseExercise | null>(null);
   const [exerciseFormData, setExerciseFormData] = useState<ExerciseFormData>(defaultExerciseFormData);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // ============= LESSON HANDLERS =============
 
@@ -145,6 +153,7 @@ const AdminCourseDetail = () => {
       title: lesson.title,
       description: lesson.description || '',
       video_url: lesson.video_url,
+      video_source: (lesson.video_type as VideoSourceType) || 'external',
       duration_minutes: lesson.duration_minutes?.toString() || '',
       order_index: lesson.order_index?.toString() || '0',
       is_published: lesson.is_published ?? true,
@@ -167,6 +176,7 @@ const AdminCourseDetail = () => {
       title: lessonFormData.title,
       description: lessonFormData.description || null,
       video_url: lessonFormData.video_url,
+      video_type: lessonFormData.video_source,
       duration_minutes: lessonFormData.duration_minutes ? parseInt(lessonFormData.duration_minutes) : null,
       order_index: parseInt(lessonFormData.order_index) || 0,
       is_published: lessonFormData.is_published,
@@ -487,27 +497,127 @@ const AdminCourseDetail = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="lesson-video">URL del Video *</Label>
-              <Input
-                id="lesson-video"
-                type="url"
-                value={lessonFormData.video_url}
-                onChange={(e) => setLessonFormData({ ...lessonFormData, video_url: e.target.value })}
-                placeholder="https://youtube.com/watch?v=... o https://vimeo.com/... o https://loom.com/share/..."
-                required
-              />
-              {embedUrl && (
-                <div className="mt-2 aspect-video rounded-lg overflow-hidden border">
-                  <iframe
-                    src={embedUrl}
-                    className="w-full h-full"
-                    allowFullScreen
-                    title="Video preview"
-                  />
-                </div>
-              )}
+            {/* Video source toggle */}
+            <div className="space-y-3">
+              <Label>Fuente del video</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={lessonFormData.video_source === 'external' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setLessonFormData({ ...lessonFormData, video_source: 'external', video_url: '' })}
+                >
+                  <Link className="h-4 w-4 mr-2" />
+                  URL externa
+                </Button>
+                <Button
+                  type="button"
+                  variant={lessonFormData.video_source === 'storage' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setLessonFormData({ ...lessonFormData, video_source: 'storage', video_url: '' })}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Subir video
+                </Button>
+              </div>
             </div>
+
+            {lessonFormData.video_source === 'external' ? (
+              <div className="space-y-2">
+                <Label htmlFor="lesson-video">URL del Video *</Label>
+                <Input
+                  id="lesson-video"
+                  type="url"
+                  value={lessonFormData.video_url}
+                  onChange={(e) => setLessonFormData({ ...lessonFormData, video_url: e.target.value })}
+                  placeholder="https://youtube.com/watch?v=... o https://vimeo.com/... o https://loom.com/share/..."
+                  required
+                />
+                {embedUrl && (
+                  <div className="mt-2 aspect-video rounded-lg overflow-hidden border">
+                    <iframe
+                      src={embedUrl}
+                      className="w-full h-full"
+                      allowFullScreen
+                      title="Video preview"
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="lesson-video-upload">Archivo de video *</Label>
+                {lessonFormData.video_url ? (
+                  <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
+                    <Video className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium flex-1 truncate">{lessonFormData.video_url}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setLessonFormData({ ...lessonFormData, video_url: '' })}
+                    >
+                      Cambiar
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Input
+                      id="lesson-video-upload"
+                      type="file"
+                      accept="video/*"
+                      disabled={isUploading}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file || !course) return;
+
+                        setIsUploading(true);
+                        setUploadProgress(0);
+
+                        // Simulate progress since we can't track real multipart progress
+                        const progressInterval = setInterval(() => {
+                          setUploadProgress((prev) => Math.min(prev + 10, 90));
+                        }, 500);
+
+                        try {
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          formData.append('course_slug', course.slug);
+                          formData.append('file_name', file.name.replace(/\s+/g, '-').toLowerCase());
+
+                          const { data, error } = await supabase.functions.invoke('upload-course-video', {
+                            body: formData,
+                          });
+
+                          clearInterval(progressInterval);
+
+                          if (error) throw error;
+
+                          setUploadProgress(100);
+                          setLessonFormData({ ...lessonFormData, video_url: data.storage_path });
+                          toast.success('Video subido correctamente');
+                        } catch (err) {
+                          clearInterval(progressInterval);
+                          toast.error('Error al subir el video');
+                          console.error('Upload error:', err);
+                        } finally {
+                          setIsUploading(false);
+                          setUploadProgress(0);
+                        }
+                      }}
+                    />
+                    {isUploading && (
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">

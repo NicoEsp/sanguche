@@ -50,7 +50,10 @@ export function useCourse(slug: string) {
 
       return {
         ...course,
-        lessons: lessons || [],
+        lessons: (lessons || []).map((l) => ({
+          ...l,
+          video_type: l.video_type as 'external' | 'storage',
+        })),
         exercises: exercises || [],
       };
     },
