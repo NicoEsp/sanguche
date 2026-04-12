@@ -151,6 +151,7 @@ const AdminCourseDetail = () => {
       title: lesson.title,
       description: lesson.description || '',
       video_url: lesson.video_url,
+      video_source: (lesson.video_type as VideoSourceType) || 'external',
       duration_minutes: lesson.duration_minutes?.toString() || '',
       order_index: lesson.order_index?.toString() || '0',
       is_published: lesson.is_published ?? true,
