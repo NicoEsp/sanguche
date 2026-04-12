@@ -231,6 +231,7 @@ export type Database = {
           order_index: number | null
           title: string
           updated_at: string | null
+          video_type: string
           video_url: string
         }
         Insert: {
@@ -243,6 +244,7 @@ export type Database = {
           order_index?: number | null
           title: string
           updated_at?: string | null
+          video_type?: string
           video_url: string
         }
         Update: {
@@ -255,6 +257,7 @@ export type Database = {
           order_index?: number | null
           title?: string
           updated_at?: string | null
+          video_type?: string
           video_url?: string
         }
         Relationships: [
