@@ -30,7 +30,7 @@ export function Seo(props: SeoProps) {
   // Merge: explicit props override route defaults
   const title = props.title || routeData?.title || 'ProductPrepa';
   const description = props.description || routeData?.description;
-  const canonical = props.canonical || routeData?.canonical;
+  const canonical = props.canonical || routeData?.canonical || `${SITE_URL}${pathname}`;
   const image = props.image || routeData?.image;
   const imageAlt = props.imageAlt || routeData?.imageAlt;
   const keywords = props.keywords || routeData?.keywords;
