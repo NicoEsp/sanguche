@@ -1,8 +1,22 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
 
 User-agent: Bingbot
 Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
 
 User-agent: Twitterbot
 Allow: /
@@ -12,5 +26,12 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
 
 Sitemap: https://lgscevufwnetegglgpnw.supabase.co/functions/v1/sitemap
