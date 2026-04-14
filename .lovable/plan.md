@@ -1,85 +1,51 @@
 
 
-# Plan: Content Delivery con Supabase Storage + Signed URLs
+# Plan: Resolver problemas de indexación en Google Search Console
 
-## Principio clave
+## Diagnóstico
 
-**No se toca nada de lo existente.** Los cursos que ya tienen videos en YouTube (como Product Management 101) siguen funcionando exactamente como hoy con iframes. El nuevo sistema de Supabase Storage solo aplica para cursos nuevos como Estrategia de Producto.
+Google Search Console reporta dos problemas:
 
----
+1. **"Página alternativa con etiqueta canónica adecuada"** — El `index.html` tiene un `<link rel="canonical" href="https://productprepa.com/" />` hardcodeado. Como es una SPA, TODAS las páginas sirven inicialmente ese mismo HTML. Aunque `Seo.tsx` actualiza el canonical dinámicamente con JavaScript, Google puede leer el canonical estático antes de ejecutar JS, interpretando cada página como "alternativa" de la homepage.
 
-## Arquitectura
+2. **"Página con redirección"** — La ruta `/premium` hace un `<Navigate to="/planes" replace />` del lado del cliente. Google la detecta como redirect.
 
-```text
-VideoPlayer recibe lesson →
-  ├── video_url es URL externa (youtube/vimeo/loom) → iframe (código actual, sin cambios)
-  └── video_url es path interno (ej: "estrategia-producto/01-intro.mp4") → 
-        → llama Edge Function get-course-video
-        → recibe signed URL (4h TTL)
-        → renderiza <video> nativo
-```
+## Cambios
 
-La distinción se hace con una nueva columna `video_type` en `course_lessons`. Todas las lecciones existentes quedan como `'external'` (default), sin migración de datos.
+### 1. Eliminar canonical hardcodeado de `index.html`
+- Quitar la línea `<link rel="canonical" href="https://productprepa.com/" />` del HTML estático
+- `Seo.tsx` ya crea el `<link rel="canonical">` dinámicamente para cada ruta, así que no se pierde nada
 
----
+### 2. Eliminar OG tags estáticos duplicados de `index.html`
+- Quitar los `og:title`, `og:description`, `twitter:title`, `twitter:description` hardcodeados (líneas 38-41)
+- `Seo.tsx` ya los inyecta correctamente por ruta
+- Mantener los tags que `Seo.tsx` no sobreescribe si no hay data (og:image, twitter:card, etc.)
 
-## Implementación
+### 3. Agregar `/descargables` al mapa de SEO en `routes.ts`
+- La ruta `/preguntas` mapea al componente `Descargables` y ya tiene entry en `routes.ts`
+- Pero `/descargables` aparece en el sitemap y en Search Console sin canonical propio
+- Agregar entry para `/descargables` apuntando canonical a `/preguntas` (o viceversa, según cuál quieras que sea la principal)
 
-### 1. Migración SQL
-- Agregar columna `video_type` (`text`, default `'external'`) a `course_lessons` con valores posibles: `'external'` | `'storage'`
-- Crear bucket privado `course-videos` (sin RLS público, solo service_role escribe)
+### 4. Agregar rutas dinámicas de cursos al SEO
+- `CourseDetail.tsx` usa `<Seo>` pero necesito verificar que pase canonical correctamente — ya lo revisé, no pasa canonical explícito, así que hereda el de `index.html` (el problemático)
+- Con el fix del punto 1, `Seo.tsx` usará `routeData?.canonical` que será `undefined` para rutas dinámicas como `/cursos/product-management-101`
+- Agregar lógica en `CourseDetail.tsx` para pasar `canonical={/cursos/${slug}}` explícitamente
 
-### 2. Edge Function `get-course-video`
-- Recibe `lesson_id`
-- Valida JWT + acceso al curso (`has_course_access` o lógica equivalente)
-- Si `video_type = 'storage'`: genera signed URL de 4h con `createSignedUrl`
-- Si `video_type = 'external'`: retorna la URL tal cual (fallback de seguridad)
-- Cursos gratuitos (`is_free = true`): cualquier usuario autenticado accede
-- Retorna `{ url, type, expires_at }`
+### 5. Limpiar ruta `/premium` del sitemap
+- Verificar que `/premium` no esté en el sitemap (no lo está, bien)
+- Opcionalmente cambiar de redirect client-side a un entry en el sitemap con canonical a `/planes`
 
-### 3. Edge Function `upload-course-video` (admin)
-- Valida que el caller sea admin
-- Recibe archivo via multipart
-- Sube a `course-videos/{course-slug}/{filename}`
-- Retorna el storage path
+## Archivos a modificar
 
-### 4. Hook `useVideoUrl`
-- Si `videoType === 'external'`: retorna URL directa (sin llamada a Edge Function)
-- Si `videoType === 'storage'`: llama a `get-course-video`, cachea resultado, renueva 30 min antes de expirar
-- Maneja estados: loading, error, retry
-
-### 5. VideoPlayer (modificación)
-- Si `video_type === 'external'` (o undefined): **comportamiento actual idéntico** — iframe con `getEmbedUrl()`
-- Si `video_type === 'storage'`: `<video>` nativo con signed URL, controles nativos del browser
-- Si el `<video>` da error 403/404: solicita nueva signed URL automáticamente
-
-### 6. Admin: AdminCourseDetail
-- Toggle en formulario de lección: "URL externa" (default) vs "Subir video"
-- Upload: input file + progress bar → `upload-course-video`
-- URL externa: input text como hoy (sin cambios)
-
-### 7. Tipos TypeScript
-- Agregar `video_type?: 'external' | 'storage'` a `CourseLesson` en `src/types/courses.ts`
-
----
-
-## Archivos a crear/modificar
-
-| Archivo | Acción |
+| Archivo | Cambio |
 |---------|--------|
-| `supabase/migrations/xxx.sql` | Columna `video_type` + bucket |
-| `supabase/functions/get-course-video/index.ts` | Crear |
-| `supabase/functions/upload-course-video/index.ts` | Crear |
-| `src/hooks/useVideoUrl.ts` | Crear |
-| `src/components/courses/VideoPlayer.tsx` | Modificar (dual render) |
-| `src/pages/admin/AdminCourseDetail.tsx` | Modificar (upload UI) |
-| `src/types/courses.ts` | Agregar `video_type` |
+| `index.html` | Quitar canonical hardcodeado y OG tags duplicados |
+| `src/seo/routes.ts` | Agregar entry para `/descargables` |
+| `src/pages/CourseDetail.tsx` | Agregar prop `canonical` al `<Seo>` |
+| `src/pages/Descargables.tsx` | Verificar que usa `<Seo />` correctamente |
 
----
-
-## Qué NO se toca
-- Lecciones existentes con YouTube/Vimeo/Loom — cero cambios
-- Curso Product Management 101 — sigue con iframes de YouTube
-- Lógica actual de `getEmbedUrl()` — se preserva intacta
-- No se migra ningún video existente a Storage
+## Resultado esperado
+- Cada página tendrá un canonical único que apunta a sí misma (no a `/`)
+- Google dejará de marcar páginas como "alternativas" de la homepage
+- La redirección de `/premium` seguirá funcionando pero no afectará indexación (no está en sitemap)
 
