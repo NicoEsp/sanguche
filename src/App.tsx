@@ -127,6 +127,7 @@ const App = () => (
                       <Route path="/premium" element={<Navigate to="/planes" replace />} />
                       <Route path="/welcome" element={<Welcome />} />
                       <Route path="/preguntas" element={<Descargables />} />
+                      <Route path="/descargables" element={<Descargables />} />
                       <Route path="/soy-dev" element={<SoyDev />} />
                       <Route path="/sesion/:slug" element={<SessionReservation />} />
                       <Route path="/blog" element={<BlogList />} />
