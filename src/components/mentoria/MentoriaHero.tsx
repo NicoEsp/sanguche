@@ -24,7 +24,7 @@ export function MentoriaHero({ mentoriaCompleted, lastMentoriaDate }: MentoriaHe
   const navigate = useNavigate();
   
   const handleScheduleClick = () => {
-    window.open('https://calendar.notion.so/meet/nicoproducto/poai3w8g', '_blank');
+    window.open('https://calendar.notion.so/meet/nicoproducto/zf4fl4q8q', '_blank');
   };
 
   const handleProgressClick = () => {
