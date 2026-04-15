@@ -149,7 +149,7 @@ function getHeadlineVariant(
   }
 
   return {
-    headline: 'Tu carrera en Producto, con acompañamiento real.',
+    headline: 'Tu carrera en Producto, con acompañamiento humano.',
     subtitle: 'Evaluación, mentoría 1:1 y un Career Path que construís con alguien que lleva más de diez años en Producto.',
     variant: 'default',
   };
@@ -488,7 +488,7 @@ export default function Planes() {
         {/* Hero Section - Dynamic headline */}
         <section className="pt-12 pb-6 px-4">
           <div className="max-w-6xl mx-auto text-center">
-            <h1 className="text-3xl sm:text-4xl font-bold mb-4 tracking-tight">
+            <h1 className="text-3xl font-bold mb-4 tracking-tight sm:text-3xl">
               {headline}
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
