@@ -84,9 +84,13 @@ const Index = () => {
         </div>
       </section>
 
+      <SocialProofStrip />
+
       <HowItWorks />
 
       <WhyProductPrepa />
+
+      <PlatformPreview />
 
       {/* Upgrade teaser */}
       <section className="container py-16 sm:py-24 px-4 sm:px-6">

@@ -421,7 +421,7 @@ export default function Planes() {
         {/* Subscription Plans */}
         <section className="px-4 py-8">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl font-bold text-center mb-8">Planes de Suscripción</h2>
+            <h2 className="text-2xl font-bold text-center mb-8">Planes de suscripción</h2>
             
             <div className="grid md:grid-cols-3 gap-6 mb-12">
               {/* Free Plan */}
@@ -564,7 +564,7 @@ export default function Planes() {
         {/* Comparison Table */}
         <section className="py-12 px-4">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Comparativa de Planes</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Comparativa de planes</h2>
             
             <div className="overflow-x-auto rounded-lg border">
               <Table>
