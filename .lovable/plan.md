@@ -1,51 +1,76 @@
+# Plan: Mejorar credibilidad de landing y planes
+
+Tres líneas de trabajo basadas en el feedback recibido.
+
+---
+
+## 1. Agregar social proof con números reales en la landing
+
+El componente `SocialProofStrip` ya existe con métricas dinámicas (usuarios registrados, evaluaciones completadas, horas de mentoría, recursos), pero no se usa en ningún lado.
+
+**Cambio:** Importar `SocialProofStrip` en `Index.tsx` y colocarlo entre el hero y la sección "Cómo funciona" (`HowItWorks`). Mantiene el estilo minimalista actual (es una franja sutil con iconos y números, sin cards ni colores fuertes).
+
+**Archivo:** `src/pages/Index.tsx`
+
+---
+
+## 2. Capturas del backoffice para demostrar profesionalismo
+
+Agregar una sección en la landing (después de `WhyProductPrepa`, antes del upgrade teaser) que muestre 2-3 capturas de la plataforma: autoevaluación, career path, mentoría. Estilo limpio con imágenes en contenedores con borde sutil y sombra, sin romper el minimalismo.
+
+**Enfoque:** Crear un componente `PlatformPreview` que muestre las capturas en un grid o carrusel horizontal simple. Las imágenes se subirían como assets estáticos en `/public/screenshots/`.
+
+**Archivos:**
+
+- `src/components/landing/PlatformPreview.tsx` (nuevo)
+- `src/pages/Index.tsx` (importar y colocar)
+- Assets: tomar screenshots de la app en producción de la ruta /admin  y usarlas sin mostrar números de internos de ProductPrepa
+
+---
+
+## 3. Corregir uso de mayúsculas (patrón IA en español)
+
+Revisar y corregir textos que usen Title Case incorrecto en español. En español, solo se capitalizan nombres propios y la primera palabra de un título. Ejemplos encontrados:
+
+**Landing (`Index.tsx`):**
+
+- "Empezá gratis. Crecé a tu ritmo." - Correcto
+- "Product Builder" - Correcto (nombre propio del producto)
+
+**Planes (`Planes.tsx`):**
+
+- "Planes de Suscripción" → "Planes de suscripción"
+- "Comparativa de Planes" → "Comparativa de planes"
+- "Plan Gratuito", "Plan Premium", "Plan RePremium" - Correcto (nombres propios de producto)
+
+**Componentes:**
+
+- `HowItWorks.tsx` - Correcto (verbos simples)
+- `WhyProductPrepa.tsx` - Correcto
+- `SocialProofBlock.tsx` - Correcto
+
+**Tabla comparativa en Planes:**
+
+- "Características" como header - Correcto
+- Labels de secciones ("Sin compromiso", "Recursos", "Mentoría", "Cursos", "Precio") - Correcto como categorías
+
+Haré un barrido completo de todos los textos visibles al usuario para corregir mayúsculas tipo Title Case que no correspondan.
+
+**Archivos:** `src/pages/Planes.tsx`, y otros archivos con copy visible que tenga este patrón.
+
+---
+
+## Resumen de archivos a tocar
 
 
-# Plan: Resolver problemas de indexación en Google Search Console
+| Archivo                                      | Cambio                                         |
+| -------------------------------------------- | ---------------------------------------------- |
+| `src/pages/Index.tsx`                        | Agregar `SocialProofStrip` + `PlatformPreview` |
+| `src/components/landing/PlatformPreview.tsx` | Nuevo componente con capturas                  |
+| `src/pages/Planes.tsx`                       | Corregir mayúsculas                            |
+| Varios archivos con copy                     | Barrido de Title Case incorrecto               |
 
-## Diagnóstico
 
-Google Search Console reporta dos problemas:
+## Pregunta abierta
 
-1. **"Página alternativa con etiqueta canónica adecuada"** — El `index.html` tiene un `<link rel="canonical" href="https://productprepa.com/" />` hardcodeado. Como es una SPA, TODAS las páginas sirven inicialmente ese mismo HTML. Aunque `Seo.tsx` actualiza el canonical dinámicamente con JavaScript, Google puede leer el canonical estático antes de ejecutar JS, interpretando cada página como "alternativa" de la homepage.
-
-2. **"Página con redirección"** — La ruta `/premium` hace un `<Navigate to="/planes" replace />` del lado del cliente. Google la detecta como redirect.
-
-## Cambios
-
-### 1. Eliminar canonical hardcodeado de `index.html`
-- Quitar la línea `<link rel="canonical" href="https://productprepa.com/" />` del HTML estático
-- `Seo.tsx` ya crea el `<link rel="canonical">` dinámicamente para cada ruta, así que no se pierde nada
-
-### 2. Eliminar OG tags estáticos duplicados de `index.html`
-- Quitar los `og:title`, `og:description`, `twitter:title`, `twitter:description` hardcodeados (líneas 38-41)
-- `Seo.tsx` ya los inyecta correctamente por ruta
-- Mantener los tags que `Seo.tsx` no sobreescribe si no hay data (og:image, twitter:card, etc.)
-
-### 3. Agregar `/descargables` al mapa de SEO en `routes.ts`
-- La ruta `/preguntas` mapea al componente `Descargables` y ya tiene entry en `routes.ts`
-- Pero `/descargables` aparece en el sitemap y en Search Console sin canonical propio
-- Agregar entry para `/descargables` apuntando canonical a `/preguntas` (o viceversa, según cuál quieras que sea la principal)
-
-### 4. Agregar rutas dinámicas de cursos al SEO
-- `CourseDetail.tsx` usa `<Seo>` pero necesito verificar que pase canonical correctamente — ya lo revisé, no pasa canonical explícito, así que hereda el de `index.html` (el problemático)
-- Con el fix del punto 1, `Seo.tsx` usará `routeData?.canonical` que será `undefined` para rutas dinámicas como `/cursos/product-management-101`
-- Agregar lógica en `CourseDetail.tsx` para pasar `canonical={/cursos/${slug}}` explícitamente
-
-### 5. Limpiar ruta `/premium` del sitemap
-- Verificar que `/premium` no esté en el sitemap (no lo está, bien)
-- Opcionalmente cambiar de redirect client-side a un entry en el sitemap con canonical a `/planes`
-
-## Archivos a modificar
-
-| Archivo | Cambio |
-|---------|--------|
-| `index.html` | Quitar canonical hardcodeado y OG tags duplicados |
-| `src/seo/routes.ts` | Agregar entry para `/descargables` |
-| `src/pages/CourseDetail.tsx` | Agregar prop `canonical` al `<Seo>` |
-| `src/pages/Descargables.tsx` | Verificar que usa `<Seo />` correctamente |
-
-## Resultado esperado
-- Cada página tendrá un canonical único que apunta a sí misma (no a `/`)
-- Google dejará de marcar páginas como "alternativas" de la homepage
-- La redirección de `/premium` seguirá funcionando pero no afectará indexación (no está en sitemap)
-
+Para las capturas del backoffice: puedo tomar screenshots de la app en el preview y usarlas como imágenes estáticas en la landing. Otra opción es que me pases capturas específicas que quieras mostrar. La primera opción la puedo resolver solo.
