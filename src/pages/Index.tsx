@@ -7,6 +7,7 @@ import { StickyMobileCTA } from "@/components/landing/StickyMobileCTA";
 import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
 import { SocialProofStrip } from "@/components/landing/SocialProofStrip";
 import { PlatformPreview } from "@/components/landing/PlatformPreview";
+import { SocialProofBlock } from "@/components/planes/SocialProofBlock";
 import { useAuth } from '@/contexts/AuthContext';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 import { useHomeRedirect } from '@/hooks/useHomeRedirect';
@@ -93,6 +94,8 @@ const Index = () => {
       <WhyProductPrepa />
 
       <PlatformPreview />
+
+      <SocialProofBlock />
 
       {/* Upgrade teaser */}
       <section className="container py-16 sm:py-24 px-4 sm:px-6">
