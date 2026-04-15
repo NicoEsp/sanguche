@@ -281,10 +281,10 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        {/* Sección 2: Plan y Suscripción */}
+        {/* Sección 2: Plan y suscripción */}
         <Card>
           <CardHeader>
-            <CardTitle>Plan y Suscripción</CardTitle>
+            <CardTitle>Plan y suscripción</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Primary badges row: Plan + Status chips */}

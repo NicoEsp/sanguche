@@ -5,6 +5,8 @@ import { ArrowRight } from "lucide-react";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { StickyMobileCTA } from "@/components/landing/StickyMobileCTA";
 import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
+import { SocialProofStrip } from "@/components/landing/SocialProofStrip";
+import { PlatformPreview } from "@/components/landing/PlatformPreview";
 import { useAuth } from '@/contexts/AuthContext';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 import { useHomeRedirect } from '@/hooks/useHomeRedirect';
@@ -84,9 +86,13 @@ const Index = () => {
         </div>
       </section>
 
+      <SocialProofStrip />
+
       <HowItWorks />
 
       <WhyProductPrepa />
+
+      <PlatformPreview />
 
       {/* Upgrade teaser */}
       <section className="container py-16 sm:py-24 px-4 sm:px-6">
