@@ -2,8 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Star, Crown, X, ArrowRight, AlertTriangle, Search } from "lucide-react";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Seo } from "@/components/Seo";
@@ -19,6 +18,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { ProductReviewModal } from "@/components/planes/ProductReviewModal";
 import { SocialProofBlock } from "@/components/planes/SocialProofBlock";
+
 interface PlanCardProps {
   name: React.ReactNode;
   price: string;
@@ -36,6 +36,7 @@ interface PlanCardProps {
   enrichedCtaText?: string;
   enrichedSubtext?: string;
 }
+
 function PlanCard({
   name,
   price,
@@ -53,12 +54,18 @@ function PlanCard({
   enrichedCtaText,
   enrichedSubtext
 }: PlanCardProps) {
-  return <Card className={`relative flex flex-col h-full ${isHighlighted ? 'border-primary bg-primary/5' : ''}`} onMouseEnter={onHover}>
-      {badge && <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+  return (
+    <Card
+      className={`relative flex flex-col h-full ${isHighlighted ? 'border-primary bg-primary/5' : ''}`}
+      onMouseEnter={onHover}
+    >
+      {badge && (
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
           <Badge variant={badge === "Nuevo" ? "nuevo" : "default"} className="px-3 py-1 shadow-sm">
             {badge}
           </Badge>
-        </div>}
+        </div>
+      )}
       <CardHeader className="text-center pb-4">
         <div className="flex items-center justify-center gap-2 mb-2">
           {icon}
@@ -75,28 +82,38 @@ function PlanCard({
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
         <ul className="space-y-2 flex-1 min-h-[160px]">
-          {features.map((feature, index) => <li key={index} className="flex items-start gap-2">
+          {features.map((feature, index) => (
+            <li key={index} className="flex items-start gap-2">
               <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
               <span className="text-sm">{feature}</span>
-            </li>)}
+            </li>
+          ))}
         </ul>
         <div className="mt-6">
-          {isCurrentPlan ? <Button variant="secondary" className="w-full" disabled>
+          {isCurrentPlan ? (
+            <Button variant="secondary" className="w-full" disabled>
               Plan actual
-            </Button> : ctaLink ? <Button asChild className="w-full" variant={isHighlighted ? "default" : "outline"}>
+            </Button>
+          ) : ctaLink ? (
+            <Button asChild className="w-full" variant={isHighlighted ? "default" : "outline"}>
               <Link to={ctaLink}>{ctaText}</Link>
-            </Button> : plan ? <>
+            </Button>
+          ) : plan ? (
+            <>
               <LemonSqueezyCheckout plan={plan} buttonText={enrichedCtaText || ctaText} />
               {enrichedSubtext && (
                 <p className="text-xs text-muted-foreground text-center mt-2 leading-relaxed">
                   {enrichedSubtext}
                 </p>
               )}
-            </> : null}
+            </>
+          ) : null}
         </div>
       </CardContent>
-    </Card>;
+    </Card>
+  );
 }
+
 const GAP_CONTEXT_MAP: Record<string, { area: string; context: string }> = {
   estrategia: { area: "Estrategia de Producto", context: "el plan Premium incluye mentoría específica en eso" },
   roadmap: { area: "Roadmap", context: "trabajamos juntos tu roadmap con objetivos claros" },
@@ -111,26 +128,44 @@ const GAP_CONTEXT_MAP: Record<string, { area: string; context: string }> = {
   liderazgo: { area: "Liderazgo", context: "en el plan Premium trabajamos tu liderazgo de producto" },
 };
 
+function getHeadlineVariant(
+  referrerPath: string | null,
+  hasAssessment: boolean
+): { headline: string; subtitle: string; variant: 'soy-dev' | 'post-assessment' | 'default' } {
+  if (referrerPath?.includes('/soy-dev')) {
+    return {
+      headline: 'Sabés escribir código. Ahora aprendé a decidir qué construir.',
+      subtitle: 'Mentoría, Career Path y evaluación de habilidades para devs que quieren dar el salto a Producto.',
+      variant: 'soy-dev',
+    };
+  }
+
+  if (referrerPath?.includes('/mejoras') || hasAssessment) {
+    return {
+      headline: 'Ya sabés dónde estás. Elegí cómo avanzar.',
+      subtitle: 'Mentoría personalizada y un plan concreto para trabajar tus áreas de mejora.',
+      variant: 'post-assessment',
+    };
+  }
+
+  return {
+    headline: 'Tu carrera en Producto, con acompañamiento real.',
+    subtitle: 'Evaluación, mentoría 1:1 y un Career Path que construís con alguien que lleva más de diez años en Producto.',
+    variant: 'default',
+  };
+}
+
 export default function Planes() {
-  const {
-    user,
-    isAuthenticated
-  } = useAuth();
-  const {
-    profile
-  } = useUserProfile();
+  const { user, isAuthenticated } = useAuth();
+  const { profile } = useUserProfile();
   const {
     hasActivePremium,
     hasActiveRePremium,
     hasCursoEstrategia,
     hasCursosAll
   } = useSubscription();
-  const {
-    trackEvent
-  } = useMixpanelTracking();
-  const {
-    toast
-  } = useToast();
+  const { trackEvent } = useMixpanelTracking();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const {
     premium,
@@ -139,14 +174,15 @@ export default function Planes() {
     cursos_all,
     loading: pricingLoading
   } = usePricing();
+  const location = useLocation();
 
   // Assessment personalization
   const { result: assessmentResult, hasAssessment } = useAssessmentData();
   const topGaps = useMemo(() => {
     if (!assessmentResult?.gaps) return [];
-    return assessmentResult.gaps.
-    filter((g) => g.prioridad === 'Alta').
-    slice(0, 2);
+    return assessmentResult.gaps
+      .filter((g) => g.prioridad === 'Alta')
+      .slice(0, 2);
   }, [assessmentResult]);
 
   const enrichedPremiumCta = useMemo(() => {
@@ -160,16 +196,46 @@ export default function Planes() {
     };
   }, [hasAssessment, assessmentResult]);
 
+  // Dynamic headline based on referrer
+  const referrerPath = useMemo(() => {
+    // Check location.state?.from (SPA navigation)
+    const stateFrom = (location.state as any)?.from;
+    if (stateFrom) return stateFrom as string;
+    // Check URL params
+    const params = new URLSearchParams(location.search);
+    const utmSource = params.get('utm_source');
+    if (utmSource === 'soy-dev') return '/soy-dev';
+    // Check document.referrer for hard navigations
+    try {
+      const ref = document.referrer;
+      if (ref) {
+        const refUrl = new URL(ref);
+        return refUrl.pathname;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  }, [location]);
+
+  const { headline, subtitle, variant: headlineVariant } = useMemo(
+    () => getHeadlineVariant(referrerPath, hasAssessment),
+    [referrerPath, hasAssessment]
+  );
+
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const personalizationTracked = useRef(false);
   const maxScrollDepth = useRef(0);
   const lastHoveredPlan = useRef<string | null>(null);
   const pageLoadTime = useRef(Date.now());
 
-  // Track page view — immediate, no async dependency
+  // Track page view with headline variant
   useEffect(() => {
     trackEvent('planes_page_viewed', {
-      is_authenticated: isAuthenticated
+      is_authenticated: isAuthenticated,
+      headline_variant: headlineVariant,
+      has_assessment: hasAssessment,
+      referrer_path: referrerPath,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -294,6 +360,7 @@ export default function Planes() {
     };
     setTimeout(checkSubscription, 2000);
   }, [user?.id, toast, trackEvent, queryClient]);
+
   const isFreePlan = !hasActivePremium && !hasActiveRePremium && !hasCursoEstrategia && !hasCursosAll;
 
   // FAQs data for Planes
@@ -313,75 +380,87 @@ export default function Planes() {
     question: "¿Puedo probar antes de pagar?",
     answer: "Sí, el Plan Gratuito incluye la autoevaluación completa y acceso a recursos introductorios. Así puedes conocer la plataforma antes de suscribirte."
   }];
+
   const planesSchema = [
-  // WebPage Schema with Offers
-  {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "name": "Planes y Precios | ProductPrepa",
-    "description": "Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada.",
-    "offers": [{
-      "@type": "Offer",
-      "name": "Plan Premium",
-      "price": pricingLoading ? 0 : premium.amount / 100,
-      "priceCurrency": "ARS",
-      "availability": "https://schema.org/InStock",
-      "itemOffered": {
-        "@type": "Service",
-        "name": "Mentoría Premium ProductPrepa",
-        "description": "Sesión mensual 1:1, Career Path personalizado, recursos curados"
-      }
-    }, {
-      "@type": "Offer",
-      "name": "Plan RePremium",
-      "price": pricingLoading ? 0 : repremium.amount / 100,
-      "priceCurrency": "ARS",
-      "availability": "https://schema.org/InStock",
-      "itemOffered": {
-        "@type": "Service",
-        "name": "Mentoría RePremium ProductPrepa",
-        "description": "Todo Premium + 2 sesiones mensuales + acceso a todos los cursos"
-      }
-    }]
-  },
-  // FAQPage Schema
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": planesFaqs.map((faq) => ({
-      "@type": "Question",
-      "name": faq.question,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": faq.answer
-      }
-    }))
-  },
-  // BreadcrumbList Schema
-  {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
     {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "Inicio",
-      "item": "https://productprepa.com"
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Planes y Precios | ProductPrepa",
+      "description": "Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada.",
+      "offers": [{
+        "@type": "Offer",
+        "name": "Plan Premium",
+        "price": pricingLoading ? 0 : premium.amount / 100,
+        "priceCurrency": "ARS",
+        "availability": "https://schema.org/InStock",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Mentoría Premium ProductPrepa",
+          "description": "Sesión mensual 1:1, Career Path personalizado, recursos curados"
+        }
+      }, {
+        "@type": "Offer",
+        "name": "Plan RePremium",
+        "price": pricingLoading ? 0 : repremium.amount / 100,
+        "priceCurrency": "ARS",
+        "availability": "https://schema.org/InStock",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Mentoría RePremium ProductPrepa",
+          "description": "Todo Premium + 2 sesiones mensuales + acceso a todos los cursos"
+        }
+      }]
     },
     {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "Planes y Precios",
-      "item": "https://productprepa.com/planes"
-    }]
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": planesFaqs.map((faq) => ({
+        "@type": "Question",
+        "name": faq.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.answer
+        }
+      }))
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Inicio",
+          "item": "https://productprepa.com"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Planes y Precios",
+          "item": "https://productprepa.com/planes"
+        }
+      ]
+    }
+  ];
 
-  }];
-  return <>
+  const nicoLink = (
+    <a
+      href="https://www.linkedin.com/in/nicolas-espindola/"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-primary hover:text-primary/80 transition-colors underline"
+    >
+      NicoProducto
+    </a>
+  );
+
+  return (
+    <>
       <Seo jsonLd={planesSchema} />
 
       {/* Personalization banner */}
-      {hasAssessment && topGaps.length > 0 && !hasActivePremium && !hasActiveRePremium &&
-    <div className="max-w-4xl mx-auto px-4 pt-8">
+      {hasAssessment && topGaps.length > 0 && !hasActivePremium && !hasActiveRePremium && (
+        <div className="max-w-4xl mx-auto px-4 pt-8">
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-5">
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
@@ -390,11 +469,11 @@ export default function Planes() {
                   Tu evaluación detectó áreas críticas a mejorar
                 </p>
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {topGaps.map((gap) =>
-              <Badge key={gap.label} variant="outline" className="border-primary/50 text-primary">
+                  {topGaps.map((gap) => (
+                    <Badge key={gap.label} variant="outline" className="border-primary/50 text-primary">
                       {gap.label}
                     </Badge>
-              )}
+                  ))}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Con un plan Premium, trabajás estas áreas con mentoría 1:1 y recursos personalizados para tu perfil.
@@ -403,17 +482,17 @@ export default function Planes() {
             </div>
           </div>
         </div>
-    }
-      
+      )}
+
       <div className="min-h-screen bg-background">
-        {/* Hero Section */}
+        {/* Hero Section - Dynamic headline */}
         <section className="pt-12 pb-6 px-4">
           <div className="max-w-6xl mx-auto text-center">
             <h1 className="text-3xl sm:text-4xl font-bold mb-4 tracking-tight">
-              Elegí el plan que mejor se adapte a tu momento
+              {headline}
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados.
+              {subtitle}
             </p>
           </div>
         </section>
@@ -422,20 +501,79 @@ export default function Planes() {
         <section className="px-4 py-8">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl font-bold text-center mb-8">Planes de suscripción</h2>
-            
+
             <div className="grid md:grid-cols-3 gap-6 mb-12">
               {/* Free Plan */}
-              <PlanCard name="Plan Gratuito" price="$0" priceLabel="/mes" description="Ideal para dar el primer paso" icon={<span className="text-2xl">🥪</span>} features={["Autoevaluación completa de habilidades PM", "Identificación de áreas de mejora", "Recursos introductorios", "PDFs y guías gratuitas"]} ctaText={user ? "Ir a evaluación" : "Comenzar gratis"} ctaLink={user ? "/autoevaluacion" : "/auth"} isCurrentPlan={isFreePlan} onHover={() => { lastHoveredPlan.current = 'gratuito'; }} />
+              <PlanCard
+                name="Plan Gratuito"
+                price="$0"
+                priceLabel="/mes"
+                description="Ideal para dar el primer paso"
+                icon={<span className="text-2xl">🥪</span>}
+                features={[
+                  "Autoevaluación completa de habilidades PM",
+                  "Identificación de áreas de mejora",
+                  "Recursos introductorios",
+                  "PDFs y guías gratuitas"
+                ]}
+                ctaText={user ? "Ir a evaluación" : "Comenzar gratis"}
+                ctaLink={user ? "/autoevaluacion" : "/auth"}
+                isCurrentPlan={isFreePlan}
+                onHover={() => { lastHoveredPlan.current = 'gratuito'; }}
+              />
 
               {/* Premium Plan */}
-              <PlanCard name="Plan Premium" price={pricingLoading ? "..." : premium.formatted} priceLabel="/mes" description="Pensado para quienes quieren crecer en serio" icon={<Star className="w-6 h-6 text-primary" />} isHighlighted={true} badge="+17 usuarios activos" features={["Todo lo incluido en el plan gratuito", <>Sesión mensual 1:1 con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>, "Tu Career Path con objetivos concretos", "Recursos curados según tus áreas de mejora", "Nuevos contenidos cada mes"]} plan="premium" ctaText={hasActivePremium ? "Ir a tu mentoría" : "Suscribirse a Premium"} ctaLink={hasActivePremium ? "/mentoria" : undefined} isCurrentPlan={hasActivePremium && !hasActiveRePremium} onHover={() => { lastHoveredPlan.current = 'premium'; }} enrichedCtaText={!hasActivePremium ? enrichedPremiumCta?.ctaText : undefined} enrichedSubtext={!hasActivePremium ? enrichedPremiumCta?.subtext : undefined} />
+              <PlanCard
+                name="Plan Premium"
+                price={pricingLoading ? "..." : premium.formatted}
+                priceLabel="/mes"
+                description="Pensado para quienes quieren crecer en serio"
+                icon={<Star className="w-6 h-6 text-primary" />}
+                isHighlighted={true}
+                badge="+17 usuarios activos"
+                features={[
+                  "Todo lo incluido en el plan gratuito",
+                  <>Sesión mensual 1:1 con {nicoLink}</>,
+                  "Tu Career Path con objetivos concretos",
+                  "Recursos curados según tus áreas de mejora",
+                  "Nuevos contenidos cada mes"
+                ]}
+                plan="premium"
+                ctaText={hasActivePremium ? "Ir a tu mentoría" : "Suscribirse a Premium"}
+                ctaLink={hasActivePremium ? "/mentoria" : undefined}
+                isCurrentPlan={hasActivePremium && !hasActiveRePremium}
+                onHover={() => { lastHoveredPlan.current = 'premium'; }}
+                enrichedCtaText={!hasActivePremium ? enrichedPremiumCta?.ctaText : undefined}
+                enrichedSubtext={!hasActivePremium ? enrichedPremiumCta?.subtext : undefined}
+              />
 
               {/* RePremium Plan */}
-              <PlanCard name="Plan RePremium" price={pricingLoading ? "..." : repremium.formatted} priceLabel="/mes" description="Para quienes buscan el máximo acompañamiento" icon={<Crown className="w-6 h-6 text-amber-500" />} badge="+5 usuarios activos" features={["Todo lo incluido en Premium", <>2 sesiones mensuales 1:1 con <a href="https://www.linkedin.com/in/nicolas-espindola/" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors underline">NicoProducto</a></>, <><strong>Acceso completo a Cursos</strong></>, "Feedback personalizado en ejercicios", "Acceso prioritario a nuevos contenidos", "Canal directo de comunicación"]} plan="repremium" ctaText={hasActiveRePremium ? "Ir a tu mentoría" : "Suscribirse a RePremium"} ctaLink={hasActiveRePremium ? "/mentoria" : undefined} isCurrentPlan={hasActiveRePremium} onHover={() => { lastHoveredPlan.current = 'repremium'; }} />
+              <PlanCard
+                name="Plan RePremium"
+                price={pricingLoading ? "..." : repremium.formatted}
+                priceLabel="/mes"
+                description="Para quienes buscan el máximo acompañamiento"
+                icon={<Crown className="w-6 h-6 text-amber-500" />}
+                badge="+5 usuarios activos"
+                features={[
+                  "Todo lo incluido en Premium",
+                  <>2 sesiones mensuales 1:1 con {nicoLink}</>,
+                  <><strong>Acceso completo a Cursos</strong></>,
+                  "Feedback personalizado en ejercicios",
+                  "Acceso prioritario a nuevos contenidos",
+                  "Canal directo de comunicación"
+                ]}
+                plan="repremium"
+                ctaText={hasActiveRePremium ? "Ir a tu mentoría" : "Suscribirse a RePremium"}
+                ctaLink={hasActiveRePremium ? "/mentoria" : undefined}
+                isCurrentPlan={hasActiveRePremium}
+                onHover={() => { lastHoveredPlan.current = 'repremium'; }}
+              />
             </div>
 
             {/* Upgrade CTAs for subscription users */}
-            {hasActivePremium && !hasActiveRePremium && <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+            {hasActivePremium && !hasActiveRePremium && (
+              <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <p className="font-medium text-amber-900 dark:text-amber-100">¿Querés más sesiones y acceso a cursos?</p>
@@ -443,7 +581,8 @@ export default function Planes() {
                   </div>
                   <LemonSqueezyCheckout plan="repremium" buttonText="Upgrade a RePremium" variant="default" size="default" className="whitespace-nowrap" />
                 </div>
-              </div>}
+              </div>
+            )}
           </div>
         </section>
 
@@ -478,35 +617,29 @@ export default function Planes() {
           <div className="max-w-lg mx-auto">
             <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">¿Ya tenés tu propio producto?</h3>
             <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">Validá tus decisiones con alguien externo y con experiencia</p>
-            
+
             <div className="relative group pt-4">
-              {/* Badge - outside card to avoid clipping */}
               <div className="absolute -top-0 left-1/2 transform -translate-x-1/2 z-10">
                 <Badge className="px-4 py-1.5 shadow-lg shadow-emerald-900/30 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold tracking-wide border-0 text-xs uppercase">
                   Pago único
                 </Badge>
               </div>
 
-              {/* Outer glow */}
               <div className="absolute -inset-1 top-3 bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-emerald-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-60 group-hover:opacity-100 pointer-events-none" />
-              
+
               <Card className="relative flex flex-col overflow-hidden border-emerald-500/30 bg-gradient-to-br from-emerald-950/90 via-emerald-900/80 to-teal-950/90 text-white shadow-2xl shadow-emerald-900/20 rounded-2xl">
-                {/* Top accent bar */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 pointer-events-none" />
-                
-                {/* Subtle background pattern */}
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
                 <CardHeader className="relative z-10 text-center pb-2 pt-8">
-                  {/* Icon */}
                   <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/20 flex items-center justify-center">
                     <Search className="w-7 h-7 text-emerald-300" />
                   </div>
-                  
+
                   <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white via-emerald-100 to-teal-200 bg-clip-text text-transparent">
                     Productastic Review
                   </CardTitle>
-                  
+
                   <CardDescription className="text-emerald-200/70 mt-2 text-sm leading-relaxed max-w-sm mx-auto shadow-none font-bold">
                     ¿Tomaste decisiones de producto y querés validarlas con alguien externo?<br />
                     Reviso tu research, hipótesis y decisiones hasta acá. No importa como construiste tu producto, analizo tu proceso hasta acá.
@@ -522,9 +655,8 @@ export default function Planes() {
                 </CardHeader>
 
                 <CardContent className="relative z-10 flex-1 flex flex-col px-8 pb-8">
-                  {/* Divider */}
                   <div className="w-full h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent my-4" />
-                  
+
                   <ul className="space-y-3 flex-1">
                     {[
                       { text: "Revisión de tu research y hallazgos clave", highlight: true },
@@ -561,145 +693,6 @@ export default function Planes() {
 
         <ProductReviewModal open={reviewModalOpen} onOpenChange={setReviewModalOpen} />
 
-        {/* Comparison Table */}
-        <section className="py-12 px-4">
-          <div className="max-w-5xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Comparativa de planes</h2>
-            
-            <div className="overflow-x-auto rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-[280px] font-semibold">Características</TableHead>
-                    <TableHead className="text-center font-semibold">Gratuito</TableHead>
-                    <TableHead className="text-center font-semibold bg-primary/10">Premium</TableHead>
-                    <TableHead className="text-center font-semibold">RePremium</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {/* Autoevaluación */}
-                  <TableRow className="bg-muted/30">
-                    <TableCell colSpan={4} className="font-semibold text-primary">Sin compromiso · Te respondo en menos de 24 hs</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Autoevaluación completa de habilidades PM</TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Identificación de áreas de mejora</TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                  </TableRow>
-                  
-                  {/* Recursos */}
-                  <TableRow className="bg-muted/30">
-                    <TableCell colSpan={4} className="font-semibold text-primary">Recursos</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Recursos introductorios</TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>PDFs y guías gratuitas</TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Recursos curados según tus áreas de mejora</TableCell>
-                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
-                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Acceso prioritario a nuevos contenidos</TableCell>
-                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
-                    <TableCell className="text-center bg-primary/5"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                  </TableRow>
-                  
-                  {/* Mentoría */}
-                  <TableRow className="bg-muted/30">
-                    <TableCell colSpan={4} className="font-semibold text-primary">Mentoría</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Sesión mensual 1:1 con NicoProducto</TableCell>
-                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
-                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Tu Career Path con objetivos concretos</TableCell>
-                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
-                    <TableCell className="text-center bg-primary/5"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Feedback personalizado en ejercicios</TableCell>
-                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
-                    <TableCell className="text-center bg-primary/5"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Canal directo de comunicación</TableCell>
-                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
-                    <TableCell className="text-center bg-primary/5"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                  </TableRow>
-                  
-                  {/* Cursos */}
-                  <TableRow className="bg-muted/30">
-                    <TableCell colSpan={4} className="font-semibold text-primary">Cursos</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Acceso completo a todos los Cursos</TableCell>
-                    <TableCell className="text-center"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
-                    <TableCell className="text-center bg-primary/5"><X className="w-5 h-5 text-muted-foreground/50 mx-auto" /></TableCell>
-                    <TableCell className="text-center"><Check className="w-5 h-5 text-green-600 mx-auto" /></TableCell>
-                  </TableRow>
-                  
-                  {/* Precio */}
-                  <TableRow className="bg-muted/30">
-                    <TableCell colSpan={4} className="font-semibold text-primary">Precio</TableCell>
-                  </TableRow>
-                  <TableRow className="font-semibold">
-                    <TableCell>Precio mensual</TableCell>
-                    <TableCell className="text-center">$0</TableCell>
-                    <TableCell className="text-center bg-primary/5">{premium?.formatted || "$ 50.000"}/mes</TableCell>
-                    <TableCell className="text-center">{repremium?.formatted || "$ 19.999"}/mes</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell></TableCell>
-                    <TableCell className="text-center py-4">
-                      {!user ? <Button asChild variant="outline" size="sm">
-                          <Link to="/auth">Comenzar gratis</Link>
-                        </Button> : <Button variant="outline" size="sm" disabled>
-                          Plan actual
-                        </Button>}
-                    </TableCell>
-                    <TableCell className="text-center bg-primary/5 py-4">
-                      {hasActivePremium ? <Button variant="secondary" size="sm" disabled>
-                          Plan actual
-                        </Button> : <LemonSqueezyCheckout plan="premium" buttonText="Elegir Premium" />}
-                    </TableCell>
-                    <TableCell className="text-center py-4">
-                      {hasActiveRePremium ? <Button variant="secondary" size="sm" disabled>
-                          Plan actual
-                        </Button> : <LemonSqueezyCheckout plan="repremium" buttonText="Elegir RePremium" />}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </section>
-
-
         {/* FAQ Section */}
         <section className="py-12 px-4 bg-muted/30">
           <div className="max-w-3xl mx-auto">
@@ -707,16 +700,18 @@ export default function Planes() {
             <p className="text-center text-muted-foreground mb-8">
               Todo lo que necesitás saber sobre nuestros planes
             </p>
-            
+
             <Accordion type="single" collapsible className="w-full">
-              {planesFaqs.map((faq, index) => <AccordionItem key={index} value={`item-${index}`}>
+              {planesFaqs.map((faq, index) => (
+                <AccordionItem key={index} value={`item-${index}`}>
                   <AccordionTrigger className="text-left">
                     {faq.question}
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
                     {faq.answer}
                   </AccordionContent>
-                </AccordionItem>)}
+                </AccordionItem>
+              ))}
             </Accordion>
           </div>
         </section>
@@ -736,5 +731,6 @@ export default function Planes() {
           </div>
         </section>
       </div>
-    </>;
+    </>
+  );
 }
