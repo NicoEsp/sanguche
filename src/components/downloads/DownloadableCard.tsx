@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +51,7 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
   const { isAuthenticated } = useAuth();
   const { subscription } = useSubscription();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const Icon = typeIcons[resource.type] || FileText;
 
@@ -73,7 +74,7 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
   const handleCardActivate = async () => {
     if (isLocked) {
       if (accessState === 'requires_login') {
-        navigate('/auth', { state: { from: { pathname: '/preguntas' } } });
+        navigate('/auth', { state: { from: location } });
       } else {
         navigate('/planes');
       }
@@ -90,6 +91,8 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    // Ignore key events bubbled from interactive descendants (e.g. Download button)
+    if (event.target !== event.currentTarget) return;
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       void handleCardActivate();
