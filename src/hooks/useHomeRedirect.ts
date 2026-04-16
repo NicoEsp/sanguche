@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfileCompositeData } from './useProfileCompositeData';
-import { PREMIUM_PLANS } from '@/constants/plans';
+import { isPremiumPlan } from '@/constants/plans';
 
 const FADE_DURATION = 150;
 
