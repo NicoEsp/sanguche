@@ -167,23 +167,6 @@ Checkout soporta **compra anónima** (solo email). El webhook vincula la compra 
 
 -----
 
-## 🔐 Autenticación
-
-Sistema basado en **Supabase Auth**:
-- Registro/login con **email y contraseña**
-- Login con **Google OAuth**
-- Recuperación y actualización de contraseña
-- Reenvío de email de confirmación
-
-**AuthContext** provee estado global:
-- `user`, `session`, `isAuthenticated`, `isAdmin`
-- Suscripciones Realtime a tablas `profiles`, `user_subscriptions`, `assessments`
-- Prefetch de datos compuestos del usuario al login
-- Tracking de usuario en Mixpanel
-
-**Seguridad admin:** Validación server-side via `is_admin_jwt()` RPC (no depende del cliente). Todos los intentos de acceso se loguean en `security_audit`.
-
------
 
 ## 🔍 SEO
 
@@ -218,66 +201,3 @@ Sistema centralizado y route-aware:
 | Fechas | date-fns (locale español) |
 | Iconos | Lucide React |
 | Toasts | Sonner |
-
------
-
-## ⚡ Edge Functions (Supabase)
-
-| Función | Auth | Descripción |
-|---|---|---|
-| `lemon-squeezy-checkout` | No | Crea sesiones de checkout (rate limit: 3/10min por usuario) |
-| `lemon-squeezy-webhook` | No | Procesa webhooks de pago (suscripciones + compras únicas) |
-| `pricing-config` | No | Obtiene precios en vivo desde LemonSqueezy (cache 5min) |
-| `sitemap` | No | Genera sitemap XML dinámico (cache 1h) |
-| `cancel-subscription` | JWT | Cancela suscripción de usuario |
-| `delete-user` | JWT | Elimina cuenta de usuario |
-| `get-admin-users` | JWT | Lista de usuarios para admin |
-| `get-resource-access` | - | Control de acceso a descarga de recursos |
-| `publish-scheduled-courses` | No | Auto-publica cursos programados |
-| `todoist-feedback` | JWT | Crea tarea en Todoist desde feedback de usuario |
-| `todoist-course-inquiry` | - | Crea tarea en Todoist desde consulta de curso |
-
------
-
-## 🏛️ Arquitectura
-
-- **Realtime-first:** Supabase Realtime en tablas clave en lugar de polling. React Query se invalida automáticamente en eventos Realtime.
-- **Code splitting:** Todas las páginas lazy-loaded con `React.lazy()` + `Suspense`. Skeletons específicos para páginas críticas.
-- **Prefetch compuesto:** Al login se prefetchean perfil, suscripción y evaluación en paralelo.
-- **Seguridad admin:** Validación server-side, no client-side. Audit logging completo.
-- **Checkout anónimo:** Permite comprar sin registro previo. El webhook vincula la compra a una cuenta.
-
------
-
-## 🛠️ Desarrollo
-
-```bash
-# Instalar dependencias
-npm install
-
-# Servidor de desarrollo (puerto 8080)
-npm run dev
-
-# Build de producción
-npm run build
-
-# Preview del build
-npm run preview
-```
-
-### Variables de entorno
-
-**Frontend (`.env`):**
-| Variable | Descripción |
-|---|---|
-| `VITE_SUPABASE_URL` | URL del proyecto Supabase |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon key |
-| `VITE_SUPABASE_PROJECT_ID` | ID del proyecto Supabase |
-
-**Supabase Edge Functions (secrets en dashboard):**
-| Variable | Descripción |
-|---|---|
-| `LEMON_SQUEEZY_API_KEY` | API key de LemonSqueezy |
-| `LEMON_SQUEEZY_STORE_ID` | Store ID de LemonSqueezy |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key para operaciones admin |
-| `TODOIST_API_KEY` | API key de Todoist para feedback |
