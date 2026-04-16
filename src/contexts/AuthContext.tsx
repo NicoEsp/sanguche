@@ -26,10 +26,30 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * Fast path: check if there's a Supabase auth token in localStorage.
+ * If not, the user is almost certainly unauthenticated and we can skip
+ * the loading spinner entirely.
+ */
+function hasAuthTokenInStorage(): boolean {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+        return true;
+      }
+    }
+  } catch {
+    // localStorage may not be available (private browsing, etc.)
+  }
+  return false;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Fast path: if no token in localStorage, skip loading state entirely
+  const [isLoading, setIsLoading] = useState(() => hasAuthTokenInStorage());
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -426,7 +446,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updatePassword,
   }), [user, session, isLoading, isAdminValidating, isAdmin, isSigningOut]);
 
-  // Render loading screen during initial auth check to prevent context access errors
+  // Only show loading spinner if we expect a session (token exists in storage)
   if (isLoading && !user && !session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
