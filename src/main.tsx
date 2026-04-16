@@ -3,13 +3,9 @@ import App from './App.tsx'
 import './index.css'
 import { ensureLatestVersion, startVersionPolling } from './lib/versionCheck'
 
-// Initialize app with version check
-(async () => {
-  // Check for new version before rendering
-  await ensureLatestVersion(true);
-  
-  createRoot(document.getElementById("root")!).render(<App />);
-  
-  // Start polling for version updates every 5 minutes
-  startVersionPolling();
-})();
+// Render immediately - don't block on version check
+createRoot(document.getElementById("root")!).render(<App />);
+
+// Version check in background (non-blocking)
+ensureLatestVersion(true);
+startVersionPolling();
