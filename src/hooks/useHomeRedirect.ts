@@ -45,7 +45,7 @@ export function useHomeRedirect() {
     let dest: string;
     const hasAssessment = compositeData.assessmentsCount > 0;
     const hasActivePremium = compositeData.subscription
-      ? PREMIUM_PLANS.includes(compositeData.subscription.plan) && compositeData.subscription.status === 'active'
+      ? isPremiumPlan(compositeData.subscription.plan) && compositeData.subscription.status === 'active'
       : false;
     
     if (returnTo) {
