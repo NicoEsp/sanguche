@@ -34,9 +34,11 @@ const typeGradients: Record<DownloadableType, string> = {
 };
 
 type AccessState = 'accessible' | 'requires_login' | 'requires_subscription';
+type PriceVariant = 'free' | 'premium';
 
-function getPriceLabel(_resource: DownloadableResource): string {
-  return 'Gratis';
+function getPriceBadge(resource: DownloadableResource): { label: string; variant: PriceVariant } {
+  if (resource.access_level === 'premium') return { label: 'Premium', variant: 'premium' };
+  return { label: 'Gratis', variant: 'free' };
 }
 
 interface DownloadableCardProps {
@@ -69,7 +71,7 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
   }, [resource.access_level, isAuthenticated, subscription?.plan]);
 
   const isLocked = accessState !== 'accessible';
-  const priceLabel = getPriceLabel(resource);
+  const priceBadge = getPriceBadge(resource);
 
   const handleCardActivate = async () => {
     if (isLocked) {
@@ -132,27 +134,35 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
               src={resource.thumbnail_url}
               alt={resource.title}
               loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className={cn(
+                'h-full w-full object-cover transition-transform duration-500',
+                isLocked ? 'scale-110 blur-lg' : 'group-hover:scale-105',
+              )}
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center">
+            <div
+              className={cn(
+                'flex h-full w-full items-center justify-center transition-transform duration-500',
+                isLocked && 'scale-110 blur-lg',
+              )}
+            >
               <Icon className="h-16 w-16 text-primary/40" />
             </div>
           )}
 
           {resource.access_level === 'premium' ? (
-            <Badge className="absolute left-3 top-3 border-amber-500/30 bg-amber-500/90 text-white">
+            <Badge className="absolute left-3 top-3 z-10 border-amber-500/30 bg-amber-500/90 text-white">
               <Crown className="mr-1 h-3 w-3" />
               Premium
             </Badge>
           ) : (
-            <Badge variant="secondary" className="absolute left-3 top-3 bg-background/80 text-xs backdrop-blur-sm">
+            <Badge variant="secondary" className="absolute left-3 top-3 z-10 bg-background/80 text-xs backdrop-blur-sm">
               {typeLabels[resource.type]}
             </Badge>
           )}
 
           {resource.is_featured && (
-            <Badge className="absolute right-3 top-3 border-0 bg-green-500/90 text-white">
+            <Badge className="absolute right-3 top-3 z-10 border-0 bg-green-500/90 text-white">
               <Star className="mr-1 h-3 w-3" />
               Destacado
             </Badge>
@@ -165,15 +175,15 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
           )}
 
           {isLocked && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70 backdrop-blur-[2px]">
-              <div className="rounded-full bg-background/90 p-3 shadow-sm">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/30">
+              <div className="rounded-full bg-background/95 p-3 shadow-sm">
                 {accessState === 'requires_subscription' ? (
                   <Crown className="h-5 w-5 text-amber-500" />
                 ) : (
                   <Lock className="h-5 w-5 text-muted-foreground" />
                 )}
               </div>
-              <span className="text-xs font-medium text-foreground">
+              <span className="rounded-full bg-background/95 px-3 py-1 text-xs font-medium text-foreground shadow-sm">
                 {accessState === 'requires_subscription' ? 'Exclusivo Premium' : 'Inicia sesión'}
               </span>
             </div>
@@ -189,8 +199,13 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
           )}
 
           <div className="mt-auto flex items-center justify-between pt-2">
-            <span className="inline-flex items-center rounded-sm bg-pink-500 px-2 py-0.5 text-xs font-semibold text-white">
-              {priceLabel}
+            <span
+              className={cn(
+                'inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-semibold text-white',
+                priceBadge.variant === 'premium' ? 'bg-amber-500' : 'bg-pink-500',
+              )}
+            >
+              {priceBadge.label}
             </span>
 
             {!isLocked && (
