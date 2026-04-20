@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { maskEmail } from '../_shared/pii.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +14,6 @@ const VARIANT_CONFIG: Record<string, { variantId: string; purchaseType: 'subscri
   'repremium': { variantId: '1170898', purchaseType: 'subscription' },
   'curso_estrategia': { variantId: '1170897', purchaseType: 'one_time' },
   'cursos_all': { variantId: '1170900', purchaseType: 'one_time' },
-  'productastic_review': { variantId: '1467096', purchaseType: 'one_time' },
 };
 
 type PlanType = keyof typeof VARIANT_CONFIG;
@@ -192,7 +192,7 @@ serve(async (req) => {
     const checkoutIntentId = crypto.randomUUID();
 
     console.log('[Checkout Intent] Generated ID:', checkoutIntentId);
-    console.log('[Checkout Intent] Email:', checkoutEmail);
+    console.log('[Checkout Intent] Email:', maskEmail(checkoutEmail));
     console.log('[Checkout Intent] Plan:', plan);
 
     // Create Lemon Squeezy checkout
@@ -234,7 +234,7 @@ serve(async (req) => {
 
     console.log('Creating Lemon Squeezy checkout session for user');
     console.log('[Checkout Request] Variant ID:', config.variantId);
-    console.log('[Checkout Request] Email:', checkoutEmail);
+    console.log('[Checkout Request] Email:', maskEmail(checkoutEmail));
     console.log('[Checkout Request] Is anonymous:', isAnonymousCheckout);
     console.log('[Checkout Request] Plan:', plan);
 
@@ -274,7 +274,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       console.error('[Lemon Squeezy API Error] Status:', response.status, response.statusText);
-      console.error('[Lemon Squeezy API Error] Request was for email:', checkoutEmail);
+      console.error('[Lemon Squeezy API Error] Request was for email:', maskEmail(checkoutEmail));
       console.error('[Lemon Squeezy API Error] Variant ID:', config.variantId);
       
       const errorText = await response.text();
@@ -301,7 +301,7 @@ serve(async (req) => {
     const checkoutSession = await response.json();
     console.log('[Lemon Squeezy API Success] Checkout session created');
     console.log('[Lemon Squeezy API Success] Session ID:', checkoutSession.data?.id);
-    console.log('[Lemon Squeezy API Success] Checkout URL generated for:', checkoutEmail);
+    console.log('[Lemon Squeezy API Success] Checkout URL generated for:', maskEmail(checkoutEmail));
 
     return new Response(
       JSON.stringify({ checkoutUrl: checkoutSession.data.attributes.url }),

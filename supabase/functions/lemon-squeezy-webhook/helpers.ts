@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { maskEmail } from '../_shared/pii.ts';
 
 // Helper function for controlled delays
 function delay(ms: number): Promise<void> {
@@ -7,8 +8,9 @@ function delay(ms: number): Promise<void> {
 
 export async function findOrCreateUser(email: string, name: string | null, supabase: any) {
   const startTime = Date.now();
-  console.log(`[findOrCreateUser] Starting for email: ${email}`);
-  
+  const emailMasked = maskEmail(email);
+  console.log(`[findOrCreateUser] Starting for email: ${emailMasked}`);
+
   try {
     // 1. FIRST: Check if profile already exists by email (most reliable for existing users)
     console.log('[findOrCreateUser] Step 1: Checking if profile exists by email...');
@@ -24,7 +26,7 @@ export async function findOrCreateUser(email: string, name: string | null, supab
     }
     
     if (existingProfile) {
-      console.log(`[findOrCreateUser] Found existing profile by email: ${existingProfile.id} (took ${Date.now() - startTime}ms)`);
+      console.log(`[findOrCreateUser] Found existing profile by email (${emailMasked}): ${existingProfile.id} (took ${Date.now() - startTime}ms)`);
       return existingProfile.id;
     }
     

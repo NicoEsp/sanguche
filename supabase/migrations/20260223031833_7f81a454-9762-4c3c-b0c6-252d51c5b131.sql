@@ -10,7 +10,9 @@ SELECT cron.schedule(
   SELECT
     net.http_post(
       url := 'https://lgscevufwnetegglgpnw.supabase.co/functions/v1/publish-scheduled-blog',
-      headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxnc2NldnVmd25ldGVnZ2xncG53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MjI5NzQsImV4cCI6MjA3NDA5ODk3NH0.LXqu7Vdp-IVvD6E-K3PIeaCgHKV-OJ69ugNhnd2zH5I"}'::jsonb,
+      -- Token removed after Lovable breach. The active cron job is re-created
+      -- with Vault-managed auth by migration 20260420000000_rotate_cron_secrets.sql.
+      headers := '{"Content-Type": "application/json", "Authorization": "Bearer TOKEN_ROTATED_SEE_LATER_MIGRATION"}'::jsonb,
       body := concat('{"time": "', now(), '"}')::jsonb
     ) AS request_id;
   $$

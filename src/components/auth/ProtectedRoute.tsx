@@ -11,7 +11,10 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, fallbackPath }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
-  const isDemoMode = import.meta.env.DEV && new URLSearchParams(location.search).has("demo");
+  const isDemoMode =
+    import.meta.env.DEV &&
+    import.meta.env.VITE_ALLOW_DEMO_BYPASS === "true" &&
+    new URLSearchParams(location.search).has("demo");
 
   // Mostrar loading mientras se verifica autenticación
   if (isLoading && !isDemoMode) {
