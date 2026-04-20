@@ -14,6 +14,27 @@
 --   SET secret = '<NEW_ANON_KEY_JWT>'
 --   WHERE name = 'scheduled_blog_cron_token';
 
+-- Preflight: fail fast if the Vault secret is missing or empty, so we never
+-- leave a cron job scheduled against a bearer that does not exist. Without
+-- this guard, cron.schedule succeeds and net.http_post silently returns 401
+-- every 5 minutes until someone notices the blog stopped publishing.
+DO $$
+DECLARE
+  v_secret text;
+BEGIN
+  SELECT decrypted_secret INTO v_secret
+  FROM vault.decrypted_secrets
+  WHERE name = 'scheduled_blog_cron_token'
+  LIMIT 1;
+
+  IF v_secret IS NULL OR length(trim(v_secret)) = 0 THEN
+    RAISE EXCEPTION
+      'Vault secret "scheduled_blog_cron_token" is missing or empty. '
+      'Create it before applying this migration: '
+      'SELECT vault.create_secret(''<publishable_key>'', ''scheduled_blog_cron_token'', ''Publishable key used by the publish-scheduled-blog cron job'');';
+  END IF;
+END $$;
+
 -- Unschedule the previous (leaked-token) cron job if present.
 DO $$
 BEGIN
