@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { maskEmail, maskName } from '../_shared/pii.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -118,7 +119,7 @@ Deno.serve(async (req) => {
     const { data: emailData } = await supabaseClient.functions.invoke('get-admin-users');
     const userEmail = emailData?.users?.find((u: any) => u.user_id === targetProfile.user_id)?.email;
 
-    console.log(`[delete-user] Target user info - Name: ${targetProfile.name}, Email: ${userEmail}`);
+    console.log(`[delete-user] Target user info - Name: ${maskName(targetProfile.name)}, Email: ${maskEmail(userEmail)}`);
 
     // Get current admin's profile ID for logging
     const { data: adminProfile } = await supabaseClient

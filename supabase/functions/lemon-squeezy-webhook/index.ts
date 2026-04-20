@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { findOrCreateUser } from './helpers.ts';
+import { maskEmail } from '../_shared/pii.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,7 +15,6 @@ const VARIANT_TO_PLAN: Record<string, { plan: string; purchaseType: 'subscriptio
   '1170898': { plan: 'repremium', purchaseType: 'subscription' },
   '1170897': { plan: 'curso_estrategia', purchaseType: 'one_time' },
   '1170900': { plan: 'cursos_all', purchaseType: 'one_time' },
-  '1467096': { plan: 'productastic_review', purchaseType: 'one_time' },
 };
 
 interface LemonSqueezyWebhookEvent {
@@ -180,7 +180,7 @@ function logEventSummary(
   const timestamp = new Date().toISOString();
   if (phase === 'START') {
     console.log(`[Webhook][${timestamp}] ========== START: ${eventName} ==========`);
-    console.log(`[Webhook] Email: ${data.email || 'N/A'}`);
+    console.log(`[Webhook] Email: ${maskEmail(data.email)}`);
     console.log(`[Webhook] Variant ID: ${data.variantId || 'N/A'}`);
     console.log(`[Webhook] Plan: ${data.plan || 'N/A'}`);
     console.log(`[Webhook] Purchase Type: ${data.purchaseType || 'N/A'}`);
@@ -282,7 +282,7 @@ serve(async (req) => {
     }
 
     // Find or create user profile by email
-    console.log(`[Webhook] Finding or creating user for email: ${userEmail}`);
+    console.log(`[Webhook] Finding or creating user for email: ${maskEmail(userEmail)}`);
     
     try {
       const userName = event!.data.attributes.user_name || null;
