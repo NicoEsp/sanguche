@@ -21,11 +21,12 @@ import {
   Shield,
   FileText,
   LineChart,
-  Rocket,
+  
   BookOpen,
   CreditCard,
   FileDown,
-  PenLine
+  PenLine,
+  Calendar
 } from 'lucide-react';
 
 import { GraduationCap } from 'lucide-react';
@@ -39,9 +40,10 @@ const adminNavItems = [
   { title: 'Ejercicios', url: '/admin/ejercicios', icon: BookOpen },
   { title: 'Cursos', url: '/admin/cursos', icon: GraduationCap, matchPrefix: '/admin/cursos' },
   { title: 'Recursos', url: '/admin/recursos', icon: FileText },
-  { title: 'Starter Pack', url: '/admin/starterpack', icon: Rocket },
+  
   { title: 'Descargables', url: '/admin/descargables', icon: FileDown },
   { title: 'Blog', url: '/admin/blog', icon: PenLine },
+  { title: 'Sesiones', url: '/admin/sesiones', icon: Calendar },
 ];
 
 const generalNavItems = [

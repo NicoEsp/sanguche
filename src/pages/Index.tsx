@@ -5,6 +5,9 @@ import { ArrowRight } from "lucide-react";
 import { HowItWorks } from "@/components/sections/HowItWorks";
 import { StickyMobileCTA } from "@/components/landing/StickyMobileCTA";
 import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
+import { SocialProofStrip } from "@/components/landing/SocialProofStrip";
+import { PlatformPreview } from "@/components/landing/PlatformPreview";
+import { SocialProofBlock } from "@/components/planes/SocialProofBlock";
 import { useAuth } from '@/contexts/AuthContext';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 import { useHomeRedirect } from '@/hooks/useHomeRedirect';
@@ -84,36 +87,15 @@ const Index = () => {
         </div>
       </section>
 
+      <SocialProofStrip />
+
       <HowItWorks />
 
       <WhyProductPrepa />
 
-      {/* Starter Pack — bold full-width band */}
-      <section className="bg-primary text-primary-foreground">
-        <div className="container py-14 sm:py-20 px-4 sm:px-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 max-w-4xl mx-auto">
-            <div>
-              <h3 className="text-xl sm:text-2xl font-bold mb-1">
-                ¿Empezando en Producto?
-              </h3>
-              <p className="text-primary-foreground/80 max-w-lg">
-                Un Starter Pack con recursos concretos y un camino claro para dar tus primeros pasos como PM.
-              </p>
-            </div>
-            <Button
-              asChild
-              size="lg"
-              variant="secondary"
-              className="shrink-0 font-semibold">
-              
-              <Link to="/starterpack">
-                Ver Starter Pack
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+      <PlatformPreview />
+
+      <SocialProofBlock />
 
       {/* Upgrade teaser */}
       <section className="container py-16 sm:py-24 px-4 sm:px-6">

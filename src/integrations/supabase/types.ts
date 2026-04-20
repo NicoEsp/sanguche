@@ -231,6 +231,7 @@ export type Database = {
           order_index: number | null
           title: string
           updated_at: string | null
+          video_type: string
           video_url: string
         }
         Insert: {
@@ -243,6 +244,7 @@ export type Database = {
           order_index?: number | null
           title: string
           updated_at?: string | null
+          video_type?: string
           video_url: string
         }
         Update: {
@@ -255,6 +257,7 @@ export type Database = {
           order_index?: number | null
           title?: string
           updated_at?: string | null
+          video_type?: string
           video_url?: string
         }
         Relationships: [
@@ -266,6 +269,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      course_waitlist: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+        }
+        Relationships: []
       }
       courses: {
         Row: {
@@ -443,6 +464,66 @@ export type Database = {
           title?: string
           type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      exclusive_sessions: {
+        Row: {
+          agenda: Json | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          learning_outcomes: string | null
+          max_spots: number | null
+          reserved_spots: number
+          reserved_spots_notes: string | null
+          session_date: string | null
+          slug: string
+          speaker_bio: string | null
+          speaker_image_url: string | null
+          speaker_name: string | null
+          target_audience: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          agenda?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          learning_outcomes?: string | null
+          max_spots?: number | null
+          reserved_spots?: number
+          reserved_spots_notes?: string | null
+          session_date?: string | null
+          slug: string
+          speaker_bio?: string | null
+          speaker_image_url?: string | null
+          speaker_name?: string | null
+          target_audience?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          agenda?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          learning_outcomes?: string | null
+          max_spots?: number | null
+          reserved_spots?: number
+          reserved_spots_notes?: string | null
+          session_date?: string | null
+          slug?: string
+          speaker_bio?: string | null
+          speaker_image_url?: string | null
+          speaker_name?: string | null
+          target_audience?: string | null
+          title?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -733,6 +814,42 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "security_audit_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_reservations: {
+        Row: {
+          id: string
+          reserved_at: string | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          reserved_at?: string | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          reserved_at?: string | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_reservations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "exclusive_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_reservations_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1302,6 +1419,10 @@ export type Database = {
       create_admin_user: { Args: { admin_user_id: string }; Returns: boolean }
       ensure_user_defaults: { Args: never; Returns: undefined }
       get_profile_id_for_auth: { Args: never; Returns: string }
+      get_session_spots_left: {
+        Args: { p_session_id: string }
+        Returns: number
+      }
       get_social_proof_metrics: {
         Args: never
         Returns: {

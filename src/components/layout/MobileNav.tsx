@@ -31,9 +31,6 @@ export function MobileNav() {
   const displayName = profile?.name || metadataName || user?.email?.split('@')[0] || 'Usuario';
 
   const isActive = (path: string) => {
-    if (path === "/starterpack") {
-      return location.pathname.startsWith("/starterpack");
-    }
     return location.pathname === path;
   };
 

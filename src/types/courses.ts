@@ -23,6 +23,7 @@ export interface CourseLesson {
   title: string;
   description: string | null;
   video_url: string;
+  video_type?: 'external' | 'storage';
   duration_minutes: number | null;
   order_index: number;
   is_published: boolean;

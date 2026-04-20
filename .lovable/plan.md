@@ -1,26 +1,83 @@
 
 
-## Recuperar el detalle de Productastic Review y mejorar el CTA
+# Plan: Optimización de tiempos de carga del sitio
 
-### Problema
+## Diagnóstico
 
-Al reemplazar el botón por el checkout directo, se perdió el contenido rico del modal: "Qué se revisa", "Qué NO es esto" y "Cómo funciona". Además, "Pagar USD 50" es un CTA frío y transaccional.
+Identifiqué estos cuellos de botella en el flujo de carga actual:
 
-### Solución
+```text
+main.tsx: await ensureLatestVersion() ──► fetch /version.json (BLOQUEA render)
+    │
+    ▼
+AuthContext: getSession() + onAuthStateChange ──► spinner hasta resolver
+    │
+    ▼
+AppLayout: isLoading=true ──► skeleton hasta que auth resuelve
+    │
+    ▼
+useHomeRedirect: espera auth + assessment + subscription ──► 3 queries en waterfall
+    │
+    ▼
+Página visible
+```
 
-Convertir el flujo en dos pasos: el botón de la card abre el modal existente (`ProductReviewModal`) con todo el detalle, pero **reemplazando el formulario de waitlist** al final por el componente `LemonSqueezyCheckout` con un CTA más atractivo.
+**Problemas principales:**
 
-### Cambios
+1. **`ensureLatestVersion` bloquea el render inicial** en `main.tsx` con un `await` antes de montar React. En conexiones lentas o mobile, esto agrega 500ms-2s de pantalla blanca.
 
-**1. `src/pages/Planes.tsx`**
-- Volver a conectar el botón de la card al modal: reemplazar `<LemonSqueezyCheckout>` por un `<Button>` que haga `setReviewModalOpen(true)` con texto "Quiero mi review".
+2. **Waterfall de queries en useHomeRedirect**: espera auth → luego assessment (profile + assessment query) → luego subscription (profile + subscription query). Son 2 queries secuenciales que cada una hace su propio fetch de profile, totalizando ~4 round trips.
 
-**2. `src/components/planes/ProductReviewModal.tsx`**
-- Actualizar el paso "Cómo funciona" para reflejar el flujo directo (sin lista de espera): 1. Pagás, 2. Te contacto para coordinar materiales, 3. En 72 hs recibís el informe.
-- Reemplazar el formulario de waitlist (líneas 143-171) por `<LemonSqueezyCheckout>` con CTA "Quiero mi review. USD 50" y el mismo estilo esmeralda.
-- Importar `LemonSqueezyCheckout`.
+3. **AuthContext muestra spinner bloqueante** mientras `getSession()` resuelve, impidiendo que usuarios no autenticados vean la landing inmediatamente.
 
-### CTA final
+4. **Google Fonts carga en `<head>` sin `font-display: swap`** implícito (aunque `display=swap` está en la URL, el `<link>` bloquea el render del CSS).
 
-El botón en la card dirá **"Quiero mi review"** (invita a explorar). El botón dentro del modal dirá **"Solicitar mi review. USD 50"** (cierra la venta con contexto).
+5. **No hay prefetch de chunks críticos**: la landing (`Index.tsx`) se carga lazy sin preload hint.
+
+## Cambios propuestos
+
+### 1. No bloquear render con version check
+**Archivo:** `src/main.tsx`
+
+Renderizar React inmediatamente y ejecutar el version check en paralelo (no await). Si hay una versión nueva, recargar después. Elimina la pantalla blanca inicial.
+
+### 2. Optimizar AuthContext para no-auth fast path
+**Archivo:** `src/contexts/AuthContext.tsx`
+
+Antes de que `getSession()` resuelva, si no hay token en localStorage (`sb-*-auth-token`), setear `isLoading=false` inmediatamente. Esto permite que usuarios no autenticados (la mayoría del tráfico orgánico) vean la landing sin esperar la respuesta de Supabase Auth.
+
+### 3. Prefetch de la landing page chunk
+**Archivo:** `src/App.tsx`
+
+Agregar `<link rel="modulepreload">` o usar la función de Vite para precargar el chunk de `Index.tsx` dado que es la página más visitada.
+
+### 4. Consolidar queries de useHomeRedirect con composite data
+**Archivo:** `src/hooks/useHomeRedirect.ts`
+
+Usar `useProfileCompositeData` (que ya existe y hace 1 solo query) en lugar de llamar `useAssessmentData` + `useSubscription` por separado. El composite data ya tiene `assessmentsCount` y `subscription`, que es todo lo que useHomeRedirect necesita para decidir el destino.
+
+### 5. Preconnect a Supabase
+**Archivo:** `index.html`
+
+Agregar `<link rel="preconnect" href="https://lgscevufwnetegglgpnw.supabase.co">` para establecer la conexión TCP/TLS antes de que el JS la necesite.
+
+### 6. Font loading optimization
+**Archivo:** `index.html`
+
+Agregar `<link rel="preload">` para la fuente Inter con `as="style"` y usar `fetchpriority="high"` para el CSS de Google Fonts.
+
+## Lo que NO se toca
+
+- Lazy loading de páginas (ya está bien)
+- QueryClient config (staleTime/gcTime ya están optimizados)
+- Realtime channels (necesarios para la funcionalidad)
+- Mixpanel (ya carga lazy)
+
+## Impacto esperado
+
+| Métrica | Antes | Después |
+|---------|-------|---------|
+| Tiempo a primer contenido visible (no-auth) | ~2-3s | ~0.5-1s |
+| Tiempo a landing interactiva (no-auth) | ~3-4s | ~1-1.5s |
+| Redirect para usuarios auth | ~3-4s | ~2s |
 

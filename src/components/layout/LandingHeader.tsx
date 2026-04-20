@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Twitter, Linkedin, Menu, Rocket, LogIn } from "lucide-react";
+import { Twitter, Linkedin, Menu, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -58,9 +58,6 @@ export function LandingHeader() {
 
         {/* Right: Desktop buttons (hidden on mobile) */}
         <div className="hidden sm:flex items-center gap-3">
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/starterpack">Starter Pack</Link>
-          </Button>
           <Button size="sm" asChild>
             <Link to="/auth">Iniciar Sesión</Link>
           </Button>
@@ -79,14 +76,6 @@ export function LandingHeader() {
                 <SheetTitle>Menú</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-2 mt-6">
-                <Link 
-                  to="/starterpack" 
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent transition-colors"
-                >
-                  <Rocket className="h-5 w-5 text-primary" />
-                  <span className="font-medium">Starter Pack</span>
-                </Link>
                 <Link 
                   to="/auth" 
                   onClick={() => setIsOpen(false)}

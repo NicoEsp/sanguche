@@ -86,6 +86,39 @@ async function verifySignature(request: Request, secret: string): Promise<boolea
   return isValid;
 }
 
+// Helper to send server-side events to Mixpanel
+async function trackMixpanelServerEvent(
+  eventName: string,
+  distinctId: string,
+  properties: Record<string, any>
+) {
+  const MIXPANEL_TOKEN = '35fe7a2706398ebc90ae3f1012d0a558';
+  try {
+    const eventData = [{
+      event: eventName,
+      properties: {
+        token: MIXPANEL_TOKEN,
+        distinct_id: distinctId,
+        time: Math.floor(Date.now() / 1000),
+        $insert_id: crypto.randomUUID(),
+        ...properties,
+      },
+    }];
+
+    const response = await fetch('https://api.mixpanel.com/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'text/plain' },
+      body: JSON.stringify(eventData),
+    });
+
+    const result = await response.text();
+    console.log(`[Mixpanel] Tracked "${eventName}" for ${distinctId}: ${result}`);
+  } catch (error) {
+    // Non-fatal: don't break webhook processing for analytics
+    console.error(`[Mixpanel] Failed to track "${eventName}":`, error);
+  }
+}
+
 // Helper function to log webhook event
 async function logWebhookEvent(
   supabase: any,
@@ -332,6 +365,17 @@ serve(async (req) => {
               ignoreDuplicates: false 
             });
         }
+
+        // Server-side checkout completed tracking (captures 100% of conversions)
+        await trackMixpanelServerEvent('checkout_completed_server', userId!, {
+          plan: planConfig?.plan || 'unknown',
+          purchase_type: planConfig?.purchaseType || 'unknown',
+          variant_id: variantId,
+          paid_amount_cents: orderTotal || 0,
+          email: userEmail,
+          order_id: orderId,
+          source: 'webhook',
+        });
         break;
 
       case 'subscription_created':

@@ -31,16 +31,14 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Courses = lazy(() => import("./pages/Courses"));
 const CourseDetail = lazy(() => import("./pages/CourseDetail"));
 
-// Starter Pack pages
-const StarterPackHome = lazy(() => import("./pages/StarterPackHome"));
-const StarterPackBuild = lazy(() => import("./pages/StarterPackBuild"));
-const StarterPackLead = lazy(() => import("./pages/StarterPackLead"));
-
 // Descargables
 const Descargables = lazy(() => import("./pages/Descargables"));
 
 // Soy Dev
 const SoyDev = lazy(() => import("./pages/SoyDev"));
+
+// Session Reservation
+const SessionReservation = lazy(() => import("./pages/SessionReservation"));
 
 // Skeleton components for better perceived performance
 // Skeletons cargados directamente (son críticos para UX y pequeños)
@@ -58,12 +56,13 @@ const AdminRecommendations = lazy(() => import("./pages/admin/AdminRecommendatio
 const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
 
 const AdminMentoriaDetail = lazy(() => import("./pages/admin/AdminMentoriaDetail"));
-const AdminStarterPack = lazy(() => import("./pages/admin/AdminStarterPack"));
+
 const AdminExercises = lazy(() => import("./pages/admin/AdminExercises"));
 const AdminCourses = lazy(() => import("./pages/admin/AdminCourses"));
 const AdminDescargables = lazy(() => import("./pages/admin/AdminDescargables"));
 const AdminCourseDetail = lazy(() => import("./pages/admin/AdminCourseDetail"));
 const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
+const AdminSessions = lazy(() => import("./pages/admin/AdminSessions"));
 
 // Blog pages
 const BlogList = lazy(() => import("./pages/BlogList"));
@@ -112,9 +111,10 @@ const App = () => (
                   <Route path="cursos" element={<AdminCourses />} />
                   <Route path="cursos/:courseId" element={<AdminCourseDetail />} />
                   <Route path="recursos" element={<AdminResources />} />
-                  <Route path="starterpack" element={<AdminStarterPack />} />
+                  
                   <Route path="descargables" element={<AdminDescargables />} />
                   <Route path="blog" element={<AdminBlog />} />
+                  <Route path="sesiones" element={<AdminSessions />} />
                   <Route path="configuracion" element={<AdminSettings />} />
                 </Route>
                 <Route path="/*" element={
@@ -126,11 +126,10 @@ const App = () => (
                       <Route path="/cursos-info" element={<CursosInfo />} />
                       <Route path="/premium" element={<Navigate to="/planes" replace />} />
                       <Route path="/welcome" element={<Welcome />} />
-                      <Route path="/starterpack" element={<StarterPackHome />} />
-                      <Route path="/starterpack/build" element={<StarterPackBuild />} />
-                      <Route path="/starterpack/lead" element={<StarterPackLead />} />
                       <Route path="/preguntas" element={<Descargables />} />
+                      <Route path="/descargables" element={<Descargables />} />
                       <Route path="/soy-dev" element={<SoyDev />} />
+                      <Route path="/sesion/:slug" element={<SessionReservation />} />
                       <Route path="/blog" element={<BlogList />} />
                       <Route path="/blog/:slug" element={<BlogPost />} />
                       <Route path="/cursos" element={
