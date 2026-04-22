@@ -124,25 +124,25 @@ export default function Auth() {
 
   // Form handlers with tracking
   const handleLogin = async (data: LoginFormData) => {
-    trackEvent('login_started', { email: data.email });
+    trackEvent('login_started', { method: 'email', email: data.email });
     const { error } = await signIn(data.email, data.password);
     if (!error) {
-      trackEvent('login_completed', { email: data.email });
+      trackEvent('login_completed', { method: 'email', email: data.email });
       navigate('/', { replace: true });
     } else {
-      trackEvent('login_failed', { email: data.email, error: error.message });
+      trackEvent('login_failed', { method: 'email', email: data.email, error: error.message });
     }
   };
 
   const handleSignUp = async (data: SignUpFormData) => {
-    trackEvent('signup_started', { email: data.email, from_path: fromPath });
+    trackEvent('signup_started', { method: 'email', email: data.email, from_path: fromPath });
     const { error } = await signUp(data.email, data.password, data.name, fromPath);
     if (!error) {
-      trackEvent('signup_completed', { email: data.email, name: data.name, from_path: fromPath });
+      trackEvent('signup_completed', { method: 'email', email: data.email, name: data.name, from_path: fromPath });
       setVerificationEmail(data.email);
       setMode('email-verification');
     } else {
-      trackEvent('signup_failed', { email: data.email, error: error.message });
+      trackEvent('signup_failed', { method: 'email', email: data.email, error: error.message });
     }
   };
 

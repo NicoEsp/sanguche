@@ -29,6 +29,14 @@ export default function Welcome() {
         is_authenticated: isAuthenticated
       });
 
+      trackEvent('checkout_completed', {
+        plan: plan ?? 'unknown',
+        provider: 'lemon_squeezy',
+        is_authenticated: isAuthenticated,
+        is_anonymous: isAnonymous,
+        source: 'welcome_page',
+      });
+
       // Force refresh subscription data
       setTimeout(() => {
         queryClient.invalidateQueries({
@@ -36,7 +44,7 @@ export default function Welcome() {
         });
       }, 2000);
     }
-  }, [success, isAnonymous, isAuthenticated, trackEvent, queryClient]);
+  }, [success, isAnonymous, isAuthenticated, plan, trackEvent, queryClient]);
 
   // Determine redirect destination based on plan
   const getPostPaymentRoute = () => {

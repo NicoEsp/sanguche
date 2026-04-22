@@ -327,21 +327,26 @@ export default function Progress() {
   
   const handleLockCareerPath = useCallback(() => {
     if (!profileId) return;
-    
+
     // Track career path saved
     trackEvent('career_path_saved', {
       objectives_count: canvasObjectives.length,
       completion_rate: completionRate,
+      now_count: objectivesByStage.now.length,
+      soon_count: objectivesByStage.soon.length,
+      later_count: objectivesByStage.later.length,
+      source_mentor_count: mentorObjectives.length,
+      source_custom_count: customObjectives.length,
       objectives_by_stage: {
         now: objectivesByStage.now.length,
         soon: objectivesByStage.soon.length,
         later: objectivesByStage.later.length
       }
     });
-    
+
     lockUserObjectives.mutate(profileId);
     setIsLockDialogOpen(false);
-  }, [lockUserObjectives, profileId, trackEvent, canvasObjectives.length, completionRate, objectivesByStage]);
+  }, [lockUserObjectives, profileId, trackEvent, canvasObjectives.length, completionRate, objectivesByStage, mentorObjectives.length, customObjectives.length]);
 
   const handleExportPdf = useCallback(() => {
     const exportNode = exportRef.current;
@@ -355,7 +360,8 @@ export default function Progress() {
     trackEvent('career_path_pdf_exported', {
       objectives_count: canvasObjectives.length,
       completion_rate: completionRate,
-      completed_objectives: completedObjectives.length
+      completed_objectives: completedObjectives.length,
+      is_locked: isMapLocked,
     });
 
     setIsExportingPdf(true);
@@ -464,7 +470,7 @@ export default function Progress() {
       toast.error('No pudimos exportar tu Career Path. Intentá nuevamente.');
       setIsExportingPdf(false);
     }
-  }, [trackEvent, canvasObjectives.length, completionRate, completedObjectives.length]);
+  }, [trackEvent, canvasObjectives.length, completionRate, completedObjectives.length, isMapLocked]);
 
   const handleDialogChange = useCallback((open: boolean) => {
     setIsDialogOpen(open);
