@@ -161,6 +161,11 @@ export default function Assessment() {
   const assessmentStartTimeRef = useRef(assessmentStartTime);
   const completedThisSessionRef = useRef(false);
   const sessionActiveRef = useRef(false);
+  const hasTrackedAbandonRef = useRef(false);
+  // Stable ref for trackEvent so the abandon effect never re-runs (prevents
+  // cleanup from firing a premature abandon when auth/user changes trackEvent's identity)
+  const trackEventRef = useRef(trackEvent);
+  useEffect(() => { trackEventRef.current = trackEvent; }, [trackEvent]);
 
   useEffect(() => { isReevaluatingRef.current = isReevaluating; }, [isReevaluating]);
   useEffect(() => { currentStepRef.current = currentStep; }, [currentStep]);
@@ -168,17 +173,21 @@ export default function Assessment() {
   useEffect(() => {
     // Disparar assessment_abandoned al desmontar el componente o cerrar pestaña
     const fireAbandon = () => {
+      if (hasTrackedAbandonRef.current) return; // ya se disparó, nunca duplicar
       if (completedThisSessionRef.current) return; // completó en esta sesión
       if (!sessionActiveRef.current) return; // nunca interactuó activamente
       if (!isReevaluatingRef.current) return;
       if (answeredRef.current === 0) return; // nunca respondió nada
+      hasTrackedAbandonRef.current = true;
       const timeSpent = Math.round((Date.now() - assessmentStartTimeRef.current) / 1000);
-      trackEvent('assessment_abandoned', {
-        last_question_number: currentStepRef.current + 1,
-        questions_answered: answeredRef.current,
+      const answered = answeredRef.current;
+      trackEventRef.current('assessment_abandoned', {
+        last_question_answered: answered,
+        current_step: currentStepRef.current + 1,
+        questions_answered: answered,
         total_questions: DOMAINS.length,
-        progress_pct: Math.round((answeredRef.current / DOMAINS.length) * 100),
-        time_spent_seconds: timeSpent,
+        completion_percentage: Math.round((answered / DOMAINS.length) * 100),
+        time_in_assessment: timeSpent,
       });
     };
 
@@ -189,7 +198,7 @@ export default function Assessment() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       fireAbandon(); // component unmount (navegación interna)
     };
-  }, [trackEvent]);
+  }, []);
 
   // Guardar antes de cerrar la ventana/pestaña
   useEffect(() => {
@@ -299,6 +308,11 @@ export default function Assessment() {
     setLocalValues(null);
     // Limpiar respuestas opcionales previas
     setOptionalValues({});
+    // Reset de refs de tracking para permitir que un nuevo abandono (o completion) dispare en esta sesión
+    completedThisSessionRef.current = false;
+    sessionActiveRef.current = false;
+    hasTrackedAbandonRef.current = false;
+    assessmentStartTimeRef.current = Date.now();
     // Marcar que hay una evaluación en progreso
     localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
     // Limpiar respuestas parciales previas

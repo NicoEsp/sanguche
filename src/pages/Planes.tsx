@@ -228,6 +228,7 @@ export default function Planes() {
   const maxScrollDepth = useRef(0);
   const lastHoveredPlan = useRef<string | null>(null);
   const pageLoadTime = useRef(Date.now());
+  const hasTrackedAbandonRef = useRef(false);
 
   // Track page view with headline variant
   useEffect(() => {
@@ -287,25 +288,43 @@ export default function Planes() {
     hasAssessmentRef.current = hasAssessment;
   }, [hasAssessment]);
 
-  // Track page abandonment
+  // Track page abandonment (tab close OR SPA navigation away). Guarded so it only fires once.
+  // Refs capture the latest values without triggering effect re-runs.
+  const userRef = useRef(user);
+  const hasActivePremiumRef = useRef(hasActivePremium);
+  const hasActiveRePremiumRef = useRef(hasActiveRePremium);
+  const trackEventRef = useRef(trackEvent);
+  useEffect(() => { userRef.current = user; }, [user]);
+  useEffect(() => { hasActivePremiumRef.current = hasActivePremium; }, [hasActivePremium]);
+  useEffect(() => { hasActiveRePremiumRef.current = hasActiveRePremium; }, [hasActiveRePremium]);
+  useEffect(() => { trackEventRef.current = trackEvent; }, [trackEvent]);
+
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (!hasActivePremium && !hasActiveRePremium) {
-        trackEvent('planes_page_abandoned', {
-          time_on_page: Date.now() - pageLoadTime.current,
-          time_on_page_seconds: Math.round((Date.now() - pageLoadTime.current) / 1000),
-          scroll_depth_pct: maxScrollDepth.current,
-          plan_last_hovered: lastHoveredPlan.current,
-          is_enriched: hasAssessmentRef.current,
-          is_authenticated: !!user
-        });
-      }
+    const MAX_TIME_ON_PAGE_MS = 30 * 60 * 1000; // cap outliers (forgotten tabs)
+
+    const fireAbandon = () => {
+      if (hasTrackedAbandonRef.current) return;
+      if (hasActivePremiumRef.current || hasActiveRePremiumRef.current) return;
+      hasTrackedAbandonRef.current = true;
+      const rawTime = Date.now() - pageLoadTime.current;
+      const cappedTime = Math.min(rawTime, MAX_TIME_ON_PAGE_MS);
+      trackEventRef.current('planes_page_abandoned', {
+        time_on_page: cappedTime,
+        time_on_page_seconds: Math.round(cappedTime / 1000),
+        max_scroll_depth: maxScrollDepth.current,
+        plan_hovered: lastHoveredPlan.current,
+        had_assessment: hasAssessmentRef.current,
+        is_authenticated: !!userRef.current,
+      });
     };
+
+    const handleBeforeUnload = () => fireAbandon();
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      fireAbandon(); // SPA navigation away
     };
-  }, [user, hasActivePremium, hasActiveRePremium, trackEvent]);
+  }, []);
 
   // Check for success payment
   useEffect(() => {

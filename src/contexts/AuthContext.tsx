@@ -188,6 +188,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
 
+        // Track OAuth completion (Google). Email auth is tracked in Auth.tsx handlers.
+        if (event === 'SIGNED_IN' && currentUser) {
+          const provider = currentUser.app_metadata?.provider;
+          if (provider === 'google') {
+            const createdAt = new Date(currentUser.created_at).getTime();
+            const lastSignInRaw = currentUser.last_sign_in_at ?? currentUser.created_at;
+            const lastSignInAt = new Date(lastSignInRaw).getTime();
+            const isNewSignup = Math.abs(lastSignInAt - createdAt) < 60_000;
+            const fullName =
+              (currentUser.user_metadata as { full_name?: string; name?: string } | undefined)?.full_name ??
+              (currentUser.user_metadata as { full_name?: string; name?: string } | undefined)?.name;
+
+            Mixpanel.identify(currentUser.id);
+            Mixpanel.people.set({
+              $email: currentUser.email,
+              $name: fullName,
+              signup_provider: provider,
+              signup_date: currentUser.created_at,
+            });
+
+            Mixpanel.track('google_signin_completed', {
+              email: currentUser.email,
+              is_new_signup: isNewSignup,
+            });
+
+            if (isNewSignup) {
+              Mixpanel.track('signup_completed', {
+                method: 'google',
+                email: currentUser.email,
+                name: fullName,
+              });
+            } else {
+              Mixpanel.track('login_completed', {
+                method: 'google',
+                email: currentUser.email,
+              });
+            }
+          }
+        }
+
         if (event === 'SIGNED_OUT') {
           toast({
             title: "Sesión cerrada",
@@ -303,6 +343,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
+        Mixpanel.track('google_signin_failed', { error: error.message });
         toast({
           title: "Error con Google",
           description: "No se pudo iniciar sesión con Google. Intenta nuevamente.",
@@ -312,6 +353,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { error };
     } catch (error: any) {
+      Mixpanel.track('google_signin_failed', { error: error?.message ?? 'unknown' });
       return { error };
     }
   };
