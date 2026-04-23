@@ -1,5 +1,6 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +27,6 @@ import {
 } from 'lucide-react';
 import { DownloadableResource, DownloadableType } from '@/types/downloads';
 import { getDownloadUrl } from '@/hooks/useDownloadableResources';
-import { useDownloadedResources } from '@/hooks/useDownloadedResources';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { isPremiumPlan } from '@/constants/plans';
@@ -73,9 +73,11 @@ function isRecent(createdAt: string | undefined | null): boolean {
 
 interface DownloadableCardProps {
   resource: DownloadableResource;
+  isDownloaded: boolean;
+  onDownloaded: (id: string) => void;
 }
 
-export function DownloadableCard({ resource }: DownloadableCardProps) {
+export function DownloadableCard({ resource, isDownloaded, onDownloaded }: DownloadableCardProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -87,9 +89,12 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
   const descriptionRef = useRef<HTMLParagraphElement>(null);
   const { isAuthenticated } = useAuth();
   const { subscription } = useSubscription();
-  const { downloadedIds, markDownloaded } = useDownloadedResources();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    setThumbnailFailed(false);
+  }, [resource.thumbnail_url]);
 
   const Icon = typeIcons[resource.type] || FileText;
 
@@ -109,7 +114,6 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
   const isLocked = accessState !== 'accessible';
   const priceBadge = getPriceBadge(resource);
   const isNew = useMemo(() => isRecent(resource.created_at), [resource.created_at]);
-  const isDownloaded = downloadedIds.has(resource.id);
 
   useLayoutEffect(() => {
     const el = descriptionRef.current;
@@ -149,12 +153,21 @@ export function DownloadableCard({ resource }: DownloadableCardProps) {
     if (isLocked) return;
 
     setIsDownloadLoading(true);
-    const url = await getDownloadUrl(resource);
-    if (url) {
-      window.open(url, '_blank');
-      markDownloaded(resource.id);
+    try {
+      const url = await getDownloadUrl(resource);
+      if (!url) {
+        toast.error('No pudimos obtener el archivo. Intentá de nuevo.');
+        return;
+      }
+      const popup = window.open(url, '_blank', 'noopener,noreferrer');
+      if (popup) {
+        onDownloaded(resource.id);
+      } else {
+        toast.error('Tu navegador bloqueó la descarga. Habilitá popups para este sitio.');
+      }
+    } finally {
+      setIsDownloadLoading(false);
     }
-    setIsDownloadLoading(false);
   };
 
   const primaryAriaLabel = isLocked

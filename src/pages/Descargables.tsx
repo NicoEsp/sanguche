@@ -6,14 +6,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Seo } from '@/components/Seo';
 import { useDownloadableResources } from '@/hooks/useDownloadableResources';
+import { useDownloadedResources } from '@/hooks/useDownloadedResources';
 import { DownloadableCard } from '@/components/downloads/DownloadableCard';
 import { AssessmentInviteBanner } from '@/components/downloads/AssessmentInviteBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAssessmentData } from '@/hooks/useAssessmentData';
-import { DownloadableResource, DownloadableType } from '@/types/downloads';
+import { DownloadableResource, DownloadableAccessLevel, DownloadableType } from '@/types/downloads';
 
 type TypeFilter = 'all' | DownloadableType;
-type AccessFilter = 'all' | 'free' | 'premium';
+type AccessFilter = 'all' | DownloadableAccessLevel;
 
 const typeFilters: { value: TypeFilter; label: string }[] = [
   { value: 'all', label: 'Todos' },
@@ -25,7 +26,8 @@ const typeFilters: { value: TypeFilter; label: string }[] = [
 
 const accessFilters: { value: AccessFilter; label: string }[] = [
   { value: 'all', label: 'Todos' },
-  { value: 'free', label: 'Gratis' },
+  { value: 'public', label: 'Público' },
+  { value: 'authenticated', label: 'Con cuenta' },
   { value: 'premium', label: 'Premium' },
 ];
 
@@ -37,14 +39,14 @@ function matchesSearch(resource: DownloadableResource, query: string): boolean {
 
 function matchesAccess(resource: DownloadableResource, filter: AccessFilter): boolean {
   if (filter === 'all') return true;
-  if (filter === 'premium') return resource.access_level === 'premium';
-  return resource.access_level !== 'premium';
+  return resource.access_level === filter;
 }
 
 export default function Descargables() {
   const { data: resources, isLoading, error } = useDownloadableResources();
   const { user } = useAuth();
   const { hasAssessment, loading: assessmentLoading } = useAssessmentData();
+  const { downloadedIds, markDownloaded } = useDownloadedResources();
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -134,7 +136,12 @@ export default function Descargables() {
                     </div>
                     <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                       {featuredResources.map((resource) => (
-                        <DownloadableCard key={resource.id} resource={resource} />
+                        <DownloadableCard
+                          key={resource.id}
+                          resource={resource}
+                          isDownloaded={downloadedIds.has(resource.id)}
+                          onDownloaded={markDownloaded}
+                        />
                       ))}
                     </div>
                   </section>
@@ -150,7 +157,12 @@ export default function Descargables() {
                     </h2>
                     <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                       {regularResources.map((resource) => (
-                        <DownloadableCard key={resource.id} resource={resource} />
+                        <DownloadableCard
+                          key={resource.id}
+                          resource={resource}
+                          isDownloaded={downloadedIds.has(resource.id)}
+                          onDownloaded={markDownloaded}
+                        />
                       ))}
                     </div>
                   </section>
