@@ -436,8 +436,11 @@ export default function AdminDescargables() {
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Descripción del recurso..."
-                rows={3}
+                rows={5}
               />
+              <p className="text-xs text-muted-foreground">
+                Usá Enter para generar saltos de línea; se respetan al mostrar en la card.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
