@@ -52,9 +52,6 @@ supabase/
 | `/auth` | Login / Registro (email + Google OAuth) |
 | `/planes` | Página de planes y pricing |
 | `/cursos-info` | Información de cursos (para usuarios no autenticados) |
-| `/starterpack` | Starter Pack - página principal |
-| `/starterpack/build` | Starter Pack - Construir Productos |
-| `/starterpack/lead` | Starter Pack - Liderar Equipos |
 | `/preguntas` | Recursos descargables |
 | `/soy-dev` | Landing para Developers |
 | `/blog` | Lista de artículos del blog |
