@@ -19,7 +19,7 @@ import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function Recommendations() {
-  const { hasActivePremium, loading: subscriptionLoading } = useSubscription();
+  const { hasActivePremium, hasActiveRePremium, loading: subscriptionLoading } = useSubscription();
   const { toast } = useToast();
   const { result: assessmentResult, loading: assessmentLoading, hasAssessment } = useAssessmentData();
   const { profile, loading: profileLoading } = useUserProfile();
@@ -162,6 +162,7 @@ export default function Recommendations() {
         <MentoriaHero
           mentoriaCompleted={profile?.mentoria_completed || false}
           lastMentoriaDate={profile?.last_mentoria_date}
+          hasActiveRePremium={!!hasActiveRePremium}
         />
 
         {/* Assessment Required Alert */}
