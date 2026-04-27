@@ -59,12 +59,48 @@ export default function Recommendations() {
 
   const hasAdvancedAccess = useMemo(
     () => isMentoriaAdvancedContentAvailable(
-      hasActivePremium, 
-      profile?.mentoria_completed || false, 
+      hasActivePremium,
+      profile?.mentoria_completed || false,
       isAdmin
     ),
     [hasActivePremium, profile?.mentoria_completed, isAdmin]
   );
+
+  // Personalized greeting
+  const firstName = useMemo(
+    () => profile?.name?.trim().split(/\s+/)[0],
+    [profile?.name]
+  );
+
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Buen día";
+    if (hour < 19) return "Buenas tardes";
+    return "Buenas noches";
+  }, []);
+
+  const heading = firstName
+    ? `${greeting}, ${firstName}`
+    : "Tu espacio de mentoría";
+
+  const introLine = useMemo(() => {
+    if (!profile?.mentoria_completed) {
+      return "Vamos a agendar tu primera sesión y empezar a construir tu plan paso a paso.";
+    }
+    const last = profile?.last_mentoria_date
+      ? new Date(profile.last_mentoria_date)
+      : null;
+    const now = new Date();
+    const isNewMonth =
+      !last ||
+      now.getMonth() !== last.getMonth() ||
+      now.getFullYear() !== last.getFullYear();
+
+    if (isNewMonth) {
+      return "Tu sesión mensual está disponible. Acá tenés tu plan, tus ejercicios y tus recursos en un solo lugar.";
+    }
+    return "Plan en marcha. Avanzá con tus ejercicios y consultá tus recursos cuando los necesites.";
+  }, [profile?.mentoria_completed, profile?.last_mentoria_date]);
 
   // Track recommendations page view
   useEffect(() => {
@@ -112,18 +148,21 @@ export default function Recommendations() {
     <>
       <Seo />
       <section className="container py-8 sm:py-12 px-4 sm:px-6 space-y-8 animate-fade-in">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Mentoría personalizada</h1>
-          <p className="text-lg text-muted-foreground">
-            Plan de crecimiento curado específicamente para tu perfil
+        {/* Personal greeting header */}
+        <div className="space-y-1.5">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            {heading}
+          </h1>
+          <p className="text-base text-muted-foreground max-w-2xl">
+            {introLine}
           </p>
         </div>
 
-          {/* Hero Section - Agendamiento */}
-          <MentoriaHero 
-            mentoriaCompleted={profile?.mentoria_completed || false}
-            lastMentoriaDate={profile?.last_mentoria_date}
-          />
+        {/* Schedule card (compact) */}
+        <MentoriaHero
+          mentoriaCompleted={profile?.mentoria_completed || false}
+          lastMentoriaDate={profile?.last_mentoria_date}
+        />
 
         {/* Assessment Required Alert */}
         {!hasAssessment && (
@@ -139,17 +178,9 @@ export default function Recommendations() {
           </Alert>
         )}
 
-        {/* Personalized Content */}
+        {/* Profile Analysis */}
         {hasAssessment && assessmentResult && (
-          <div className="space-y-8">
-            {/* Profile Analysis - Always visible for premium users */}
-            <ProfileAnalysis result={assessmentResult} />
-            
-            {/* Dedicated Resources - Only DB resources from mentor */}
-            {hasAdvancedAccess && (
-              <DedicatedResources />
-            )}
-          </div>
+          <ProfileAnalysis result={assessmentResult} />
         )}
 
         {/* Ejercicios prácticos - Solo con mentoría completada */}
@@ -157,8 +188,13 @@ export default function Recommendations() {
           <UserExercises />
         )}
 
+        {/* Recursos dedicados - Información complementaria */}
+        {hasAssessment && assessmentResult && hasAdvancedAccess && (
+          <DedicatedResources />
+        )}
+
         {/* Navigation */}
-        <div className="flex justify-center">
+        <div className="flex justify-center pt-2">
           <Button asChild variant="outline">
             <Link to="/mejoras">Volver a tu perfil</Link>
           </Button>

@@ -1,6 +1,14 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Target, CheckCircle, TrendingUp } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Target,
+  CheckCircle,
+  TrendingUp,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface MentoriaHeroProps {
@@ -10,152 +18,146 @@ interface MentoriaHeroProps {
 
 function isNewMonth(lastDate?: string | null): boolean {
   if (!lastDate) return true;
-  
+
   const last = new Date(lastDate);
   const now = new Date();
-  
+
   return (
     now.getMonth() !== last.getMonth() ||
     now.getFullYear() !== last.getFullYear()
   );
 }
 
-export function MentoriaHero({ mentoriaCompleted, lastMentoriaDate }: MentoriaHeroProps) {
+interface HeroVariant {
+  badge: string;
+  title: string;
+  description: string;
+  meta: { icon: LucideIcon; label: string }[];
+  cta: { label: string; icon: LucideIcon; onClick: () => void };
+  decorIcon: LucideIcon;
+}
+
+export function MentoriaHero({
+  mentoriaCompleted,
+  lastMentoriaDate,
+}: MentoriaHeroProps) {
   const navigate = useNavigate();
-  
+
   const handleScheduleClick = () => {
-    window.open('https://calendar.notion.so/meet/nicoproducto/zf4fl4q8q', '_blank');
+    window.open(
+      "https://calendar.notion.so/meet/nicoproducto/zf4fl4q8q",
+      "_blank"
+    );
   };
 
   const handleProgressClick = () => {
-    navigate('/progreso');
+    navigate("/progreso");
   };
 
-  // Si completó mentoría pero es un nuevo mes, mostrar card de sesión mensual
+  let variant: HeroVariant;
+
   if (mentoriaCompleted && isNewMonth(lastMentoriaDate)) {
-    return (
-      <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-        <CardContent className="p-8">
-          <div className="text-center space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-foreground">
-                ¡Tu sesión mensual está disponible!
-              </h2>
-              <p className="text-muted-foreground text-lg">
-                Es momento de nuestra reunión mensual. Agenda tu próxima sesión de 45 min.
-              </p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <span>45 minutos</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4" />
-                <span>100% personalizado</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span>Online via Google Meet</span>
-              </div>
-            </div>
-
-            <Button 
-              size="lg" 
-              onClick={handleScheduleClick}
-              className="px-8 text-lg"
-            >
-              <Calendar className="mr-2 h-5 w-5" />
-              Agendar sesión mensual
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    variant = {
+      badge: "Sesión mensual",
+      title: "Tu sesión mensual te está esperando",
+      description:
+        "Agendá 45 min con tu mentor para revisar tu plan y trazar los próximos pasos.",
+      meta: [
+        { icon: Clock, label: "45 minutos" },
+        { icon: Target, label: "100% personalizado" },
+        { icon: Calendar, label: "Google Meet" },
+      ],
+      cta: {
+        label: "Agendar sesión",
+        icon: Calendar,
+        onClick: handleScheduleClick,
+      },
+      decorIcon: Sparkles,
+    };
+  } else if (mentoriaCompleted) {
+    variant = {
+      badge: "Plan en marcha",
+      title: "Excelente trabajo en tu última mentoría",
+      description:
+        "Ahora es momento de poner en práctica lo conversado y seguir avanzando con tu Career Path.",
+      meta: [
+        { icon: Target, label: "Objetivos definidos" },
+        { icon: CheckCircle, label: "Plan en marcha" },
+        { icon: Calendar, label: "Próxima: inicio del próximo mes" },
+      ],
+      cta: {
+        label: "Ver mi Career Path",
+        icon: TrendingUp,
+        onClick: handleProgressClick,
+      },
+      decorIcon: CheckCircle,
+    };
+  } else {
+    variant = {
+      badge: "Mentoría 1:1",
+      title: "Agendá tu mentoría 1:1 con NicoProducto",
+      description:
+        "Sesión personalizada de 45 min enfocada en tus áreas de mejora específicas.",
+      meta: [
+        { icon: Clock, label: "45 minutos" },
+        { icon: Target, label: "100% personalizado" },
+        { icon: Calendar, label: "Google Meet" },
+      ],
+      cta: {
+        label: "Agendar sesión",
+        icon: Calendar,
+        onClick: handleScheduleClick,
+      },
+      decorIcon: Calendar,
+    };
   }
 
-  // Versión Post-Mentoría (mismo mes)
-  if (mentoriaCompleted) {
-    return (
-      <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-        <CardContent className="p-8">
-          <div className="text-center space-y-6">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-foreground">
-                ¡Excelente trabajo en tu mentoría!
-              </h2>
-              <p className="text-muted-foreground text-lg">
-                Ahora es momento de poner en práctica lo conversado. Completa tus ejercicios y enfócate en tu Career Path.
-              </p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4" />
-                <span>Objetivos definidos</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                <span>Plan en marcha</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span>Próxima sesión: inicio del próximo mes</span>
-              </div>
-            </div>
-
-            <Button 
-              size="lg" 
-              onClick={handleProgressClick}
-              className="px-8 text-lg"
-            >
-              <TrendingUp className="mr-2 h-5 w-5" />
-              Ver mi Career Path
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Versión Agendar Sesión (original)
+  const DecorIcon = variant.decorIcon;
+  const CtaIcon = variant.cta.icon;
 
   return (
-    <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-      <CardContent className="p-8">
-        <div className="text-center space-y-6">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-foreground">
-              Agenda tu mentoría 1:1 con NicoProducto
-            </h2>
-            <p className="text-muted-foreground text-lg">
-              Sesión personalizada de 45 min enfocada en tus áreas de mejora específicas
-            </p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              <span>45 minutos</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              <span>100% personalizado</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              <span>Online via Google Meet</span>
+    <Card className="relative overflow-hidden border-primary/20">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/[0.10] via-primary/[0.04] to-transparent" />
+      <CardContent className="relative p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+          {/* Decor icon */}
+          <div className="flex shrink-0 self-start sm:self-center">
+            <div className="rounded-xl bg-primary/15 p-3 text-primary ring-1 ring-inset ring-primary/20">
+              <DecorIcon className="h-6 w-6" />
             </div>
           </div>
 
-          <Button 
-            size="lg" 
-            onClick={handleScheduleClick}
-            className="px-8 text-lg"
+          {/* Content */}
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+              {variant.badge}
+            </div>
+            <h2 className="text-lg font-semibold leading-snug text-foreground sm:text-xl">
+              {variant.title}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {variant.description}
+            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs text-muted-foreground">
+              {variant.meta.map(({ icon: MetaIcon, label }) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1.5"
+                >
+                  <MetaIcon className="h-3 w-3" />
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* CTA */}
+          <Button
+            onClick={variant.cta.onClick}
+            className="w-full shrink-0 sm:w-auto sm:self-center"
           >
-            <Calendar className="mr-2 h-5 w-5" />
-            Agendar Sesión
+            <CtaIcon className="mr-2 h-4 w-4" />
+            {variant.cta.label}
           </Button>
         </div>
       </CardContent>
