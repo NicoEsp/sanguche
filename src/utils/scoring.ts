@@ -474,36 +474,36 @@ function generateProfileEstimate(
 
   // 3+ brechas críticas
   if (brechasCriticas >= 3) {
-    return `Tu perfil está en desarrollo, con alto potencial como PM ${nivel}. Hoy es clave enfocarte en tus áreas críticas antes de dar nuevos pasos. Te conviene construir una base más sólida.`;
+    return `Tu perfil está en desarrollo, con alto potencial como Product Builder ${nivel}. Hoy es clave enfocarte en tus áreas críticas antes de dar nuevos pasos. Te conviene construir una base más sólida.`;
   }
 
   // Equilibrado + 3+ fortalezas
   if (isBalanced && fortalezas >= 3) {
-    return `Perfil equilibrado de PM ${nivel}, con bases sólidas y consistentes. Estás bien preparado para asumir desafíos de mayor nivel o responsabilidad. Es un gran momento para avanzar.`;
+    return `Perfil equilibrado de Product Builder ${nivel}, con bases sólidas y consistentes. Estás bien preparado para asumir desafíos de mayor nivel o responsabilidad. Es un gran momento para avanzar.`;
   }
 
   // Especializado + Senior/Lead/Head
   if (hasSpecialization) {
     if (nivel === "Senior" || nivel === "Lead" || nivel === "Head") {
-      return `PM ${nivel} con especialización marcada en ${especializacion}. Dominás con fuerza tu área, lo que te da un diferencial claro. El próximo salto puede estar en ampliar tu rango de impacto.`;
+      return `Product Builder ${nivel} con especialización marcada en ${especializacion}. Dominás con fuerza tu área, lo que te da un diferencial claro. El próximo salto puede estar en ampliar tu rango de impacto.`;
     } else {
       // Especializado + Junior/Mid
-      return `Especialización temprana en ${especializacion}, dentro de un perfil PM ${nivel}. Tenés una fortaleza clara, pero desarrollar una visión más integral va a potenciar mucho tu carrera.`;
+      return `Especialización temprana en ${especializacion}, dentro de un perfil Product Builder ${nivel}. Tenés una fortaleza clara, pero desarrollar una visión más integral va a potenciar mucho tu carrera.`;
     }
   }
 
   // Promedio ≥ 4.0
   if (promedio >= 4.0) {
-    return `Perfil sólido de PM ${nivel}, con muy buena consistencia. Tenés una excelente base para aspirar a más impacto o seniority. Usá esto como trampolín hacia tu próximo rol.`;
+    return `Perfil sólido de Product Builder ${nivel}, con muy buena consistencia. Tenés una excelente base para aspirar a más impacto o seniority. Usá esto como trampolín hacia tu próximo rol.`;
   }
 
   // Promedio ≥ 3.5
   if (promedio >= 3.5) {
-    return `PM ${nivel} con buen potencial de crecimiento. Tu perfil tiene varias competencias bien encaminadas. Si enfocás tus esfuerzos en las áreas clave, vas a poder crecer rápido.`;
+    return `Product Builder ${nivel} con buen potencial de crecimiento. Tu perfil tiene varias competencias bien encaminadas. Si enfocás tus esfuerzos en las áreas clave, vas a poder crecer rápido.`;
   }
 
   // Resto (< 3.5)
-  return `Perfil emergente de PM ${nivel}. Este es un buen momento para enfocarte en fortalecer tus fundamentos. Consolidar las bases te va a abrir muchas más puertas.`;
+  return `Perfil emergente de Product Builder ${nivel}. Este es un buen momento para enfocarte en fortalecer tus fundamentos. Consolidar las bases te va a abrir muchas más puertas.`;
 }
 
 function generateProfileCTA(

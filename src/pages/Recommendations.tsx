@@ -1,5 +1,4 @@
 import { Seo } from "@/components/Seo";
-import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { PaywallCard } from "@/components/PaywallCard";
 import { isFeatureAvailable, FEATURES, isMentoriaAdvancedContentAvailable } from "@/utils/features";
@@ -19,7 +18,7 @@ import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function Recommendations() {
-  const { hasActivePremium, loading: subscriptionLoading } = useSubscription();
+  const { hasActivePremium, hasActiveRePremium, loading: subscriptionLoading } = useSubscription();
   const { toast } = useToast();
   const { result: assessmentResult, loading: assessmentLoading, hasAssessment } = useAssessmentData();
   const { profile, loading: profileLoading } = useUserProfile();
@@ -162,6 +161,7 @@ export default function Recommendations() {
         <MentoriaHero
           mentoriaCompleted={profile?.mentoria_completed || false}
           lastMentoriaDate={profile?.last_mentoria_date}
+          hasActiveRePremium={!!hasActiveRePremium}
         />
 
         {/* Assessment Required Alert */}
@@ -192,13 +192,6 @@ export default function Recommendations() {
         {hasAssessment && assessmentResult && hasAdvancedAccess && (
           <DedicatedResources />
         )}
-
-        {/* Navigation */}
-        <div className="flex justify-center pt-2">
-          <Button asChild variant="outline">
-            <Link to="/mejoras">Volver a tu perfil</Link>
-          </Button>
-        </div>
       </section>
     </>
   );
