@@ -1,5 +1,4 @@
 import { Seo } from "@/components/Seo";
-import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { PaywallCard } from "@/components/PaywallCard";
 import { isFeatureAvailable, FEATURES, isMentoriaAdvancedContentAvailable } from "@/utils/features";
@@ -193,13 +192,6 @@ export default function Recommendations() {
         {hasAssessment && assessmentResult && hasAdvancedAccess && (
           <DedicatedResources />
         )}
-
-        {/* Navigation */}
-        <div className="flex justify-center pt-2">
-          <Button asChild variant="outline">
-            <Link to="/mejoras">Volver a tu perfil</Link>
-          </Button>
-        </div>
       </section>
     </>
   );
