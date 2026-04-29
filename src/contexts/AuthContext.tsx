@@ -214,12 +214,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
 
             if (isNewSignup) {
+              Mixpanel.track('signup_started', {
+                method: 'google',
+                email: currentUser.email,
+              });
               Mixpanel.track('signup_completed', {
                 method: 'google',
                 email: currentUser.email,
                 name: fullName,
               });
             } else {
+              Mixpanel.track('login_started', {
+                method: 'google',
+                email: currentUser.email,
+              });
               Mixpanel.track('login_completed', {
                 method: 'google',
                 email: currentUser.email,
