@@ -189,9 +189,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Track OAuth completion (Google). Email auth is tracked in Auth.tsx handlers.
+        // Gate on a sessionStorage flag set in signInWithGoogle so we only fire
+        // once per real OAuth flow — not on every SIGNED_IN from session restore
+        // or cross-tab sync.
         if (event === 'SIGNED_IN' && currentUser) {
           const provider = currentUser.app_metadata?.provider;
-          if (provider === 'google') {
+          if (provider === 'google' && sessionStorage.getItem('google_oauth_pending') === '1') {
+            sessionStorage.removeItem('google_oauth_pending');
             const createdAt = new Date(currentUser.created_at).getTime();
             const lastSignInRaw = currentUser.last_sign_in_at ?? currentUser.created_at;
             const lastSignInAt = new Date(lastSignInRaw).getTime();
@@ -342,7 +346,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (returnTo) {
         redirectUrl += `?returnTo=${encodeURIComponent(returnTo)}`;
       }
-      
+
+      sessionStorage.setItem('google_oauth_pending', '1');
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -351,6 +357,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
+        sessionStorage.removeItem('google_oauth_pending');
         Mixpanel.track('google_signin_failed', { error: error.message });
         toast({
           title: "Error con Google",
@@ -361,6 +368,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { error };
     } catch (error: any) {
+      sessionStorage.removeItem('google_oauth_pending');
       Mixpanel.track('google_signin_failed', { error: error?.message ?? 'unknown' });
       return { error };
     }
