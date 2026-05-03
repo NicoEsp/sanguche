@@ -35,7 +35,17 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
         name: 'ProductPrepa',
         url: SITE_URL,
         logo: `${SITE_URL}/favicon.png`,
-        sameAs: ['https://twitter.com/nicoproducto'],
+        description: 'Plataforma para crecer en Producto con cursos cortos, autoevaluación de habilidades, Career Path y mentoría 1:1.',
+        founder: {
+          '@type': 'Person',
+          name: 'Nicolás Espíndola',
+          url: 'https://www.linkedin.com/in/nicolas-espindola/',
+          sameAs: ['https://www.linkedin.com/in/nicolas-espindola/', 'https://twitter.com/nicoproducto'],
+        },
+        sameAs: [
+          'https://twitter.com/nicoproducto',
+          'https://www.linkedin.com/in/nicolas-espindola/',
+        ],
       },
     ],
   },
@@ -65,14 +75,76 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     keywords: 'desarrollador producto, dev product management, programador PM, software developer product skills, carrera desarrollador',
     image: DEFAULT_IMAGE,
     imageAlt: DEFAULT_IMAGE_ALT,
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'WebPage',
-      name: 'Soy Dev - Por qué aprender Producto',
-      description: 'Descubrí por qué aprender Producto es clave para desarrolladores.',
-      url: `${SITE_URL}/soy-dev`,
-      publisher: { '@type': 'Organization', name: 'ProductPrepa', url: SITE_URL },
-    },
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: 'Soy Dev - Por qué aprender Producto',
+        description: 'Por qué aprender Product Management es clave para desarrolladores en la era de la IA. Evaluá tus habilidades y crecé profesionalmente.',
+        url: `${SITE_URL}/soy-dev`,
+        inLanguage: 'es',
+        isPartOf: { '@type': 'WebSite', name: 'ProductPrepa', url: SITE_URL },
+        publisher: { '@type': 'Organization', name: 'ProductPrepa', url: SITE_URL },
+        about: [
+          { '@type': 'Thing', name: 'Product Management para developers' },
+          { '@type': 'Thing', name: 'Carrera profesional en software' },
+        ],
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Inicio', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Soy Dev', item: `${SITE_URL}/soy-dev` },
+        ],
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: [
+          {
+            '@type': 'Question',
+            name: '¿Por qué un developer debería aprender Product Management?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Con la IA generando código cada vez mejor, el diferencial ya no es solo programar bien: es entender qué construir y por qué. Según Stack Overflow Survey 2025, el 84% de los developers ya usa herramientas de IA para programar. Los devs que entienden producto (métricas, discovery, priorización) son los que lideran equipos, toman decisiones de impacto y crecen más rápido en su carrera.',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: '¿Necesito experiencia previa en producto para empezar?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'No. ProductPrepa está pensado para perfiles que vienen de otro rol —desarrollo, diseño, Scrum, marketing— y quieren entender Producto desde la base. Empezás con una autoevaluación gratuita de 5 minutos que identifica tu nivel actual y tus áreas de mejora, y luego accedés a recursos curados según tu perfil.',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: '¿En qué me ayuda Product Management si quiero seguir programando?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Aprender Producto te permite hablar el idioma del negocio: métricas, priorización, product discovery. La comunicación con PMs, diseñadores y stakeholders deja de ser un cuello de botella, las fricciones desaparecen y pasás de ejecutor a estratega. Los devs con mentalidad de producto son los más valorados en cualquier equipo y los primeros en ser promovidos a roles de Tech Lead, Staff o Engineering Manager.',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: '¿Sirve para emprender o lanzar mi propio producto?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Sí, especialmente. Según CB Insights (2021), el 35% de las startups fracasan porque no había necesidad de mercado —es la razón #1 de fracaso, por encima de quedarse sin plata o tener mal equipo. Si querés lanzar un side-project o emprender, necesitás priorización, product discovery y distribución. Solo con código no alcanza.',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: '¿Cómo empiezo si soy dev y quiero aprender Producto?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'El primer paso es la autoevaluación gratuita de ProductPrepa: un test de 5 minutos diseñado para identificar tu nivel de seniority en producto y tus gaps específicos. Te lleva a un roadmap personalizado con recursos curados para tu perfil técnico. Si querés acelerar el proceso, podés sumar mentoría 1:1 con NicoProducto, que tiene más de 10 años en Producto.',
+            },
+          },
+        ],
+      },
+    ],
   },
 
   '/preguntas': {

@@ -24,6 +24,117 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
+# AI search engines & assistants
+User-agent: GPTBot
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
+
+User-agent: Claude-Web
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
+
+User-agent: CCBot
+Allow: /
+Disallow: /admin
+Disallow: /auth
+Disallow: /perfil
+Disallow: /progreso
+Disallow: /mentoria
+Disallow: /welcome
+Disallow: /premium
+
 User-agent: *
 Allow: /
 Disallow: /admin
