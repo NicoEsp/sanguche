@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Seo } from "@/components/Seo";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Code, Lightbulb, Rocket, Target, Brain, TrendingUp, Users, ArrowRight, CheckCircle2, BarChart3, Zap, Home, ChevronRight, MessageCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import SkillCard from "@/components/soydev/SkillCard";
+import { soyDevFaqs } from "@/seo/faqs/soyDev";
 const whyCards = [{
   icon: Brain,
   title: "El contexto cambió",
@@ -184,6 +186,29 @@ const SoyDev = () => {
                   {benefit.text}
                 </p>
               </div>)}
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="py-12 px-4 bg-muted/30">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-2xl font-bold text-center mb-2">Preguntas frecuentes</h2>
+            <p className="text-center text-muted-foreground mb-8">
+              Lo que más nos preguntan los devs antes de empezar
+            </p>
+
+            <Accordion type="single" collapsible className="w-full">
+              {soyDevFaqs.map((faq, index) => (
+                <AccordionItem key={index} value={`item-${index}`}>
+                  <AccordionTrigger className="text-left">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
         </section>
 
