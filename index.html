@@ -6,9 +6,49 @@
     <meta name="robots" content="index, follow" />
     <link rel="icon" href="/favicon.png" type="image/png">
     <link rel="manifest" href="/manifest.json">
+    <link rel="canonical" href="https://productprepa.com/" />
     <title>ProductPrepa - Plataforma para crecer en Producto</title>
     <meta name="description" content="Aprendé Producto en una plataforma que combina Cursos, evaluación de habilidades, tu propio Career Path y mentoría personalizada.">
     <meta name="author" content="ProductPrepa" />
+
+    <!-- Static JSON-LD: Organization + WebSite. Visible to AI crawlers that don't execute JS (GPTBot, ClaudeBot, PerplexityBot, CCBot). Per-route schemas are still injected at runtime by Seo.tsx. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://productprepa.com/#website",
+          "name": "ProductPrepa",
+          "url": "https://productprepa.com",
+          "description": "Plataforma para crecer en Producto con cursos, evaluación de habilidades y mentoría personalizada.",
+          "inLanguage": "es",
+          "publisher": { "@id": "https://productprepa.com/#organization" }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://productprepa.com/#organization",
+          "name": "ProductPrepa",
+          "url": "https://productprepa.com",
+          "logo": "https://productprepa.com/favicon.png",
+          "description": "Plataforma para crecer en Producto con cursos cortos, autoevaluación de habilidades, Career Path y mentoría 1:1.",
+          "founder": {
+            "@type": "Person",
+            "name": "Nicolás Espíndola",
+            "url": "https://www.linkedin.com/in/nicolas-espindola/",
+            "sameAs": [
+              "https://www.linkedin.com/in/nicolas-espindola/",
+              "https://twitter.com/nicoproducto"
+            ]
+          },
+          "sameAs": [
+            "https://twitter.com/nicoproducto",
+            "https://www.linkedin.com/in/nicolas-espindola/"
+          ]
+        }
+      ]
+    }
+    </script>
 
     <!-- Preconnect to critical origins -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

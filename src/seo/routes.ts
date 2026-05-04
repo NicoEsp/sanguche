@@ -21,33 +21,6 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     keywords: 'product builder, product management, autoevaluación PM, seniority, carrera producto, evaluación profesional, desarrollo PM',
     image: DEFAULT_IMAGE,
     imageAlt: DEFAULT_IMAGE_ALT,
-    jsonLd: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'WebSite',
-        name: 'ProductPrepa',
-        url: SITE_URL,
-        description: 'Plataforma para crecer en Producto con cursos, evaluación y mentoría personalizada.',
-      },
-      {
-        '@context': 'https://schema.org',
-        '@type': 'Organization',
-        name: 'ProductPrepa',
-        url: SITE_URL,
-        logo: `${SITE_URL}/favicon.png`,
-        description: 'Plataforma para crecer en Producto con cursos cortos, autoevaluación de habilidades, Career Path y mentoría 1:1.',
-        founder: {
-          '@type': 'Person',
-          name: 'Nicolás Espíndola',
-          url: 'https://www.linkedin.com/in/nicolas-espindola/',
-          sameAs: ['https://www.linkedin.com/in/nicolas-espindola/', 'https://twitter.com/nicoproducto'],
-        },
-        sameAs: [
-          'https://twitter.com/nicoproducto',
-          'https://www.linkedin.com/in/nicolas-espindola/',
-        ],
-      },
-    ],
   },
 
   '/planes': {
