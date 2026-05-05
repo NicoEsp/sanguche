@@ -3,12 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import type { UserExercise } from "@/hooks/useUserExercises";
 import { useUpdateExercise, useDeleteExercise } from "@/hooks/useUserExercises";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { FileText, Calendar, Link as LinkIcon, Trash2 } from "lucide-react";
+import { FileText, Calendar, Link as LinkIcon, Trash2, Pencil, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,8 +45,22 @@ const typeLabels = {
 export function ExerciseDetailDialog({ exercise, open, onOpenChange }: ExerciseDetailDialogProps) {
   const [feedback, setFeedback] = useState(exercise?.admin_feedback || '');
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedDescription, setEditedDescription] = useState(exercise?.exercise_description || '');
+  const [editedDueDate, setEditedDueDate] = useState<Date | undefined>(
+    exercise?.due_date ? new Date(exercise.due_date) : undefined
+  );
   const updateExercise = useUpdateExercise();
   const deleteExercise = useDeleteExercise();
+
+  useEffect(() => {
+    if (exercise) {
+      setFeedback(exercise.admin_feedback || '');
+      setEditedDescription(exercise.exercise_description || '');
+      setEditedDueDate(exercise.due_date ? new Date(exercise.due_date) : undefined);
+      setIsEditing(false);
+    }
+  }, [exercise?.id]);
 
   if (!exercise) return null;
 
@@ -62,6 +79,21 @@ export function ExerciseDetailDialog({ exercise, open, onOpenChange }: ExerciseD
     onOpenChange(false);
   };
 
+  const handleSaveEdits = async () => {
+    await updateExercise.mutateAsync({
+      id: exercise.id,
+      exercise_description: editedDescription || null,
+      due_date: editedDueDate ? editedDueDate.toISOString() : null
+    });
+    setIsEditing(false);
+  };
+
+  const handleCancelEdits = () => {
+    setEditedDescription(exercise.exercise_description || '');
+    setEditedDueDate(exercise.due_date ? new Date(exercise.due_date) : undefined);
+    setIsEditing(false);
+  };
+
   const canEdit = exercise.status === 'assigned' || exercise.status === 'in_progress';
   const canReview = exercise.status === 'submitted';
 
@@ -77,34 +109,115 @@ export function ExerciseDetailDialog({ exercise, open, onOpenChange }: ExerciseD
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto space-y-6 py-4 pr-2">
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-muted-foreground" />
                 <span>{typeLabels[exercise.exercise_type]}</span>
               </div>
-              {exercise.due_date && (
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>Vence: {format(new Date(exercise.due_date), "d 'de' MMMM, yyyy", { locale: es })}</span>
+              {isEditing ? (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    Fecha de entrega
+                  </Label>
+                  <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            "flex-1 justify-start text-left font-normal",
+                            !editedDueDate && "text-muted-foreground"
+                          )}
+                        >
+                          {editedDueDate
+                            ? format(editedDueDate, "PPP", { locale: es })
+                            : "Sin fecha"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={editedDueDate}
+                          onSelect={setEditedDueDate}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {editedDueDate && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditedDueDate(undefined)}
+                      >
+                        Quitar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                exercise.due_date && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>Vence: {format(new Date(exercise.due_date), "d 'de' MMMM, yyyy", { locale: es })}</span>
+                  </div>
+                )
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Descripción</Label>
+                {canEdit && !isEditing && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                    Editar
+                  </Button>
+                )}
+              </div>
+              {isEditing ? (
+                <Textarea
+                  value={editedDescription}
+                  onChange={(e) => setEditedDescription(e.target.value)}
+                  placeholder="Describe el ejercicio, objetivos, y lo que esperas del usuario..."
+                  rows={6}
+                />
+              ) : exercise.exercise_description ? (
+                <div className="rounded-lg border p-4 bg-muted/30 whitespace-pre-wrap">
+                  {exercise.exercise_description}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                  Sin descripción
                 </div>
               )}
             </div>
 
-            {exercise.exercise_description && (
-              <div className="space-y-2">
-                <Label>Descripción</Label>
-                <div className="rounded-lg border p-4 bg-muted/30 whitespace-pre-wrap">
-                  {exercise.exercise_description}
-                </div>
+            {isEditing && (
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={handleCancelEdits}>
+                  <X className="h-4 w-4 mr-1.5" />
+                  Cancelar edición
+                </Button>
+                <Button size="sm" onClick={handleSaveEdits} disabled={updateExercise.isPending}>
+                  {updateExercise.isPending ? "Guardando..." : "Guardar cambios"}
+                </Button>
               </div>
             )}
 
             {exercise.attachment_url && (
               <div className="space-y-2">
                 <Label>Material adjunto</Label>
-                <a 
-                  href={exercise.attachment_url} 
-                  target="_blank" 
+                <a
+                  href={exercise.attachment_url}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-sm text-primary hover:underline"
                 >
