@@ -60,7 +60,7 @@ export function ExerciseDetailDialog({ exercise, open, onOpenChange }: ExerciseD
       setEditedDueDate(exercise.due_date ? new Date(exercise.due_date) : undefined);
       setIsEditing(false);
     }
-  }, [exercise?.id]);
+  }, [exercise?.id, exercise?.exercise_description, exercise?.due_date, exercise?.admin_feedback]);
 
   if (!exercise) return null;
 

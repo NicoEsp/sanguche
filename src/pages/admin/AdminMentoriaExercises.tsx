@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, RefreshCw } from "lucide-react";
-import { useUserExercises, type UserExercise } from "@/hooks/useUserExercises";
+import { useUserExercises } from "@/hooks/useUserExercises";
 import { ExerciseCard } from "@/components/admin/ExerciseCard";
 import { CreateExerciseDialog } from "@/components/admin/CreateExerciseDialog";
 import { ExerciseDetailDialog } from "@/components/admin/ExerciseDetailDialog";
@@ -13,8 +13,9 @@ interface AdminMentoriaExercisesProps {
 
 export default function AdminMentoriaExercises({ userId }: AdminMentoriaExercisesProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [selectedExercise, setSelectedExercise] = useState<UserExercise | null>(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const { data: exercises, isLoading, refetch } = useUserExercises(userId);
+  const selectedExercise = exercises?.find(e => e.id === selectedExerciseId) ?? null;
 
   const exercisesByStatus = {
     assigned: exercises?.filter(e => e.status === 'assigned') || [],
@@ -74,7 +75,7 @@ export default function AdminMentoriaExercises({ userId }: AdminMentoriaExercise
               <ExerciseCard
                 key={exercise.id}
                 exercise={exercise}
-                onViewDetails={setSelectedExercise}
+                onViewDetails={(e) => setSelectedExerciseId(e.id)}
               />
             ))}
             {exercisesByStatus.assigned.length === 0 && (
@@ -98,7 +99,7 @@ export default function AdminMentoriaExercises({ userId }: AdminMentoriaExercise
               <ExerciseCard
                 key={exercise.id}
                 exercise={exercise}
-                onViewDetails={setSelectedExercise}
+                onViewDetails={(e) => setSelectedExerciseId(e.id)}
               />
             ))}
             {exercisesByStatus.in_progress.length === 0 && (
@@ -122,7 +123,7 @@ export default function AdminMentoriaExercises({ userId }: AdminMentoriaExercise
               <ExerciseCard
                 key={exercise.id}
                 exercise={exercise}
-                onViewDetails={setSelectedExercise}
+                onViewDetails={(e) => setSelectedExerciseId(e.id)}
               />
             ))}
             {exercisesByStatus.submitted.length === 0 && (
@@ -146,7 +147,7 @@ export default function AdminMentoriaExercises({ userId }: AdminMentoriaExercise
               <ExerciseCard
                 key={exercise.id}
                 exercise={exercise}
-                onViewDetails={setSelectedExercise}
+                onViewDetails={(e) => setSelectedExerciseId(e.id)}
               />
             ))}
             {exercisesByStatus.reviewed.length === 0 && (
@@ -167,7 +168,7 @@ export default function AdminMentoriaExercises({ userId }: AdminMentoriaExercise
       <ExerciseDetailDialog
         exercise={selectedExercise}
         open={!!selectedExercise}
-        onOpenChange={(open) => !open && setSelectedExercise(null)}
+        onOpenChange={(open) => !open && setSelectedExerciseId(null)}
       />
     </div>
   );
