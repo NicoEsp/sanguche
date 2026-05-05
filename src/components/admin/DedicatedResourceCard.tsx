@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Pencil, Trash2 } from "lucide-react";
+import { ExternalLink, FileText, Pencil, Trash2 } from "lucide-react";
 import { DedicatedResource, ResourceType } from "@/hooks/useUserDedicatedResources";
 
 interface DedicatedResourceCardProps {
@@ -20,6 +20,12 @@ const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   other: '🔗 Otro'
 };
 
+const fileNameFromPath = (path: string) => {
+  const segments = path.split('/');
+  const last = segments[segments.length - 1] || path;
+  return last.replace(/^\d+-/, '');
+};
+
 export function DedicatedResourceCard({ resource, onEdit, onDelete }: DedicatedResourceCardProps) {
   return (
     <Card>
@@ -34,19 +40,26 @@ export function DedicatedResourceCard({ resource, onEdit, onDelete }: DedicatedR
                 {resource.resource_name}
               </h4>
             </div>
-            
+
             {resource.external_url && (
-              <a 
-                href={resource.external_url} 
-                target="_blank" 
+              <a
+                href={resource.external_url}
+                target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-primary hover:underline flex items-center gap-1 mb-2"
+                className="text-sm text-primary hover:underline flex items-center gap-1 mb-2 break-all"
               >
-                {resource.external_url}
-                <ExternalLink className="h-3 w-3" />
+                <ExternalLink className="h-3 w-3 shrink-0" />
+                <span className="truncate">{resource.external_url}</span>
               </a>
             )}
-            
+
+            {resource.file_url && (
+              <div className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
+                <FileText className="h-3 w-3 shrink-0 text-primary" />
+                <span className="truncate">{fileNameFromPath(resource.file_url)}</span>
+              </div>
+            )}
+
             {resource.description && (
               <p className="text-sm text-muted-foreground line-clamp-2">
                 {resource.description}

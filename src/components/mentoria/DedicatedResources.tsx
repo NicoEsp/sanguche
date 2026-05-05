@@ -20,11 +20,15 @@ import {
   useUserDedicatedResources,
   type ResourceType,
   type DedicatedResource,
+  PRIVATE_RESOURCES_BUCKET,
 } from "@/hooks/useUserDedicatedResources";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface ResourceTypeConfig {
   icon: LucideIcon;
@@ -214,7 +218,32 @@ function ResourceRow({
   const config =
     RESOURCE_TYPE_CONFIG[resource.resource_type] ?? RESOURCE_TYPE_CONFIG.other;
   const TypeIcon = config.icon;
-  const href = resource.external_url ?? resource.file_url ?? null;
+  const { toast } = useToast();
+  const [isOpening, setIsOpening] = useState(false);
+
+  const hasFile = !!resource.file_url;
+  const hasLink = !!resource.external_url;
+  const href = hasLink ? resource.external_url : null;
+
+  const handleOpenFile = async () => {
+    if (!resource.file_url || isOpening) return;
+    try {
+      setIsOpening(true);
+      const { data, error } = await supabase.storage
+        .from(resource.bucket_name || PRIVATE_RESOURCES_BUCKET)
+        .createSignedUrl(resource.file_url, 60 * 5);
+      if (error || !data?.signedUrl) throw error || new Error('No se pudo generar URL');
+      window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+    } catch {
+      toast({
+        title: "No se pudo abrir el archivo",
+        description: "Intentá de nuevo en unos segundos",
+        variant: "destructive",
+      });
+    } finally {
+      setIsOpening(false);
+    }
+  };
 
   const inner = (
     <div className="flex items-start gap-4 sm:items-center">
@@ -249,21 +278,23 @@ function ResourceRow({
         )}
       </div>
 
-      {href && (
+      {(href || hasFile) && (
         <ExternalLink
           className={cn(
             "h-4 w-4 shrink-0 self-center text-muted-foreground transition-all",
-            "group-hover:translate-x-0.5 group-hover:text-primary"
+            "group-hover:translate-x-0.5 group-hover:text-primary",
+            isOpening && "animate-pulse"
           )}
         />
       )}
     </div>
   );
 
+  const isInteractive = !!href || hasFile;
   const baseClasses = cn(
     "group block rounded-lg border bg-background/40 p-4 transition-all duration-200",
     "animate-in fade-in-0 slide-in-from-bottom-2",
-    href &&
+    isInteractive &&
       "cursor-pointer hover:-translate-y-0.5 hover:border-primary/40 hover:bg-background/80 hover:shadow-sm"
   );
 
@@ -281,6 +312,23 @@ function ResourceRow({
       >
         {inner}
       </a>
+    );
+  }
+
+  if (hasFile) {
+    return (
+      <button
+        type="button"
+        onClick={handleOpenFile}
+        disabled={isOpening}
+        className={cn(baseClasses, "w-full text-left")}
+        style={{
+          animationDelay: `${delay}ms`,
+          animationFillMode: "backwards",
+        }}
+      >
+        {inner}
+      </button>
     );
   }
 
