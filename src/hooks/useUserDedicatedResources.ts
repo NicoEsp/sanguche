@@ -30,6 +30,7 @@ export interface DedicatedResource {
   resource_type: ResourceType;
   external_url: string | null;
   file_url: string | null;
+  bucket_name: string | null;
   description: string | null;
   created_by_admin: string | null;
   created_at: string;
@@ -40,10 +41,13 @@ export interface CreateDedicatedResourceData {
   user_id: string;
   resource_name: string;
   resource_type: ResourceType;
-  external_url: string;
+  external_url: string | null;
+  file_url: string | null;
   description: string | null;
   created_by_admin: string;
 }
+
+export const PRIVATE_RESOURCES_BUCKET = 'private-resources';
 
 // OPTIMIZED: Migrated from useState/useCallback to React Query for proper caching
 export function useUserDedicatedResources(userId?: string) {
@@ -119,6 +123,7 @@ export function useCreateDedicatedResource() {
           resource_name: data.resource_name,
           resource_type: mapToDbType(data.resource_type),
           external_url: data.external_url,
+          file_url: data.file_url,
           description: data.description,
           created_by_admin: data.created_by_admin
         })
@@ -191,12 +196,24 @@ export function useDeleteDedicatedResource() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      const { data: existing } = await supabase
+        .from('user_dedicated_resources')
+        .select('file_url, bucket_name')
+        .eq('id', id)
+        .maybeSingle();
+
       const { error } = await supabase
         .from('user_dedicated_resources')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+
+      if (existing?.file_url) {
+        await supabase.storage
+          .from(existing.bucket_name || PRIVATE_RESOURCES_BUCKET)
+          .remove([existing.file_url]);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dedicated-resources'] });
