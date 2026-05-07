@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import fs from "fs";
+import { prerenderSeoPlugin } from "./scripts/prerender-seo";
 
 
 // Plugin to generate version.json on build
@@ -38,6 +39,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === 'development' && componentTagger(),
     writeVersionPlugin(),
+    prerenderSeoPlugin(),
   ].filter(Boolean),
   resolve: {
     alias: {
