@@ -23,6 +23,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
           trialEnd: null,
           current_period_end: null,
           purchase_type: 'subscription' as const,
+          isComped: false,
         };
       }
 
@@ -35,6 +36,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
           trial_end,
           current_period_end,
           purchase_type,
+          is_comped,
           profiles!inner(user_id)
         `)
         .eq('profiles.user_id', user.id)
@@ -58,11 +60,12 @@ export function useSubscription(options?: UseSubscriptionOptions) {
           current_period_end: null,
           purchase_type: 'subscription' as const,
           isOneTimePurchase: false,
+          isComped: false,
         };
       }
 
       const purchaseType = data.purchase_type || 'subscription';
-      
+
       return {
         plan: data.plan as SubscriptionPlan,
         status: data.status,
@@ -70,6 +73,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
         current_period_end: data.current_period_end ? new Date(data.current_period_end) : null,
         purchase_type: purchaseType as 'subscription' | 'one_time',
         isOneTimePurchase: purchaseType === 'one_time',
+        isComped: data.is_comped === true,
       };
     },
     enabled: !!user && !options?.skip,
@@ -90,6 +94,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
         current_period_end: null,
         purchase_type: 'subscription' as const,
         isOneTimePurchase: false,
+        isComped: false,
       },
       loading: false,
       hasActivePremium: true,
@@ -103,29 +108,33 @@ export function useSubscription(options?: UseSubscriptionOptions) {
   }
 
   const isStillLoading = loading || authLoading || isError;
-  
+
   const plan = subscription?.plan;
   const isActive = subscription?.status === 'active';
-  
+  // is_comped is an admin override: grants access to whatever plan is recorded
+  // regardless of status (e.g. when LemonSqueezy has marked the sub as cancelled
+  // but the admin wants to keep access).
+  const hasAccess = isActive || subscription?.isComped === true;
+
   return {
     subscription,
     loading: isStillLoading,
     plan,
-    hasActivePremium: isStillLoading 
-      ? undefined 
-      : (isActive && ['premium', 'repremium'].includes(plan || '')),
+    hasActivePremium: isStillLoading
+      ? undefined
+      : (hasAccess && ['premium', 'repremium'].includes(plan || '')),
     hasActiveRePremium: isStillLoading
       ? undefined
-      : (isActive && plan === 'repremium'),
+      : (hasAccess && plan === 'repremium'),
     hasCursoEstrategia: isStillLoading
       ? undefined
-      : (isActive && plan === 'curso_estrategia'),
+      : (hasAccess && plan === 'curso_estrategia'),
     hasCursosAll: isStillLoading
       ? undefined
-      : (isActive && plan === 'cursos_all'),
+      : (hasAccess && plan === 'cursos_all'),
     hasAnyPaidPlan: isStillLoading
       ? undefined
-      : (isActive && ['premium', 'repremium', 'curso_estrategia', 'cursos_all', 'productprepa_business'].includes(plan || '')),
+      : (hasAccess && ['premium', 'repremium', 'curso_estrategia', 'cursos_all', 'productprepa_business'].includes(plan || '')),
     isTrialing: subscription?.trialEnd ? new Date() < subscription.trialEnd : false,
     isOneTimePurchase: subscription?.isOneTimePurchase ?? false,
   };
