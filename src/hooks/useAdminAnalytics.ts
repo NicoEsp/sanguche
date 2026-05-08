@@ -7,6 +7,7 @@ const FALLBACK_PRICES = {
   repremium: { amount: 12000000 },   // $120,000 ARS
   curso_estrategia: { amount: 4900000 }, // $49,000 ARS (one-time)
   cursos_all: { amount: 7500000 },   // $75,000 ARS (one-time)
+  productprepa_business: { amount: 0 }, // one-time, real price comes from LemonSqueezy
 };
 
 // Plans that contribute to MRR (recurrent subscriptions)
@@ -57,6 +58,7 @@ interface AdminAnalytics {
     repremium: PlanBreakdown;
     curso_estrategia: { paid: number };
     cursos_all: { paid: number };
+    productprepa_business: { paid: number };
   };
   pricingSource: 'lemonsqueezy' | 'fallback' | 'real';
 }
@@ -139,6 +141,7 @@ export function useAdminAnalytics() {
         repremium: { paid: 0, comped: 0, mrr: 0 },
         curso_estrategia: { paid: 0 },
         cursos_all: { paid: 0 },
+        productprepa_business: { paid: 0 },
       };
 
       let totalMrr = 0;
@@ -194,6 +197,12 @@ export function useAdminAnalytics() {
               subscriptionsByPlan.cursos_all.paid++;
             }
             break;
+          case 'productprepa_business':
+            // One-time purchase, no MRR contribution
+            if (!isComped) {
+              subscriptionsByPlan.productprepa_business.paid++;
+            }
+            break;
         }
       });
 
@@ -201,7 +210,8 @@ export function useAdminAnalytics() {
       const premiumUsers = subscriptionsByPlan.premium.paid + subscriptionsByPlan.premium.comped +
                           subscriptionsByPlan.repremium.paid + subscriptionsByPlan.repremium.comped +
                           subscriptionsByPlan.curso_estrategia.paid +
-                          subscriptionsByPlan.cursos_all.paid;
+                          subscriptionsByPlan.cursos_all.paid +
+                          subscriptionsByPlan.productprepa_business.paid;
       
       // Premium paid = only recurrent paying subscribers (for conversion metrics)
       const premiumPaidUsers = subscriptionsByPlan.premium.paid + subscriptionsByPlan.repremium.paid;

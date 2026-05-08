@@ -38,18 +38,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, FileDown, Star, Loader2, Upload, Crown, Lock } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileDown, Star, Loader2, Crown, Lock, Target } from 'lucide-react';
 import { SkeletonAdminTable } from '@/components/skeletons/SkeletonAdminTable';
+import { DOMAINS } from '@/utils/scoring';
 
 type AccessLevel = 'public' | 'authenticated' | 'premium';
+type ResourceType = 'pdf' | 'template' | 'checklist' | 'guide' | 'image';
 
 interface DownloadableResource {
   id: string;
   title: string;
   slug: string;
   description: string | null;
-  type: string;
+  type: ResourceType;
   file_path: string;
   bucket_name: string | null;
   thumbnail_url: string | null;
@@ -57,6 +60,9 @@ interface DownloadableResource {
   is_featured: boolean;
   is_active: boolean;
   access_level: AccessLevel;
+  condition_domain: string | null;
+  condition_min_level: number | null;
+  condition_max_level: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -65,12 +71,15 @@ interface FormData {
   title: string;
   slug: string;
   description: string;
-  type: string;
+  type: ResourceType;
   thumbnail_url: string;
   display_order: number;
   is_featured: boolean;
   is_active: boolean;
   access_level: AccessLevel;
+  condition_domain: string;
+  condition_min_level: number;
+  condition_max_level: number;
 }
 
 const initialFormData: FormData = {
@@ -83,20 +92,26 @@ const initialFormData: FormData = {
   is_featured: false,
   is_active: true,
   access_level: 'authenticated',
+  condition_domain: '',
+  condition_min_level: 1,
+  condition_max_level: 5,
 };
 
-const accessLevels = [
+const accessLevels: { value: AccessLevel; label: string }[] = [
   { value: 'public', label: 'Público' },
   { value: 'authenticated', label: 'Solo autenticados' },
   { value: 'premium', label: 'Solo Premium' },
 ];
 
-const resourceTypes = [
+const resourceTypes: { value: ResourceType; label: string }[] = [
   { value: 'pdf', label: 'PDF' },
   { value: 'template', label: 'Template' },
   { value: 'checklist', label: 'Checklist' },
   { value: 'guide', label: 'Guía' },
+  { value: 'image', label: 'Imagen' },
 ];
+
+const FILE_ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,.gif,.svg,.docx,.xlsx,.zip';
 
 export default function AdminDescargables() {
   const queryClient = useQueryClient();
@@ -106,7 +121,6 @@ export default function AdminDescargables() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // Fetch resources
   const { data: resources, isLoading } = useQuery({
     queryKey: ['admin-downloadable-resources'],
     queryFn: async () => {
@@ -114,23 +128,20 @@ export default function AdminDescargables() {
         .from('downloadable_resources')
         .select('*')
         .order('display_order', { ascending: true });
-      
+
       if (error) throw error;
       return data as DownloadableResource[];
     },
   });
 
-  // Generate slug from title
-  const generateSlug = (title: string) => {
-    return title
+  const generateSlug = (title: string) =>
+    title
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
-  };
 
-  // Handle title change and auto-generate slug
   const handleTitleChange = (title: string) => {
     setFormData(prev => ({
       ...prev,
@@ -139,48 +150,54 @@ export default function AdminDescargables() {
     }));
   };
 
-  // Save mutation
+  const isConditional = !!formData.condition_domain;
+
   const saveMutation = useMutation({
-    mutationFn: async ({ 
-      data, 
-      file, 
-      existingId 
-    }: { 
-      data: FormData; 
-      file: File | null; 
+    mutationFn: async ({
+      data,
+      file,
+      existingId,
+    }: {
+      data: FormData;
+      file: File | null;
       existingId: string | null;
     }) => {
       let file_path = editingResource?.file_path || '';
+      let bucket_name = editingResource?.bucket_name || 'downloads';
 
-      // Upload file if selected
       if (file) {
-        const ext = file.name.split('.').pop() || 'pdf';
+        const ext = file.name.split('.').pop() || 'bin';
         const fileName = `${data.slug}-${Date.now()}.${ext}`;
-        
+
         const { error: uploadError } = await supabase.storage
           .from('downloads')
           .upload(fileName, file, { upsert: true });
-        
+
         if (uploadError) throw uploadError;
         file_path = fileName;
+        bucket_name = 'downloads';
       }
 
       if (!file_path && !existingId) {
         throw new Error('Debe seleccionar un archivo');
       }
 
+      const conditional = !!data.condition_domain;
       const resourceData = {
         title: data.title,
         slug: data.slug,
         description: data.description || null,
         type: data.type,
         file_path,
-        bucket_name: 'downloads',
+        bucket_name,
         thumbnail_url: data.thumbnail_url || null,
         display_order: data.display_order,
         is_featured: data.is_featured,
         is_active: data.is_active,
         access_level: data.access_level,
+        condition_domain: conditional ? data.condition_domain : null,
+        condition_min_level: conditional ? data.condition_min_level : null,
+        condition_max_level: conditional ? data.condition_max_level : null,
       };
 
       if (existingId) {
@@ -198,6 +215,8 @@ export default function AdminDescargables() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-downloadable-resources'] });
+      queryClient.invalidateQueries({ queryKey: ['downloadable-resources'] });
+      queryClient.invalidateQueries({ queryKey: ['skill-gaps-resources'] });
       toast.success(editingResource ? 'Recurso actualizado' : 'Recurso creado');
       closeDialog();
     },
@@ -206,7 +225,6 @@ export default function AdminDescargables() {
     },
   });
 
-  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -217,6 +235,8 @@ export default function AdminDescargables() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-downloadable-resources'] });
+      queryClient.invalidateQueries({ queryKey: ['downloadable-resources'] });
+      queryClient.invalidateQueries({ queryKey: ['skill-gaps-resources'] });
       toast.success('Recurso eliminado');
       setDeleteConfirmId(null);
     },
@@ -225,7 +245,6 @@ export default function AdminDescargables() {
     },
   });
 
-  // Toggle mutations
   const toggleMutation = useMutation({
     mutationFn: async ({ id, field, value }: { id: string; field: 'is_active' | 'is_featured'; value: boolean }) => {
       const { error } = await supabase
@@ -236,6 +255,8 @@ export default function AdminDescargables() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-downloadable-resources'] });
+      queryClient.invalidateQueries({ queryKey: ['downloadable-resources'] });
+      queryClient.invalidateQueries({ queryKey: ['skill-gaps-resources'] });
     },
     onError: (error: Error) => {
       toast.error(`Error: ${error.message}`);
@@ -261,6 +282,9 @@ export default function AdminDescargables() {
       is_featured: resource.is_featured,
       is_active: resource.is_active,
       access_level: resource.access_level || 'authenticated',
+      condition_domain: resource.condition_domain || '',
+      condition_min_level: resource.condition_min_level ?? 1,
+      condition_max_level: resource.condition_max_level ?? 5,
     });
     setSelectedFile(null);
     setIsDialogOpen(true);
@@ -284,38 +308,33 @@ export default function AdminDescargables() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-    }
+    if (file) setSelectedFile(file);
   };
 
-  if (isLoading) {
-    return <SkeletonAdminTable />;
-  }
+  if (isLoading) return <SkeletonAdminTable />;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Descargables</h1>
+          <h1 className="text-2xl font-bold text-foreground">Recursos y Descargables</h1>
           <p className="text-muted-foreground">
-            Gestiona los recursos descargables disponibles para los usuarios.
+            Sin condiciones por competencia → aparece en /descargables. Con condiciones → solo en SkillGaps cuando matchea con la evaluación del usuario.
           </p>
         </div>
         <Button onClick={openCreateDialog}>
           <Plus className="h-4 w-4 mr-2" />
-          Nuevo Descargable
+          Nuevo Recurso
         </Button>
       </div>
 
-      {/* Table */}
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Título</TableHead>
               <TableHead>Tipo</TableHead>
+              <TableHead>Visibilidad</TableHead>
               <TableHead>Acceso</TableHead>
               <TableHead className="text-center">Orden</TableHead>
               <TableHead className="text-center">Destacado</TableHead>
@@ -326,9 +345,9 @@ export default function AdminDescargables() {
           <TableBody>
             {resources?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   <FileDown className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  No hay descargables registrados
+                  No hay recursos registrados
                 </TableCell>
               </TableRow>
             ) : (
@@ -339,6 +358,19 @@ export default function AdminDescargables() {
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
                       {resourceTypes.find(t => t.value === resource.type)?.label || resource.type}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    {resource.condition_domain ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-violet-500/20 text-violet-600">
+                        <Target className="h-3 w-3" />
+                        SkillGaps · {DOMAINS.find(d => d.key === resource.condition_domain)?.label || resource.condition_domain}
+                        {' '}({resource.condition_min_level ?? 1}-{resource.condition_max_level ?? 5})
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-600">
+                        /descargables
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {resource.access_level === 'premium' ? (
@@ -364,6 +396,7 @@ export default function AdminDescargables() {
                       onCheckedChange={(checked) =>
                         toggleMutation.mutate({ id: resource.id, field: 'is_featured', value: checked })
                       }
+                      disabled={!!resource.condition_domain}
                     />
                   </TableCell>
                   <TableCell className="text-center">
@@ -399,12 +432,11 @@ export default function AdminDescargables() {
         </Table>
       </div>
 
-      {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingResource ? 'Editar Descargable' : 'Nuevo Descargable'}
+              {editingResource ? 'Editar Recurso' : 'Nuevo Recurso'}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -436,10 +468,10 @@ export default function AdminDescargables() {
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Descripción del recurso..."
-                rows={5}
+                rows={4}
               />
               <p className="text-xs text-muted-foreground">
-                Usá Enter para generar saltos de línea; se respetan al mostrar en la card.
+                Solo se muestra en /descargables. Se respetan saltos de línea.
               </p>
             </div>
 
@@ -448,7 +480,7 @@ export default function AdminDescargables() {
                 <Label htmlFor="type">Tipo</Label>
                 <Select
                   value={formData.type}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
+                  onValueChange={(value: ResourceType) => setFormData(prev => ({ ...prev, type: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -493,6 +525,74 @@ export default function AdminDescargables() {
               </Select>
             </div>
 
+            <Card className="p-4 space-y-3">
+              <div className="space-y-1">
+                <Label className="flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Visibilidad por competencia (opcional)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Si elegís un dominio, este recurso solo aparece en SkillGaps cuando el assessment del usuario matchea el rango. No aparece en /descargables.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="condition_domain">Dominio</Label>
+                <Select
+                  value={formData.condition_domain || '__none__'}
+                  onValueChange={(value) => setFormData(prev => ({
+                    ...prev,
+                    condition_domain: value === '__none__' ? '' : value,
+                  }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sin condición (aparece en /descargables)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sin condición — /descargables</SelectItem>
+                    {DOMAINS.map((domain) => (
+                      <SelectItem key={domain.key} value={domain.key}>
+                        {domain.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isConditional && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="condition_min_level">Nivel mínimo</Label>
+                    <Input
+                      id="condition_min_level"
+                      type="number"
+                      min={1}
+                      max={5}
+                      value={formData.condition_min_level}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        condition_min_level: Math.max(1, Math.min(5, parseInt(e.target.value) || 1)),
+                      }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="condition_max_level">Nivel máximo</Label>
+                    <Input
+                      id="condition_max_level"
+                      type="number"
+                      min={1}
+                      max={5}
+                      value={formData.condition_max_level}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        condition_max_level: Math.max(1, Math.min(5, parseInt(e.target.value) || 5)),
+                      }))}
+                    />
+                  </div>
+                </div>
+              )}
+            </Card>
+
             <div className="space-y-2">
               <Label htmlFor="thumbnail_url">URL Thumbnail (opcional)</Label>
               <Input
@@ -505,13 +605,13 @@ export default function AdminDescargables() {
 
             <div className="space-y-2">
               <Label htmlFor="file">
-                Archivo PDF {!editingResource && '*'}
+                Archivo {!editingResource && '*'}
               </Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="file"
                   type="file"
-                  accept=".pdf"
+                  accept={FILE_ACCEPT}
                   onChange={handleFileChange}
                   className="flex-1"
                 />
@@ -523,7 +623,7 @@ export default function AdminDescargables() {
               </div>
               {editingResource && (
                 <p className="text-xs text-muted-foreground">
-                  Archivo actual: {editingResource.file_path}
+                  Archivo actual: {editingResource.bucket_name}/{editingResource.file_path}
                 </p>
               )}
             </div>
@@ -535,6 +635,7 @@ export default function AdminDescargables() {
                     id="is_featured"
                     checked={formData.is_featured}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_featured: checked }))}
+                    disabled={isConditional}
                   />
                   <Label htmlFor="is_featured" className="flex items-center gap-1">
                     <Star className="h-4 w-4" />
@@ -558,18 +659,17 @@ export default function AdminDescargables() {
               </Button>
               <Button type="submit" disabled={saveMutation.isPending}>
                 {saveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {editingResource ? 'Guardar Cambios' : 'Crear Descargable'}
+                {editingResource ? 'Guardar Cambios' : 'Crear Recurso'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar descargable?</AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar recurso?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. El recurso será eliminado permanentemente.
             </AlertDialogDescription>

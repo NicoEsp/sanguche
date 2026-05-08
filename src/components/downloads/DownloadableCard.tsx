@@ -20,6 +20,7 @@ import {
   Download,
   FileCheck,
   FileText,
+  Image as ImageIcon,
   Loader2,
   Lock,
   Sparkles,
@@ -40,6 +41,7 @@ const typeIcons: Record<DownloadableType, typeof FileText> = {
   template: FileCheck,
   checklist: FileCheck,
   guide: BookOpen,
+  image: ImageIcon,
 };
 
 const typeLabels: Record<DownloadableType, string> = {
@@ -47,6 +49,7 @@ const typeLabels: Record<DownloadableType, string> = {
   template: 'Template',
   checklist: 'Checklist',
   guide: 'Guía',
+  image: 'Imagen',
 };
 
 const typeGradients: Record<DownloadableType, string> = {
@@ -54,6 +57,7 @@ const typeGradients: Record<DownloadableType, string> = {
   template: 'from-blue-500/20 to-primary/5',
   checklist: 'from-emerald-500/20 to-primary/5',
   guide: 'from-violet-500/20 to-primary/5',
+  image: 'from-amber-500/20 to-primary/5',
 };
 
 type AccessState = 'accessible' | 'requires_login' | 'requires_subscription';

@@ -13,6 +13,7 @@ interface PricingData {
     repremium: PlanPricing;
     curso_estrategia: PlanPricing;
     cursos_all: PlanPricing;
+    productprepa_business: PlanPricing;
   };
   lastUpdated: string;
   source: string;
@@ -24,6 +25,7 @@ const FALLBACK_PRICES = {
   repremium: { amount: 12000000, formatted: '$ 120.000', currency: 'ARS' },
   curso_estrategia: { amount: 2500000, formatted: '$ 25.000', currency: 'ARS' },
   cursos_all: { amount: 7500000, formatted: '$ 75.000', currency: 'ARS' },
+  productprepa_business: { amount: 0, formatted: '$ 0', currency: 'ARS' },
 };
 
 export function usePricing() {
@@ -53,6 +55,7 @@ export function usePricing() {
     repremium: data?.plans?.repremium ?? FALLBACK_PRICES.repremium,
     curso_estrategia: data?.plans?.curso_estrategia ?? FALLBACK_PRICES.curso_estrategia,
     cursos_all: data?.plans?.cursos_all ?? FALLBACK_PRICES.cursos_all,
+    productprepa_business: data?.plans?.productprepa_business ?? FALLBACK_PRICES.productprepa_business,
     loading: isLoading,
     error
   };

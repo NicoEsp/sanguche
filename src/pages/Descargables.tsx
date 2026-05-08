@@ -22,6 +22,7 @@ const typeFilters: { value: TypeFilter; label: string }[] = [
   { value: 'template', label: 'Templates' },
   { value: 'checklist', label: 'Checklists' },
   { value: 'guide', label: 'Guías' },
+  { value: 'image', label: 'Imágenes' },
 ];
 
 const accessFilters: { value: AccessFilter; label: string }[] = [
