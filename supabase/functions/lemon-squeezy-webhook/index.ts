@@ -15,6 +15,7 @@ const VARIANT_TO_PLAN: Record<string, { plan: string; purchaseType: 'subscriptio
   '1170898': { plan: 'repremium', purchaseType: 'subscription' },
   '1170897': { plan: 'curso_estrategia', purchaseType: 'one_time' },
   '1170900': { plan: 'cursos_all', purchaseType: 'one_time' },
+  '1037226': { plan: 'productprepa_business', purchaseType: 'one_time' },
 };
 
 interface LemonSqueezyWebhookEvent {

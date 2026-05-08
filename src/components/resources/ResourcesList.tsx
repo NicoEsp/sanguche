@@ -1,39 +1,38 @@
-import { useState, useEffect } from 'react';
-import { FileText, Download, Eye, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
+import { Download, Eye, FileText, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useAvailableResources, Resource } from '@/hooks/useResources';
+import { getDownloadUrl, useSkillGapsResources } from '@/hooks/useDownloadableResources';
 import { AssessmentResult } from '@/utils/scoring';
-import { getResourceBadgeType } from '@/utils/resourceFilters';
-import { supabase } from '@/integrations/supabase/client';
+import { DownloadableResource } from '@/types/downloads';
 
 interface ResourcesListProps {
   assessmentResult: AssessmentResult | null;
 }
 
-function ResourceCard({ resource, assessmentResult }: { resource: Resource; assessmentResult: AssessmentResult | null }) {
+function ResourceCard({ resource }: { resource: DownloadableResource }) {
   const [previewResource, setPreviewResource] = useState<{ name: string; url: string } | null>(null);
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [resourceUrl, setResourceUrl] = useState<string | null>(null);
   const [urlLoading, setUrlLoading] = useState(false);
 
   useEffect(() => {
-    if (resource.access_level === 'public') {
-      setSignedUrl(resource.file_url);
-      return;
-    }
+    let cancelled = false;
     setUrlLoading(true);
-    supabase.functions.invoke('get-resource-access', {
-      body: { resourceId: resource.id },
-    }).then(({ data }) => {
-      setSignedUrl(data?.signedUrl || null);
-    }).finally(() => setUrlLoading(false));
-  }, [resource.id, resource.access_level, resource.file_url]);
-  const badgeType = getResourceBadgeType(resource, assessmentResult);
+    getDownloadUrl(resource)
+      .then(url => {
+        if (!cancelled) setResourceUrl(url);
+      })
+      .finally(() => {
+        if (!cancelled) setUrlLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [resource]);
 
-  // Use signed URL for private resources, direct URL for public bucket
-  const resourceUrl = signedUrl || resource.file_url;
+  const isPdf = resource.type === 'pdf' || resource.file_path.toLowerCase().endsWith('.pdf');
 
   return (
     <>
@@ -41,43 +40,38 @@ function ResourceCard({ resource, assessmentResult }: { resource: Resource; asse
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="flex-1 min-w-0">
             <h4 className="font-medium text-sm sm:text-base mb-2">
-              {resource.name}
+              {resource.title}
             </h4>
-            
+
             <div className="flex flex-col sm:flex-row gap-2 mb-3">
-              {badgeType === 'public' && (
-                <Badge variant="secondary" className="self-start">
-                  Recurso gratuito
-                </Badge>
-              )}
-              {badgeType === 'recommended' && (
-                <Badge variant="default" className="self-start">
-                  Recomendado para vos
-                </Badge>
-              )}
+              <Badge variant="default" className="self-start">
+                Recomendado para vos
+              </Badge>
             </div>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => resourceUrl && setPreviewResource({ name: resource.name, url: resourceUrl })}
-              disabled={urlLoading || !resourceUrl}
-            >
-              {urlLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Eye className="w-4 h-4" />
-              )}
-              Ver PDF
-            </Button>
+            {isPdf && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => resourceUrl && setPreviewResource({ name: resource.title, url: resourceUrl })}
+                disabled={urlLoading || !resourceUrl}
+              >
+                {urlLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+                Ver PDF
+              </Button>
+            )}
             <Button
               size="sm"
               asChild
               disabled={urlLoading || !resourceUrl}
             >
-              <a href={resourceUrl} download target="_blank" rel="noopener noreferrer">
+              <a href={resourceUrl ?? '#'} download target="_blank" rel="noopener noreferrer">
                 <Download className="w-4 h-4" />
                 Descargar
               </a>
@@ -107,7 +101,7 @@ function ResourceCard({ resource, assessmentResult }: { resource: Resource; asse
 }
 
 export function ResourcesList({ assessmentResult }: ResourcesListProps) {
-  const { resources, loading } = useAvailableResources(assessmentResult);
+  const { resources, loading } = useSkillGapsResources(assessmentResult);
 
   if (loading) {
     return (
@@ -131,11 +125,7 @@ export function ResourcesList({ assessmentResult }: ResourcesListProps) {
 
       <div className="space-y-3">
         {resources.map((resource) => (
-          <ResourceCard 
-            key={resource.id} 
-            resource={resource} 
-            assessmentResult={assessmentResult}
-          />
+          <ResourceCard key={resource.id} resource={resource} />
         ))}
       </div>
     </div>

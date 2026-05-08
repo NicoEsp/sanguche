@@ -145,6 +145,7 @@ function SubscriptionsTable() {
       repremium: { className: 'bg-purple-500/20 text-purple-600 border-purple-500/30', label: 'RePremium' },
       curso_estrategia: { className: 'bg-blue-500/20 text-blue-600 border-blue-500/30', label: 'Curso Estrategia' },
       cursos_all: { className: 'bg-cyan-500/20 text-cyan-600 border-cyan-500/30', label: 'Cursos All' },
+      productprepa_business: { className: 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30', label: 'PP Business' },
       free: { className: '', label: 'Free' },
     };
     
@@ -206,6 +207,7 @@ function SubscriptionsTable() {
             <SelectItem value="repremium">RePremium</SelectItem>
             <SelectItem value="curso_estrategia">Curso Estrategia</SelectItem>
             <SelectItem value="cursos_all">Cursos All</SelectItem>
+            <SelectItem value="productprepa_business">PP Business</SelectItem>
             <SelectItem value="free">Free</SelectItem>
           </SelectContent>
         </Select>

@@ -187,7 +187,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Financial Summary */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2 items-start">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export default function AdminDashboard() {
                   )}
                 </div>
               </div>
-              {(analytics.subscriptionsByPlan.curso_estrategia.paid > 0 || analytics.subscriptionsByPlan.cursos_all.paid > 0) && (
+              {(analytics.subscriptionsByPlan.curso_estrategia.paid > 0 || analytics.subscriptionsByPlan.cursos_all.paid > 0 || analytics.subscriptionsByPlan.productprepa_business.paid > 0) && (
                 <>
                   <span className="text-xs text-muted-foreground font-medium pt-1 block">Compras únicas (no MRR):</span>
                   {analytics.subscriptionsByPlan.curso_estrategia.paid > 0 && (
@@ -248,6 +248,12 @@ export default function AdminDashboard() {
                     <div className="flex justify-between items-center text-sm">
                       <span>Cursos All</span>
                       <Badge variant="outline">{analytics.subscriptionsByPlan.cursos_all.paid}</Badge>
+                    </div>
+                  )}
+                  {analytics.subscriptionsByPlan.productprepa_business.paid > 0 && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span>ProductPrepa for Business</span>
+                      <Badge variant="outline">{analytics.subscriptionsByPlan.productprepa_business.paid}</Badge>
                     </div>
                   )}
                 </>

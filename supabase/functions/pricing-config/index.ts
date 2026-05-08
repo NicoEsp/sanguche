@@ -9,6 +9,7 @@ const VARIANT_IDS = {
   repremium: '1170898',
   curso_estrategia: '1170897',
   cursos_all: '1170900',
+  productprepa_business: '1037226',
 };
 
 // Fallback prices in case API fails (all in ARS)
@@ -17,6 +18,7 @@ const FALLBACK_PRICES = {
   repremium: { amount: 12000000, formatted: '$ 120.000', currency: 'ARS' },
   curso_estrategia: { amount: 4900000, formatted: '$ 49.000', currency: 'ARS' },
   cursos_all: { amount: 7500000, formatted: '$ 75.000', currency: 'ARS' },
+  productprepa_business: { amount: 0, formatted: '$ 0', currency: 'ARS' },
 };
 
 // In-memory cache
@@ -118,11 +120,12 @@ Deno.serve(async (req) => {
     }
 
     // Fetch all variant prices in parallel
-    const [premium, repremium, cursoEstrategia, cursosAll] = await Promise.all([
+    const [premium, repremium, cursoEstrategia, cursosAll, productprepaBusiness] = await Promise.all([
       fetchVariantPrice(VARIANT_IDS.premium, apiKey),
       fetchVariantPrice(VARIANT_IDS.repremium, apiKey),
       fetchVariantPrice(VARIANT_IDS.curso_estrategia, apiKey),
       fetchVariantPrice(VARIANT_IDS.cursos_all, apiKey),
+      fetchVariantPrice(VARIANT_IDS.productprepa_business, apiKey),
     ]);
 
     const plans = {
@@ -130,6 +133,7 @@ Deno.serve(async (req) => {
       repremium: repremium || FALLBACK_PRICES.repremium,
       curso_estrategia: cursoEstrategia || FALLBACK_PRICES.curso_estrategia,
       cursos_all: cursosAll || FALLBACK_PRICES.cursos_all,
+      productprepa_business: productprepaBusiness || FALLBACK_PRICES.productprepa_business,
     };
 
     const response = {

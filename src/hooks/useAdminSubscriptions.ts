@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface SubscriptionWithProfile {
   id: string;
   user_id: string;
-  plan: 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all';
+  plan: 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'productprepa_business';
   status: 'active' | 'inactive' | 'cancelled';
   lemon_squeezy_subscription_id: string | null;
   lemon_squeezy_customer_id: string | null;
@@ -39,7 +39,7 @@ export interface WebhookLog {
 }
 
 export interface SubscriptionFilters {
-  plan?: 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'all';
+  plan?: 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'productprepa_business' | 'all';
   status?: 'active' | 'inactive' | 'cancelled' | 'all';
   search?: string;
   comped?: 'all' | 'paid' | 'comped';
@@ -150,7 +150,8 @@ export function useSubscriptionStats() {
       const repremiumCount = data.filter(s => s.plan === 'repremium' && s.status === 'active').length;
       const cursoEstrategiaCount = data.filter(s => s.plan === 'curso_estrategia' && s.status === 'active').length;
       const cursosAllCount = data.filter(s => s.plan === 'cursos_all' && s.status === 'active').length;
-      
+      const productprepaBusinessCount = data.filter(s => s.plan === 'productprepa_business' && s.status === 'active').length;
+
       const free = data.filter(s => s.plan === 'free').length;
       const withLemonSqueezy = data.filter(s => s.lemon_squeezy_subscription_id).length;
       const conversionRate = total > 0 ? ((premium / total) * 100).toFixed(1) : '0';
@@ -163,6 +164,7 @@ export function useSubscriptionStats() {
         repremiumCount,
         cursoEstrategiaCount,
         cursosAllCount,
+        productprepaBusinessCount,
         free,
         withLemonSqueezy,
         conversionRate,

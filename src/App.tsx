@@ -51,7 +51,6 @@ import SkeletonMentoria from "./components/skeletons/SkeletonMentoria";
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminSubscriptions = lazy(() => import("./pages/admin/AdminSubscriptions"));
-const AdminResources = lazy(() => import("./pages/admin/AdminResources"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminRecommendations = lazy(() => import("./pages/admin/AdminRecommendations"));
 const AdminAssessments = lazy(() => import("./pages/admin/AdminAssessments"));
@@ -111,8 +110,6 @@ const App = () => (
                   <Route path="ejercicios" element={<AdminExercises />} />
                   <Route path="cursos" element={<AdminCourses />} />
                   <Route path="cursos/:courseId" element={<AdminCourseDetail />} />
-                  <Route path="recursos" element={<AdminResources />} />
-                  
                   <Route path="descargables" element={<AdminDescargables />} />
                   <Route path="blog" element={<AdminBlog />} />
                   <Route path="sesiones" element={<AdminSessions />} />

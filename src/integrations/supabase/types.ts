@@ -420,6 +420,9 @@ export type Database = {
         Row: {
           access_level: Database["public"]["Enums"]["resource_access_level"]
           bucket_name: string | null
+          condition_domain: string | null
+          condition_max_level: number | null
+          condition_min_level: number | null
           created_at: string
           description: string | null
           display_order: number
@@ -436,6 +439,9 @@ export type Database = {
         Insert: {
           access_level?: Database["public"]["Enums"]["resource_access_level"]
           bucket_name?: string | null
+          condition_domain?: string | null
+          condition_max_level?: number | null
+          condition_min_level?: number | null
           created_at?: string
           description?: string | null
           display_order?: number
@@ -452,6 +458,9 @@ export type Database = {
         Update: {
           access_level?: Database["public"]["Enums"]["resource_access_level"]
           bucket_name?: string | null
+          condition_domain?: string | null
+          condition_max_level?: number | null
+          condition_min_level?: number | null
           created_at?: string
           description?: string | null
           display_order?: number
@@ -1480,6 +1489,7 @@ export type Database = {
         | "repremium"
         | "curso_estrategia"
         | "cursos_all"
+        | "productprepa_business"
       subscription_status: "active" | "inactive" | "cancelled"
     }
     CompositeTypes: {
@@ -1619,6 +1629,7 @@ export const Constants = {
         "repremium",
         "curso_estrategia",
         "cursos_all",
+        "productprepa_business",
       ],
       subscription_status: ["active", "inactive", "cancelled"],
     },
