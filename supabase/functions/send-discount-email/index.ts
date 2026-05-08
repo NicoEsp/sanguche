@@ -121,19 +121,25 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Find assessments created 3-4 days ago
-    const now = new Date();
-    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-    const fourDaysAgo = new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000);
+    // Window: assessments completed at least MIN_AGE_HOURS ago but no older
+    // than MAX_AGE_DAYS. Wide window + idempotent index on assessment_id =
+    // self-healing if the cron ever misses a day. Worst case mail delay:
+    // ~24h after the user's assessment hits MIN_AGE_HOURS (cron is daily).
+    const MIN_AGE_HOURS = 24;
+    const MAX_AGE_DAYS = 7;
 
-    console.log(`[send-discount-email] Date window: ${fourDaysAgo.toISOString()} to ${threeDaysAgo.toISOString()}`);
+    const now = new Date();
+    const youngestAllowed = new Date(now.getTime() - MIN_AGE_HOURS * 60 * 60 * 1000);
+    const oldestAllowed = new Date(now.getTime() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
+
+    console.log(`[send-discount-email] Date window: ${oldestAllowed.toISOString()} to ${youngestAllowed.toISOString()}`);
     console.log(`[send-discount-email] Current time: ${now.toISOString()}`);
 
     const { data: assessments, error: assessError } = await supabase
       .from("assessments")
       .select("id, user_id, assessment_result, created_at")
-      .gte("created_at", fourDaysAgo.toISOString())
-      .lt("created_at", threeDaysAgo.toISOString());
+      .gte("created_at", oldestAllowed.toISOString())
+      .lt("created_at", youngestAllowed.toISOString());
 
     if (assessError) {
       console.error("[send-discount-email] Error fetching assessments:", assessError);
@@ -146,7 +152,7 @@ Deno.serve(async (req: Request) => {
     console.log(`[send-discount-email] Assessments found in window: ${assessments?.length ?? 0}`);
 
     if (!assessments || assessments.length === 0) {
-      console.log("[send-discount-email] No assessments in 3-4 day window. Exiting.");
+      console.log("[send-discount-email] No assessments in window. Exiting.");
       return new Response(
         JSON.stringify({ message: "No assessments found in window", sent: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
