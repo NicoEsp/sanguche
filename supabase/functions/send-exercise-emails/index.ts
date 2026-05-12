@@ -28,8 +28,7 @@ function buildEmailHtml(name: string, exerciseCount: number): string {
   const firstName = name?.split(" ")[0] || "ahí";
   const isPlural = exerciseCount > 1;
   const noun = isPlural ? "ejercicios nuevos" : "ejercicio nuevo";
-  const verb = isPlural ? "te asignamos" : "te asignamos";
-  const objects = isPlural ? "ellos" : "él";
+  const thisExercise = isPlural ? "estos ejercicios" : "este ejercicio";
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -54,10 +53,10 @@ function buildEmailHtml(name: string, exerciseCount: number): string {
     ¡Hola ${firstName}!
   </p>
   <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 16px;">
-    ${verb} <strong>${exerciseCount} ${noun}</strong> en tu plan de mentoría.
+    Te asigné <strong>${exerciseCount} ${noun}</strong> en tu plan de mentoría.
   </p>
   <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 24px;">
-    Cada ejercicio es una oportunidad concreta de aplicar lo que vas aprendiendo y ver tus avances reflejados. Cuando te metas con ${objects}, recordá: el objetivo no es resolverlo perfecto, es construir criterio.
+    Recordá que cada ejercicio es una oportunidad concreta de aplicar lo que vas aprendiendo y ver tus avances reflejados en estas actividades. Cuando te sientes con ${thisExercise}, no te olvides que el objetivo no es resolverlo perfecto, es construir una forma de pensar específica.
   </p>
 
   <!-- CTA Button -->
@@ -69,8 +68,8 @@ function buildEmailHtml(name: string, exerciseCount: number): string {
   </td></tr>
   </table>
 
-  <p style="font-size:14px;color:#71717a;line-height:1.5;margin:0;">
-    Si tenés dudas sobre alguno, respondé este mail directamente y lo charlamos.
+  <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0;">
+    Un abrazo,<br/>NicoProducto
   </p>
 </td></tr>
 
