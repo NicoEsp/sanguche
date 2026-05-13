@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Seo } from "@/components/Seo";
 import {
   Accordion,
@@ -10,7 +9,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
-  Code,
   Lightbulb,
   Rocket,
   Target,
@@ -27,6 +25,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { soyDevFaqs } from "@/seo/faqs/soyDev";
+import { SoyDevHeroVideo } from "@/components/landing/SoyDevHeroVideo";
 
 const whyCards = [
   {
@@ -155,30 +154,33 @@ const SoyDev = () => {
         </div>
 
         {/* Hero */}
-        <section className="container text-center py-16 sm:py-24 px-4 sm:px-6 relative overflow-hidden">
+        <section className="container py-12 sm:py-20 px-4 sm:px-6 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 -z-10" />
 
-          <Badge
-            variant="secondary"
-            className="mb-6 px-4 py-2 text-sm font-medium"
-          >
-            <Code className="h-4 w-4 mr-2" />
-            Para Devs
-          </Badge>
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center mb-10 sm:mb-12">
+            {/* Título + subtítulo */}
+            <div className="text-center lg:text-left order-2 lg:order-1">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                Sos Dev. Aprender Producto es tu{" "}
+                <span className="text-primary">superpoder</span>.
+                <br className="hidden sm:block" />
+                <span className="text-primary">Es el momento.</span>
+              </h1>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 max-w-4xl mx-auto leading-tight">
-            Sos Dev. Aprender Producto es tu{" "}
-            <span className="text-primary">superpoder</span>.
-            <br className="hidden sm:block" />
-            <span className="text-primary">Es el momento.</span>
-          </h1>
+              <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed lg:max-w-xl">
+                El mundo cambió. AI escribe código, pero no "sabe" qué
+                construir ni para quién. Los devs que entienden de Producto son
+                los que definen el futuro. ¿Estás listo?
+              </p>
+            </div>
 
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            El mundo cambió. AI escribe código, pero no "sabe" qué construir ni
-            para quién. Los devs que entienden de Producto son los que definen
-            el futuro. ¿Estás listo?
-          </p>
+            {/* Video */}
+            <div className="order-1 lg:order-2">
+              <SoyDevHeroVideo />
+            </div>
+          </div>
 
+          {/* CTA centrado */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
               asChild

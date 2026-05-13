@@ -78,6 +78,7 @@ export default {
 					"Arial",
 					"sans-serif"
 				],
+				handwritten: ["Caveat", "cursive"],
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
