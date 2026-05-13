@@ -70,8 +70,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
       )}>
         {/* Desktop Header for authenticated users - Simple branding only */}
         {isAuthenticated && !isMobile && (
-          <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
-            <div className="container flex h-14 items-center">
+          <header className="sticky top-0 z-30 h-14 border-b bg-background/95 backdrop-blur">
+            <div className="container flex h-full items-center">
               <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-3 py-2 shadow-sm">
                 <span className="text-sm text-muted-foreground">
                   Un producto por{" "}

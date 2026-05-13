@@ -16,8 +16,8 @@ export function AdminLayout() {
 
           <div className="flex min-h-screen flex-1 flex-col">
             {/* Header del Admin */}
-            <header className="border-b bg-card px-3 py-3 sm:px-6 sm:py-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <header className="h-20 border-b bg-card px-3 sm:px-6 flex items-center">
+              <div className="w-full flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <SidebarTrigger className="shrink-0" />
                   <div className="min-w-0">
