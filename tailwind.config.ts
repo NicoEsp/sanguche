@@ -129,19 +129,6 @@ export default {
 					opacity: '0'
 				}
 			},
-			'drop-in': {
-				'0%': {
-					transform: 'scale(1.05)',
-					opacity: '0.8'
-				},
-				'50%': {
-					transform: 'scale(0.97)'
-				},
-				'100%': {
-					transform: 'scale(1)',
-					opacity: '1'
-				}
-			},
 			'shake': {
 				'0%, 100%': { transform: 'translateX(0)' },
 				'10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-2px)' },
@@ -171,7 +158,6 @@ export default {
 			'fall': 'fall 2.5s ease-in forwards',
 			'fade-out': 'fade-out 0.3s ease-out forwards',
 			'fade-in': 'fade-in 0.3s ease-out forwards',
-			'drop-in': 'drop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
 			'shake': 'shake 0.4s ease-in-out',
 			'drop-settle': 'drop-settle 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
 			'typing': 'typing 1s steps(30, end) forwards'
