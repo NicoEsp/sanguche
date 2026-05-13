@@ -161,10 +161,8 @@ const SoyDev = () => {
             {/* Título + subtítulo */}
             <div className="text-center lg:text-left order-2 lg:order-1">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                Sos Dev. Aprender Producto es tu{" "}
-                <span className="text-primary">superpoder</span>.
-                <br className="hidden sm:block" />
-                <span className="text-primary">Es el momento.</span>
+                Sos Dev? Aprender Producto es tu{" "}
+                <span className="text-primary">superpoder.</span>
               </h1>
 
               <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed lg:max-w-xl">
