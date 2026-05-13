@@ -299,84 +299,78 @@ export const UserExercises = memo(function UserExercises() {
   const hasExercises = totalCount > 0;
 
   return (
-    <div className="space-y-6">
-      {/* Progress hero */}
-      <Card
-        className={cn(
-          "relative overflow-hidden border-primary/20",
-          "animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
-        )}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent pointer-events-none" />
-        <CardContent className="relative p-6 space-y-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-primary">
-                <Sparkles className="h-3.5 w-3.5" />
-                Tu camino de aprendizaje
-              </div>
-              <h2 className="text-2xl font-semibold">
-                {!hasExercises
-                  ? "Tu mentor está preparando tus primeros ejercicios"
-                  : completedCount === totalCount
-                  ? "¡Completaste todos tus ejercicios!"
-                  : completedCount === 0
-                  ? "Todo listo para empezar"
-                  : `Llevás ${completedCount} de ${totalCount} ejercicios`}
-              </h2>
-            </div>
-            <div className={cn(
-              "shrink-0 rounded-full p-3",
-              completedCount === totalCount && hasExercises ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-            )}>
-              {completedCount === totalCount && hasExercises ? (
-                <Trophy className="h-6 w-6" />
-              ) : (
-                <Flame className="h-6 w-6" />
-              )}
-            </div>
-          </div>
-
-          {hasExercises && (
-            <>
-              <div className="space-y-2">
-                <Progress value={progressPct} className="h-2.5" />
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{progressPct}% completado</span>
-                  <span>{totalCount - completedCount} por hacer</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 pt-2">
-                <StatTile label="Pendientes" value={pendingExercises.length - inProgressCount} />
-                <StatTile label="En progreso" value={inProgressCount} accent />
-                <StatTile label="Completados" value={completedCount} />
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Next exercise hero */}
-      {nextExercise && (
-        <NextExerciseHero
-          exercise={nextExercise}
-          onStart={() => handleViewExercise(nextExercise.id)}
-        />
+    <Card
+      className={cn(
+        "relative overflow-hidden border-primary/20",
+        "animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
       )}
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent pointer-events-none" />
 
-      {/* Rest of exercises */}
-      <Card
-        className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
-        style={{ animationDelay: "150ms", animationFillMode: "backwards" }}
-      >
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+      <CardHeader className="relative space-y-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              Tu camino de aprendizaje
+            </div>
+            <CardTitle className="text-2xl font-semibold">
+              {!hasExercises
+                ? "Tu mentor está preparando tus primeros ejercicios"
+                : completedCount === totalCount
+                ? "¡Completaste todos tus ejercicios!"
+                : completedCount === 0
+                ? "Todo listo para empezar"
+                : `Llevás ${completedCount} de ${totalCount} ejercicios`}
+            </CardTitle>
+          </div>
+          <div className={cn(
+            "shrink-0 rounded-full p-3",
+            completedCount === totalCount && hasExercises ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+          )}>
+            {completedCount === totalCount && hasExercises ? (
+              <Trophy className="h-6 w-6" />
+            ) : (
+              <Flame className="h-6 w-6" />
+            )}
+          </div>
+        </div>
+
+        {hasExercises && (
+          <>
+            <div className="space-y-2">
+              <Progress value={progressPct} className="h-2.5" />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{progressPct}% completado</span>
+                <span>{totalCount - completedCount} por hacer</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <StatTile label="Pendientes" value={pendingExercises.length - inProgressCount} />
+              <StatTile label="En progreso" value={inProgressCount} accent />
+              <StatTile label="Completados" value={completedCount} />
+            </div>
+          </>
+        )}
+      </CardHeader>
+
+      <CardContent className="relative space-y-6">
+        {nextExercise && (
+          <NextExerciseHero
+            exercise={nextExercise}
+            onStart={() => handleViewExercise(nextExercise.id)}
+          />
+        )}
+
+        <div
+          className="rounded-xl border bg-card/80 backdrop-blur-sm p-4 sm:p-5 space-y-3 animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
+          style={{ animationDelay: "150ms", animationFillMode: "backwards" }}
+        >
+          <div className="flex items-center gap-2 text-base font-semibold">
             <Briefcase className="h-5 w-5 text-primary" />
             Mis ejercicios
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </div>
           <Tabs defaultValue="pending">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="pending">
@@ -387,7 +381,7 @@ export const UserExercises = memo(function UserExercises() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="pending" className="space-y-3 mt-4">
+            <TabsContent value="pending" className="space-y-3 mt-4 min-h-[180px]">
               {pendingExercises.length === 0 ? (
                 <EmptyState
                   icon={FileText}
@@ -412,7 +406,7 @@ export const UserExercises = memo(function UserExercises() {
               )}
             </TabsContent>
 
-            <TabsContent value="completed" className="space-y-3 mt-4">
+            <TabsContent value="completed" className="space-y-3 mt-4 min-h-[180px]">
               {completedExercises.length === 0 ? (
                 <EmptyState
                   icon={CheckCircle2}
@@ -432,9 +426,9 @@ export const UserExercises = memo(function UserExercises() {
               )}
             </TabsContent>
           </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 });
 
@@ -622,12 +616,12 @@ function EmptyState({
   subtitle: string;
 }) {
   return (
-    <div className="text-center py-10 space-y-2">
-      <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+    <div className="flex h-full min-h-[180px] flex-col items-center justify-center text-center space-y-2 py-4">
+      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
         <Icon className="h-5 w-5 text-muted-foreground/60" />
       </div>
       <p className="text-sm font-medium">{title}</p>
-      <p className="text-xs text-muted-foreground max-w-xs mx-auto">{subtitle}</p>
+      <p className="text-xs text-muted-foreground max-w-xs">{subtitle}</p>
     </div>
   );
 }

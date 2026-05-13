@@ -8,6 +8,8 @@ interface ProfileAnalysisProps {
 }
 
 export const ProfileAnalysis = memo(function ProfileAnalysis({ result }: ProfileAnalysisProps) {
+  const focusArea = result.gaps[0]?.label ?? result.neutralAreas[0]?.label ?? "Sin brechas críticas";
+
   return (
     <Card>
       <CardHeader>
@@ -18,17 +20,17 @@ export const ProfileAnalysis = memo(function ProfileAnalysis({ result }: Profile
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-primary/5 rounded-lg">
-            <div className="text-2xl font-bold text-primary">{result.nivel}</div>
-            <div className="text-sm text-muted-foreground">Nivel actual</div>
+          <div className="flex flex-col items-center justify-center text-center p-4 bg-primary/5 rounded-lg min-h-[110px]">
+            <div className="text-2xl font-bold text-primary leading-tight">{result.nivel}</div>
+            <div className="text-sm text-muted-foreground mt-1">Nivel actual</div>
           </div>
-          <div className="text-center p-4 bg-secondary/50 rounded-lg">
-            <div className="text-2xl font-bold text-foreground">{result.promedioGlobal}/5</div>
-            <div className="text-sm text-muted-foreground">Promedio global</div>
+          <div className="flex flex-col items-center justify-center text-center p-4 bg-secondary/50 rounded-lg min-h-[110px]">
+            <div className="text-2xl font-bold text-foreground leading-tight">{result.promedioGlobal}/5</div>
+            <div className="text-sm text-muted-foreground mt-1">Tu nota</div>
           </div>
-          <div className="text-center p-4 bg-accent/50 rounded-lg">
-            <div className="text-sm font-bold text-foreground">{result.specialization}</div>
-            <div className="text-sm text-muted-foreground">Especialización</div>
+          <div className="flex flex-col items-center justify-center text-center p-4 bg-accent/50 rounded-lg min-h-[110px]">
+            <div className="text-xl font-bold text-foreground leading-tight">{focusArea}</div>
+            <div className="text-sm text-muted-foreground mt-1">A mejorar</div>
           </div>
         </div>
         <div className="p-4 bg-muted/50 rounded-lg">
