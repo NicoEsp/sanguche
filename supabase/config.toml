@@ -77,9 +77,6 @@ verify_jwt = true
 [functions.delete-user]
 verify_jwt = true
 
-[functions.todoist-feedback]
-verify_jwt = true
-
 [functions.pricing-config]
 verify_jwt = false
 

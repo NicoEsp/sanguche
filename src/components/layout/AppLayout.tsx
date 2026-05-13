@@ -2,25 +2,16 @@ import { ReactNode, useState } from "react";
 import { Twitter, Linkedin } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserProfile } from "@/hooks/useUserProfile";
 import { AppSidebar } from "./AppSidebar";
 import { MobileNav } from "./MobileNav";
 import { LandingHeader } from "./LandingHeader";
-import { FeedbackFooterCta } from "@/components/feedback/FeedbackFooterCta";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const shouldLoadProfile = isAuthenticated && !isLoading;
-  const { profile } = useUserProfile({ skip: !shouldLoadProfile });
-  
-  const metadataName = (() => {
-    const possibleName = user?.user_metadata?.name;
-    return typeof possibleName === "string" ? possibleName : undefined;
-  })();
+  const { isAuthenticated, isLoading } = useAuth();
 
   // Show skeleton during auth loading to prevent layout flashing
   if (isLoading) {
@@ -105,17 +96,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <main className="flex-1">{children}</main>
 
         <footer className="border-t bg-background">
-          <div className="container py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground text-center sm:text-left">
+          <div className="container py-6">
+            <p className="text-sm text-muted-foreground text-center">
               © {new Date().getFullYear()} ProductPrepa
             </p>
-            
-            <FeedbackFooterCta
-              isAuthenticated={isAuthenticated}
-              profileName={profile?.name}
-              metadataName={metadataName}
-              userEmail={user?.email}
-            />
           </div>
         </footer>
       </div>
