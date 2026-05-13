@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <clipPath id="card-clip">
+      <rect x="50" y="40" width="500" height="550" rx="22"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#FAFAF6"/>
+
+  <!-- Decorative circles -->
+  <circle cx="1100" cy="70" r="180" fill="#FBE7DA"/>
+  <circle cx="1170" cy="560" r="210" fill="#D9EDD5"/>
+
+  <!-- Left card (outer light blue-gray) -->
+  <rect x="50" y="40" width="500" height="550" rx="22" fill="#E8EEF5"/>
+
+  <!-- Left card inner panel (cream) -->
+  <rect x="90" y="90" width="420" height="450" rx="10" fill="#F5EFDA"/>
+
+  <!-- Sandwich illustration -->
+  <image x="120" y="120" width="360" height="360"
+         href="https://productprepa.com/assets/sanguche.png"
+         preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- Vertical divider -->
+  <line x1="610" y1="80" x2="610" y2="555" stroke="#D6DDE6" stroke-width="2"/>
+
+  <!-- Right column -->
+  <g font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+
+    <!-- Brand wordmark (small, top) -->
+    <text x="660" y="110" font-size="20" font-weight="600" fill="#9CA3AF" letter-spacing="2">PRODUCTPREPA · /SOY-DEV</text>
+
+    <!-- Headline line 1 -->
+    <text x="660" y="200" font-size="88" font-weight="800" fill="#0F1942" letter-spacing="-2">Sos Dev.</text>
+
+    <!-- Headline line 2 (orange + underline) -->
+    <text x="660" y="298" font-size="78" font-weight="800" fill="#ED7723" letter-spacing="-2">Es tu superpoder.</text>
+    <line x1="660" y1="314" x2="1150" y2="314" stroke="#ED7723" stroke-width="6" stroke-linecap="round"/>
+
+    <!-- Description -->
+    <text font-size="22" fill="#3A4660">
+      <tspan x="660" y="370">Aprendé Producto en una plataforma pensada para</tspan>
+      <tspan x="660" y="402">developers: autoevaluación gratis, recursos curados</tspan>
+      <tspan x="660" y="434">y mentoría 1:1 con NicoProducto.</tspan>
+    </text>
+
+    <!-- Pills -->
+    <g transform="translate(660, 470)" font-size="17" font-weight="600" fill="#0F1942">
+      <g>
+        <rect x="0" y="0" width="158" height="42" rx="21" fill="#D9EDD5"/>
+        <text x="79" y="27" text-anchor="middle">Autoevaluación</text>
+      </g>
+      <g transform="translate(170, 0)">
+        <rect x="0" y="0" width="128" height="42" rx="21" fill="#FFE4D4"/>
+        <text x="64" y="27" text-anchor="middle">Mentoría 1:1</text>
+      </g>
+      <g transform="translate(310, 0)">
+        <rect x="0" y="0" width="138" height="42" rx="21" fill="#D9EDD5"/>
+        <text x="69" y="27" text-anchor="middle">Career Path</text>
+      </g>
+      <g transform="translate(460, 0)">
+        <rect x="0" y="0" width="142" height="42" rx="21" fill="#D9EDD5"/>
+        <text x="71" y="27" text-anchor="middle">Side-Projects</text>
+      </g>
+    </g>
+
+    <!-- Footer URL -->
+    <text x="660" y="555" font-size="20" font-weight="500" fill="#6B7280">productprepa.com/soy-dev</text>
+  </g>
+</svg>
