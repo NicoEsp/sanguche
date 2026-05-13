@@ -16,8 +16,8 @@ export const SoyDevHeroVideo = () => {
   };
 
   return (
-    <div className="relative w-full max-w-xl mx-auto lg:mx-0 lg:ml-auto">
-      {/* Overlay manuscrito: flecha + texto */}
+    <div className="w-full max-w-xl mx-auto lg:mx-0 lg:ml-auto">
+      {/* Flecha manuscrita + texto, arriba del video */}
       <HandwrittenArrow />
 
       <div className="relative rounded-xl overflow-hidden shadow-2xl border border-border/40 bg-muted aspect-video">
@@ -49,69 +49,33 @@ export const SoyDevHeroVideo = () => {
 };
 
 const HandwrittenArrow = () => (
-  <>
-    {/* Desktop: flecha curva arriba-izquierda apuntando hacia abajo-derecha */}
-    <div className="hidden lg:block absolute -top-16 -left-20 pointer-events-none select-none z-10">
-      <div className="relative">
-        <svg
-          width="140"
-          height="120"
-          viewBox="0 0 140 120"
-          fill="none"
-          className="text-foreground"
-          aria-hidden="true"
-        >
-          <path
-            d="M 10 15 Q 90 -5 120 70"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            fill="none"
-          />
-          <path
-            d="M 110 60 L 120 72 L 132 62"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-        </svg>
-        <span className="absolute top-[88px] left-[60px] whitespace-nowrap font-handwritten font-bold text-2xl text-foreground rotate-[-4deg]">
-          Empezá por este video
-        </span>
-      </div>
-    </div>
-
-    {/* Mobile: flecha vertical apuntando hacia abajo, encima del video */}
-    <div className="lg:hidden flex flex-col items-center mb-3 pointer-events-none select-none">
-      <span className="font-handwritten font-bold text-2xl text-foreground rotate-[-3deg]">
-        Empezá por este video
-      </span>
-      <svg
-        width="60"
-        height="56"
-        viewBox="0 0 60 56"
+  <div className="flex items-end justify-center gap-3 sm:gap-4 mb-3 pointer-events-none select-none">
+    <svg
+      width="80"
+      height="90"
+      viewBox="0 0 80 90"
+      fill="none"
+      className="text-foreground flex-shrink-0"
+      aria-hidden="true"
+    >
+      <path
+        d="M 8 10 Q 70 5 55 75"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
         fill="none"
-        className="text-foreground mt-1"
-        aria-hidden="true"
-      >
-        <path
-          d="M 10 5 Q 5 30 30 45"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          fill="none"
-        />
-        <path
-          d="M 22 38 L 30 47 L 40 40"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-      </svg>
-    </div>
-  </>
+      />
+      <path
+        d="M 46 66 L 55 78 L 66 68"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+    <span className="font-handwritten font-bold text-2xl sm:text-3xl text-foreground rotate-[-3deg] pb-2">
+      Empezá por este video
+    </span>
+  </div>
 );
