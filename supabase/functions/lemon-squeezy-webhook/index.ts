@@ -287,8 +287,9 @@ serve(async (req) => {
     
     try {
       const userName = event!.data.attributes.user_name || null;
-      userId = await findOrCreateUser(userEmail, userName, supabase);
-      console.log(`[Webhook] User profile ready: ${userId}`);
+      const result = await findOrCreateUser(userEmail, userName, supabase);
+      userId = result.profileId;
+      console.log(`[Webhook] User profile ready: ${userId} (wasJustCreated: ${result.wasJustCreated})`);
     } catch (error) {
       console.error('[Webhook] Failed to find or create user:', error);
       
