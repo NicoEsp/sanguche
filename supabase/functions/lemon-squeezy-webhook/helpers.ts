@@ -158,42 +158,48 @@ export async function findOrCreateUser(
     }
     
     console.log(`[findOrCreateUser] Step 4: Auth user ready: ${authUser.id}`);
-    
-    // 4. Check if profile exists for this auth user
+
+    // 4. Resolve the profile id for this auth user. The on_auth_user_created
+    // trigger (handle_new_user) inserts a profiles row AFTER auth.users insert,
+    // so when wasJustCreated=true we almost always find an existing row here.
+    // We must NOT early-return on the wasJustCreated path or we'd skip the
+    // access email below.
     const { data: profile, error: profileFetchError } = await supabase
       .from('profiles')
       .select('id')
       .eq('user_id', authUser.id)
       .maybeSingle();
-    
+
     if (profileFetchError) {
       console.error('[findOrCreateUser] Error fetching profile:', profileFetchError);
       throw new Error(`Failed to check profile: ${profileFetchError.message}`);
     }
-    
+
+    let profileId: string;
     if (profile) {
-      console.log(`[findOrCreateUser] Profile exists: ${profile.id} (took ${Date.now() - startTime}ms)`);
-      return { profileId: profile.id, wasJustCreated: false };
+      console.log(`[findOrCreateUser] Profile already exists for auth user: ${profile.id} (likely created by handle_new_user trigger)`);
+      profileId = profile.id;
+    } else {
+      // 5. Profile doesn't exist (trigger disabled or failed), create it
+      console.log('[findOrCreateUser] Step 5: Creating profile for auth user...');
+      const { data: newProfile, error: profileCreateError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: authUser.id,
+          email: email,
+          name: name || email.split('@')[0]
+        })
+        .select('id')
+        .single();
+
+      if (profileCreateError) {
+        console.error('[findOrCreateUser] Error creating profile:', profileCreateError);
+        throw new Error(`Failed to create profile: ${profileCreateError.message}`);
+      }
+
+      profileId = newProfile.id;
+      console.log(`[findOrCreateUser] Profile created successfully: ${profileId} (took ${Date.now() - startTime}ms)`);
     }
-    
-    // 5. Profile doesn't exist, create it
-    console.log('[findOrCreateUser] Step 5: Creating profile for auth user...');
-    const { data: newProfile, error: profileCreateError } = await supabase
-      .from('profiles')
-      .insert({
-        user_id: authUser.id,
-        email: email,
-        name: name || email.split('@')[0]
-      })
-      .select('id')
-      .single();
-    
-    if (profileCreateError) {
-      console.error('[findOrCreateUser] Error creating profile:', profileCreateError);
-      throw new Error(`Failed to create profile: ${profileCreateError.message}`);
-    }
-    
-    console.log(`[findOrCreateUser] Profile created successfully: ${newProfile.id} (took ${Date.now() - startTime}ms)`);
 
     // 6. If we just created the auth user (anonymous-checkout path), send the
     // access email with a recovery link so they can set a password and log in.
@@ -207,7 +213,7 @@ export async function findOrCreateUser(
       }
     }
 
-    return { profileId: newProfile.id, wasJustCreated };
+    return { profileId, wasJustCreated };
 
   } catch (error) {
     console.error(`[findOrCreateUser] Unexpected error (took ${Date.now() - startTime}ms):`, error);
