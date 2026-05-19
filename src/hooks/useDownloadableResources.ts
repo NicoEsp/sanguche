@@ -132,9 +132,14 @@ export async function resolveResourceUrl(resource: DownloadableResource): Promis
 
   try {
     const res = await fetch(url, { method: 'HEAD' });
-    const contentType = res.headers.get('content-type') ?? '';
-    if (!res.ok || contentType.includes('application/json')) {
-      return { error: 'unreachable' };
+    // Some CDNs/servers don't allow HEAD (405/501). That tells us nothing about
+    // the resource itself, so don't block — let the consumer's GET try.
+    const headNotSupported = res.status === 405 || res.status === 501;
+    if (!headNotSupported) {
+      const contentType = res.headers.get('content-type') ?? '';
+      if (!res.ok || contentType.includes('application/json')) {
+        return { error: 'unreachable' };
+      }
     }
   } catch {
     // Probe failed (offline / CORS). Don't block — let the consumer try the url.

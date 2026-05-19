@@ -170,10 +170,15 @@ export function DownloadableCard({ resource, isDownloaded, onDownloaded }: Downl
   const handleDownload = async () => {
     if (isLocked) return;
 
+    // Open the tab synchronously inside the click handler so browsers keep it
+    // tied to the user gesture; opening after the await gets blocked as a popup.
+    const win = window.open('about:blank', '_blank');
+    if (win) win.opener = null;
     setIsDownloadLoading(true);
     try {
       const resolved = await resolveResourceUrl(resource);
       if ('error' in resolved) {
+        win?.close();
         trackEvent('resource_open_failed', {
           resource_id: resource.id,
           resource_title: resource.title,
@@ -184,8 +189,8 @@ export function DownloadableCard({ resource, isDownloaded, onDownloaded }: Downl
         toast.error(RESOURCE_ERROR_MESSAGE);
         return;
       }
-      const popup = window.open(resolved.url, '_blank', 'noopener,noreferrer');
-      if (popup) {
+      if (win) {
+        win.location.href = resolved.url;
         onDownloaded(resource.id);
       } else {
         toast.error('Tu navegador bloqueó la descarga. Habilitá popups para este sitio.');

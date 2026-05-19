@@ -58,18 +58,23 @@ function ResourceCard({ resource }: { resource: DownloadableResource }) {
 
   const handleDownload = async () => {
     if (actionLoading) return;
+    // Open the tab synchronously inside the click handler so browsers keep it
+    // tied to the user gesture; opening after the await gets blocked as a popup.
+    const win = window.open('about:blank', '_blank');
+    if (win) win.opener = null;
     setActionLoading('download');
     const resolved = await resolveResourceUrl(resource);
     setActionLoading(null);
     if ('error' in resolved) {
+      win?.close();
       reportFailure('download', resolved.error);
       return;
     }
-    const popup = window.open(resolved.url, '_blank', 'noopener,noreferrer');
-    if (!popup) {
+    if (!win) {
       toast.error('Tu navegador bloqueó la descarga. Habilitá popups para este sitio.');
       return;
     }
+    win.location.href = resolved.url;
     trackEvent('resource_downloaded', {
       resource_id: resource.id,
       resource_title: resource.title,
