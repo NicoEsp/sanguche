@@ -89,7 +89,7 @@ const PUBLIC_BUCKETS = new Set(['resources']);
 // URL-encoded (e.g. "Reflexiones%20sobre..." instead of "Reflexiones sobre...")
 // and Storage rejected them with InvalidKey. Decode defensively so a future
 // bad upload doesn't silently break the download UX.
-function normalizeStoragePath(path: string): string {
+export function normalizeStoragePath(path: string): string {
   if (!path.includes('%')) return path;
   try {
     return decodeURIComponent(path);
@@ -116,4 +116,30 @@ export async function getDownloadUrl(resource: DownloadableResource): Promise<st
     return `/downloads/${filePath}`;
   }
   return data.signedUrl;
+}
+
+export type ResolvedResource = { url: string } | { error: 'no-url' | 'unreachable' };
+
+// Resolve the URL AND verify it actually serves the file. A misconfigured key
+// makes Storage answer with a JSON error body that an <iframe> happily renders
+// as raw text — that's the exact "InvalidKey" screen a user hit. We probe with
+// HEAD and reject JSON/error responses before showing the preview. Network
+// failures (e.g. CORS) fall through to best-effort so we never block a
+// download that would otherwise work.
+export async function resolveResourceUrl(resource: DownloadableResource): Promise<ResolvedResource> {
+  const url = await getDownloadUrl(resource);
+  if (!url) return { error: 'no-url' };
+
+  try {
+    const res = await fetch(url, { method: 'HEAD' });
+    const contentType = res.headers.get('content-type') ?? '';
+    if (!res.ok || contentType.includes('application/json')) {
+      return { error: 'unreachable' };
+    }
+  } catch {
+    // Probe failed (offline / CORS). Don't block — let the consumer try the url.
+    return { url };
+  }
+
+  return { url };
 }

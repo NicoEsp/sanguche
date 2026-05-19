@@ -43,6 +43,7 @@ import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, FileDown, Star, Loader2, Crown, Lock, Target } from 'lucide-react';
 import { SkeletonAdminTable } from '@/components/skeletons/SkeletonAdminTable';
 import { DOMAINS } from '@/utils/scoring';
+import { normalizeStoragePath } from '@/hooks/useDownloadableResources';
 
 type AccessLevel = 'public' | 'authenticated' | 'premium';
 type ResourceType = 'pdf' | 'template' | 'checklist' | 'guide' | 'image';
@@ -188,7 +189,9 @@ export default function AdminDescargables() {
         slug: data.slug,
         description: data.description || null,
         type: data.type,
-        file_path,
+        // Storage keys must be the literal object name. Decode defensively so a
+        // hand-edited or legacy URL-encoded path never persists (it broke the PDF preview).
+        file_path: normalizeStoragePath(file_path),
         bucket_name,
         thumbnail_url: data.thumbnail_url || null,
         display_order: data.display_order,
