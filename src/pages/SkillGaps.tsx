@@ -2,6 +2,7 @@ import { Seo } from "@/components/Seo";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Link } from "react-router-dom";
+import { ArrowRight, FileDown } from "lucide-react";
 import { useSubscription } from "@/hooks/useAuth";
 import { ResourcesList } from "@/components/resources/ResourcesList";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
@@ -212,6 +213,28 @@ export default function SkillGaps() {
         <hr className="mt-10 border-border" />
 
         <ResourcesList assessmentResult={result || null} />
+
+        <div className="mt-8 rounded-lg border border-primary/20 bg-primary/5 p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <FileDown className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-foreground">¿Querés explorar más recursos?</p>
+                <p className="text-sm text-muted-foreground">
+                  Templates, guías y PDFs para Product Builders, gratuitos y premium.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/descargables"
+              onClick={() => trackEvent('skill_gaps_descargables_cta_click')}
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline sm:flex-shrink-0"
+            >
+              Ver todos los descargables
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
       </section>
     </>;
 }
