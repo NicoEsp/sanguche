@@ -27,11 +27,15 @@ import {
   Star,
 } from 'lucide-react';
 import { DownloadableResource, DownloadableType } from '@/types/downloads';
-import { getDownloadUrl } from '@/hooks/useDownloadableResources';
+import { resolveResourceUrl } from '@/hooks/useDownloadableResources';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 import { isPremiumPlan } from '@/constants/plans';
 import { cn } from '@/lib/utils';
+
+const RESOURCE_ERROR_MESSAGE =
+  'No pudimos abrir este recurso. Intentá de nuevo o escribinos a nicoproducto@hey.com.';
 
 const NEW_BADGE_DAYS = 14;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -93,6 +97,7 @@ export function DownloadableCard({ resource, isDownloaded, onDownloaded }: Downl
   const descriptionRef = useRef<HTMLParagraphElement>(null);
   const { isAuthenticated } = useAuth();
   const { subscription } = useSubscription();
+  const { trackEvent } = useMixpanelTracking();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -144,27 +149,48 @@ export function DownloadableCard({ resource, isDownloaded, onDownloaded }: Downl
     }
 
     setIsPreviewLoading(true);
-    const url = await getDownloadUrl(resource);
-    if (url) {
-      setPreviewUrl(url);
-      setIsPreviewFrameLoading(true);
-      setIsPreviewOpen(true);
-    }
+    const resolved = await resolveResourceUrl(resource);
     setIsPreviewLoading(false);
+    if ('error' in resolved) {
+      trackEvent('resource_open_failed', {
+        resource_id: resource.id,
+        resource_title: resource.title,
+        action: 'preview',
+        reason: resolved.error,
+        location: 'descargables',
+      });
+      toast.error(RESOURCE_ERROR_MESSAGE);
+      return;
+    }
+    setPreviewUrl(resolved.url);
+    setIsPreviewFrameLoading(true);
+    setIsPreviewOpen(true);
   };
 
   const handleDownload = async () => {
     if (isLocked) return;
 
+    // Open the tab synchronously inside the click handler so browsers keep it
+    // tied to the user gesture; opening after the await gets blocked as a popup.
+    const win = window.open('about:blank', '_blank');
+    if (win) win.opener = null;
     setIsDownloadLoading(true);
     try {
-      const url = await getDownloadUrl(resource);
-      if (!url) {
-        toast.error('No pudimos obtener el archivo. Intentá de nuevo.');
+      const resolved = await resolveResourceUrl(resource);
+      if ('error' in resolved) {
+        win?.close();
+        trackEvent('resource_open_failed', {
+          resource_id: resource.id,
+          resource_title: resource.title,
+          action: 'download',
+          reason: resolved.error,
+          location: 'descargables',
+        });
+        toast.error(RESOURCE_ERROR_MESSAGE);
         return;
       }
-      const popup = window.open(url, '_blank', 'noopener,noreferrer');
-      if (popup) {
+      if (win) {
+        win.location.href = resolved.url;
         onDownloaded(resource.id);
       } else {
         toast.error('Tu navegador bloqueó la descarga. Habilitá popups para este sitio.');

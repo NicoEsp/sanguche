@@ -85,20 +85,66 @@ export function useSkillGapsResources(assessmentResult: AssessmentResult | null)
 
 const PUBLIC_BUCKETS = new Set(['resources']);
 
+// Storage keys must match the literal object name. Some legacy rows landed
+// URL-encoded (e.g. "Reflexiones%20sobre..." instead of "Reflexiones sobre...")
+// and Storage rejected them with InvalidKey. Decode defensively so a future
+// bad upload doesn't silently break the download UX.
+export function normalizeStoragePath(path: string): string {
+  if (!path.includes('%')) return path;
+  try {
+    return decodeURIComponent(path);
+  } catch {
+    return path;
+  }
+}
+
 export async function getDownloadUrl(resource: DownloadableResource): Promise<string | null> {
+  const filePath = normalizeStoragePath(resource.file_path);
+
   if (PUBLIC_BUCKETS.has(resource.bucket_name)) {
     const { data } = supabase.storage
       .from(resource.bucket_name)
-      .getPublicUrl(resource.file_path);
+      .getPublicUrl(filePath);
     return data?.publicUrl || null;
   }
 
   const { data, error } = await supabase.storage
     .from(resource.bucket_name)
-    .createSignedUrl(resource.file_path, 3600);
+    .createSignedUrl(filePath, 3600);
 
   if (error || !data?.signedUrl) {
-    return `/downloads/${resource.file_path}`;
+    return `/downloads/${filePath}`;
   }
   return data.signedUrl;
+}
+
+export type ResolvedResource = { url: string } | { error: 'no-url' | 'unreachable' };
+
+// Resolve the URL AND verify it actually serves the file. A misconfigured key
+// makes Storage answer with a JSON error body that an <iframe> happily renders
+// as raw text — that's the exact "InvalidKey" screen a user hit. We probe with
+// HEAD and reject JSON/error responses before showing the preview. Network
+// failures (e.g. CORS) fall through to best-effort so we never block a
+// download that would otherwise work.
+export async function resolveResourceUrl(resource: DownloadableResource): Promise<ResolvedResource> {
+  const url = await getDownloadUrl(resource);
+  if (!url) return { error: 'no-url' };
+
+  try {
+    const res = await fetch(url, { method: 'HEAD' });
+    // Some CDNs/servers don't allow HEAD (405/501). That tells us nothing about
+    // the resource itself, so don't block — let the consumer's GET try.
+    const headNotSupported = res.status === 405 || res.status === 501;
+    if (!headNotSupported) {
+      const contentType = res.headers.get('content-type') ?? '';
+      if (!res.ok || contentType.includes('application/json')) {
+        return { error: 'unreachable' };
+      }
+    }
+  } catch {
+    // Probe failed (offline / CORS). Don't block — let the consumer try the url.
+    return { url };
+  }
+
+  return { url };
 }
