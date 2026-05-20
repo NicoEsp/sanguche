@@ -18,6 +18,7 @@ export interface ProfileCompositeData {
     current_period_end: Date | null;
     purchase_type: 'subscription' | 'one_time';
     isOneTimePurchase: boolean;
+    isComped: boolean;
   } | null;
   assessmentsCount: number;
   lastAssessmentDate: string | null;
@@ -44,7 +45,7 @@ export async function fetchCompositeData(userId: string): Promise<ProfileComposi
       mentoria_completed,
       last_mentoria_date,
       is_founder,
-      user_subscriptions(plan, status, current_period_end, purchase_type)
+      user_subscriptions(plan, status, current_period_end, purchase_type, is_comped)
     `)
     .eq('user_id', userId)
     .maybeSingle();
@@ -87,12 +88,14 @@ export async function fetchCompositeData(userId: string): Promise<ProfileComposi
         : null,
       purchase_type: purchaseType as 'subscription' | 'one_time',
       isOneTimePurchase: purchaseType === 'one_time',
+      isComped: subscriptionData.is_comped === true,
     } : {
       plan: 'free' as SubscriptionPlan,
       status: 'active' as const,
       current_period_end: null,
       purchase_type: 'subscription' as const,
       isOneTimePurchase: false,
+      isComped: false,
     },
     assessmentsCount: assessmentsData?.length || 0,
     lastAssessmentDate: assessmentsData?.[0]?.updated_at || null,

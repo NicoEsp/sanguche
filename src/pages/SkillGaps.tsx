@@ -155,7 +155,6 @@ export default function SkillGaps() {
             {/* Premium CTA Card - solo para usuarios no premium con gaps */}
             {gaps.length > 0 && !hasActivePremium && (
               <PremiumCTACard
-                userLevel={result.nivel}
                 ctaPath="/premium"
                 onCtaClick={() => handleCtaClick('premium_cta_card')}
               />
