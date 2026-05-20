@@ -33,13 +33,9 @@ export default function Recommendations() {
       // Wait for webhook to process (2 seconds), then invalidate subscription
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['subscription'] });
-        
-        trackEvent('checkout_completed', {
-          plan: 'premium',
-          price: 25000,
-          provider: 'lemon_squeezy'
-        });
-        
+
+        // checkout_completed se emite de forma canónica (con plan y price dinámicos)
+        // en /welcome, que es a donde redirige LemonSqueezy tras el pago.
         toast({
           title: "¡Suscripción exitosa!",
           description: "Bienvenido a ProductPrepa Premium. Ya tienes acceso a todas las funcionalidades."

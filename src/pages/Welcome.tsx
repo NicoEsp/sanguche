@@ -6,6 +6,7 @@ import { CheckCircle2, Mail, Loader2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Seo } from "@/components/Seo";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
+import { usePricing } from "@/hooks/usePricing";
 import { useQueryClient } from "@tanstack/react-query";
 export default function Welcome() {
   const [searchParams] = useSearchParams();
@@ -18,6 +19,7 @@ export default function Welcome() {
   const {
     trackEvent
   } = useMixpanelTracking();
+  const { pricesByPlan } = usePricing();
   const queryClient = useQueryClient();
   const [countdown, setCountdown] = useState(5);
   const success = searchParams.get('success') === 'true';
@@ -31,6 +33,7 @@ export default function Welcome() {
 
       trackEvent('checkout_completed', {
         plan: plan ?? 'unknown',
+        price: plan ? pricesByPlan[plan] : undefined,
         provider: 'lemon_squeezy',
         is_authenticated: isAuthenticated,
         is_anonymous: isAnonymous,
