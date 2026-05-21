@@ -183,7 +183,7 @@ const SoyDev = () => {
             <Button
               asChild
               size="lg"
-              className="text-lg px-10 py-7 font-semibold shadow-lg"
+              className="w-full sm:w-auto text-base sm:text-lg px-4 sm:px-10 py-6 sm:py-7 font-semibold shadow-lg"
             >
               <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
                 Comenzar evaluación gratis
@@ -351,7 +351,7 @@ const SoyDev = () => {
                 <Button
                   asChild
                   size="lg"
-                  className="text-lg px-10 py-7 font-semibold shadow-lg"
+                  className="w-full sm:w-auto text-base sm:text-lg px-4 sm:px-10 py-6 sm:py-7 font-semibold shadow-lg"
                 >
                   <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
                     Comenzar evaluación gratis
