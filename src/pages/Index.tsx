@@ -59,7 +59,7 @@ const Index = () => {
             <Button
               asChild
               size="lg"
-              className="text-lg px-10 py-7 font-semibold"
+              className="w-full sm:w-auto text-base sm:text-lg px-4 sm:px-10 py-6 sm:py-7 font-semibold"
               onClick={() => trackEvent('landing_page_cta_click', {
                 cta_location: 'hero',
                 cta_text: 'Comenzar evaluación gratis'
