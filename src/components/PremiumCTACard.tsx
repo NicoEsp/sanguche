@@ -21,7 +21,7 @@ export function PremiumCTACard({ ctaPath, onCtaClick }: PremiumCTACardProps) {
         Probá Premium un mes. Si no te sirve, lo cancelás.
       </h3>
       <p className="text-white/85 text-sm sm:text-base mb-6">
-        Mentoría 1:1, Career Path personalizado y recursos dedicados por ARS 50,000/mes. Sin permanencia.
+        Mentoría 1:1, Career Path personalizado y recursos dedicados por ARS 50.000/mes. Sin permanencia.
       </p>
 
       <Button

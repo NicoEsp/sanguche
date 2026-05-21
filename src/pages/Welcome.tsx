@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,10 @@ export default function Welcome() {
   const {
     trackEvent
   } = useMixpanelTracking();
-  const { pricesByPlan } = usePricing();
+  const { pricesByPlan, loading: pricingLoading } = usePricing();
   const queryClient = useQueryClient();
   const [countdown, setCountdown] = useState(5);
+  const checkoutTrackedRef = useRef(false);
   const success = searchParams.get('success') === 'true';
   const isAnonymous = searchParams.get('anonymous') === 'true';
   useEffect(() => {
@@ -31,15 +32,6 @@ export default function Welcome() {
         is_authenticated: isAuthenticated
       });
 
-      trackEvent('checkout_completed', {
-        plan: plan ?? 'unknown',
-        price: plan ? pricesByPlan[plan] : undefined,
-        provider: 'lemon_squeezy',
-        is_authenticated: isAuthenticated,
-        is_anonymous: isAnonymous,
-        source: 'welcome_page',
-      });
-
       // Force refresh subscription data
       setTimeout(() => {
         queryClient.invalidateQueries({
@@ -47,7 +39,22 @@ export default function Welcome() {
         });
       }, 2000);
     }
-  }, [success, isAnonymous, isAuthenticated, plan, trackEvent, queryClient]);
+  }, [success, isAnonymous, isAuthenticated, trackEvent, queryClient]);
+
+  // checkout_completed: esperar a que usePricing resuelva (precio live de LemonSqueezy)
+  // para no loguear el fallback. Se dispara una sola vez vía ref.
+  useEffect(() => {
+    if (!success || pricingLoading || checkoutTrackedRef.current) return;
+    checkoutTrackedRef.current = true;
+    trackEvent('checkout_completed', {
+      plan: plan ?? 'unknown',
+      price: plan ? pricesByPlan[plan] : undefined,
+      provider: 'lemon_squeezy',
+      is_authenticated: isAuthenticated,
+      is_anonymous: isAnonymous,
+      source: 'welcome_page',
+    });
+  }, [success, pricingLoading, plan, pricesByPlan, isAuthenticated, isAnonymous, trackEvent]);
 
   // Determine redirect destination based on plan
   const getPostPaymentRoute = () => {
