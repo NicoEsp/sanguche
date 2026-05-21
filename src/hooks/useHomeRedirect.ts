@@ -9,11 +9,14 @@ const FADE_DURATION = 150;
 /**
  * Hook que maneja la redirección automática en Home según el estado del usuario (V4):
  * - No autenticado → Se queda en Landing
- * - Autenticado con returnTo → Redirige a returnTo (ej: /preguntas)
- * - Autenticado sin evaluación → /autoevaluacion
- * - Autenticado Free con evaluación → /mejoras
- * - Autenticado Premium con evaluación → /progreso
- * 
+ * - Premium/RePremium sin evaluación → /autoevaluacion
+ * - Premium/RePremium con evaluación → /progreso (Career Path; ignora returnTo)
+ * - Free con returnTo → Redirige a returnTo (ej: /preguntas)
+ * - Free sin evaluación → /autoevaluacion
+ * - Free con evaluación → /mejoras
+ *
+ * "Premium" incluye planes premium/repremium activos o con acceso de cortesía (is_comped).
+ *
  * OPTIMIZED: Uses single composite query instead of separate assessment + subscription hooks
  */
 export function useHomeRedirect() {
@@ -44,16 +47,20 @@ export function useHomeRedirect() {
     
     let dest: string;
     const hasAssessment = compositeData.assessmentsCount > 0;
-    const hasActivePremium = compositeData.subscription
-      ? isPremiumPlan(compositeData.subscription.plan) && compositeData.subscription.status === 'active'
+    const sub = compositeData.subscription;
+    // is_comped es un override de admin: mantiene acceso aunque el status no sea 'active'.
+    const hasActivePremium = sub
+      ? isPremiumPlan(sub.plan) && (sub.status === 'active' || sub.isComped === true)
       : false;
-    
-    if (returnTo) {
+
+    if (hasActivePremium) {
+      // Premium/RePremium van directo a Career Path (ignoran returnTo).
+      // Si todavía no hicieron la autoevaluación, esa va primero.
+      dest = hasAssessment ? '/progreso' : '/autoevaluacion';
+    } else if (returnTo) {
       dest = decodeURIComponent(returnTo);
     } else if (!hasAssessment) {
       dest = '/autoevaluacion';
-    } else if (hasActivePremium) {
-      dest = '/progreso';
     } else {
       dest = '/mejoras';
     }

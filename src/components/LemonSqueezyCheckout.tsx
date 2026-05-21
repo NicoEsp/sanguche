@@ -38,7 +38,7 @@ export function LemonSqueezyCheckout({
   const { toast } = useToast();
   const { user } = useAuth();
   const { trackEvent } = useMixpanelTracking();
-  const { premium, repremium, curso_estrategia, cursos_all } = usePricing();
+  const { premium, pricesByPlan } = usePricing();
 
   const handleCheckout = async (email?: string) => {
     onCheckoutStart?.();
@@ -52,11 +52,9 @@ export function LemonSqueezyCheckout({
       duration: 3000,
     });
     
-    trackEvent('checkout_started', { 
-      plan, 
-      price: plan === 'premium' ? premium.amount : 
-             plan === 'repremium' ? repremium.amount :
-             plan === 'curso_estrategia' ? curso_estrategia.amount : cursos_all.amount, 
+    trackEvent('checkout_started', {
+      plan,
+      price: pricesByPlan[plan],
       provider: 'lemon_squeezy',
       is_anonymous: !user
     });
