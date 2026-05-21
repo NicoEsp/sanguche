@@ -823,7 +823,7 @@ export default function Assessment() {
                 })()}
 
                 {/* Navegación unificada */}
-                <div className="flex gap-3 mt-6">
+                <div className="flex flex-col sm:flex-row gap-3 mt-6">
                   {currentStep > 0 && (
                     <Button
                       type="button"
@@ -850,7 +850,7 @@ export default function Assessment() {
                       <Button
                         type="button"
                         onClick={handleNextStep}
-                        className="flex-1"
+                        className="w-full sm:flex-1"
                         disabled={!watchedValues?.[DOMAINS[currentStep].key]}
                       >
                         Siguiente (Opcionales)
@@ -859,26 +859,26 @@ export default function Assessment() {
                       <Button
                         type="submit"
                         variant="outline"
-                        className="flex-1"
+                        className="w-full sm:flex-1"
                         disabled={isSaving || answered < DOMAINS.length}
                       >
                         {isSaving ? "Guardando..." : "Ver resultados"}
                       </Button>
                     </>
                   ) : currentStep < totalSteps - 1 ? (
-                    <div className="flex gap-2 w-full">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={handleSkipOptional}
-                        className="flex-1"
+                        className="w-full sm:flex-1"
                       >
                         Saltar
                       </Button>
                       <Button
                         type="button"
                         onClick={handleNextStep}
-                        className="flex-1"
+                        className="w-full sm:flex-1"
                       >
                         Siguiente
                         <ChevronRight className="h-4 w-4 ml-1" />
@@ -886,11 +886,11 @@ export default function Assessment() {
                     </div>
                   ) : (
                     <div className="flex flex-col gap-2 w-full">
-                      <div className="flex gap-2 w-full">
+                      <div className="flex flex-col sm:flex-row gap-2 w-full">
                         <Button
                           type="submit"
                           variant="outline"
-                          className="flex-1"
+                          className="w-full sm:flex-1"
                           disabled={isSaving}
                         >
                           {isSaving ? "Guardando..." : "Saltar y ver resultados"}
@@ -900,7 +900,7 @@ export default function Assessment() {
                           onClick={() => {
                             form.handleSubmit(onSubmit)();
                           }}
-                          className="flex-1"
+                          className="w-full sm:flex-1"
                           disabled={isSaving || !optionalValues[OPTIONAL_DOMAINS[currentStep - DOMAINS.length]?.key as keyof OptionalAssessmentValues]}
                         >
                           {isSaving ? (
