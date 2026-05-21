@@ -56,7 +56,7 @@ function PlanCard({
 }: PlanCardProps) {
   return (
     <Card
-      className={`relative flex flex-col h-full ${isHighlighted ? 'border-primary bg-primary/5' : ''}`}
+      className={`relative flex flex-col h-full min-w-0 ${isHighlighted ? 'border-primary bg-primary/5' : ''}`}
       onMouseEnter={onHover}
     >
       {badge && (

@@ -190,7 +190,7 @@ export function LemonSqueezyCheckout({
       <Button 
         size={size}
         variant={variant}
-        className={className ?? "w-full min-h-[44px]"} 
+        className={className ?? "w-full min-h-[44px] h-auto whitespace-normal py-2 leading-snug text-center"}
         onClick={handleButtonClick}
         disabled={loading}
       >
