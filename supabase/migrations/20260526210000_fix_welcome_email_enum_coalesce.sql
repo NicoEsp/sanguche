@@ -31,10 +31,15 @@ BEGIN
 
   -- Skip UPDATEs that keep the user in the same active premium/repremium state
   -- (renewals via subscription_payment_success, current_period_end bumps).
-  IF TG_OP = 'UPDATE'
-     AND OLD.plan IN ('premium', 'repremium')
-     AND OLD.status = 'active' THEN
-    RETURN NEW;
+  -- OLD is only assigned on UPDATE: keep the OLD.* reads nested inside the
+  -- TG_OP guard instead of folding them into one boolean expression, so the
+  -- INSERT path never references OLD (Postgres does not guarantee AND
+  -- short-circuit evaluation order for that purpose).
+  IF TG_OP = 'UPDATE' THEN
+    IF OLD.plan IN ('premium', 'repremium')
+       AND OLD.status = 'active' THEN
+      RETURN NEW;
+    END IF;
   END IF;
 
   PERFORM net.http_post(
