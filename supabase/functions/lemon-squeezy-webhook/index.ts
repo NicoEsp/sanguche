@@ -324,7 +324,7 @@ serve(async (req) => {
         if (planConfig?.purchaseType === 'one_time') {
           console.log('[Webhook] One-time purchase detected, activating plan:', planConfig.plan);
           
-          await supabase
+          const { error: oneTimeError } = await supabase
             .from('user_subscriptions')
             .upsert({
               user_id: userId,
@@ -338,11 +338,14 @@ serve(async (req) => {
               // No current_period_end for one-time purchases (permanent access)
               current_period_end: null,
               updated_at: new Date().toISOString(),
-            }, { 
+            }, {
               onConflict: 'user_id',
-              ignoreDuplicates: false 
+              ignoreDuplicates: false
             });
-            
+          if (oneTimeError) {
+            throw new Error(`Failed to upsert one-time purchase: ${oneTimeError.message}`);
+          }
+
           console.log('[Webhook] One-time purchase activated successfully');
         } else {
           // For subscriptions, record the order with paid_amount and set plan proactively
@@ -350,7 +353,7 @@ serve(async (req) => {
           const subPlan = planConfig?.plan || 'premium';
           console.log('[Webhook] Subscription order - setting plan proactively:', subPlan);
           
-          await supabase
+          const { error: subOrderError } = await supabase
             .from('user_subscriptions')
             .upsert({
               user_id: userId,
@@ -362,10 +365,13 @@ serve(async (req) => {
               lemon_squeezy_variant_id: variantId,
               paid_amount: orderTotal || null,
               updated_at: new Date().toISOString(),
-            }, { 
+            }, {
               onConflict: 'user_id',
-              ignoreDuplicates: false 
+              ignoreDuplicates: false
             });
+          if (subOrderError) {
+            throw new Error(`Failed to upsert subscription order: ${subOrderError.message}`);
+          }
         }
 
         // Server-side checkout completed tracking (captures 100% of conversions)
@@ -427,7 +433,7 @@ serve(async (req) => {
           }
         }
 
-        await supabase
+        const { error: subCreatedError } = await supabase
           .from('user_subscriptions')
           .upsert({
             user_id: userId,
@@ -437,17 +443,20 @@ serve(async (req) => {
             lemon_squeezy_subscription_id: subscriptionId,
             lemon_squeezy_customer_id: customerId,
             lemon_squeezy_variant_id: variantId,
-            current_period_end: renews_at 
+            current_period_end: renews_at
               ? new Date(renews_at).toISOString()
               : null,
             trial_end: trial_ends_at
               ? new Date(trial_ends_at).toISOString()
               : null,
             updated_at: new Date().toISOString(),
-          }, { 
+          }, {
             onConflict: 'user_id',
-            ignoreDuplicates: false 
+            ignoreDuplicates: false
           });
+        if (subCreatedError) {
+          throw new Error(`Failed to upsert subscription_created: ${subCreatedError.message}`);
+        }
         break;
 
       case 'subscription_updated':
@@ -472,7 +481,7 @@ serve(async (req) => {
         
         console.log(`[Webhook] Mapped LS status "${status}" -> DB status "${mappedStatus}"`);
         
-        await supabase
+        const { error: subUpdatedError } = await supabase
           .from('user_subscriptions')
           .update({
             status: mappedStatus,
@@ -482,23 +491,29 @@ serve(async (req) => {
             updated_at: new Date().toISOString(),
           })
           .eq('lemon_squeezy_subscription_id', subscriptionId);
+        if (subUpdatedError) {
+          throw new Error(`Failed to update subscription_updated: ${subUpdatedError.message}`);
+        }
         break;
 
       case 'subscription_cancelled':
       case 'subscription_expired':
         console.log(`[Webhook] Processing ${eventName} - Subscription ID: ${subscriptionId}`);
-        await supabase
+        const { error: subCancelledError } = await supabase
           .from('user_subscriptions')
           .update({
             status: 'cancelled',
             updated_at: new Date().toISOString(),
           })
           .eq('lemon_squeezy_subscription_id', subscriptionId);
+        if (subCancelledError) {
+          throw new Error(`Failed to update ${eventName}: ${subCancelledError.message}`);
+        }
         break;
 
       case 'subscription_payment_success':
         console.log(`[Webhook] Processing subscription_payment_success - Subscription ID: ${subscriptionId}`);
-        await supabase
+        const { error: paymentSuccessError } = await supabase
           .from('user_subscriptions')
           .update({
             status: 'active',
@@ -508,6 +523,9 @@ serve(async (req) => {
             updated_at: new Date().toISOString(),
           })
           .eq('lemon_squeezy_subscription_id', subscriptionId);
+        if (paymentSuccessError) {
+          throw new Error(`Failed to update subscription_payment_success: ${paymentSuccessError.message}`);
+        }
         break;
 
       default:
