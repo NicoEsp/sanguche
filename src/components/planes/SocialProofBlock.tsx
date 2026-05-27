@@ -26,6 +26,13 @@ const TESTIMONIALS: Testimonial[] = [
     initials: "NM",
     linkedinUrl: "https://www.linkedin.com/in/natalimendoza/",
   },
+  {
+    quote:
+      "ProductPrepa no es la luz al final del camino, es la luz durante cada paso. Nico es una persona dedicada, cálida y elocuente que te ayuda a trabajar tus puntos débiles y a confiar en tus fortalezas (o incluso a descubrirlas). Me ayudó a enfocarme mientras busco una nueva posición laboral, y el acompañamiento durante el proceso es clave (la catarsis también).",
+    name: "Natalia Giordano",
+    initials: "NG",
+    linkedinUrl: "https://www.linkedin.com/in/natalia-buffa-giordano/",
+  },
 ];
 
 export function SocialProofBlock() {
@@ -60,7 +67,7 @@ export function SocialProofBlock() {
         <h3 className="text-lg font-semibold text-center text-muted-foreground mb-6">
           Lo que dicen quienes ya están creciendo con ProductPrepa
         </h3>
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           {TESTIMONIALS.map((t) => (
             <Card key={t.name} className="bg-muted/30 border-muted">
               <CardContent className="pt-6 pb-5 px-5 flex flex-col gap-4 h-full">
