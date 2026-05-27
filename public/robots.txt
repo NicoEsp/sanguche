@@ -145,4 +145,4 @@ Disallow: /mentoria
 Disallow: /welcome
 Disallow: /premium
 
-Sitemap: https://lgscevufwnetegglgpnw.supabase.co/functions/v1/sitemap
+Sitemap: https://productprepa.com/sitemap.xml
