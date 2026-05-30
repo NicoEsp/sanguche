@@ -58,6 +58,12 @@ export const OBJECTIVE_TYPE_OPTIONS = [
   "Hito",
 ] as const;
 
+export const OTHER_TYPE_SENTINEL = "__other__";
+export const CUSTOM_TYPE_MAX_LENGTH = 30;
+
+export const isPresetObjectiveType = (value: string) =>
+  (OBJECTIVE_TYPE_OPTIONS as readonly string[]).includes(value);
+
 export const initialCustomState: AddCustomObjectiveState = {
   title: "",
   summary: "",

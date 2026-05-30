@@ -21,8 +21,11 @@ import { es } from "date-fns/locale";
 import type { CanvasStage } from "@/types/progress";
 import {
   type AddCustomObjectiveState,
+  CUSTOM_TYPE_MAX_LENGTH,
+  isPresetObjectiveType,
   MAX_CUSTOM_OBJECTIVES,
   OBJECTIVE_TYPE_OPTIONS,
+  OTHER_TYPE_SENTINEL,
 } from "./shared";
 
 interface AddCustomObjectiveDialogProps {
@@ -54,6 +57,20 @@ export function AddCustomObjectiveDialog({
   );
 
   const disabled = limitReached || isMapLocked;
+  const isCustomType = !isPresetObjectiveType(state.type);
+  const selectValue = isCustomType ? OTHER_TYPE_SENTINEL : state.type;
+  const handleTypeSelectChange = useCallback(
+    (value: string) => {
+      if (value === OTHER_TYPE_SENTINEL) {
+        setField("type", "");
+        return;
+      }
+      setField("type", value);
+    },
+    [setField]
+  );
+  const trimmedType = state.type.trim();
+  const canSubmit = state.title.trim().length > 0 && trimmedType.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -116,7 +133,7 @@ export function AddCustomObjectiveDialog({
           <div className="grid md:grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label>Tipo</Label>
-              <Select value={state.type} onValueChange={(value) => setField("type", value)}>
+              <Select value={selectValue} onValueChange={handleTypeSelectChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -126,8 +143,18 @@ export function AddCustomObjectiveDialog({
                       {option}
                     </SelectItem>
                   ))}
+                  <SelectItem value={OTHER_TYPE_SENTINEL}>Otro…</SelectItem>
                 </SelectContent>
               </Select>
+              {isCustomType && (
+                <Input
+                  value={state.type}
+                  onChange={(event) => setField("type", event.target.value)}
+                  maxLength={CUSTOM_TYPE_MAX_LENGTH}
+                  placeholder="Ej: Networking, Side project…"
+                  autoFocus
+                />
+              )}
             </div>
             <div className="grid gap-2">
               <Label>Horizonte temporal</Label>
@@ -196,7 +223,7 @@ export function AddCustomObjectiveDialog({
               className="min-h-[120px]"
             />
           </div>
-          <Button className="w-full" onClick={onSubmit} disabled={!state.title.trim()}>
+          <Button className="w-full" onClick={onSubmit} disabled={!canSubmit}>
             Guardar objetivo
           </Button>
         </div>

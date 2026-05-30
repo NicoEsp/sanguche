@@ -332,7 +332,14 @@ export default function Progress() {
   }, []);
 
   const addCustomObjective = useCallback(() => {
-    if (customObjectiveLimitReached || !customState.title.trim() || !profileId || isMapLocked) {
+    const trimmedType = customState.type.trim();
+    if (
+      customObjectiveLimitReached ||
+      !customState.title.trim() ||
+      !trimmedType ||
+      !profileId ||
+      isMapLocked
+    ) {
       return;
     }
 
@@ -350,7 +357,7 @@ export default function Progress() {
       userId: profileId,
       title: customState.title,
       summary: customState.summary,
-      type: customState.type,
+      type: trimmedType,
       timeframe: customState.timeframe,
       steps,
       dueDate: customState.dueDate
