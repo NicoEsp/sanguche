@@ -11,22 +11,6 @@ export function getUsersThisMonth<T extends DateRecord>(users: T[]): number {
   }).length;
 }
 
-export function getUsersThisWeek<T extends DateRecord>(users: T[]): number {
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 7);
-  return users.filter(u => new Date(u.created_at) >= weekAgo).length;
-}
-
-export function getUsersToday<T extends DateRecord>(users: T[]): number {
-  const today = new Date().toDateString();
-  return users.filter(u => new Date(u.created_at).toDateString() === today).length;
-}
-
-export function getDaysInCurrentMonth(): number {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-}
-
 // Get the start (Monday) and end (Sunday) of last week
 export function getLastWeekRange(): { start: Date; end: Date } {
   const now = new Date();
@@ -50,7 +34,7 @@ export function getLastWeekRange(): { start: Date; end: Date } {
 }
 
 // Get start of current week (Monday)
-export function getThisWeekStart(): Date {
+function getThisWeekStart(): Date {
   const now = new Date();
   const dayOfWeek = now.getDay();
   const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
