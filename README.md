@@ -33,7 +33,7 @@ VITE_SUPABASE_URL=""
 
 ## 🏗️ Estructura del proyecto
 
-```
+```text
 src/
 ├── pages/                  # Páginas (usuario y admin)
 │   └── admin/              # Panel de administración (14 páginas)

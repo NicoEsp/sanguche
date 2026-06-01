@@ -59,6 +59,7 @@ export function useAdminUsers(): AdminUsersHook {
 
       if (!profiles?.length) {
         setUsers([]);
+        setAssessments([]);
         if (!silent && !isInitialLoad) {
           toast.success('Datos actualizados correctamente');
         }

@@ -28,7 +28,14 @@ export function WeeklyReportCard({ users, assessments, refreshing, onRefresh }: 
             <CardTitle className="text-lg">Reporte Semana Anterior</CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={onRefresh} disabled={refreshing}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRefresh}
+              disabled={refreshing}
+              aria-label={refreshing ? 'Actualizando reporte semanal' : 'Actualizar reporte semanal'}
+              title="Actualizar reporte semanal"
+            >
               <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
             </Button>
             <Badge variant="outline" className="text-xs">

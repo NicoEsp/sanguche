@@ -28,6 +28,7 @@ export function UsersFiltersCard({
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
+                aria-label="Buscar usuarios"
                 placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
@@ -36,7 +37,7 @@ export function UsersFiltersCard({
             </div>
           </div>
           <Select value={planFilter} onValueChange={onPlanFilterChange}>
-            <SelectTrigger className="w-full sm:w-48">
+            <SelectTrigger aria-label="Filtrar por plan" className="w-full sm:w-48">
               <SelectValue placeholder="Filtrar por plan" />
             </SelectTrigger>
             <SelectContent>

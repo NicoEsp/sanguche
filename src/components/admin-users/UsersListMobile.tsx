@@ -113,6 +113,8 @@ export function UsersListMobile({
               onClick={() =>
                 onDelete({ id: user.id, name: user.name, email: user.email ?? null })
               }
+              aria-label={`Eliminar usuario ${user.name ?? user.email ?? ''}`.trim()}
+              title="Eliminar usuario"
               className="text-xs h-8"
             >
               <Trash2 className="w-3 h-3" />

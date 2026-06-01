@@ -20,7 +20,7 @@ interface DeleteUserDialogProps {
 
 export function DeleteUserDialog({ target, deleting, onConfirm, onClose }: DeleteUserDialogProps) {
   return (
-    <AlertDialog open={!!target} onOpenChange={(open) => !open && onClose()}>
+    <AlertDialog open={!!target} onOpenChange={(open) => !open && !deleting && onClose()}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>¿Eliminar usuario permanentemente?</AlertDialogTitle>
@@ -33,7 +33,10 @@ export function DeleteUserDialog({ target, deleting, onConfirm, onClose }: Delet
         <AlertDialogFooter>
           <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
-            onClick={onConfirm}
+            onClick={(event) => {
+              event.preventDefault();
+              onConfirm();
+            }}
             disabled={deleting}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
