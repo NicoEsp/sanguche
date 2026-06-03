@@ -36,18 +36,6 @@ export function isPremiumFeature(feature: Feature): boolean {
   return PREMIUM_FEATURES.includes(feature);
 }
 
-export function isMentoriaContentAvailable(
-  hasSubscription: boolean = false, 
-  mentoriaCompleted: boolean = false,
-  isAdmin: boolean = false
-): boolean {
-  if (isAdmin) {
-    return true;
-  }
-  
-  return hasSubscription;
-}
-
 export function isMentoriaAdvancedContentAvailable(
   hasSubscription: boolean = false, 
   mentoriaCompleted: boolean = false,
