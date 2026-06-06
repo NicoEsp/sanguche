@@ -306,8 +306,18 @@ serve(async (req) => {
 
     const checkoutUrl = checkoutSession?.data?.attributes?.url;
     if (!checkoutUrl) {
+      // Log only the response shape (no values) to diagnose without leaking
+      // customer PII (checkoutSession.data.attributes contains checkout_data.email
+      // and a redirect_url with email in the query string).
+      const shape = {
+        topLevelKeys: Object.keys(checkoutSession ?? {}),
+        dataKeys: Object.keys(checkoutSession?.data ?? {}),
+        attributeKeys: Object.keys(checkoutSession?.data?.attributes ?? {}),
+        dataType: checkoutSession?.data?.type ?? null,
+        dataId: checkoutSession?.data?.id ?? null,
+      };
       console.error('[Lemon Squeezy API Error] Response 200 but missing data.attributes.url');
-      console.error('[Lemon Squeezy API Error] Response shape:', JSON.stringify(checkoutSession));
+      console.error('[Lemon Squeezy API Error] Response shape:', JSON.stringify(shape));
       return new Response(
         JSON.stringify({ error: 'No pudimos procesar tu solicitud de pago. Intenta nuevamente en unos minutos.' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
