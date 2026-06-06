@@ -304,8 +304,18 @@ serve(async (req) => {
     console.log('[Lemon Squeezy API Success] Session ID:', checkoutSession.data?.id);
     console.log('[Lemon Squeezy API Success] Checkout URL generated for:', maskEmail(checkoutEmail));
 
+    const checkoutUrl = checkoutSession?.data?.attributes?.url;
+    if (!checkoutUrl) {
+      console.error('[Lemon Squeezy API Error] Response 200 but missing data.attributes.url');
+      console.error('[Lemon Squeezy API Error] Response shape:', JSON.stringify(checkoutSession));
+      return new Response(
+        JSON.stringify({ error: 'No pudimos procesar tu solicitud de pago. Intenta nuevamente en unos minutos.' }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
-      JSON.stringify({ checkoutUrl: checkoutSession.data.attributes.url }),
+      JSON.stringify({ checkoutUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
