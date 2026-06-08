@@ -126,7 +126,7 @@ export default function GraciasB2B() {
                 <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
                   <Compass className="w-5 h-5 text-indigo-200" />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white mb-1">¿Llegaste por curiosidad?</p>
                   <p className="text-xs text-indigo-100/70 mb-3 leading-relaxed">
                     Si todavía no conocés ProductPrepa, podés empezar por una autoevaluación gratuita de tu perfil PM. En 10 minutos sabés en qué áreas trabajar.
@@ -135,10 +135,10 @@ export default function GraciasB2B() {
                     onClick={handleAssessmentClick}
                     variant="outline"
                     size="sm"
-                    className="bg-transparent border-indigo-300/50 text-indigo-100 hover:bg-indigo-500/20 hover:text-white hover:border-indigo-300/80"
+                    className="w-full h-auto whitespace-normal text-left bg-transparent border-indigo-300/50 text-indigo-100 hover:bg-indigo-500/20 hover:text-white hover:border-indigo-300/80"
                   >
                     Hacer mi autoevaluación gratuita
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-4 h-4 ml-2 flex-shrink-0" />
                   </Button>
                 </div>
               </div>
