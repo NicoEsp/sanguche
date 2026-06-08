@@ -6,7 +6,7 @@ interface UseSubscriptionOptions {
   skip?: boolean;
 }
 
-export type SubscriptionPlan = 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'productprepa_business';
+export type SubscriptionPlan = 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'productprepa_business' | 'productastic_review';
 
 // OPTIMIZED: Removed duplicate realtime subscription - AuthContext handles all realtime updates
 export function useSubscription(options?: UseSubscriptionOptions) {
@@ -134,7 +134,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       : (hasAccess && plan === 'cursos_all'),
     hasAnyPaidPlan: isStillLoading
       ? undefined
-      : (hasAccess && ['premium', 'repremium', 'curso_estrategia', 'cursos_all', 'productprepa_business'].includes(plan || '')),
+      : (hasAccess && ['premium', 'repremium', 'curso_estrategia', 'cursos_all', 'productprepa_business', 'productastic_review'].includes(plan || '')),
     isTrialing: subscription?.trialEnd ? new Date() < subscription.trialEnd : false,
     isOneTimePurchase: subscription?.isOneTimePurchase ?? false,
   };

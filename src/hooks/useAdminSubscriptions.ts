@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface SubscriptionWithProfile {
   id: string;
   user_id: string;
-  plan: 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'productprepa_business';
+  plan: 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'productprepa_business' | 'productastic_review';
   status: 'active' | 'inactive' | 'cancelled';
   lemon_squeezy_subscription_id: string | null;
   lemon_squeezy_customer_id: string | null;
@@ -39,7 +39,7 @@ export interface WebhookLog {
 }
 
 export interface SubscriptionFilters {
-  plan?: 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'productprepa_business' | 'all';
+  plan?: 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'productprepa_business' | 'productastic_review' | 'all';
   status?: 'active' | 'inactive' | 'cancelled' | 'all';
   search?: string;
   comped?: 'all' | 'paid' | 'comped';
@@ -151,6 +151,7 @@ export function useSubscriptionStats() {
       const cursoEstrategiaCount = data.filter(s => s.plan === 'curso_estrategia' && s.status === 'active').length;
       const cursosAllCount = data.filter(s => s.plan === 'cursos_all' && s.status === 'active').length;
       const productprepaBusinessCount = data.filter(s => s.plan === 'productprepa_business' && s.status === 'active').length;
+      const productasticReviewCount = data.filter(s => s.plan === 'productastic_review' && s.status === 'active').length;
 
       const free = data.filter(s => s.plan === 'free').length;
       const withLemonSqueezy = data.filter(s => s.lemon_squeezy_subscription_id).length;
@@ -165,6 +166,7 @@ export function useSubscriptionStats() {
         cursoEstrategiaCount,
         cursosAllCount,
         productprepaBusinessCount,
+        productasticReviewCount,
         free,
         withLemonSqueezy,
         conversionRate,

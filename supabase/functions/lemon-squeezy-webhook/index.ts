@@ -15,7 +15,9 @@ const VARIANT_TO_PLAN: Record<string, { plan: string; purchaseType: 'subscriptio
   '1170898': { plan: 'repremium', purchaseType: 'subscription' },
   '1170897': { plan: 'curso_estrategia', purchaseType: 'one_time' },
   '1170900': { plan: 'cursos_all', purchaseType: 'one_time' },
-  '1037226': { plan: 'productprepa_business', purchaseType: 'one_time' },
+  '1037226': { plan: 'productprepa_business', purchaseType: 'one_time' }, // legacy B2B variant (mantener por backward compat)
+  '1626770': { plan: 'productprepa_business', purchaseType: 'one_time' }, // ProductPrepa for B2B (hosted checkout actual)
+  '1467096': { plan: 'productastic_review', purchaseType: 'one_time' }, // Productastic Review (hosted checkout)
 };
 
 // Plans whose variant IDs are not registered in VARIANT_TO_PLAN (e.g. hosted

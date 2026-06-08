@@ -8,6 +8,7 @@ const FALLBACK_PRICES = {
   curso_estrategia: { amount: 4900000 }, // $49,000 ARS (one-time)
   cursos_all: { amount: 7500000 },   // $75,000 ARS (one-time)
   productprepa_business: { amount: 0 }, // one-time, real price comes from LemonSqueezy
+  productastic_review: { amount: 0 }, // one-time, real price comes from LemonSqueezy
 };
 
 // Plans that contribute to MRR (recurrent subscriptions)
@@ -59,6 +60,7 @@ interface AdminAnalytics {
     curso_estrategia: { paid: number };
     cursos_all: { paid: number };
     productprepa_business: { paid: number };
+    productastic_review: { paid: number };
   };
   pricingSource: 'lemonsqueezy' | 'fallback' | 'real';
 }
@@ -142,6 +144,7 @@ export function useAdminAnalytics() {
         curso_estrategia: { paid: 0 },
         cursos_all: { paid: 0 },
         productprepa_business: { paid: 0 },
+        productastic_review: { paid: 0 },
       };
 
       let totalMrr = 0;
@@ -203,6 +206,12 @@ export function useAdminAnalytics() {
               subscriptionsByPlan.productprepa_business.paid++;
             }
             break;
+          case 'productastic_review':
+            // One-time purchase, no MRR contribution
+            if (!isComped) {
+              subscriptionsByPlan.productastic_review.paid++;
+            }
+            break;
         }
       });
 
@@ -211,7 +220,8 @@ export function useAdminAnalytics() {
                           subscriptionsByPlan.repremium.paid + subscriptionsByPlan.repremium.comped +
                           subscriptionsByPlan.curso_estrategia.paid +
                           subscriptionsByPlan.cursos_all.paid +
-                          subscriptionsByPlan.productprepa_business.paid;
+                          subscriptionsByPlan.productprepa_business.paid +
+                          subscriptionsByPlan.productastic_review.paid;
       
       // Premium paid = only recurrent paying subscribers (for conversion metrics)
       const premiumPaidUsers = subscriptionsByPlan.premium.paid + subscriptionsByPlan.repremium.paid;
