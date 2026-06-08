@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,11 @@ export default function GraciasReview() {
   const navigate = useNavigate();
   const { trackEvent } = useMixpanelTracking();
   const { isAuthenticated } = useAuth();
+  const hasTrackedRef = useRef(false);
 
   useEffect(() => {
+    if (hasTrackedRef.current) return;
+    hasTrackedRef.current = true;
     trackEvent("checkout_completed", {
       plan: "productastic_review",
       provider: "lemon_squeezy",

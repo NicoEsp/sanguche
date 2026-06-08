@@ -41,19 +41,17 @@ export function DirectCheckoutButton({
       resolvedEmail = result.data;
     }
 
-    trackEvent("checkout_started", {
-      plan,
-      provider: "lemon_squeezy",
-      checkout_mode: "direct_hosted",
-      is_anonymous: !user,
-    });
-
     const url = buildDirectCheckoutUrl(plan, {
       email: resolvedEmail || undefined,
       origin: window.location.origin,
     });
 
-    trackEvent("checkout_redirect", {
+    // En el flow `direct_hosted` la URL se arma sincrónicamente, así que
+    // un único evento (`checkout_started`) describe tanto la intención
+    // como el redirect. No emitimos `checkout_redirect` extra porque sería
+    // un duplicado sin información nueva (a diferencia del flow vía edge
+    // function, donde hay un await en el medio que puede fallar).
+    trackEvent("checkout_started", {
       plan,
       provider: "lemon_squeezy",
       checkout_mode: "direct_hosted",
