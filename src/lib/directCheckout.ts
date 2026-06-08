@@ -1,8 +1,16 @@
 // Checkouts directos de LemonSqueezy (hosted URLs).
 // A diferencia de los planes premium/repremium/cursos, estos productos no pasan
 // por la edge function `lemon-squeezy-checkout`: el front redirige directo al
-// checkout hosteado y configuramos un `success_url` para que el usuario vuelva
-// a una página interna con instrucciones de próximos pasos.
+// checkout hosteado.
+//
+// IMPORTANTE — Redirect post-pago:
+// El parámetro `checkout[success_url]` que se agrega abajo NO está documentado
+// para los hosted `/checkout/buy/...` URLs (sólo se usa cuando se crea el
+// checkout vía API con `product_options.redirect_url`). LemonSqueezy puede
+// ignorarlo y dejar al usuario en la pantalla por defecto de "My Orders".
+// El redirect REAL al `successPath` tiene que estar configurado en el panel
+// de LemonSqueezy → Products → cada producto → "Confirmation" / "Redirect URL".
+// Dejamos el query param igual como capa extra por si LS lo respeta.
 
 export type DirectCheckoutKey = 'productastic_review' | 'productprepa_business';
 

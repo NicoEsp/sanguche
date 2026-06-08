@@ -18,6 +18,17 @@ const VARIANT_TO_PLAN: Record<string, { plan: string; purchaseType: 'subscriptio
   '1037226': { plan: 'productprepa_business', purchaseType: 'one_time' },
 };
 
+// Plans whose variant IDs are not registered in VARIANT_TO_PLAN (e.g. hosted
+// `/checkout/buy/...` URLs configured directly in LemonSqueezy). For these we
+// trust `meta.custom_data.plan` because the checkout URL itself sets the value.
+// IMPORTANT: this whitelist intentionally excludes subscription plans
+// (premium/repremium). Subscription plans must be identified strictly by
+// variant_id to prevent privilege escalation via tampered custom_data.
+const CUSTOM_DATA_PLAN_FALLBACK: Record<string, { plan: string; purchaseType: 'one_time' }> = {
+  productastic_review: { plan: 'productastic_review', purchaseType: 'one_time' },
+  productprepa_business: { plan: 'productprepa_business', purchaseType: 'one_time' },
+};
+
 interface LemonSqueezyWebhookEvent {
   meta: {
     event_name: string;
@@ -250,6 +261,17 @@ serve(async (req) => {
     variantId = extractVariantId(event!);
     planConfig = variantId ? VARIANT_TO_PLAN[variantId] : null;
 
+    // Fallback for products whose variant is not in VARIANT_TO_PLAN:
+    // trust meta.custom_data.plan only if it's in the safe whitelist
+    // (one-time plans only, never subscriptions).
+    if (!planConfig) {
+      const customPlan = event!.meta?.custom_data?.plan;
+      if (customPlan && CUSTOM_DATA_PLAN_FALLBACK[customPlan]) {
+        planConfig = CUSTOM_DATA_PLAN_FALLBACK[customPlan];
+        console.log(`[Webhook] Resolved plan via custom_data fallback: ${planConfig.plan} (variant ${variantId} not in VARIANT_TO_PLAN)`);
+      }
+    }
+
     // Get user email from webhook event
     userEmail = event!.data.attributes.user_email || event!.data.attributes.customer_email || null;
 
@@ -347,12 +369,12 @@ serve(async (req) => {
           }
 
           console.log('[Webhook] One-time purchase activated successfully');
-        } else {
+        } else if (planConfig?.purchaseType === 'subscription') {
           // For subscriptions, record the order with paid_amount and set plan proactively
           // This ensures the user has access even if subscription_created webhook is delayed
-          const subPlan = planConfig?.plan || 'premium';
+          const subPlan = planConfig.plan;
           console.log('[Webhook] Subscription order - setting plan proactively:', subPlan);
-          
+
           const { error: subOrderError } = await supabase
             .from('user_subscriptions')
             .upsert({
@@ -372,6 +394,13 @@ serve(async (req) => {
           if (subOrderError) {
             throw new Error(`Failed to upsert subscription order: ${subOrderError.message}`);
           }
+        } else {
+          // Unknown variant and no safe custom_data fallback: do NOT grant any
+          // plan. Record the event for debugging but skip the upsert to avoid
+          // accidentally elevating the buyer to Premium.
+          console.error(
+            `[Webhook] order_created with unmapped variant ${variantId} and no custom_data plan match — skipping subscription upsert.`
+          );
         }
 
         // Server-side checkout completed tracking (captures 100% of conversions)
