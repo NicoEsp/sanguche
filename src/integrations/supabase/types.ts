@@ -1490,6 +1490,7 @@ export type Database = {
         | "curso_estrategia"
         | "cursos_all"
         | "productprepa_business"
+        | "productastic_review"
       subscription_status: "active" | "inactive" | "cancelled"
     }
     CompositeTypes: {
@@ -1630,6 +1631,7 @@ export const Constants = {
         "curso_estrategia",
         "cursos_all",
         "productprepa_business",
+        "productastic_review",
       ],
       subscription_status: ["active", "inactive", "cancelled"],
     },

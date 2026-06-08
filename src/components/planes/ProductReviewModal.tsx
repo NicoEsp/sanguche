@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Search } from "lucide-react";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
-import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
+import { DirectCheckoutButton } from "@/components/planes/DirectCheckoutButton";
 
 interface ProductReviewModalProps {
   open: boolean;
@@ -98,9 +98,10 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
           </div>
 
           {/* Checkout CTA */}
-          <LemonSqueezyCheckout
+          <DirectCheckoutButton
             plan="productastic_review"
             buttonText="Solicitar mi review · USD 50"
+            emailLabel="Email para recibir el informe"
             className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold shadow-lg shadow-emerald-900/30 border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-emerald-500/20 hover:shadow-xl"
           />
         </div>

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Crown, X, ArrowRight, AlertTriangle, Search } from "lucide-react";
+import { Check, Star, Crown, X, ArrowRight, AlertTriangle, Search, Building2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -17,6 +17,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { ProductReviewModal } from "@/components/planes/ProductReviewModal";
+import { B2BModal } from "@/components/planes/B2BModal";
 import { SocialProofBlock } from "@/components/planes/SocialProofBlock";
 
 interface PlanCardProps {
@@ -224,6 +225,7 @@ export default function Planes() {
   );
 
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [b2bModalOpen, setB2bModalOpen] = useState(false);
   const personalizationTracked = useRef(false);
   const maxScrollDepth = useRef(0);
   const lastHoveredPlan = useRef<string | null>(null);
@@ -701,7 +703,80 @@ export default function Planes() {
                         setReviewModalOpen(true);
                       }}
                     >
-                      Quiero saber más
+                      Ver detalle y comprar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* ProductPrepa for B2B - Empresas */}
+        <section className="px-4 pb-16">
+          <div className="max-w-lg mx-auto">
+            <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">¿Trabajás en una empresa con equipo de Producto?</h3>
+            <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">
+              Capacitá a todo el equipo con un programa hecho a medida del contexto de tu compañía
+            </p>
+
+            <div className="relative group pt-4">
+              <div className="absolute -top-0 left-1/2 transform -translate-x-1/2 z-10">
+                <Badge className="px-4 py-1.5 shadow-lg shadow-indigo-900/30 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-400 hover:to-blue-400 text-white font-semibold tracking-wide border-0 text-xs uppercase">
+                  Para equipos
+                </Badge>
+              </div>
+
+              <div className="absolute -inset-1 top-3 bg-gradient-to-r from-indigo-500/20 via-blue-500/15 to-indigo-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-60 group-hover:opacity-100 pointer-events-none" />
+
+              <Card className="relative flex flex-col overflow-hidden border-indigo-500/30 bg-gradient-to-br from-indigo-950/90 via-indigo-900/80 to-blue-950/90 text-white shadow-2xl shadow-indigo-900/20 rounded-2xl">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-400 via-blue-300 to-indigo-500 pointer-events-none" />
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+
+                <CardHeader className="relative z-10 text-center pb-2 pt-8">
+                  <div className="mx-auto mb-4 w-14 h-14 rounded-xl bg-indigo-500/10 backdrop-blur-sm border border-indigo-500/20 flex items-center justify-center">
+                    <Building2 className="w-7 h-7 text-indigo-300" />
+                  </div>
+
+                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white via-indigo-100 to-blue-200 bg-clip-text text-transparent">
+                    ProductPrepa for B2B
+                  </CardTitle>
+
+                  <CardDescription className="text-indigo-100/70 mt-2 text-sm leading-relaxed max-w-sm mx-auto shadow-none font-bold">
+                    Programa de capacitación a medida para equipos de Producto.<br />
+                    Diagnóstico inicial, plan de trabajo y sesiones grupales en vivo, adaptado al contexto de tu empresa.
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="relative z-10 flex-1 flex flex-col px-8 pb-8">
+                  <div className="w-full h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent my-4" />
+
+                  <ul className="space-y-3 flex-1">
+                    {[
+                      { text: "Diagnóstico inicial del equipo y áreas de mejora", highlight: true },
+                      { text: "Plan de capacitación a medida (estrategia, discovery, ejecución)", highlight: true },
+                      { text: "Sesiones grupales en vivo con el equipo", highlight: false },
+                      { text: "Acceso de todo el equipo a los cursos", highlight: false },
+                      { text: "Reportes de avance al líder del área", highlight: false },
+                    ].map((feature, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${feature.highlight ? 'bg-indigo-500/20 ring-1 ring-indigo-500/30' : 'bg-white/5'}`}>
+                          <Check className={`w-3 h-3 ${feature.highlight ? 'text-indigo-300' : 'text-indigo-400/60'}`} />
+                        </div>
+                        <span className={`text-sm ${feature.highlight ? 'text-white font-medium' : 'text-indigo-100/70'}`}>{feature.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="mt-8">
+                    <Button
+                      className="w-full h-12 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-400 hover:to-blue-400 text-white font-semibold shadow-lg shadow-indigo-900/30 border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-indigo-500/20 hover:shadow-xl"
+                      onClick={() => {
+                        trackEvent('productprepa_business_interest_clicked');
+                        setB2bModalOpen(true);
+                      }}
+                    >
+                      Ver detalle y reservar cupo
                     </Button>
                   </div>
                 </CardContent>
@@ -711,6 +786,7 @@ export default function Planes() {
         </section>
 
         <ProductReviewModal open={reviewModalOpen} onOpenChange={setReviewModalOpen} />
+        <B2BModal open={b2bModalOpen} onOpenChange={setB2bModalOpen} />
 
         {/* FAQ Section */}
         <section className="py-12 px-4 bg-muted/30">
