@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Building2, Mail, Calendar, ArrowRight } from "lucide-react";
+import { CheckCircle2, Building2, Mail, Calendar, ArrowRight, Compass } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +24,13 @@ export default function GraciasB2B() {
       is_authenticated: isAuthenticated,
     });
   }, [trackEvent, isAuthenticated]);
+
+  const handleAssessmentClick = () => {
+    trackEvent("gracias_b2b_assessment_cta_clicked", {
+      is_authenticated: isAuthenticated,
+    });
+    navigate(isAuthenticated ? "/autoevaluacion" : "/auth");
+  };
 
   const contactEmail = "nicoproducto@hey.com";
 
@@ -107,11 +114,34 @@ export default function GraciasB2B() {
                 onClick={() => navigate(isAuthenticated ? "/" : "/auth")}
                 variant="outline"
                 size="lg"
-                className="w-full border-indigo-500/30 text-indigo-100 hover:bg-indigo-500/10 hover:text-white"
+                className="w-full bg-transparent border-indigo-500/40 text-indigo-100 hover:bg-indigo-500/15 hover:text-white hover:border-indigo-400/60"
               >
                 {isAuthenticated ? "Volver al inicio" : "Crear cuenta / iniciar sesión"}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
+            </div>
+
+            <div className="rounded-xl border border-indigo-300/20 bg-gradient-to-br from-indigo-500/10 to-blue-500/5 p-4 mt-2">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
+                  <Compass className="w-5 h-5 text-indigo-200" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white mb-1">¿Llegaste por curiosidad?</p>
+                  <p className="text-xs text-indigo-100/70 mb-3 leading-relaxed">
+                    Si todavía no conocés ProductPrepa, podés empezar por una autoevaluación gratuita de tu perfil PM. En 10 minutos sabés en qué áreas trabajar.
+                  </p>
+                  <Button
+                    onClick={handleAssessmentClick}
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-auto whitespace-normal text-left bg-transparent border-indigo-300/50 text-indigo-100 hover:bg-indigo-500/20 hover:text-white hover:border-indigo-300/80"
+                  >
+                    Hacer mi autoevaluación gratuita
+                    <ArrowRight className="w-4 h-4 ml-2 flex-shrink-0" />
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <p className="text-xs text-center text-indigo-200/60 pt-2 border-t border-indigo-500/10">

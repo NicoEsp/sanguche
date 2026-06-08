@@ -107,7 +107,7 @@ export default function GraciasReview() {
                 onClick={() => navigate(isAuthenticated ? "/" : "/auth")}
                 variant="outline"
                 size="lg"
-                className="w-full border-emerald-500/30 text-emerald-100 hover:bg-emerald-500/10 hover:text-white"
+                className="w-full bg-transparent border-emerald-500/40 text-emerald-100 hover:bg-emerald-500/15 hover:text-white hover:border-emerald-400/60"
               >
                 {isAuthenticated ? "Volver al inicio" : "Crear cuenta / iniciar sesión"}
                 <ArrowRight className="w-4 h-4 ml-2" />
