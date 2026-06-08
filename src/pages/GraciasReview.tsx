@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Search, Mail, ArrowRight, Clock, Eye } from "lucide-react";
+import { CheckCircle2, Search, Mail, ArrowRight, Clock } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,17 +10,11 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function GraciasReview() {
   const navigate = useNavigate();
   const { trackEvent } = useMixpanelTracking();
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated } = useAuth();
   const hasTrackedRef = useRef(false);
 
   useEffect(() => {
     if (hasTrackedRef.current) return;
-    // Si es admin, no emitimos checkout_completed: la página se usa para
-    // previsualizar el contenido y no debería contaminar el funnel.
-    if (isAdmin) {
-      hasTrackedRef.current = true;
-      return;
-    }
     hasTrackedRef.current = true;
     trackEvent("checkout_completed", {
       plan: "productastic_review",
@@ -29,7 +23,7 @@ export default function GraciasReview() {
       source: "gracias_review_page",
       is_authenticated: isAuthenticated,
     });
-  }, [trackEvent, isAuthenticated, isAdmin]);
+  }, [trackEvent, isAuthenticated]);
 
   const reviewEmail = "nicoproducto@hey.com";
 
@@ -58,13 +52,7 @@ export default function GraciasReview() {
         description="Tu pago fue confirmado. Mirá los próximos pasos para arrancar tu Productastic Review."
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 flex flex-col items-center justify-center p-4 text-white gap-3">
-        {isAdmin && (
-          <div className="max-w-2xl w-full flex items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-500/10 px-4 py-2 text-amber-100 text-xs">
-            <Eye className="w-4 h-4" />
-            <span><strong>Vista de admin</strong> · no se trackea checkout_completed en esta visita.</span>
-          </div>
-        )}
+      <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 flex items-center justify-center p-4 text-white">
         <Card className="max-w-2xl w-full bg-gradient-to-br from-emerald-950/80 via-emerald-900/70 to-teal-950/80 border-emerald-500/30 text-white">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 w-16 h-16 bg-emerald-500/15 rounded-full flex items-center justify-center border border-emerald-500/30">
@@ -119,7 +107,7 @@ export default function GraciasReview() {
                 onClick={() => navigate(isAuthenticated ? "/" : "/auth")}
                 variant="outline"
                 size="lg"
-                className="w-full border-emerald-500/30 text-emerald-100 hover:bg-emerald-500/10 hover:text-white"
+                className="w-full bg-transparent border-emerald-500/40 text-emerald-100 hover:bg-emerald-500/15 hover:text-white hover:border-emerald-400/60"
               >
                 {isAuthenticated ? "Volver al inicio" : "Crear cuenta / iniciar sesión"}
                 <ArrowRight className="w-4 h-4 ml-2" />
