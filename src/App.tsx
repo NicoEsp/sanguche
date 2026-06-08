@@ -26,6 +26,8 @@ const CursosInfo = lazy(() => import("./pages/CursosInfo"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Welcome = lazy(() => import("./pages/Welcome"));
+const GraciasReview = lazy(() => import("./pages/GraciasReview"));
+const GraciasB2B = lazy(() => import("./pages/GraciasB2B"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Courses pages
@@ -124,6 +126,8 @@ const App = () => (
                       <Route path="/cursos-info" element={<CursosInfo />} />
                       <Route path="/premium" element={<Navigate to="/planes" replace />} />
                       <Route path="/welcome" element={<Welcome />} />
+                      <Route path="/gracias-review" element={<GraciasReview />} />
+                      <Route path="/gracias-b2b" element={<GraciasB2B />} />
                       <Route path="/preguntas" element={<Descargables />} />
                       <Route path="/descargables" element={<Descargables />} />
                       <Route path="/soy-dev" element={<SoyDev />} />

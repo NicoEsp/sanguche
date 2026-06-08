@@ -8,7 +8,7 @@ import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { EmailCaptureDialog } from "./EmailCaptureDialog";
 import { usePricing } from "@/hooks/usePricing";
 
-export type PlanType = 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'productastic_review';
+export type PlanType = 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all';
 
 interface LemonSqueezyCheckoutProps {
   plan?: PlanType;
@@ -180,8 +180,6 @@ export function LemonSqueezyCheckout({
         return `Comprar Curso`;
       case 'cursos_all':
         return `Comprar Todos los Cursos`;
-      case 'productastic_review':
-        return `Pagar USD 50`;
       default:
         return `Comprar`;
     }
