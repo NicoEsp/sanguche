@@ -92,15 +92,17 @@ export function LemonSqueezyCheckout({
       }
 
       if (data?.checkoutUrl) {
-        trackEvent('checkout_redirect', { 
-          checkout_url: data.checkoutUrl, 
+        trackEvent('checkout_redirect', {
+          checkout_url: data.checkoutUrl,
           provider: 'lemon_squeezy',
           is_anonymous: !user,
           plan
         });
         window.location.href = data.checkoutUrl;
       } else {
-        throw new Error('No checkout URL received');
+        const err = new Error('No checkout URL received');
+        (err as any).responseData = data ?? null;
+        throw err;
       }
 
     } catch (error) {
@@ -126,13 +128,15 @@ export function LemonSqueezyCheckout({
         });
       } else {
         // Track intent fallido con detalles
-        trackEvent('checkout_failed', { 
-          error: errorMessage, 
+        const responseData = (error as any)?.responseData;
+        trackEvent('checkout_failed', {
+          error: errorMessage,
           provider: 'lemon_squeezy',
           is_anonymous: !user,
           error_type: error instanceof Error ? error.name : 'unknown',
           user_email: user?.email || email,
           plan,
+          response_data: responseData !== undefined ? JSON.stringify(responseData) : undefined,
           timestamp: new Date().toISOString()
         });
         
