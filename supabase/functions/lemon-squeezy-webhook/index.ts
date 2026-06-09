@@ -418,12 +418,22 @@ serve(async (req) => {
         break;
 
       case 'subscription_created':
-        console.log(`[Webhook] Processing subscription_created - Plan: ${planConfig?.plan || 'premium'}`);
+        console.log(`[Webhook] Processing subscription_created - Plan: ${planConfig?.plan || 'UNMAPPED'}`);
         const renews_at = event!.data.attributes.renews_at;
         const trial_ends_at = event!.data.attributes.trial_ends_at;
-        
-        // Determine plan from variant or default to premium
-        const subscriptionPlan = planConfig?.plan || 'premium';
+
+        // Refuse to grant any plan if the variant is unmapped or maps to a
+        // one-time purchase. Defaulting to 'premium' previously caused B2B
+        // one-time orders (e.g. variant 1626770 / Firmaway) to be silently
+        // classified as monthly Premium subscriptions, inflating MRR.
+        if (!planConfig || planConfig.purchaseType !== 'subscription') {
+          console.error(
+            `[Webhook] subscription_created with unmapped/non-subscription variant ${variantId} ` +
+            `(planConfig: ${JSON.stringify(planConfig)}) — skipping upsert to avoid misclassification.`
+          );
+          break;
+        }
+        const subscriptionPlan = planConfig.plan;
         console.log('[Webhook] Subscription plan:', subscriptionPlan);
 
         // Auto-cancel previous subscription if upgrading
