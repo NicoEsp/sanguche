@@ -325,25 +325,44 @@ Deno.serve(async (req: Request) => {
 
     if (!resendRes.ok) {
       console.error(`[send-welcome-email] Resend error for ${profile.email}:`, resendBody);
-      await supabase.from("welcome_email_queue").insert({
-        user_id: profile.id,
-        plan: category,
-        email: profile.email,
-        status: "error",
-        error_message: resendBody,
-      });
+      const { error: errorQueueInsertError } = await supabase
+        .from("welcome_email_queue")
+        .insert({
+          user_id: profile.id,
+          plan: category,
+          email: profile.email,
+          status: "error",
+          error_message: resendBody,
+        });
+      if (errorQueueInsertError) {
+        console.error(
+          `[send-welcome-email] Failed to record error row for user=${profile.id} plan=${category}:`,
+          errorQueueInsertError,
+        );
+      }
       return new Response(
         JSON.stringify({ error: "Failed to send", details: resendBody }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    await supabase.from("welcome_email_queue").insert({
-      user_id: profile.id,
-      plan: category,
-      email: profile.email,
-      status: "sent",
-    });
+    // The email was sent successfully — make a noisy log if we fail to record
+    // it. Without the queue row, the trigger could re-fire (e.g. on a quick
+    // follow-up update) and lead to a duplicate send.
+    const { error: queueInsertError } = await supabase
+      .from("welcome_email_queue")
+      .insert({
+        user_id: profile.id,
+        plan: category,
+        email: profile.email,
+        status: "sent",
+      });
+    if (queueInsertError) {
+      console.error(
+        `[send-welcome-email] Email sent but queue insert failed for user=${profile.id} plan=${category} email=${profile.email}:`,
+        queueInsertError,
+      );
+    }
 
     console.log(`[send-welcome-email] SENT ${label} to ${profile.email}`);
 
