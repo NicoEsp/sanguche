@@ -38,7 +38,7 @@ const adminNavItems = [
   { title: 'Gestión Mentorías', url: '/admin/mentoria', icon: Target, matchPrefix: '/admin/mentoria' },
   { title: 'Ejercicios', url: '/admin/ejercicios', icon: BookOpen },
   { title: 'Cursos', url: '/admin/cursos', icon: GraduationCap, matchPrefix: '/admin/cursos' },
-  { title: 'Recursos y Descargables', url: '/admin/descargables', icon: FileDown },
+  { title: 'Downloadables', url: '/admin/descargables', icon: FileDown },
   { title: 'Blog', url: '/admin/blog', icon: PenLine },
   { title: 'Sesiones', url: '/admin/sesiones', icon: Calendar },
 ];

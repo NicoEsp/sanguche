@@ -320,7 +320,7 @@ export default function AdminDescargables() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Recursos y Descargables</h1>
+          <h1 className="text-2xl font-bold text-foreground">Downloadables</h1>
           <p className="text-muted-foreground">
             Sin condiciones por competencia → aparece en /descargables. Con condiciones → solo en SkillGaps cuando matchea con la evaluación del usuario.
           </p>
