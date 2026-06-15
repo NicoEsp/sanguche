@@ -27,8 +27,14 @@ const SITE_URL = 'https://productprepa.com';
 const DEFAULT_IMAGE = `${SITE_URL}/og-preview-v3.png`;
 const DEFAULT_IMAGE_ALT = 'ProductPrepa - Plataforma para crecer en Producto';
 
+// Vercel inyecta todas las env vars del proyecto al runtime del edge, sin
+// importar el prefijo. Aceptamos tanto los nombres VITE_* (los que usa el build
+// del cliente) como los estándar SUPABASE_* (los que usa la edge function del
+// sitemap), así funciona sin reconfigurar nada en Vercel.
 const SUPABASE_URL =
-  process.env.VITE_SUPABASE_URL || 'https://lgscevufwnetegglgpnw.supabase.co';
+  process.env.VITE_SUPABASE_URL ||
+  process.env.SUPABASE_URL ||
+  'https://lgscevufwnetegglgpnw.supabase.co';
 const SUPABASE_KEY =
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   process.env.SUPABASE_ANON_KEY ||
@@ -40,6 +46,7 @@ interface BlogPost {
   description: string | null;
   thumbnail_url: string | null;
   published_at: string | null;
+  updated_at: string | null;
   meta_title: string | null;
   meta_description: string | null;
   meta_keywords: string | null;
@@ -56,7 +63,14 @@ export default async function middleware(request: Request): Promise<Response | u
   const post = await fetchPost(slug);
   if (!post) return undefined; // no publicado / no existe → la SPA redirige a /blog
 
-  const shell = await fetch(new URL('/index.html', url.origin)).then((r) => r.text());
+  let shell: string;
+  try {
+    const shellRes = await fetch(new URL('/index.html', url.origin));
+    if (!shellRes.ok) return undefined; // shell no disponible → la SPA decide
+    shell = await shellRes.text();
+  } catch {
+    return undefined;
+  }
   const html = injectMeta(shell, post);
 
   return new Response(html, {
@@ -72,7 +86,7 @@ export default async function middleware(request: Request): Promise<Response | u
 async function fetchPost(slug: string): Promise<BlogPost | undefined> {
   try {
     const select =
-      'slug,title,description,thumbnail_url,published_at,meta_title,meta_description,meta_keywords';
+      'slug,title,description,thumbnail_url,published_at,updated_at,meta_title,meta_description,meta_keywords';
     const endpoint =
       `${SUPABASE_URL}/rest/v1/blog_posts` +
       `?slug=eq.${encodeURIComponent(slug)}` +
@@ -100,25 +114,30 @@ function injectMeta(html: string, post: BlogPost): string {
   const img = escapeAttr(image);
   const imgAlt = escapeAttr(imageAlt);
 
-  const replacements: Array<{ regex: RegExp; value: string }> = [
-    { regex: /<title>[^<]*<\/title>/, value: `<title>${escapeHtml(title)}</title>` },
-    { regex: /(<meta\s+name="description"\s+content=")[^"]*(")/, value: `$1${d}$2` },
-    { regex: /(<link\s+rel="canonical"\s+href=")[^"]*(")/, value: `$1${escapeAttr(canonical)}$2` },
-    { regex: /(<meta\s+property="og:type"\s+content=")[^"]*(")/, value: `$1article$2` },
-    { regex: /(<meta\s+property="og:url"\s+content=")[^"]*(")/, value: `$1${escapeAttr(canonical)}$2` },
-    { regex: /(<meta\s+property="og:title"\s+content=")[^"]*(")/, value: `$1${t}$2` },
-    { regex: /(<meta\s+property="og:description"\s+content=")[^"]*(")/, value: `$1${d}$2` },
-    { regex: /(<meta\s+property="og:image"\s+content=")[^"]*(")/, value: `$1${img}$2` },
-    { regex: /(<meta\s+property="og:image:alt"\s+content=")[^"]*(")/, value: `$1${imgAlt}$2` },
-    { regex: /(<meta\s+name="twitter:title"\s+content=")[^"]*(")/, value: `$1${t}$2` },
-    { regex: /(<meta\s+name="twitter:description"\s+content=")[^"]*(")/, value: `$1${d}$2` },
-    { regex: /(<meta\s+name="twitter:image"\s+content=")[^"]*(")/, value: `$1${img}$2` },
-    { regex: /(<meta\s+name="twitter:image:alt"\s+content=")[^"]*(")/, value: `$1${imgAlt}$2` },
+  // Reemplazos del contenido entre las comillas del atributo (grupos $1/$2).
+  // Usamos callbacks para insertar el valor LITERAL: con el form string,
+  // secuencias como `$1` o `$&` dentro de un título (ej. precios "$1 millón")
+  // se reinterpretarían como referencias de captura y corromperían el tag.
+  const attr = (value: string) => (_m: string, p1: string, p2: string) => `${p1}${value}${p2}`;
+  const replacements: Array<{ regex: RegExp; fn: (...args: string[]) => string }> = [
+    { regex: /<title>[^<]*<\/title>/, fn: () => `<title>${escapeHtml(title)}</title>` },
+    { regex: /(<meta\s+name="description"\s+content=")[^"]*(")/, fn: attr(d) },
+    { regex: /(<link\s+rel="canonical"\s+href=")[^"]*(")/, fn: attr(escapeAttr(canonical)) },
+    { regex: /(<meta\s+property="og:type"\s+content=")[^"]*(")/, fn: attr('article') },
+    { regex: /(<meta\s+property="og:url"\s+content=")[^"]*(")/, fn: attr(escapeAttr(canonical)) },
+    { regex: /(<meta\s+property="og:title"\s+content=")[^"]*(")/, fn: attr(t) },
+    { regex: /(<meta\s+property="og:description"\s+content=")[^"]*(")/, fn: attr(d) },
+    { regex: /(<meta\s+property="og:image"\s+content=")[^"]*(")/, fn: attr(img) },
+    { regex: /(<meta\s+property="og:image:alt"\s+content=")[^"]*(")/, fn: attr(imgAlt) },
+    { regex: /(<meta\s+name="twitter:title"\s+content=")[^"]*(")/, fn: attr(t) },
+    { regex: /(<meta\s+name="twitter:description"\s+content=")[^"]*(")/, fn: attr(d) },
+    { regex: /(<meta\s+name="twitter:image"\s+content=")[^"]*(")/, fn: attr(img) },
+    { regex: /(<meta\s+name="twitter:image:alt"\s+content=")[^"]*(")/, fn: attr(imgAlt) },
   ];
 
   let out = html;
-  for (const { regex, value } of replacements) {
-    out = out.replace(regex, value);
+  for (const { regex, fn } of replacements) {
+    out = out.replace(regex, fn);
   }
 
   // Tags adicionales propias del artículo, insertadas antes de </head>.
@@ -134,7 +153,7 @@ function injectMeta(html: string, post: BlogPost): string {
     `<script type="application/ld+json" data-seo-jsonld="true">${jsonLdScript(post, canonical, image)}</script>`,
   );
 
-  return out.replace('</head>', `${head.join('\n    ')}\n  </head>`);
+  return out.replace('</head>', () => `${head.join('\n    ')}\n  </head>`);
 }
 
 function jsonLdScript(post: BlogPost, canonical: string, image: string): string {
@@ -145,7 +164,10 @@ function jsonLdScript(post: BlogPost, canonical: string, image: string): string 
       headline: post.meta_title || post.title,
       description: post.meta_description || post.description || '',
       url: canonical,
-      ...(post.published_at && { datePublished: post.published_at, dateModified: post.published_at }),
+      ...(post.published_at && {
+        datePublished: post.published_at,
+        dateModified: post.updated_at || post.published_at,
+      }),
       author: { '@type': 'Organization', name: 'ProductPrepa', url: SITE_URL },
       publisher: {
         '@type': 'Organization',
