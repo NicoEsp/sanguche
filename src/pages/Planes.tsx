@@ -784,6 +784,14 @@ export default function Planes() {
                     >
                       Ver detalle y reservar cupo
                     </Button>
+                    <div className="mt-3 text-center">
+                      <Link
+                        to="/empresas"
+                        className="inline-flex items-center gap-1 text-sm text-indigo-200/70 hover:text-white underline underline-offset-2 transition-colors"
+                      >
+                        Ver el programa completo
+                      </Link>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -40,6 +40,9 @@ const Descargables = lazy(() => import("./pages/Descargables"));
 // Soy Dev
 const SoyDev = lazy(() => import("./pages/SoyDev"));
 
+// Empresas (B2B)
+const Empresas = lazy(() => import("./pages/Empresas"));
+
 // Session Reservation
 const SessionReservation = lazy(() => import("./pages/SessionReservation"));
 
@@ -131,6 +134,7 @@ const App = () => (
                       <Route path="/preguntas" element={<Descargables />} />
                       <Route path="/descargables" element={<Descargables />} />
                       <Route path="/soy-dev" element={<SoyDev />} />
+                      <Route path="/empresas" element={<Empresas />} />
                       <Route path="/sesion/:slug" element={<SessionReservation />} />
                       <Route path="/blog" element={<BlogList />} />
                       <Route path="/blog/:slug" element={<BlogPost />} />

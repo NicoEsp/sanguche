@@ -1,4 +1,5 @@
 import { soyDevFaqs } from './faqs/soyDev';
+import { empresasFaqs } from './faqs/empresas';
 
 export interface SeoRouteData {
   title: string;
@@ -129,6 +130,81 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
         '@context': 'https://schema.org',
         '@type': 'FAQPage',
         mainEntity: soyDevFaqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: faq.answer,
+          },
+        })),
+      },
+    ],
+  },
+
+  '/empresas': {
+    title: 'Capacitación de Producto para equipos y empresas | ProductPrepa for Business',
+    description: 'Programa de capacitación en Producto a medida para equipos, áreas y líderes. Temario personalizado sobre estrategia, discovery, priorización e IA. Hasta 3 sesiones grupales en vivo con NicoProducto.',
+    canonical: `${SITE_URL}/empresas`,
+    keywords: 'capacitación product management empresas, formación de producto para equipos, taller product management in company, mentoría grupal producto, capacitación discovery y estrategia, ProductPrepa for Business, entrenamiento equipo de producto',
+    image: DEFAULT_IMAGE,
+    imageAlt: 'ProductPrepa for Business — Capacitación de Producto a medida para equipos',
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: 'ProductPrepa for Business — Capacitación de Producto para equipos',
+        description: 'Programa de capacitación en Producto a medida para equipos, áreas y líderes de empresas. Temario personalizado y sesiones grupales en vivo.',
+        url: `${SITE_URL}/empresas`,
+        inLanguage: 'es',
+        isPartOf: { '@type': 'WebSite', name: 'ProductPrepa', url: SITE_URL },
+        publisher: { '@type': 'Organization', name: 'ProductPrepa', url: SITE_URL },
+        about: [
+          { '@type': 'Thing', name: 'Capacitación en Product Management para equipos' },
+          { '@type': 'Thing', name: 'Formación de producto para empresas' },
+        ],
+        audience: {
+          '@type': 'Audience',
+          audienceType: 'Empresas, equipos de producto y líderes de área',
+        },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Service',
+        name: 'ProductPrepa for Business',
+        serviceType: 'Capacitación de Producto in-company a medida',
+        description: 'Programa one-time de capacitación en Producto para equipos: diagnóstico, temario a medida y hasta 3 sesiones grupales en vivo con NicoProducto.',
+        url: `${SITE_URL}/empresas`,
+        inLanguage: 'es',
+        provider: {
+          '@type': 'Organization',
+          name: 'ProductPrepa',
+          url: SITE_URL,
+        },
+        areaServed: { '@type': 'Place', name: 'LATAM y remoto' },
+        audience: {
+          '@type': 'Audience',
+          audienceType: 'Empresas y equipos de producto',
+        },
+        offers: {
+          '@type': 'Offer',
+          priceCurrency: 'USD',
+          availability: 'https://schema.org/InStock',
+          url: `${SITE_URL}/empresas`,
+          category: 'B2B training program',
+        },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Inicio', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Empresas', item: `${SITE_URL}/empresas` },
+        ],
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: empresasFaqs.map((faq) => ({
           '@type': 'Question',
           name: faq.question,
           acceptedAnswer: {
