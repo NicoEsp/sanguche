@@ -20,7 +20,7 @@ import {
 
 /**
  * Landing /empresas — ProductPrepa for Business.
- * Tono editorial/consultivo (una propuesta de Nico, no un template SaaS).
+ * Tono editorial/consultivo (No template SaaS).
  * Acento de marca indigo, anotaciones manuscritas con la fuente Caveat
  * (font-handwritten) y bloque de reserva con el gradiente indigo ya
  * establecido en el B2BModal. CTA principal = checkout directo.
@@ -35,11 +35,11 @@ const ejes = [
     n: "01",
     title: "Estrategia de producto",
     summary:
-      "Saber si el equipo tiene una estrategia real o está improvisando con buena intención.",
+      "Saber si el equipo tiene una Estrategia real o está improvisando con buena intención.",
     points: [
-      "Cómo se ve una estrategia que el equipo entiende y usa para decidir.",
-      "Conectar la visión con lo que se construye cada semana.",
-      "Señales de que están operando sin rumbo claro.",
+      "Cómo se ve una Estrategia de Producto que el equipo entiende y usa para decidir.",
+      "Conectar la visión con lo que se va construyendo.",
+      "Tener señales de que están operando sin un rumbo claro.",
     ],
     article: {
       to: "/blog/estrategia-de-producto-como-saber-si-tu-startup-la-tiene-o-si-solo-esta-improvisando",
@@ -51,11 +51,11 @@ const ejes = [
     n: "02",
     title: "Discovery de producto",
     summary:
-      "Diferenciar un discovery que cambia decisiones de uno decorativo que solo valida lo ya decidido.",
+      "Diferenciar un discovery que cambia rumbos de uno vacio que solo valida las decisiones.",
     points: [
-      "Cómo investigar antes de comprometer meses de desarrollo.",
+      "Cómo investigar antes de comprometer tiempo de desarrollo.",
       "Hablar con usuarios sin sesgar las respuestas.",
-      "Cuándo un discovery está listo para pasar a construir.",
+      "Cuándo un discovery se termina y empieza el delivery.",
     ],
     article: {
       to: "/blog/discovery-de-producto-que-es-por-que-importa-y-como-saber-si-el-tuyo-es-real-o-decorativo",
@@ -71,7 +71,7 @@ const ejes = [
     points: [
       "Decidir qué va primero cuando todo parece urgente.",
       "Outputs vs. outcomes: trabajar mucho sin mover la aguja.",
-      "Criterios de priorización que el equipo pueda defender.",
+      "Criterios de priorización que el equipo (y vos) puedan defender.",
     ],
     article: {
       to: "/blog/outputs-vs-outcomes-por-que-tu-equipo-trabaja-mucho-y-mueve-poco-la-aguja",
@@ -98,7 +98,7 @@ const ejes = [
 
 const incluye = [
   "Diagnóstico inicial del equipo y de las áreas a fortalecer.",
-  "Temario a medida, armado sobre los desafíos reales del equipo.",
+  "Temario a medida, armado sobre los desafíos actuales.",
   "Hasta 3 sesiones grupales en vivo con el equipo.",
   "Acceso de todo el equipo a los cursos de ProductPrepa.",
   "Reporte de avance para el líder del área.",
@@ -203,7 +203,7 @@ const Empresas = () => {
                 Capacitación en Producto para empresas que quieren llevar a un
                 grupo, un área o sus líderes a tomar mejores decisiones. Temario
                 pensado para los desafíos puntuales de{" "}
-                <span className="text-foreground font-medium">tu equipo</span>, no
+                <span className="text-foreground font-medium">tu equipo</span>, no es
                 un curso enlatado.
               </p>
 
@@ -279,18 +279,18 @@ const Empresas = () => {
               <div className="space-y-6 text-lg text-muted-foreground leading-relaxed">
                 <p>
                   La mayoría de los equipos no tiene un problema de esfuerzo:
-                  tiene un problema de criterio. Se construyen features, se
-                  cierran sprints, se entrega mucho — y aun así los números no se
-                  mueven y nadie sabe del todo por qué.
+                  tiene una falta de visión. Se construyen features, se
+                  cierran sprints, se hace mucho y aun así los números no se
+                  mueven y nadie sabe del todo por qué pasa esto.
                 </p>
                 <blockquote className="border-l-2 border-indigo-500/60 pl-5 text-foreground font-medium">
-                  El diferencial no es construir más rápido. Es saber qué vale la
-                  pena construir, y por qué.
+                  El diferencial hoy en día es saber qué vale la
+                  pena construir, y por qué hacerlo ahora.
                 </blockquote>
                 <p>
-                  Eso —estrategia, discovery, priorización— se aprende y se
-                  entrena. Un equipo con criterio de Producto decide mejor sin
-                  que lo supervisen. Ese es el objetivo del programa.
+                  Estrategia, discovery, priorización se aprenden y se
+                  entrenan. Un equipo con visión de Producto decide mejor sin
+                  que lo supervisen. Ese es el objetivo de este programa.
                 </p>
               </div>
             </div>
