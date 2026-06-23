@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <clipPath id="card-clip">
+      <rect x="50" y="40" width="500" height="550" rx="22"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#FAFAF6"/>
+
+  <!-- Decorative circles -->
+  <circle cx="1100" cy="70" r="180" fill="#FBE7DA"/>
+  <circle cx="1170" cy="560" r="210" fill="#D9EDD5"/>
+
+  <!-- Left card (outer light blue-gray) -->
+  <rect x="50" y="40" width="500" height="550" rx="22" fill="#E8EEF5"/>
+
+  <!-- Left card inner panel (cream) -->
+  <rect x="90" y="90" width="420" height="450" rx="10" fill="#F5EFDA"/>
+
+  <!-- Sandwich illustration -->
+  <image x="120" y="120" width="360" height="360"
+         href="https://productprepa.com/assets/sanguche.png"
+         preserveAspectRatio="xMidYMid meet"/>
+
+  <!-- Vertical divider -->
+  <line x1="610" y1="80" x2="610" y2="555" stroke="#D6DDE6" stroke-width="2"/>
+
+  <!-- Right column -->
+  <g font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+
+    <!-- Brand wordmark (small, top) -->
+    <text x="660" y="110" font-size="20" font-weight="600" fill="#9CA3AF" letter-spacing="2">PRODUCTPREPA · FOR BUSINESS</text>
+
+    <!-- Headline line 1 -->
+    <text x="660" y="200" font-size="76" font-weight="800" fill="#0F1942" letter-spacing="-2">Capacitación</text>
+
+    <!-- Headline line 2 (orange + underline) -->
+    <text x="660" y="292" font-size="76" font-weight="800" fill="#ED7723" letter-spacing="-2">in-company</text>
+    <line x1="660" y1="308" x2="1075" y2="308" stroke="#ED7723" stroke-width="6" stroke-linecap="round"/>
+
+    <!-- Description -->
+    <text font-size="22" fill="#3A4660">
+      <tspan x="660" y="364">Programa de Producto a medida para equipos y</tspan>
+      <tspan x="660" y="396">líderes: estrategia, discovery, priorización e IA,</tspan>
+      <tspan x="660" y="428">con sesiones grupales en vivo con NicoProducto.</tspan>
+    </text>
+
+    <!-- Pills -->
+    <g transform="translate(660, 466)" font-size="17" font-weight="600" fill="#0F1942">
+      <g>
+        <rect x="0" y="0" width="168" height="42" rx="21" fill="#FFE4D4"/>
+        <text x="84" y="27" text-anchor="middle">Temario a medida</text>
+      </g>
+      <g transform="translate(180, 0)">
+        <rect x="0" y="0" width="170" height="42" rx="21" fill="#D9EDD5"/>
+        <text x="85" y="27" text-anchor="middle">Sesiones en vivo</text>
+      </g>
+      <g transform="translate(362, 0)">
+        <rect x="0" y="0" width="108" height="42" rx="21" fill="#D9EDD5"/>
+        <text x="54" y="27" text-anchor="middle">Equipos</text>
+      </g>
+    </g>
+
+    <!-- Footer URL -->
+    <text x="660" y="555" font-size="20" font-weight="500" fill="#6B7280">productprepa.com/empresas</text>
+  </g>
+</svg>

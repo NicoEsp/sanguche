@@ -146,7 +146,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     description: 'Programa de capacitación en Producto a medida para equipos, áreas y líderes. Temario personalizado sobre estrategia, discovery, priorización e IA. Hasta 3 sesiones grupales en vivo con NicoProducto.',
     canonical: `${SITE_URL}/empresas`,
     keywords: 'capacitación product management empresas, formación de producto para equipos, taller product management in company, mentoría grupal producto, capacitación discovery y estrategia, ProductPrepa for Business, entrenamiento equipo de producto',
-    image: DEFAULT_IMAGE,
+    image: `${SITE_URL}/og-empresas.png`,
     imageAlt: 'ProductPrepa for Business — Capacitación de Producto a medida para equipos',
     jsonLd: [
       {
