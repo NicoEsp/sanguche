@@ -118,7 +118,6 @@ Validación server-side via `is_admin_jwt()` RPC. Todos los accesos se registran
 | `/admin/descargables` | Gestión de recursos descargables |
 | `/admin/blog` | CMS: creación, edición y publicación de posts |
 | `/admin/sesiones` | Gestión de eventos / sesiones |
-| `/admin/configuracion` | Settings del sistema |
 
 -----
 
