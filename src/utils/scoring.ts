@@ -29,7 +29,7 @@ export const DOMAINS = [
     description: "Habilidad para planificar, priorizar funcionalidades y gestionar el backlog del producto.",
     question: "¿Qué tanto dominio tenés para priorizar y construir el roadmap del producto?",
     statements: [
-      { value: 1, label: "Prioritizo tareas siguiendo instrucciones sin evaluar impacto (1)" },
+      { value: 1, label: "Priorizo tareas siguiendo instrucciones sin evaluar impacto (1)" },
       { value: 2, label: "Propongo priorizaciones simples usando criterios dados por el equipo (2)" },
       { value: 3, label: "Construyo y actualizo roadmaps de mi scope equilibrando valor y esfuerzo (3)" },
       { value: 4, label: "Anticipo dependencias, comunico cambios y alineo roadmaps multiequipo (4)" },
@@ -39,7 +39,7 @@ export const DOMAINS = [
       "Novato: Entiende conceptos de priorización pero requiere ayuda para aplicarlos",
       "Básico: Puede priorizar tareas simples usando frameworks básicos",
       "Intermedio: Gestiona roadmaps de features y usa múltiples criterios de priorización",
-      "Avanzado: Crea roadmaps estratégicos balanceando recursos, impacto y dependencies",
+      "Avanzado: Crea roadmaps estratégicos balanceando recursos, impacto y dependencias",
       "Experto: Diseña frameworks de priorización innovadores y optimiza recursos cross-team"
     ]
   },
@@ -166,7 +166,7 @@ export const DOMAINS = [
   { 
     key: "liderazgo",
     label: "Liderazgo",
-    description: "Capacidad para liderar equipos, mentorar profesionales y generar influence organizacional.",
+    description: "Capacidad para liderar equipos, mentorar profesionales y generar influencia organizacional.",
     question: "¿Cómo evaluás tu liderazgo dentro del equipo de producto?",
     statements: [
       { value: 1, label: "Me enfoco en mis tareas individuales y no lidero iniciativas (1)" },
@@ -372,10 +372,11 @@ export function computeSeniorityScore(
   const entries = Object.entries(values) as [keyof AssessmentValues, number][];
   const sum = entries.reduce((acc, [, v]) => acc + v, 0);
   const n = entries.length || 1;
-  const promedioGlobal = Number((sum / n).toFixed(2));
+  const mean = sum / n;
+  const promedioGlobal = Number(mean.toFixed(2));
 
-  // Calcular desviación estándar
-  const variance = entries.reduce((acc, [, v]) => acc + Math.pow(v - promedioGlobal, 2), 0) / n;
+  // Calcular desviación estándar (contra la media sin redondear)
+  const variance = entries.reduce((acc, [, v]) => acc + Math.pow(v - mean, 2), 0) / n;
   const standardDeviation = Number(Math.sqrt(variance).toFixed(2));
 
   const nivel: SeniorityLevel =

@@ -3,13 +3,12 @@ import { Seo } from "@/components/Seo";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { assessmentSchema, DOMAINS, OPTIONAL_DOMAINS, type AssessmentValues, type OptionalAssessmentValues, computeSeniorityScore, type DomainKey, type OptionalDomainKey, type AssessmentResult } from "@/utils/scoring";
+import { assessmentSchema, DOMAINS, OPTIONAL_DOMAINS, type AssessmentValues, type OptionalAssessmentValues, computeSeniorityScore, type DomainKey, type AssessmentResult } from "@/utils/scoring";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/components/ui/use-toast";
 import { saveAssessment } from "@/utils/storage";
-import { supabase } from "@/integrations/supabase/client";
 import { DomainInfoPopup } from "@/components/DomainInfoPopup";
 import { OptionalQuestionTooltip } from "@/components/OptionalQuestionTooltip";
 import { Info, Star, Trophy, Target, Calendar, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
@@ -37,6 +36,30 @@ import { useQueryClient } from "@tanstack/react-query";
 // Constantes para localStorage
 const ASSESSMENT_IN_PROGRESS_KEY = 'assessment_in_progress';
 const ASSESSMENT_PARTIAL_ANSWERS_KEY = 'assessment_partial_answers';
+const ASSESSMENT_OPTIONAL_ANSWERS_KEY = 'assessment_optional_answers';
+
+// Parsea respuestas guardadas en localStorage descartando claves desconocidas
+// o valores corruptos (solo acepta enteros entre 1 y 5 de dominios válidos).
+function parseStoredAnswers<T extends string>(
+  raw: string | null,
+  validKeys: readonly T[]
+): Partial<Record<T, number>> {
+  if (!raw) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return {};
+    const answers: Partial<Record<T, number>> = {};
+    for (const key of validKeys) {
+      const value = (parsed as Record<string, unknown>)[key];
+      if (typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 5) {
+        answers[key] = value;
+      }
+    }
+    return answers;
+  } catch {
+    return {};
+  }
+}
 
 export default function Assessment() {
   const navigate = useNavigate();
@@ -45,7 +68,6 @@ export default function Assessment() {
   const [selectedDomain, setSelectedDomain] = useState<DomainKey | null>(null);
   const [isReevaluating, setIsReevaluating] = useState(false);
   const [showReevaluationDialog, setShowReevaluationDialog] = useState(false);
-  const [assessmentStartTime] = useState(Date.now());
   const [isSaving, setIsSaving] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [optionalValues, setOptionalValues] = useState<OptionalAssessmentValues>({});
@@ -94,71 +116,67 @@ export default function Assessment() {
     }
   }, [searchParams, hasAssessment, setSearchParams]);
 
+  // Inicialización única al resolver la carga: decide si mostrar el formulario
+  // y recupera una evaluación en progreso. El guard evita que cambios de
+  // identidad en `trackEvent` (auth) re-ejecuten el efecto y pisen el
+  // formulario a mitad de una evaluación.
+  const hasInitializedRef = useRef(false);
   useEffect(() => {
-    if (!assessmentLoading) {
-      // Verificar si hay una evaluación en progreso en localStorage
-      const assessmentInProgress = localStorage.getItem(ASSESSMENT_IN_PROGRESS_KEY) === 'true';
-      
-      // Si hay assessment en progreso O no hay assessment guardado, mostrar formulario
-      const shouldShowForm = assessmentInProgress || !hasAssessment;
-      
-      setIsReevaluating(shouldShowForm);
-      
-      // Si no hay assessment y tampoco había una en progreso, marcar como nueva
-      if (!hasAssessment && !assessmentInProgress) {
-        trackEvent('assessment_started');
-        localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
-      }
-      
-      // Si hay evaluación en progreso, recuperar respuestas parciales
-      if (assessmentInProgress) {
-        const partialAnswers = localStorage.getItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
-        if (partialAnswers) {
-            try {
-              const parsedAnswers = JSON.parse(partialAnswers);
-              form.reset(parsedAnswers);
-              
-              // Posicionar en el siguiente paso sin responder
-              const answeredCount = Object.keys(parsedAnswers).length;
-              setCurrentStep(Math.min(answeredCount, DOMAINS.length - 1));
-          } catch (e) {
-            if (import.meta.env.DEV) {
-              console.error('Error recuperando respuestas parciales:', e);
-            }
-          }
-        }
-      }
-    }
-  }, [assessmentLoading, hasAssessment, trackEvent, form]);
+    if (assessmentLoading || hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
 
-  useEffect(() => {
-    if (isReevaluating) {
-      // Verificar si hay respuestas parciales guardadas
-      const partialAnswers = localStorage.getItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
-      
-      if (partialAnswers) {
-        // Si hay respuestas parciales, recuperarlas
-        try {
-          const parsedAnswers = JSON.parse(partialAnswers);
-          form.reset(parsedAnswers);
-        } catch (e) {
-          if (import.meta.env.DEV) {
-            console.error('Error recuperando respuestas parciales:', e);
-          }
-          form.reset({} as AssessmentValues);
-        }
+    const assessmentInProgress = localStorage.getItem(ASSESSMENT_IN_PROGRESS_KEY) === 'true';
+
+    // Si hay assessment en progreso O no hay assessment guardado, mostrar formulario
+    setIsReevaluating(assessmentInProgress || !hasAssessment);
+
+    // Si no hay assessment y tampoco había una en progreso, marcar como nueva
+    if (!hasAssessment && !assessmentInProgress) {
+      trackEvent('assessment_started', { is_reevaluation: false });
+      localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
+      return;
+    }
+
+    if (assessmentInProgress) {
+      // Recuperar respuestas parciales (requeridas y opcionales)
+      const restoredValues = parseStoredAnswers(
+        localStorage.getItem(ASSESSMENT_PARTIAL_ANSWERS_KEY),
+        DOMAINS.map((d) => d.key)
+      );
+      const restoredOptional = parseStoredAnswers(
+        localStorage.getItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY),
+        OPTIONAL_DOMAINS.map((d) => d.key)
+      );
+
+      if (Object.keys(restoredValues).length > 0) {
+        form.reset(restoredValues as AssessmentValues);
+      }
+      if (Object.keys(restoredOptional).length > 0) {
+        setOptionalValues(restoredOptional);
+      }
+
+      // Posicionar en la primera pregunta sin responder
+      const firstUnanswered = DOMAINS.findIndex((d) => typeof restoredValues[d.key] !== 'number');
+      if (firstUnanswered !== -1) {
+        setCurrentStep(firstUnanswered);
       } else {
-        // Si no hay respuestas parciales, resetear a vacío
-        form.reset({} as AssessmentValues);
+        const firstUnansweredOptional = OPTIONAL_DOMAINS.findIndex(
+          (d) => typeof restoredOptional[d.key] !== 'number'
+        );
+        setCurrentStep(
+          firstUnansweredOptional === -1
+            ? totalSteps - 1
+            : DOMAINS.length + firstUnansweredOptional
+        );
       }
     }
-  }, [isReevaluating, form]);
+  }, [assessmentLoading, hasAssessment, trackEvent, form, totalSteps]);
 
   // Refs para el evento de abandono (se inicializan después de `answered`)
   const isReevaluatingRef = useRef(isReevaluating);
   const currentStepRef = useRef(currentStep);
   const answeredRef = useRef(0);
-  const assessmentStartTimeRef = useRef(assessmentStartTime);
+  const assessmentStartTimeRef = useRef(Date.now());
   const completedThisSessionRef = useRef(false);
   const sessionActiveRef = useRef(false);
   const hasTrackedAbandonRef = useRef(false);
@@ -306,17 +324,20 @@ export default function Assessment() {
     // Limpiar resultado local para permitir nueva evaluación
     setLocalResult(null);
     setLocalValues(null);
-    // Limpiar respuestas opcionales previas
+    // Limpiar respuestas previas (el efecto de inicialización ya no corre acá)
     setOptionalValues({});
+    form.reset({} as AssessmentValues);
     // Reset de refs de tracking para permitir que un nuevo abandono (o completion) dispare en esta sesión
     completedThisSessionRef.current = false;
     sessionActiveRef.current = false;
     hasTrackedAbandonRef.current = false;
     assessmentStartTimeRef.current = Date.now();
+    trackEvent('assessment_started', { is_reevaluation: true });
     // Marcar que hay una evaluación en progreso
     localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
     // Limpiar respuestas parciales previas
     localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
+    localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
   };
 
   // Helper para mensaje motivacional según progreso
@@ -384,25 +405,27 @@ export default function Assessment() {
       // Solo pasar optionalValues si hay alguna respuesta
       const hasOptionalAnswers = Object.keys(optionalValues).length > 0;
       const result = computeSeniorityScore(data, hasOptionalAnswers ? optionalValues : undefined);
-      const timeSpent = Math.round((Date.now() - assessmentStartTime) / 1000); // segundos
-      
+      const timeSpent = Math.round((Date.now() - assessmentStartTimeRef.current) / 1000); // segundos
+
       // Guardar resultado localmente para mostrar inmediatamente
       setLocalResult(result);
       setLocalValues(data);
-      
-      // Guardar en servidor (async)
-      await saveAssessment(data, hasOptionalAnswers ? optionalValues : undefined, result, supabase);
-      
+
+      // Guardar en servidor (lanza error si falla, para permitir reintento)
+      await saveAssessment(data, result);
+
       // Invalidar cache para sincronizar con servidor
       await queryClient.invalidateQueries({ queryKey: ['assessment-data'] });
-    
+
       // Track assessment completion
       trackEvent('assessment_completed', {
         total_score: result.promedioGlobal,
         estimated_level: result.nivel,
         time_spent_seconds: timeSpent,
         gaps_count: result.gaps?.length || 0,
-        strengths_count: result.strengths?.length || 0
+        strengths_count: result.strengths?.length || 0,
+        optional_answered_count: Object.keys(optionalValues).length,
+        is_reevaluation: hasAssessment
       });
       
       // Actualizar propiedades del usuario
@@ -417,6 +440,7 @@ export default function Assessment() {
       // Limpiar las flags de evaluación en progreso
       localStorage.removeItem(ASSESSMENT_IN_PROGRESS_KEY);
       localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
+      localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
       
       // Marcar completado ANTES de cambiar isReevaluating para evitar race condition
       completedThisSessionRef.current = true;
@@ -630,7 +654,7 @@ export default function Assessment() {
         {isReevaluating && (
           <>
             {/* Barra de progreso sticky unificada */}
-            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b shadow-sm p-4 mb-6 -mx-4 sm:mx-0 sm:rounded-lg sm:border sm:max-w-2xl sm:mx-auto">
+            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b shadow-sm p-4 mb-6 -mx-4 sm:rounded-lg sm:border sm:max-w-2xl sm:mx-auto">
               <div className="max-w-2xl mx-auto">
                 <div className="flex items-center justify-between mb-2 text-sm">
                   <span className="font-medium">
@@ -642,8 +666,8 @@ export default function Assessment() {
                   <span className="text-muted-foreground">{progress}%</span>
                 </div>
                 <Progress value={progress} className="h-4" />
-                {/* Mensaje motivacional */}
-                {getProgressMessage(progress) && (
+                {/* Mensaje motivacional (solo durante las preguntas requeridas) */}
+                {currentStep < DOMAINS.length && getProgressMessage(progress) && (
                   <p className="text-sm font-medium text-primary mt-2 text-center animate-fade-in">
                     {getProgressMessage(progress)}
                   </p>
@@ -791,10 +815,14 @@ export default function Assessment() {
                           value={currentOptionalValue !== undefined ? String(currentOptionalValue) : ""}
                           onValueChange={(val) => {
                             const numVal = parseInt(val);
-                            setOptionalValues(prev => ({
-                              ...prev,
-                              [d.key]: numVal
-                            }));
+                            const next = { ...optionalValues, [d.key]: numVal };
+                            setOptionalValues(next);
+                            // Persistir para no perderlas si cierra la pestaña
+                            try {
+                              localStorage.setItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY, JSON.stringify(next));
+                            } catch {
+                              // Best-effort: sin storage disponible seguimos en memoria
+                            }
                             trackQuestionAnswer(d.key, currentStep + 1, numVal, true);
                           }}
                         >
