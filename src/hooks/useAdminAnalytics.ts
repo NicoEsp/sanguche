@@ -117,8 +117,8 @@ export function useAdminAnalytics() {
         fetchAllRows<{ created_at: string }>((from, to) =>
           supabase.from('assessments').select('created_at').gte('created_at', monthStart.toISOString()).order('id', { ascending: true }).range(from, to)
         ),
-        fetchAllRows<{ assessment_result: unknown }>((from, to) =>
-          supabase.from('assessments').select('assessment_result').order('id', { ascending: true }).range(from, to)
+        fetchAllRows<{ user_id: string | null; assessment_result: unknown }>((from, to) =>
+          supabase.from('assessments').select('user_id, assessment_result').order('id', { ascending: true }).range(from, to)
         ),
         fetchAllRows<{ plan: string; status: string; user_id: string; is_comped: boolean | null; paid_amount: number | null }>((from, to) =>
           supabase.from('user_subscriptions').select('plan, status, user_id, is_comped, paid_amount').order('id', { ascending: true }).range(from, to)
@@ -271,19 +271,26 @@ export function useAdminAnalytics() {
       const peakAssessmentDay = { count: peakAssessmentDayData.count, date: peakAssessmentDayData.date };
 
       // Average score + skill gaps from assessment results
-      const skillGapCounts = new Map<string, number>();
+      // Track unique users per gap so "% usuarios" can't exceed 100% when a user repeats evaluations
+      const skillGapUsers = new Map<string, Set<string>>();
       let totalScores = 0;
       let totalScoreCount = 0;
 
       assessmentResults.forEach(assessment => {
         try {
-          const result = assessment.assessment_result as any;
+          const result = assessment.assessment_result as {
+            gaps?: Array<{ domain?: string; skill?: string; area?: string; key?: string }>;
+            promedioGlobal?: number;
+          } | null;
 
           if (result?.gaps && Array.isArray(result.gaps)) {
-            result.gaps.forEach((gap: any) => {
+            result.gaps.forEach((gap) => {
               const domainKey = gap?.domain || gap?.skill || gap?.area || gap?.key;
-              if (domainKey && typeof domainKey === 'string') {
-                skillGapCounts.set(domainKey, (skillGapCounts.get(domainKey) || 0) + 1);
+              if (domainKey && typeof domainKey === 'string' && assessment.user_id) {
+                if (!skillGapUsers.has(domainKey)) {
+                  skillGapUsers.set(domainKey, new Set());
+                }
+                skillGapUsers.get(domainKey)!.add(assessment.user_id);
               }
             });
           }
@@ -297,11 +304,11 @@ export function useAdminAnalytics() {
         }
       });
 
-      const topSkillGaps = Array.from(skillGapCounts.entries())
-        .map(([skill, count]) => ({
+      const topSkillGaps = Array.from(skillGapUsers.entries())
+        .map(([skill, users]) => ({
           skill,
-          count,
-          percentage: totalUsers > 0 ? (count / totalUsers) * 100 : 0,
+          count: users.size,
+          percentage: totalUsers > 0 ? (users.size / totalUsers) * 100 : 0,
         }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 3);
