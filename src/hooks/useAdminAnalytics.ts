@@ -11,8 +11,23 @@ const FALLBACK_PRICES = {
   productastic_review: { amount: 0 }, // one-time, real price comes from LemonSqueezy
 };
 
-// Plans that contribute to MRR (recurrent subscriptions)
-const RECURRENT_PLANS = ['premium', 'repremium'] as const;
+const PAGE_SIZE = 1000;
+
+// Supabase caps queries at 1000 rows; fetch in pages so results are never truncated
+async function fetchAllRows<T>(
+  makeQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>
+): Promise<T[]> {
+  const rows: T[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await makeQuery(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    rows.push(...(data ?? []));
+    if (!data || data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return rows;
+}
 
 interface PlanBreakdown {
   paid: number;
@@ -22,38 +37,25 @@ interface PlanBreakdown {
 
 interface AdminAnalytics {
   totalUsers: number;
-  activeUsers: number;
   totalAssessments: number;
   assessmentsToday: number;
   assessmentsThisWeek: number;
-  premiumUsers: number;
+  assessmentsThisMonth: number;
   premiumPaidUsers: number;
   premiumCompedUsers: number;
-  userGrowth: Array<{ date: string; count: number }>;
-  peakDay: { count: number; date: string | null };
-  peakAssessmentDay: { count: number; date: string | null };
-  skillGapDistribution: Array<{ 
-    skill: string; 
-    count: number;
-    percentage: number;
-    avgCurrentLevel: number;
-    avgTargetLevel: number;
-  }>;
   conversionRate: number;
   mrr: number;
   ltv: number;
   arpu: number;
   averageAssessmentScore: number;
-  recentActivePeriod: string;
-  scoreDistribution: Array<{ range: string; count: number; percentage: number }>;
-  reEvaluationRate: number;
-  avgScoreFree: number;
-  avgScorePremium: number;
-  usersWithOptionalAnswers: number;
-  // Month info
+  // User growth (current month)
+  newUsersThisMonth: number;
+  peakDay: { count: number; date: string | null };
+  peakAssessmentDay: { count: number; date: string | null };
   monthName: string;
   daysElapsedInMonth: number;
-  // New detailed metrics
+  // Top skill gaps (all-time, top 3)
+  topSkillGaps: Array<{ skill: string; count: number; percentage: number }>;
   subscriptionsByPlan: {
     premium: PlanBreakdown;
     repremium: PlanBreakdown;
@@ -81,61 +83,67 @@ export function useAdminAnalytics() {
       }
       setError(null);
 
-      // Fetch pricing from LemonSqueezy in parallel with other data
-      const [pricingResponse, usersResponse, assessmentsResponse, subscriptionsResponse] = await Promise.all([
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const daysElapsedInMonth = now.getDate();
+      const monthName = now.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      const formattedMonthName = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+
+      const [
+        pricingResponse,
+        totalUsersResponse,
+        totalAssessmentsResponse,
+        assessmentsTodayResponse,
+        assessmentsThisWeekResponse,
+        assessmentsThisMonthResponse,
+        monthUsers,
+        monthAssessments,
+        assessmentResults,
+        subscriptionsData,
+      ] = await Promise.all([
         supabase.functions.invoke('pricing-config'),
-        supabase.from('profiles').select('id, created_at, user_id'),
-        supabase.from('assessments').select('id, created_at, assessment_result, user_id'),
-        supabase.from('user_subscriptions').select('plan, status, user_id, created_at, lemon_squeezy_subscription_id, is_comped, purchase_type, paid_amount'),
+        // Server-side counts: exact and never truncated at 1000 rows
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('assessments').select('id', { count: 'exact', head: true }),
+        supabase.from('assessments').select('id', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
+        supabase.from('assessments').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString()),
+        supabase.from('assessments').select('id', { count: 'exact', head: true }).gte('created_at', monthStart.toISOString()),
+        // Paginated reads need a deterministic order; unordered .range() can skip/duplicate rows across pages
+        fetchAllRows<{ created_at: string }>((from, to) =>
+          supabase.from('profiles').select('created_at').gte('created_at', monthStart.toISOString()).order('id', { ascending: true }).range(from, to)
+        ),
+        fetchAllRows<{ created_at: string }>((from, to) =>
+          supabase.from('assessments').select('created_at').gte('created_at', monthStart.toISOString()).order('id', { ascending: true }).range(from, to)
+        ),
+        fetchAllRows<{ assessment_result: unknown }>((from, to) =>
+          supabase.from('assessments').select('assessment_result').order('id', { ascending: true }).range(from, to)
+        ),
+        fetchAllRows<{ plan: string; status: string; user_id: string; is_comped: boolean | null; paid_amount: number | null }>((from, to) =>
+          supabase.from('user_subscriptions').select('plan, status, user_id, is_comped, paid_amount').order('id', { ascending: true }).range(from, to)
+        ),
       ]);
+
+      if (totalUsersResponse.error) throw totalUsersResponse.error;
+      if (totalAssessmentsResponse.error) throw totalAssessmentsResponse.error;
+      if (assessmentsTodayResponse.error) throw assessmentsTodayResponse.error;
+      if (assessmentsThisWeekResponse.error) throw assessmentsThisWeekResponse.error;
+      if (assessmentsThisMonthResponse.error) throw assessmentsThisMonthResponse.error;
+
+      const totalUsers = totalUsersResponse.count ?? 0;
+      const totalAssessments = totalAssessmentsResponse.count ?? 0;
+      const assessmentsToday = assessmentsTodayResponse.count ?? 0;
+      const assessmentsThisWeek = assessmentsThisWeekResponse.count ?? 0;
+      const assessmentsThisMonth = assessmentsThisMonthResponse.count ?? 0;
 
       // Extract pricing data
       const pricingData = pricingResponse.data;
       const prices = pricingData?.plans || FALLBACK_PRICES;
-      const pricingSource: 'lemonsqueezy' | 'fallback' = pricingData?.source === 'lemonsqueezy' ? 'lemonsqueezy' : 'fallback';
 
       // Convert prices from centavos to pesos
       const premiumMonthlyPrice = (prices.premium?.amount || FALLBACK_PRICES.premium.amount) / 100;
       const repremiumMonthlyPrice = (prices.repremium?.amount || FALLBACK_PRICES.repremium.amount) / 100;
-
-      const { data: usersData, error: usersError } = usersResponse;
-      if (usersError) throw usersError;
-
-      const { data: assessmentsData, error: assessmentsError } = assessmentsResponse;
-      if (assessmentsError) throw assessmentsError;
-
-      const { data: subscriptionsData, error: subscriptionsError } = subscriptionsResponse;
-      if (subscriptionsError) throw subscriptionsError;
-
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-      
-      // Current month calculations
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const daysElapsedInMonth = now.getDate();
-      const monthName = now.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-      // Capitalize first letter
-      const formattedMonthName = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-
-      const totalUsers = usersData?.length || 0;
-      const totalAssessments = assessmentsData?.length || 0;
-      
-      const assessmentsToday = assessmentsData?.filter(a => 
-        a?.created_at && new Date(a.created_at) >= today
-      ).length || 0;
-
-      const assessmentsThisWeek = assessmentsData?.filter(a => 
-        a?.created_at && new Date(a.created_at) >= weekAgo
-      ).length || 0;
-
-      const activeUserIds = new Set(
-        assessmentsData?.filter(a => a?.created_at && new Date(a.created_at) >= monthAgo)
-          .map(a => a.user_id)
-          .filter(Boolean) || []
-      );
-      const activeUsers = activeUserIds.size;
 
       // Count subscriptions by plan with detailed breakdown
       const subscriptionsByPlan = {
@@ -151,7 +159,7 @@ export function useAdminAnalytics() {
       let totalPaidRecurrentUsers = 0;
       let hasRealPricing = false;
 
-      subscriptionsData?.forEach(sub => {
+      subscriptionsData.forEach(sub => {
         if (sub?.status !== 'active' || sub?.plan === 'free') return;
 
         const plan = sub.plan as keyof typeof subscriptionsByPlan;
@@ -164,8 +172,8 @@ export function useAdminAnalytics() {
             } else {
               subscriptionsByPlan.premium.paid++;
               // Use paid_amount if available, otherwise fallback to plan price
-              const monthlyPrice = sub.paid_amount 
-                ? sub.paid_amount / 100 
+              const monthlyPrice = sub.paid_amount
+                ? sub.paid_amount / 100
                 : premiumMonthlyPrice;
               if (sub.paid_amount) hasRealPricing = true;
               subscriptionsByPlan.premium.mrr += monthlyPrice;
@@ -178,9 +186,8 @@ export function useAdminAnalytics() {
               subscriptionsByPlan.repremium.comped++;
             } else {
               subscriptionsByPlan.repremium.paid++;
-              // Use paid_amount if available, otherwise fallback to plan price
-              const monthlyPrice = sub.paid_amount 
-                ? sub.paid_amount / 100 
+              const monthlyPrice = sub.paid_amount
+                ? sub.paid_amount / 100
                 : repremiumMonthlyPrice;
               if (sub.paid_amount) hasRealPricing = true;
               subscriptionsByPlan.repremium.mrr += monthlyPrice;
@@ -195,19 +202,16 @@ export function useAdminAnalytics() {
             }
             break;
           case 'cursos_all':
-            // One-time purchase, no MRR contribution
             if (!isComped) {
               subscriptionsByPlan.cursos_all.paid++;
             }
             break;
           case 'productprepa_business':
-            // One-time purchase, no MRR contribution
             if (!isComped) {
               subscriptionsByPlan.productprepa_business.paid++;
             }
             break;
           case 'productastic_review':
-            // One-time purchase, no MRR contribution
             if (!isComped) {
               subscriptionsByPlan.productastic_review.paid++;
             }
@@ -215,14 +219,14 @@ export function useAdminAnalytics() {
         }
       });
 
-      // Total premium users (all plans except free)
+      // Total premium users (all plans except free) — used for conversion
       const premiumUsers = subscriptionsByPlan.premium.paid + subscriptionsByPlan.premium.comped +
                           subscriptionsByPlan.repremium.paid + subscriptionsByPlan.repremium.comped +
                           subscriptionsByPlan.curso_estrategia.paid +
                           subscriptionsByPlan.cursos_all.paid +
                           subscriptionsByPlan.productprepa_business.paid +
                           subscriptionsByPlan.productastic_review.paid;
-      
+
       // Premium paid = only recurrent paying subscribers (for conversion metrics)
       const premiumPaidUsers = subscriptionsByPlan.premium.paid + subscriptionsByPlan.repremium.paid;
       const premiumCompedUsers = subscriptionsByPlan.premium.comped + subscriptionsByPlan.repremium.comped;
@@ -234,218 +238,100 @@ export function useAdminAnalytics() {
 
       // LTV = Total historical revenue / unique paying users
       // Sum all paid_amount from ALL subscriptions (active + inactive + cancelled)
-      const allPaidAmounts = subscriptionsData?.filter(s => s?.paid_amount && s.paid_amount > 0) || [];
+      const allPaidAmounts = subscriptionsData.filter(s => s?.paid_amount && s.paid_amount > 0);
       const totalHistoricalRevenue = allPaidAmounts.reduce((sum, s) => sum + (s.paid_amount! / 100), 0);
       const uniquePayingUsers = new Set(allPaidAmounts.map(s => s.user_id)).size;
       const ltv = uniquePayingUsers > 0 ? totalHistoricalRevenue / uniquePayingUsers : 0;
 
-      // User growth for current month only
-      const userGrowth: Array<{ date: string; count: number }> = [];
-      for (let i = daysElapsedInMonth - 1; i >= 0; i--) {
-        const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-        const count = usersData?.filter(u => 
-          u?.created_at && new Date(u.created_at).toDateString() === date.toDateString()
-        ).length || 0;
-        userGrowth.push({ date: dateStr, count });
-      }
+      // New users this month + peak registration day
+      const newUsersThisMonth = monthUsers.length;
+      const usersByDay = new Map<string, number>();
+      monthUsers.forEach(u => {
+        if (u?.created_at) {
+          const dateStr = new Date(u.created_at).toISOString().split('T')[0];
+          usersByDay.set(dateStr, (usersByDay.get(dateStr) || 0) + 1);
+        }
+      });
+      const peakDayData = Array.from(usersByDay.entries())
+        .reduce((max, [date, count]) => count > max.count ? { date, count } : max,
+                { date: null as string | null, count: 0 });
+      const peakDay = { count: peakDayData.count, date: peakDayData.date };
 
-      // Calculate peak day with date (within current month)
-      const peakDayData = userGrowth.reduce((max, day) => 
-        day.count > max.count ? day : max, 
-        userGrowth[0] || { date: null, count: 0 }
-      );
-      const peakDay = {
-        count: peakDayData?.count || 0,
-        date: peakDayData?.date || null
-      };
-
-      // Calculate peak assessment day
+      // Peak assessment day (current month)
       const assessmentsByDay = new Map<string, number>();
-      assessmentsData?.forEach(a => {
+      monthAssessments.forEach(a => {
         if (a?.created_at) {
           const dateStr = new Date(a.created_at).toISOString().split('T')[0];
           assessmentsByDay.set(dateStr, (assessmentsByDay.get(dateStr) || 0) + 1);
         }
       });
       const peakAssessmentDayData = Array.from(assessmentsByDay.entries())
-        .reduce((max, [date, count]) => count > max.count ? { date, count } : max, 
+        .reduce((max, [date, count]) => count > max.count ? { date, count } : max,
                 { date: null as string | null, count: 0 });
-      const peakAssessmentDay = {
-        count: peakAssessmentDayData.count,
-        date: peakAssessmentDayData.date
-      };
+      const peakAssessmentDay = { count: peakAssessmentDayData.count, date: peakAssessmentDayData.date };
 
+      // Average score + skill gaps from assessment results
       const skillGapCounts = new Map<string, number>();
-      const skillGapLevels = new Map<string, { currentLevels: number[]; targetLevels: number[] }>();
       let totalScores = 0;
       let totalScoreCount = 0;
-      const scoreRanges = { '1-2': 0, '2-3': 0, '3-4': 0, '4-5': 0 };
-      
-      // Track users with multiple assessments
-      const userAssessmentCounts = new Map<string, number>();
-      
-      // Track scores by subscription type
-      let freeUserScores = 0;
-      let freeUserCount = 0;
-      let premiumUserScores = 0;
-      let premiumUserCount = 0;
 
-      // Get premium user IDs for score tracking
-      const premiumUserIds = new Set(
-        subscriptionsData?.filter(s => s?.plan !== 'free' && s?.status === 'active')
-          .map(s => s.user_id)
-          .filter(Boolean) || []
-      );
-
-      assessmentsData?.forEach(assessment => {
+      assessmentResults.forEach(assessment => {
         try {
           const result = assessment.assessment_result as any;
-          const isPremium = premiumUserIds.has(assessment.user_id);
-          
+
           if (result?.gaps && Array.isArray(result.gaps)) {
             result.gaps.forEach((gap: any) => {
               const domainKey = gap?.domain || gap?.skill || gap?.area || gap?.key;
               if (domainKey && typeof domainKey === 'string') {
                 skillGapCounts.set(domainKey, (skillGapCounts.get(domainKey) || 0) + 1);
-                
-                // Track levels for this gap
-                if (!skillGapLevels.has(domainKey)) {
-                  skillGapLevels.set(domainKey, { currentLevels: [], targetLevels: [] });
-                }
-                const levels = skillGapLevels.get(domainKey)!;
-                if (typeof gap.currentLevel === 'number') {
-                  levels.currentLevels.push(gap.currentLevel);
-                }
-                if (typeof gap.targetLevel === 'number') {
-                  levels.targetLevels.push(gap.targetLevel);
-                }
               }
             });
           }
-          
+
           if (result && typeof result.promedioGlobal === 'number') {
-            const score = result.promedioGlobal;
-            totalScores += score;
+            totalScores += result.promedioGlobal;
             totalScoreCount++;
-            
-            // Distribute into ranges
-            if (score >= 1 && score < 2) scoreRanges['1-2']++;
-            else if (score >= 2 && score < 3) scoreRanges['2-3']++;
-            else if (score >= 3 && score < 4) scoreRanges['3-4']++;
-            else if (score >= 4 && score <= 5) scoreRanges['4-5']++;
-            
-            // Track by subscription type
-            if (isPremium) {
-              premiumUserScores += score;
-              premiumUserCount++;
-            } else {
-              freeUserScores += score;
-              freeUserCount++;
-            }
-          }
-          
-          // Track re-evaluation rate
-          if (assessment.user_id) {
-            userAssessmentCounts.set(
-              assessment.user_id,
-              (userAssessmentCounts.get(assessment.user_id) || 0) + 1
-            );
           }
         } catch (e) {
           // Skip invalid assessments
         }
       });
 
-      const skillGapDistribution = Array.from(skillGapCounts.entries())
-        .map(([skill, count]) => {
-          const levels = skillGapLevels.get(skill);
-          const avgCurrentLevel = levels && levels.currentLevels.length > 0
-            ? levels.currentLevels.reduce((a, b) => a + b, 0) / levels.currentLevels.length
-            : 0;
-          const avgTargetLevel = levels && levels.targetLevels.length > 0
-            ? levels.targetLevels.reduce((a, b) => a + b, 0) / levels.targetLevels.length
-            : 0;
-          
-          return {
-            skill,
-            count,
-            percentage: totalUsers > 0 ? (count / totalUsers) * 100 : 0,
-            avgCurrentLevel,
-            avgTargetLevel
-          };
-        })
+      const topSkillGaps = Array.from(skillGapCounts.entries())
+        .map(([skill, count]) => ({
+          skill,
+          count,
+          percentage: totalUsers > 0 ? (count / totalUsers) * 100 : 0,
+        }))
         .sort((a, b) => b.count - a.count)
-        .slice(0, 8);
-      
-      // Calculate score distribution
-      const scoreDistribution = Object.entries(scoreRanges).map(([range, count]) => ({
-        range,
-        count,
-        percentage: totalScoreCount > 0 ? (count / totalScoreCount) * 100 : 0
-      }));
-      
-      // Calculate re-evaluation rate
-      const usersWithMultipleAssessments = Array.from(userAssessmentCounts.values())
-        .filter(count => count > 1).length;
-      const reEvaluationRate = totalUsers > 0 
-        ? (usersWithMultipleAssessments / totalUsers) * 100 
-        : 0;
-      
-      // Calculate average scores by type
-      const avgScoreFree = freeUserCount > 0 ? freeUserScores / freeUserCount : 0;
-      const avgScorePremium = premiumUserCount > 0 ? premiumUserScores / premiumUserCount : 0;
+        .slice(0, 3);
 
       const conversionRate = totalUsers > 0 ? (premiumUsers / totalUsers) * 100 : 0;
       const averageAssessmentScore = totalScoreCount > 0 ? totalScores / totalScoreCount : 0;
 
-      // Contar usuarios únicos con preguntas opcionales completadas
-      const usersWithOptionalDomains = new Set<string>();
-      assessmentsData?.forEach(assessment => {
-        try {
-          const result = assessment.assessment_result as any;
-          const optionalDomains = result?.optionalDomains;
-          if (optionalDomains && (optionalDomains.growth || optionalDomains.ia_aplicada)) {
-            if (assessment.user_id) {
-              usersWithOptionalDomains.add(assessment.user_id);
-            }
-          }
-        } catch (e) {
-          // Skip invalid
-        }
-      });
-      const usersWithOptionalAnswers = usersWithOptionalDomains.size;
-
       // Determine pricing source
-      const pricingSourceValue: 'lemonsqueezy' | 'fallback' | 'real' = 
+      const pricingSourceValue: 'lemonsqueezy' | 'fallback' | 'real' =
         hasRealPricing ? 'real' : (pricingData?.source === 'lemonsqueezy' ? 'lemonsqueezy' : 'fallback');
 
       const analyticsData: AdminAnalytics = {
         totalUsers,
-        activeUsers,
         totalAssessments,
         assessmentsToday,
         assessmentsThisWeek,
-        premiumUsers,
+        assessmentsThisMonth,
         premiumPaidUsers,
         premiumCompedUsers,
-        userGrowth,
-        peakDay,
-        peakAssessmentDay,
-        skillGapDistribution,
         conversionRate,
         mrr,
         ltv,
         arpu,
         averageAssessmentScore,
-        recentActivePeriod: "30 días",
-        scoreDistribution,
-        reEvaluationRate,
-        avgScoreFree,
-        avgScorePremium,
-        usersWithOptionalAnswers,
+        newUsersThisMonth,
+        peakDay,
+        peakAssessmentDay,
         monthName: formattedMonthName,
         daysElapsedInMonth,
+        topSkillGaps,
         subscriptionsByPlan,
         pricingSource: pricingSourceValue,
       };

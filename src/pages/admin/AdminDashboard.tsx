@@ -4,7 +4,6 @@ import { useAdminAnalytics } from '@/hooks/useAdminAnalytics';
 import { Loader2, Users, ClipboardList, TrendingUp, Crown, Target, Calendar, DollarSign, RefreshCw, Gift } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { JuniorUsersCard } from '@/components/admin/JuniorUsersCard';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -39,7 +38,6 @@ export default function AdminDashboard() {
     }).format(amount);
   };
 
-  // Use real financial metrics from analytics
   const { mrr, ltv, arpu } = analytics;
 
   return (
@@ -55,14 +53,14 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {lastUpdated && (
             <span className="text-xs text-muted-foreground hidden sm:block">
-              Actualizado: {lastUpdated.toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
+              Actualizado: {lastUpdated.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit'
               })}
             </span>
           )}
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={refetch}
             disabled={refreshing}
@@ -186,7 +184,7 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Financial Summary */}
+      {/* Financial Summary + User Growth */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2 items-start">
         <Card>
           <CardHeader>
@@ -213,7 +211,7 @@ export default function AdminDashboard() {
                 {formatCurrency(arpu)}
               </Badge>
             </div>
-            
+
             {/* Breakdown by plan */}
             <div className="pt-2 border-t border-border space-y-2">
               <span className="text-xs text-muted-foreground font-medium">Desglose por plan:</span>
@@ -273,14 +271,14 @@ export default function AdminDashboard() {
               <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
                 <span className="text-sm font-medium">Total nuevos usuarios</span>
                 <span className="text-2xl font-bold text-primary">
-                  {analytics.userGrowth.reduce((acc, day) => acc + day.count, 0)}
+                  {analytics.newUsersThisMonth}
                 </span>
               </div>
               <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
                 <span className="text-sm font-medium">Promedio diario</span>
                 <span className="text-lg font-semibold">
-                  {analytics.daysElapsedInMonth > 0 
-                    ? Math.round(analytics.userGrowth.reduce((acc, day) => acc + day.count, 0) / analytics.daysElapsedInMonth)
+                  {analytics.daysElapsedInMonth > 0
+                    ? Math.round(analytics.newUsersThisMonth / analytics.daysElapsedInMonth)
                     : 0}
                 </span>
               </div>
@@ -315,174 +313,74 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Distribución de Brechas de Habilidades
-            </CardTitle>
-            <CardDescription>Áreas más problemáticas basadas en evaluaciones reales</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {analytics.skillGapDistribution.length > 0 ? (
-              <div className="space-y-3">
-                {analytics.skillGapDistribution.map((skill, index) => (
-                  <div key={skill.skill} className="space-y-2 p-3 bg-muted/50 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">{skill.skill}</span>
-                      <Badge variant="outline">{skill.percentage.toFixed(1)}% usuarios</Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-muted rounded-full h-2">
-                        <div 
-                          className="bg-primary h-2 rounded-full" 
-                          style={{ 
-                            width: `${(skill.count / Math.max(...analytics.skillGapDistribution.map(s => s.count))) * 100}%` 
-                          }}
-                        />
-                      </div>
-                      <span className="text-sm font-bold min-w-[2rem]">{skill.count}</span>
-                    </div>
-                    {skill.avgCurrentLevel > 0 && skill.avgTargetLevel > 0 && (
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Nivel actual: {skill.avgCurrentLevel.toFixed(1)}</span>
-                        <span>Objetivo: {skill.avgTargetLevel.toFixed(1)}</span>
-                        <span className="font-medium text-primary">Gap: {(skill.avgTargetLevel - skill.avgCurrentLevel).toFixed(1)}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No hay datos de brechas de habilidades disponibles aún.</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Las brechas se mostrarán cuando los usuarios completen evaluaciones.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
+      {/* Assessments + Top Skill Gaps */}
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2 items-start">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ClipboardList className="h-5 w-5" />
-              Métricas de Evaluación
+              Evaluaciones
             </CardTitle>
-            <CardDescription>Calidad y engagement de evaluaciones</CardDescription>
+            <CardDescription>Volumen y puntuación promedio</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Distribución de Scores */}
-              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                <span className="text-sm font-medium block">Distribución de Scores</span>
-                <div className="grid grid-cols-2 gap-2">
-                  {analytics.scoreDistribution.map((range) => (
-                    <div key={range.range} className="flex items-center justify-between p-2 bg-background rounded">
-                      <span className="text-xs">{range.range}</span>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {range.count}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          ({range.percentage.toFixed(0)}%)
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <div className="text-2xl font-bold text-primary">{analytics.assessmentsToday}</div>
+                  <p className="text-sm text-muted-foreground">Hoy</p>
+                </div>
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <div className="text-2xl font-bold text-primary">{analytics.assessmentsThisWeek}</div>
+                  <p className="text-sm text-muted-foreground">Esta semana</p>
+                </div>
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <div className="text-2xl font-bold text-primary">{analytics.assessmentsThisMonth}</div>
+                  <p className="text-sm text-muted-foreground">Este mes</p>
                 </div>
               </div>
-
-              {/* Comparación Free vs Premium */}
-              <div className="p-4 bg-muted/50 rounded-lg space-y-2">
-                <span className="text-sm font-medium block">Promedio por Plan</span>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Free</span>
-                  <span className="text-lg font-bold text-foreground">
-                    {analytics.avgScoreFree > 0 ? analytics.avgScoreFree.toFixed(2) : 'N/A'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground">Premium</span>
-                  <span className="text-lg font-bold text-primary">
-                    {analytics.avgScorePremium > 0 ? analytics.avgScorePremium.toFixed(2) : 'N/A'}
-                  </span>
-                </div>
-                {analytics.avgScoreFree > 0 && analytics.avgScorePremium > 0 && (
-                  <div className="pt-2 border-t border-border">
-                    <span className="text-xs text-muted-foreground">
-                      Diferencia: {(analytics.avgScorePremium - analytics.avgScoreFree).toFixed(2)} pts
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Re-evaluación */}
-              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">Tasa de re-evaluación</span>
-                <span className="text-lg font-semibold">
-                  {analytics.reEvaluationRate.toFixed(1)}%
-                </span>
-              </div>
-
               <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
                 <span className="text-sm font-medium">Promedio de puntuación</span>
                 <span className="text-2xl font-bold text-primary">
                   {analytics.averageAssessmentScore > 0 ? analytics.averageAssessmentScore.toFixed(1) : 'N/A'}
                 </span>
               </div>
-              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">Evaluaciones por usuario activo</span>
-                <span className="text-lg font-semibold">
-                  {analytics.activeUsers > 0 ? (analytics.totalAssessments / analytics.activeUsers).toFixed(1) : '0'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">Tasa de finalización</span>
-                <span className="text-lg font-semibold">
-                  {analytics.totalUsers > 0 ? ((analytics.totalAssessments / analytics.totalUsers) * 100).toFixed(1) : '0'}%
-                </span>
-              </div>
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Top 3 Brechas de Habilidades
+            </CardTitle>
+            <CardDescription>Áreas más problemáticas según evaluaciones</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {analytics.topSkillGaps.length > 0 ? (
+              <div className="space-y-3">
+                {analytics.topSkillGaps.map((skill, index) => (
+                  <div key={skill.skill} className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-bold text-primary">#{index + 1}</span>
+                      <span className="text-sm font-medium">{skill.skill}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-lg font-semibold block">{skill.count}</span>
+                      <span className="text-xs text-muted-foreground">{skill.percentage.toFixed(1)}% usuarios</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No hay datos de brechas de habilidades disponibles aún.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Recent Activity Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Resumen de Actividad Reciente</CardTitle>
-          <CardDescription>Métricas clave del sistema</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold text-primary">{analytics.assessmentsToday}</div>
-              <p className="text-sm text-muted-foreground">Evaluaciones hoy</p>
-            </div>
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold text-primary">{analytics.activeUsers}</div>
-              <p className="text-sm text-muted-foreground">Usuarios activos ({analytics.recentActivePeriod})</p>
-            </div>
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold text-primary">{analytics.conversionRate.toFixed(1)}%</div>
-              <p className="text-sm text-muted-foreground">Tasa de conversión</p>
-            </div>
-            <div className="text-center p-4 bg-purple-100 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-800">
-              <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">{analytics.usersWithOptionalAnswers}</div>
-              <p className="text-sm text-purple-600 dark:text-purple-400">
-                🟣 Opcionales ({analytics.totalUsers > 0 ? ((analytics.usersWithOptionalAnswers / analytics.totalUsers) * 100).toFixed(1) : 0}%)
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Junior Users Card */}
-      <JuniorUsersCard />
     </div>
   );
 }
