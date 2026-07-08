@@ -110,17 +110,18 @@ export function useAdminAnalytics() {
         supabase.from('assessments').select('id', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
         supabase.from('assessments').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString()),
         supabase.from('assessments').select('id', { count: 'exact', head: true }).gte('created_at', monthStart.toISOString()),
+        // Paginated reads need a deterministic order; unordered .range() can skip/duplicate rows across pages
         fetchAllRows<{ created_at: string }>((from, to) =>
-          supabase.from('profiles').select('created_at').gte('created_at', monthStart.toISOString()).range(from, to)
+          supabase.from('profiles').select('created_at').gte('created_at', monthStart.toISOString()).order('id', { ascending: true }).range(from, to)
         ),
         fetchAllRows<{ created_at: string }>((from, to) =>
-          supabase.from('assessments').select('created_at').gte('created_at', monthStart.toISOString()).range(from, to)
+          supabase.from('assessments').select('created_at').gte('created_at', monthStart.toISOString()).order('id', { ascending: true }).range(from, to)
         ),
         fetchAllRows<{ assessment_result: unknown }>((from, to) =>
-          supabase.from('assessments').select('assessment_result').range(from, to)
+          supabase.from('assessments').select('assessment_result').order('id', { ascending: true }).range(from, to)
         ),
         fetchAllRows<{ plan: string; status: string; user_id: string; is_comped: boolean | null; paid_amount: number | null }>((from, to) =>
-          supabase.from('user_subscriptions').select('plan, status, user_id, is_comped, paid_amount').range(from, to)
+          supabase.from('user_subscriptions').select('plan, status, user_id, is_comped, paid_amount').order('id', { ascending: true }).range(from, to)
         ),
       ]);
 
