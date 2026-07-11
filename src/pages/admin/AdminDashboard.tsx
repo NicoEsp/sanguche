@@ -5,8 +5,17 @@ import { Loader2, Users, ClipboardList, TrendingUp, Crown, Target, Calendar, Dol
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { AssessmentTypeKey, getAssessmentTypeDef } from '@/utils/scoring';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+const ASSESSMENT_TYPE_LABELS: Record<AssessmentTypeKey | 'legacy', string> = {
+  experimentado: 'Con experiencia',
+  sin_experiencia: 'Dando el salto',
+  builder: 'Product Builder',
+  lider: 'Líder de equipo',
+  legacy: 'Legacy'
+};
 
 export default function AdminDashboard() {
   const { analytics, loading, error, refreshing, refetch, lastUpdated } = useAdminAnalytics();
@@ -39,6 +48,7 @@ export default function AdminDashboard() {
   };
 
   const { mrr, ltv, arpu } = analytics;
+  const maxAssessmentsByType = Math.max(...analytics.assessmentsByType.map((item) => item.count), 1);
 
   return (
     <div className="space-y-6">
@@ -116,6 +126,32 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.conversionRate.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">Free to Premium</p>
+          </CardContent>
+        </Card>
+
+        <Card className="h-full overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Evaluaciones por perfil</CardTitle>
+            <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {analytics.assessmentsByType
+              .filter((item) => item.key !== 'legacy' || item.count > 0)
+              .map((item) => (
+                <div key={item.key}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground truncate">{ASSESSMENT_TYPE_LABELS[item.key]}</span>
+                    <span className="text-xs font-semibold text-foreground">{item.count}</span>
+                  </div>
+                  <div
+                    className={cn('h-1.5 rounded-full mt-1', item.key === 'legacy' && 'bg-muted-foreground/40')}
+                    style={{
+                      width: `${(item.count / maxAssessmentsByType) * 100}%`,
+                      backgroundColor: item.key === 'legacy' ? undefined : getAssessmentTypeDef(item.key).accent.hex
+                    }}
+                  />
+                </div>
+              ))}
           </CardContent>
         </Card>
       </div>
