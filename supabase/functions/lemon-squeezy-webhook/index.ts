@@ -63,10 +63,11 @@ interface LemonSqueezyWebhookEvent {
       total?: number; // Total amount in cents (includes discounts)
       subtotal?: number;
       discount_total?: number;
-      // LemonSqueezy-hosted action link for the dunning email (C1).
-      urls?: {
-        update_payment_method?: string;
-      };
+      // subscription_payment_failed delivers a subscription-INVOICE object, so
+      // data.id is the invoice id and its `urls` only expose invoice_url. The
+      // update-payment-method link lives on the Subscription object, which we
+      // fetch from the LS API using this subscription_id (C1 dunning).
+      subscription_id?: number;
     };
   };
 }
@@ -633,7 +634,31 @@ serve(async (req) => {
         // they can fix their card before access is cut.
         console.log(`[Webhook] Processing subscription_payment_failed`);
         try {
-          const updateUrl = event!.data.attributes.urls?.update_payment_method || null;
+          // Invoice events don't carry the subscription's action URLs, so fetch
+          // the real update-payment-method link from the LS API via the
+          // invoice's subscription_id. Falls back to /perfil (inside
+          // sendPaymentFailedEmail) when unavailable.
+          const failedSubId =
+            event!.data.attributes.subscription_id?.toString() || subscriptionId;
+          let updateUrl: string | null = null;
+          const lsApiKey = Deno.env.get('LEMON_SQUEEZY_API_KEY');
+          if (lsApiKey && failedSubId) {
+            try {
+              const subRes = await fetch(
+                `https://api.lemonsqueezy.com/v1/subscriptions/${failedSubId}`,
+                { headers: { 'Authorization': `Bearer ${lsApiKey}`, 'Accept': 'application/vnd.api+json' } },
+              );
+              if (subRes.ok) {
+                const subJson = await subRes.json();
+                updateUrl = subJson?.data?.attributes?.urls?.update_payment_method || null;
+              } else {
+                console.warn(`[Webhook] Could not fetch subscription ${failedSubId} for update URL: ${subRes.status}`);
+              }
+            } catch (urlErr) {
+              console.warn('[Webhook] Error fetching update_payment_method URL:', urlErr);
+            }
+          }
+
           const recipient = await loadRecipient(
             supabase, userId, userEmail, event!.data.attributes.user_name || null,
           );
