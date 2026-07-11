@@ -63,13 +63,9 @@ interface LemonSqueezyWebhookEvent {
       total?: number; // Total amount in cents (includes discounts)
       subtotal?: number;
       discount_total?: number;
-      // Present on subscription-invoice events (payment_success/failed) where
-      // data.id is the invoice id, not the subscription id.
-      subscription_id?: number;
-      // LemonSqueezy-hosted action links (subscription objects).
+      // LemonSqueezy-hosted action link for the dunning email (C1).
       urls?: {
         update_payment_method?: string;
-        customer_portal?: string;
       };
     };
   };
@@ -576,38 +572,38 @@ serve(async (req) => {
           throw new Error(`Failed to update ${eventName}: ${subCancelledError.message}`);
         }
 
-        // C2 · Confirmation / soft win-back. Skip when this "cancellation" is
-        // really an upgrade/downgrade swap: subscription_created auto-cancels
-        // the previous LS subscription, which fires this same event even though
-        // the user still has an active plan. Only email genuine churn.
-        try {
-          const { data: activeSub } = await supabase
-            .from('user_subscriptions')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('status', 'active')
-            .maybeSingle();
+        // C2 · Confirmation / soft win-back. Email only on subscription_cancelled
+        // (one event → one goodbye; subscription_expired would double it). Skip
+        // when this is really an upgrade/downgrade swap: subscription_created
+        // auto-cancels the previous LS subscription, which fires this event even
+        // though the user still has an active plan. Only email genuine churn.
+        if (eventName === 'subscription_cancelled') {
+          try {
+            const { data: activeSub } = await supabase
+              .from('user_subscriptions')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('status', 'active')
+              .maybeSingle();
 
-          if (activeSub) {
-            console.log(`[Webhook] ${eventName}: user still active — skipping goodbye email (upgrade swap)`);
-          } else {
-            const recipient = await loadRecipient(
-              supabase, userId, userEmail, event!.data.attributes.user_name || null,
-            );
-            if (recipient) {
-              await sendSubscriptionCancelledEmail(supabase, {
-                userId,
-                email: recipient.email,
-                name: recipient.name,
-                subscriptionId,
-                endsAt: event!.data.attributes.ends_at || null,
-                expired: eventName === 'subscription_expired',
-              });
+            if (activeSub) {
+              console.log(`[Webhook] ${eventName}: user still active — skipping goodbye email (upgrade swap)`);
+            } else {
+              const recipient = await loadRecipient(
+                supabase, userId, userEmail, event!.data.attributes.user_name || null,
+              );
+              if (recipient) {
+                await sendSubscriptionCancelledEmail({
+                  email: recipient.email,
+                  name: recipient.name,
+                  endsAt: event!.data.attributes.ends_at || null,
+                });
+              }
             }
+          } catch (mailError) {
+            // Non-fatal: never fail the webhook over an email.
+            console.error('[Webhook] Error sending cancellation email (non-fatal):', mailError);
           }
-        } catch (mailError) {
-          // Non-fatal: never fail the webhook over an email.
-          console.error('[Webhook] Error sending cancellation email (non-fatal):', mailError);
         }
         break;
       }
@@ -637,46 +633,15 @@ serve(async (req) => {
         // they can fix their card before access is cut.
         console.log(`[Webhook] Processing subscription_payment_failed`);
         try {
-          // On invoice events data.id is the invoice id, so prefer subscription_id.
-          const failedSubId =
-            event!.data.attributes.subscription_id?.toString() || subscriptionId;
-          const eventDate = (event!.data.attributes.updated_at || new Date().toISOString()).slice(0, 10);
-
-          // Direct "update your card" link. Invoice events don't carry the
-          // subscription's action URLs, so fetch them from the LS API. Falls
-          // back to /perfil inside sendPaymentFailedEmail when unavailable.
-          let updateUrl = event!.data.attributes.urls?.update_payment_method || null;
-          if (!updateUrl && failedSubId) {
-            const lsApiKey = Deno.env.get('LEMON_SQUEEZY_API_KEY');
-            if (lsApiKey) {
-              try {
-                const subRes = await fetch(
-                  `https://api.lemonsqueezy.com/v1/subscriptions/${failedSubId}`,
-                  { headers: { 'Authorization': `Bearer ${lsApiKey}`, 'Accept': 'application/vnd.api+json' } },
-                );
-                if (subRes.ok) {
-                  const subJson = await subRes.json();
-                  updateUrl = subJson?.data?.attributes?.urls?.update_payment_method || null;
-                } else {
-                  console.warn(`[Webhook] Could not fetch subscription ${failedSubId} for update URL: ${subRes.status}`);
-                }
-              } catch (urlErr) {
-                console.warn('[Webhook] Error fetching update_payment_method URL:', urlErr);
-              }
-            }
-          }
-
+          const updateUrl = event!.data.attributes.urls?.update_payment_method || null;
           const recipient = await loadRecipient(
             supabase, userId, userEmail, event!.data.attributes.user_name || null,
           );
           if (recipient) {
-            await sendPaymentFailedEmail(supabase, {
-              userId,
+            await sendPaymentFailedEmail({
               email: recipient.email,
               name: recipient.name,
-              subscriptionId: failedSubId,
               updatePaymentUrl: updateUrl,
-              eventDate,
             });
           } else {
             console.warn('[Webhook] subscription_payment_failed: no recipient email resolved');
