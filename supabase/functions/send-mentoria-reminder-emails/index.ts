@@ -17,7 +17,7 @@
 // even if the cron runs more than once.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ctaButton, emailShell, firstNameFrom, sendResendEmail, SITE_URL } from "../_shared/email.ts";
+import { ctaButton, emailShell, escapeHtml, firstNameFrom, sendResendEmail, SITE_URL } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,26 +27,42 @@ const corsHeaders = {
 
 const MENTORIA_URL = `${SITE_URL}/mentoria`;
 
-// Same rule as the frontend: a session is available if we're in a different
-// calendar month (or year) than the last session, or there was never one.
+// The edge function runs in UTC, but the product is Argentina-centric, so month
+// rollover is evaluated in AR time to match what users see in the app (and to
+// avoid a user missing a month's reminder when their last session lands on the
+// UTC side of a month boundary).
+const BUSINESS_TZ = "America/Argentina/Buenos_Aires";
+
+function yearMonthInTz(date: Date): { year: number; month: number } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BUSINESS_TZ,
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+  return {
+    year: Number(parts.find((p) => p.type === "year")!.value),
+    month: Number(parts.find((p) => p.type === "month")!.value),
+  };
+}
+
+// A session is available if we're in a different calendar month (or year) than
+// the last session — evaluated in the business timezone — or there was never one.
 function isNewMonth(lastDate: string | null | undefined, now: Date): boolean {
   if (!lastDate) return true;
   const last = new Date(lastDate);
   if (isNaN(last.getTime())) return true;
-  return (
-    now.getMonth() !== last.getMonth() ||
-    now.getFullYear() !== last.getFullYear()
-  );
+  const a = yearMonthInTz(now);
+  const b = yearMonthInTz(last);
+  return a.year !== b.year || a.month !== b.month;
 }
 
 function currentPeriod(now: Date): string {
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  return `${y}-${m}`;
+  const { year, month } = yearMonthInTz(now);
+  return `${year}-${String(month).padStart(2, "0")}`;
 }
 
 function buildEmailHtml(name: string, isRePremium: boolean): string {
-  const firstName = firstNameFrom(name);
+  const firstName = escapeHtml(firstNameFrom(name));
   const headline = isRePremium
     ? "Tenés tus 2 sesiones de mentoría de este mes"
     : "Tu sesión de mentoría del mes te está esperando";
@@ -158,22 +174,30 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
-      // Pre-check dedup (belt-and-suspenders alongside the UNIQUE constraint).
-      const { data: existing } = await supabase
-        .from("mentoria_reminder_queue")
-        .select("id")
-        .eq("user_id", profile.id)
-        .eq("period", period)
-        .maybeSingle();
-
-      if (existing) {
-        skippedAlreadySent++;
-        console.log(`[send-mentoria-reminder-emails] SKIP ${profile.email}: already reminded for ${period}`);
-        continue;
-      }
-
       const plan = planByUser.get(profile.id) ?? "premium";
       const isRePremium = plan === "repremium";
+
+      // Atomically claim the (user, period) slot BEFORE sending. The UNIQUE
+      // constraint means only one run can insert; a concurrent/overlapping run
+      // hits a conflict and skips here — so a user never receives two reminders
+      // even if the function is invoked more than once at a time (TOCTOU-safe).
+      const { data: claimed, error: claimError } = await supabase
+        .from("mentoria_reminder_queue")
+        .insert({
+          user_id: profile.id,
+          period,
+          plan,
+          email: profile.email,
+          status: "sending",
+        })
+        .select("id")
+        .single();
+
+      if (claimError || !claimed) {
+        skippedAlreadySent++;
+        console.log(`[send-mentoria-reminder-emails] SKIP ${profile.email}: already claimed for ${period}`);
+        continue;
+      }
 
       console.log(`[send-mentoria-reminder-emails] SENDING to ${profile.email} (${plan})`);
 
@@ -190,31 +214,27 @@ Deno.serve(async (req: Request) => {
           html,
         });
 
+        await supabase
+          .from("mentoria_reminder_queue")
+          .update({
+            status: result.ok ? "sent" : "error",
+            error_message: result.ok ? null : result.body,
+          })
+          .eq("id", claimed.id);
+
         if (!result.ok) {
           console.error(`[send-mentoria-reminder-emails] Resend error for ${profile.email}:`, result.body);
-          await supabase.from("mentoria_reminder_queue").insert({
-            user_id: profile.id,
-            period,
-            plan,
-            email: profile.email,
-            status: "error",
-            error_message: result.body,
-          });
           errors.push(`${profile.email}: ${result.body}`);
           continue;
         }
-
-        await supabase.from("mentoria_reminder_queue").insert({
-          user_id: profile.id,
-          period,
-          plan,
-          email: profile.email,
-          status: "sent",
-        });
         sentCount++;
       } catch (emailErr) {
         console.error(`[send-mentoria-reminder-emails] Error sending to ${profile.email}:`, emailErr);
         errors.push(`${profile.email}: ${String(emailErr)}`);
+        await supabase
+          .from("mentoria_reminder_queue")
+          .update({ status: "error", error_message: String(emailErr) })
+          .eq("id", claimed.id);
       }
     }
 

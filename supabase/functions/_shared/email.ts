@@ -61,12 +61,13 @@ ${bodyInner}
 </html>`;
 }
 
-// A dark pill CTA button, matching the other templates.
+// A dark pill CTA button, matching the other templates. href/label are escaped
+// because the href can come from an external source (LemonSqueezy URLs).
 export function ctaButton(href: string, label: string): string {
   return `<table width="100%" cellpadding="0" cellspacing="0">
   <tr><td align="center" style="padding:8px 0 32px;">
-    <a href="${href}" target="_blank" style="display:inline-block;background:#18181b;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">
-      ${label}
+    <a href="${escapeHtml(href)}" target="_blank" style="display:inline-block;background:#18181b;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">
+      ${escapeHtml(label)}
     </a>
   </td></tr>
   </table>`;
@@ -78,8 +79,10 @@ export interface SendEmailResult {
   body: string;
 }
 
-// Thin wrapper over the Resend REST API. Returns the outcome instead of
-// throwing so callers can record it in their queue tables.
+// Thin wrapper over the Resend REST API. Never throws — network errors and
+// timeouts are converted into a failed SendEmailResult so callers can always
+// inspect the outcome and record it in their queue tables. The 10s timeout
+// stops a hung Resend request from delaying the webhook's 200 response.
 export async function sendResendEmail(opts: {
   apiKey: string;
   to: string;
@@ -87,21 +90,26 @@ export async function sendResendEmail(opts: {
   html: string;
   replyTo?: string;
 }): Promise<SendEmailResult> {
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${opts.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: FROM,
-      to: [opts.to],
-      subject: opts.subject,
-      html: opts.html,
-      ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
-    }),
-  });
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${opts.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: FROM,
+        to: [opts.to],
+        subject: opts.subject,
+        html: opts.html,
+        ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
 
-  const body = await res.text();
-  return { ok: res.ok, status: res.status, body };
+    const body = await res.text();
+    return { ok: res.ok, status: res.status, body };
+  } catch (err) {
+    return { ok: false, status: 0, body: String(err) };
+  }
 }

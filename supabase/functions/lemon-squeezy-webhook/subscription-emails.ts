@@ -10,6 +10,7 @@
 import {
   ctaButton,
   emailShell,
+  escapeHtml,
   firstNameFrom,
   sendResendEmail,
   SITE_URL,
@@ -21,7 +22,7 @@ import { maskEmail } from "../_shared/pii.ts";
 function buildPaymentFailedHtml(name: string, updateUrl: string): string {
   const body = `<!-- Body -->
 <tr><td style="padding:40px;">
-  <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 16px;">Hola ${firstNameFrom(name)}, ¿cómo estás?</p>
+  <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 16px;">Hola ${escapeHtml(firstNameFrom(name))}, ¿cómo estás?</p>
   <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 16px;">
     Intentamos renovar tu suscripción a ProductPrepa pero <strong>el pago no se pudo procesar</strong>. Suele pasar por una tarjeta vencida, sin fondos o un bloqueo del banco.
   </p>
@@ -76,7 +77,7 @@ function buildCancelledHtml(name: string, endsAt: string | null): string {
 
   const body = `<!-- Body -->
 <tr><td style="padding:40px;">
-  <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 16px;">Hola ${firstNameFrom(name)},</p>
+  <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 16px;">Hola ${escapeHtml(firstNameFrom(name))},</p>
   <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 16px;">
     Confirmamos que cancelaste tu suscripción a ProductPrepa. Fue un gusto acompañarte en tu crecimiento en Producto.
   </p>
