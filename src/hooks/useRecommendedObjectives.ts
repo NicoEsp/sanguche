@@ -93,7 +93,11 @@ export function useRecommendedObjectives(): UseRecommendedObjectivesReturn {
     if (!assessmentResult) return [];
     
     const { gaps = [], neutralAreas = [], nivel, promedioGlobal } = assessmentResult;
-    const userLevel = nivel as SeniorityLevel;
+    // Para quien todavía no trabaja en producto, el "nivel" es un bucket de
+    // afinidad, no seniority laboral: los objetivos correctos son los de
+    // entrada (Junior), no los de liderazgo organizacional.
+    const userLevel: SeniorityLevel =
+      assessmentResult.assessmentType === "sin_experiencia" ? "Junior" : (nivel as SeniorityLevel);
     
     // Use promedioGlobal from assessment (global average score)
     const globalAverage = promedioGlobal ?? 3;

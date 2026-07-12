@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { AssessmentTypeKey } from '@/utils/scoring';
+import { ASSESSMENT_TYPES, type AssessmentTypeKey } from '@/utils/scoring';
 
 // Fallback prices in case pricing-config fails (amounts in centavos ARS)
 const FALLBACK_PRICES = {
@@ -274,13 +274,13 @@ export function useAdminAnalytics() {
 
       // Average score + skill gaps from assessment results
       const skillGapCounts = new Map<string, number>();
-      const assessmentTypeCounts: Record<AssessmentTypeKey | 'legacy', number> = {
-        experimentado: 0,
-        sin_experiencia: 0,
-        builder: 0,
-        lider: 0,
-        legacy: 0,
-      };
+      const assessmentTypeKeys: ReadonlyArray<AssessmentTypeKey | 'legacy'> = [
+        ...ASSESSMENT_TYPES.map(t => t.key),
+        'legacy',
+      ];
+      const assessmentTypeCounts = Object.fromEntries(
+        assessmentTypeKeys.map(key => [key, 0])
+      ) as Record<AssessmentTypeKey | 'legacy', number>;
       let totalScores = 0;
       let totalScoreCount = 0;
 
@@ -316,9 +316,7 @@ export function useAdminAnalytics() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 3);
 
-      const assessmentsByType = (
-        ['experimentado', 'sin_experiencia', 'builder', 'lider', 'legacy'] as const
-      ).map(key => ({ key, count: assessmentTypeCounts[key] }));
+      const assessmentsByType = assessmentTypeKeys.map(key => ({ key, count: assessmentTypeCounts[key] }));
 
       const conversionRate = totalUsers > 0 ? (premiumUsers / totalUsers) * 100 : 0;
       const averageAssessmentScore = totalScoreCount > 0 ? totalScores / totalScoreCount : 0;

@@ -229,11 +229,14 @@ export const DOMAINS = [
 
 export type DomainKey = (typeof DOMAINS)[number]["key"];
 
-const shape: Record<DomainKey, z.ZodNumber> = DOMAINS.reduce((acc, d) => {
-  (acc as Record<string, z.ZodNumber>)[d.key] = z.number({ 
+const domainScoreSchema = () =>
+  z.number({
     required_error: "Obligatorio para avanzar",
     invalid_type_error: "Debe seleccionar una opción válida"
   }).int().min(1, "Debe seleccionar al menos 1").max(5, "El valor máximo es 5");
+
+const shape: Record<DomainKey, z.ZodNumber> = DOMAINS.reduce((acc, d) => {
+  (acc as Record<string, z.ZodNumber>)[d.key] = domainScoreSchema();
   return acc;
 }, {} as Record<DomainKey, z.ZodNumber>);
 
@@ -658,24 +661,25 @@ export const LIDER_DOMAINS: ReadonlyArray<AssessmentDomainDef> = [
 export type AssessmentTypeDef = {
   key: AssessmentTypeKey;
   title: string;
+  /** Etiqueta corta para admin, filtros y reportes. */
+  shortLabel: string;
   persona: string;
   promise: string;
   resultTag: string;
   plan: { key: string; name: string; route: string; ctaLabel: string };
+  // Clases visuales por tipo: solo lo que se consume de forma compartida.
+  // Las variantes compuestas (hover, gradientes) viven como literales en cada
+  // componente porque Tailwind no genera clases armadas dinámicamente.
   accent: {
     hex: string;
-    text: string;
-    chipBg: string;
-    border: string;
-    ring: string;
     badge: string;
-    softBg: string;
   };
 };
 
 export const ASSESSMENT_TYPES: ReadonlyArray<AssessmentTypeDef> = [
   {
     key: "experimentado",
+    shortLabel: "Con experiencia",
     title: "Ya trabajo en producto",
     persona: "PM, Designer o Dev con experiencia",
     promise: "Sabé dónde estás parado hoy y qué te separa de tu próximo nivel.",
@@ -683,16 +687,12 @@ export const ASSESSMENT_TYPES: ReadonlyArray<AssessmentTypeDef> = [
     plan: { key: "repremium", name: "RePremium", route: "/planes", ctaLabel: "Conocer RePremium" },
     accent: {
       hex: "#a855f7",
-      text: "text-purple-600 dark:text-purple-300",
-      chipBg: "bg-purple-500/10",
-      border: "border-purple-500/40",
-      ring: "ring-purple-500/30",
-      badge: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
-      softBg: "bg-purple-50 dark:bg-purple-950/30"
+      badge: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30"
     }
   },
   {
     key: "sin_experiencia",
+    shortLabel: "Dando el salto",
     title: "Quiero dar el salto",
     persona: "Sin experiencia en producto digital",
     promise: "Descubrí tu afinidad con cada área y por dónde te conviene entrar.",
@@ -700,16 +700,12 @@ export const ASSESSMENT_TYPES: ReadonlyArray<AssessmentTypeDef> = [
     plan: { key: "premium", name: "Premium", route: "/planes", ctaLabel: "Conocer Premium" },
     accent: {
       hex: "#f59e0b",
-      text: "text-amber-600 dark:text-amber-300",
-      chipBg: "bg-amber-500/10",
-      border: "border-amber-500/40",
-      ring: "ring-amber-500/30",
-      badge: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
-      softBg: "bg-amber-50 dark:bg-amber-950/30"
+      badge: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
     }
   },
   {
     key: "builder",
+    shortLabel: "Product Builder",
     title: "Estoy construyendo un producto",
     persona: "Founder o Product Builder",
     promise: "Medí cuánto método hay detrás de lo que estás creando.",
@@ -717,16 +713,12 @@ export const ASSESSMENT_TYPES: ReadonlyArray<AssessmentTypeDef> = [
     plan: { key: "productastic_review", name: "Productastic Review", route: "/planes", ctaLabel: "Conocer Productastic Review" },
     accent: {
       hex: "#10b981",
-      text: "text-emerald-600 dark:text-emerald-300",
-      chipBg: "bg-emerald-500/10",
-      border: "border-emerald-500/40",
-      ring: "ring-emerald-500/30",
-      badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
-      softBg: "bg-emerald-50 dark:bg-emerald-950/30"
+      badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
     }
   },
   {
     key: "lider",
+    shortLabel: "Líder de equipo",
     title: "Lidero un equipo de producto",
     persona: "Manager, Head o Team Lead",
     promise: "Evaluá la madurez de tu equipo y encontrá dónde nivelarlo.",
@@ -734,12 +726,7 @@ export const ASSESSMENT_TYPES: ReadonlyArray<AssessmentTypeDef> = [
     plan: { key: "productprepa_business", name: "ProductPrepa for B2B", route: "/empresas", ctaLabel: "Ver ProductPrepa for B2B" },
     accent: {
       hex: "#6366f1",
-      text: "text-indigo-600 dark:text-indigo-300",
-      chipBg: "bg-indigo-500/10",
-      border: "border-indigo-500/40",
-      ring: "ring-indigo-500/30",
-      badge: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30",
-      softBg: "bg-indigo-50 dark:bg-indigo-950/30"
+      badge: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30"
     }
   }
 ];
@@ -761,20 +748,19 @@ export function getDomainsForType(type: AssessmentTypeKey): ReadonlyArray<Assess
   }
 }
 
+const schemaCache: Partial<Record<AssessmentTypeKey, ReturnType<typeof z.object>>> = {};
+
 export function getAssessmentSchema(type: AssessmentTypeKey) {
   if (type === "experimentado") return assessmentSchema;
+  const cached = schemaCache[type];
+  if (cached) return cached;
   const typeShape: Record<string, z.ZodNumber> = {};
   for (const d of getDomainsForType(type)) {
-    typeShape[d.key] = z
-      .number({
-        required_error: "Obligatorio para avanzar",
-        invalid_type_error: "Debe seleccionar una opción válida"
-      })
-      .int()
-      .min(1, "Debe seleccionar al menos 1")
-      .max(5, "El valor máximo es 5");
+    typeShape[d.key] = domainScoreSchema();
   }
-  return z.object(typeShape);
+  const schema = z.object(typeShape);
+  schemaCache[type] = schema;
+  return schema;
 }
 
 // --- Pregunta de contexto (no puntuada) al final de cada evaluación nueva ---
@@ -820,6 +806,20 @@ export const CONTEXT_QUESTIONS: Partial<Record<AssessmentTypeKey, AssessmentCont
     textPlaceholder: "Ej: 6 personas, 2 PMs, 1 diseñadora, 3 devs"
   }
 };
+
+/**
+ * Etiqueta visible de un valor de contexto (etapa o rol de interés), derivada
+ * de las mismas opciones que ve el usuario en el wizard.
+ */
+export function getContextValueLabel(field: "etapa" | "rolInteres", value: string): string {
+  for (const def of Object.values(CONTEXT_QUESTIONS)) {
+    if (def.optionsField === field && def.options) {
+      const option = def.options.find((o) => o.value === value);
+      if (option) return option.label;
+    }
+  }
+  return value;
+}
 
 // --- Cómo se muestra el nivel según la evaluación ---
 // El bucket numérico es el mismo para todas; el nombre cambia porque no es lo
@@ -1094,8 +1094,8 @@ function generateProfileEstimate(
   fortalezas: number,
   brechasCriticas: number
 ): string {
-  const isBalanced = desviacion < 0.8;
-  const hasSpecialization = desviacion > 1.2;
+  const isBalanced = isBalancedProfile(desviacion);
+  const hasSpecialization = isSpecializedProfile(desviacion);
 
   // 3+ brechas críticas
   if (brechasCriticas >= 3) {
@@ -1139,8 +1139,8 @@ function generateProfileCTA(
   fortalezas: number,
   brechasCriticas: number
 ): { text: string; route: string } {
-  const isBalanced = desviacion < 0.8;
-  const hasSpecialization = desviacion > 1.2;
+  const isBalanced = isBalancedProfile(desviacion);
+  const hasSpecialization = isSpecializedProfile(desviacion);
 
   // 3+ brechas críticas
   if (brechasCriticas >= 3) {
@@ -1208,6 +1208,12 @@ type EstimateBag = {
   brechasCriticas: number;
 };
 
+// Umbrales de forma de perfil compartidos por todos los generadores: si el
+// diagnóstico y su CTA usaran valores distintos podrían contradecirse en la
+// misma pantalla.
+const isBalancedProfile = (desviacion: number) => desviacion < 0.8;
+const isSpecializedProfile = (desviacion: number) => desviacion > 1.2;
+
 // --- Sin experiencia: mapa de afinidad y rol de entrada sugerido ---
 
 function generateAffinityEstimate(
@@ -1265,8 +1271,8 @@ function generateBuilderEstimate(bag: EstimateBag, gaps: Gap[], context?: Assess
       ? ` Para la etapa en la que estás (${ETAPA_LABELS[etapa]}), ${gapDeEtapa.label} es la brecha que más te frena hoy.`
       : "";
 
-  const isBalanced = bag.desviacion < 0.8;
-  const hasSpecialization = bag.desviacion > 1.2;
+  const isBalanced = isBalancedProfile(bag.desviacion);
+  const hasSpecialization = isSpecializedProfile(bag.desviacion);
 
   if (bag.brechasCriticas >= 3) {
     return `Estás construyendo a pura intuición en varias áreas clave. Para arrancar alcanza, pero ya estás en el punto donde el método te ahorra meses de prueba y error.${notaEtapa}`;
@@ -1318,8 +1324,8 @@ function generateBuilderCTA(bag: EstimateBag): { text: string; route: string } {
 // --- Líder: diagnóstico del equipo, hablado en función del equipo ---
 
 function generateTeamEstimate(bag: EstimateBag): string {
-  const isBalanced = bag.desviacion < 0.8;
-  const hasSpecialization = bag.desviacion > 1.2;
+  const isBalanced = isBalancedProfile(bag.desviacion);
+  const hasSpecialization = isSpecializedProfile(bag.desviacion);
 
   if (bag.brechasCriticas >= 3) {
     return "El diagnóstico muestra varios frentes donde el equipo todavía trabaja sin un proceso común. Antes de sumar herramientas o frameworks nuevos, conviene nivelar la base: pocas prácticas, bien instaladas.";
@@ -1344,8 +1350,8 @@ function generateTeamEstimate(bag: EstimateBag): string {
 
 function generateTeamCTA(bag: EstimateBag): { text: string; route: string } {
   const route = "/empresas";
-  const isBalanced = bag.desviacion < 0.8;
-  const hasSpecialization = bag.desviacion > 1.2;
+  const isBalanced = isBalancedProfile(bag.desviacion);
+  const hasSpecialization = isSpecializedProfile(bag.desviacion);
 
   if (bag.brechasCriticas >= 3) {
     return {

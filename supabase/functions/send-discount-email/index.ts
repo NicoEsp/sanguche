@@ -39,19 +39,12 @@ const REPREMIUM_VARIANT: EmailVariant = {
     "✅ Career path con objetivos claros y seguimiento",
     "✅ Ejercicios prácticos con feedback directo",
   ],
-  offerHtml: (checkoutUrl) => `
-  <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 24px;">
-    Preparamos un <strong>15% OFF en tu primer mes</strong> para que puedas arrancar con todo:
-  </p>
-
-  <!-- CTA Button -->
-  <table width="100%" cellpadding="0" cellspacing="0">
-  <tr><td align="center" style="padding:8px 0 32px;">
-    <a href="${checkoutUrl}" target="_blank" style="display:inline-block;background:#18181b;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">
-      Activá tu 15% OFF →
-    </a>
-  </td></tr>
-  </table>`,
+  offerHtml: (checkoutUrl) =>
+    buildCtaOffer(
+      "Preparamos un <strong>15% OFF en tu primer mes</strong> para que puedas arrancar con todo:",
+      checkoutUrl,
+      "Activá tu 15% OFF →"
+    ),
   couponLine:
     'Usá el cupón <strong>SANGUCHITO15</strong> si preferís ir directo al checkout.',
 };
@@ -306,6 +299,19 @@ Deno.serve(async (req: Request) => {
       (subscriptions || []).map((s) => [s.user_id, s])
     );
 
+    // Re-evaluarse crea un assessment nuevo (y borra el anterior), así que la
+    // deduplicación por assessment_id no alcanza: un usuario que retoma la
+    // evaluación volvería a entrar a la ventana. Un solo email por usuario.
+    const { data: priorUserSends } = await supabase
+      .from("discount_email_queue")
+      .select("user_id")
+      .in("user_id", userIds)
+      .eq("status", "sent");
+
+    const alreadyEmailedUsers = new Set(
+      (priorUserSends || []).map((s) => s.user_id)
+    );
+
     console.log(`[send-discount-email] Profiles loaded: ${profiles?.length ?? 0}, Subscriptions loaded: ${subscriptions?.length ?? 0}`);
 
     const checkoutUrl =
@@ -315,6 +321,7 @@ Deno.serve(async (req: Request) => {
     let skippedNoEmail = 0;
     let skippedNotFree = 0;
     let skippedNotCandidate = 0;
+    let skippedAlreadyEmailed = 0;
     const errors: string[] = [];
 
     for (const assessment of pendingAssessments) {
@@ -325,6 +332,13 @@ Deno.serve(async (req: Request) => {
       if (!profile?.email) {
         skippedNoEmail++;
         console.log(`[send-discount-email] SKIP user ${assessment.user_id}: no email`);
+        continue;
+      }
+
+      // Skip if this user already received a discount email (any assessment)
+      if (alreadyEmailedUsers.has(assessment.user_id)) {
+        skippedAlreadyEmailed++;
+        console.log(`[send-discount-email] SKIP ${profile.email}: already emailed for a previous assessment`);
         continue;
       }
 
@@ -416,7 +430,7 @@ Deno.serve(async (req: Request) => {
 
     console.log(`[send-discount-email] === SUMMARY ===`);
     console.log(`[send-discount-email] Total in window: ${assessments.length}, Pending: ${pendingAssessments.length}`);
-    console.log(`[send-discount-email] Sent: ${sentCount}, Skipped (no email): ${skippedNoEmail}, Skipped (not free): ${skippedNotFree}, Skipped (not candidate): ${skippedNotCandidate}, Errors: ${errors.length}`);
+    console.log(`[send-discount-email] Sent: ${sentCount}, Skipped (no email): ${skippedNoEmail}, Skipped (not free): ${skippedNotFree}, Skipped (not candidate): ${skippedNotCandidate}, Skipped (already emailed): ${skippedAlreadyEmailed}, Errors: ${errors.length}`);
 
     return new Response(
       JSON.stringify({

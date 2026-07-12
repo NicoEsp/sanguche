@@ -33,23 +33,31 @@ export async function saveAssessment(
     throw profileError ?? new Error("No se encontró el perfil del usuario");
   }
 
+  // Insertar primero y recién después borrar las anteriores: si el insert
+  // falla, la evaluación previa sigue intacta. Si lo que falla es el borrado,
+  // quedan filas viejas de más y los lectores igual toman la más reciente.
+  const { data: inserted, error: insertError } = await supabase
+    .from("assessments")
+    .insert({
+      user_id: profile.id,
+      assessment_values: values,
+      assessment_result: result,
+      assessment_type: assessmentType,
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !inserted) {
+    throw insertError ?? new Error("No se pudo guardar la evaluación");
+  }
+
   const { error: deleteError } = await supabase
     .from("assessments")
     .delete()
-    .eq("user_id", profile.id);
+    .eq("user_id", profile.id)
+    .neq("id", inserted.id);
 
-  if (deleteError) {
-    throw deleteError;
-  }
-
-  const { error: insertError } = await supabase.from("assessments").insert({
-    user_id: profile.id,
-    assessment_values: values,
-    assessment_result: result,
-    assessment_type: assessmentType,
-  });
-
-  if (insertError) {
-    throw insertError;
+  if (deleteError && import.meta.env.DEV) {
+    console.error("No se pudieron borrar evaluaciones anteriores:", deleteError);
   }
 }

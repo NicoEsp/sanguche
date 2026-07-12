@@ -3,6 +3,7 @@ import { Seo } from "@/components/Seo";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm, useWatch } from "react-hook-form";
 import {
+  ASSESSMENT_TYPES,
   DOMAINS,
   OPTIONAL_DOMAINS,
   CONTEXT_QUESTIONS,
@@ -56,7 +57,7 @@ const ASSESSMENT_OPTIONAL_ANSWERS_KEY = 'assessment_optional_answers';
 const ASSESSMENT_TYPE_KEY = 'assessment_selected_type';
 const ASSESSMENT_CONTEXT_KEY = 'assessment_context_answers';
 
-const VALID_TYPES: readonly AssessmentTypeKey[] = ['experimentado', 'sin_experiencia', 'builder', 'lider'];
+const VALID_TYPES: readonly AssessmentTypeKey[] = ASSESSMENT_TYPES.map((t) => t.key);
 
 // Parsea respuestas guardadas en localStorage descartando claves desconocidas
 // o valores corruptos (solo acepta enteros entre 1 y 5 de dominios válidos).
@@ -111,6 +112,7 @@ export default function Assessment() {
   const [selectedType, setSelectedType] = useState<AssessmentTypeKey | null>(null);
   const [isReevaluating, setIsReevaluating] = useState(false);
   const [showReevaluationDialog, setShowReevaluationDialog] = useState(false);
+  const [showChangeTypeDialog, setShowChangeTypeDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [optionalValues, setOptionalValues] = useState<OptionalAssessmentValues>({});
@@ -131,6 +133,7 @@ export default function Assessment() {
     hasAssessment,
     loading: assessmentLoading,
     updatedAt,
+    assessmentType: savedAssessmentType,
   } = useAssessmentData();
 
   const { hasActivePremium } = useSubscription();
@@ -181,6 +184,8 @@ export default function Assessment() {
     hasInitializedRef.current = true;
 
     const assessmentInProgress = localStorage.getItem(ASSESSMENT_IN_PROGRESS_KEY) === 'true';
+    const storedTypeRaw = localStorage.getItem(ASSESSMENT_TYPE_KEY) as AssessmentTypeKey | null;
+    const storedType = storedTypeRaw && VALID_TYPES.includes(storedTypeRaw) ? storedTypeRaw : null;
     const wantsReevaluation = searchParams.get('reevaluar') === '1';
 
     if (wantsReevaluation) {
@@ -188,14 +193,28 @@ export default function Assessment() {
       setSearchParams(searchParams, { replace: true });
     }
 
-    // Con un pedido explícito de re-evaluación se arranca desde el selector,
-    // descartando cualquier progreso previo.
-    if (wantsReevaluation) {
-      localStorage.removeItem(ASSESSMENT_IN_PROGRESS_KEY);
+    // Recuperar el tipo elegido; una evaluación empezada antes de que
+    // existieran los perfiles se retoma como "experimentado" (era la única).
+    const resumeType: AssessmentTypeKey = storedType ?? 'experimentado';
+    const resumeDomains = getDomainsForType(resumeType);
+    const restoredValues = assessmentInProgress
+      ? parseStoredAnswers(
+          localStorage.getItem(ASSESSMENT_PARTIAL_ANSWERS_KEY),
+          resumeDomains.map((d) => d.key)
+        )
+      : {};
+    const hasStoredProgress = Object.keys(restoredValues).length > 0;
+
+    // Pedido explícito de re-evaluación (banner de /mejoras): arranca desde
+    // el selector, salvo que haya una evaluación a medias con respuestas, en
+    // cuyo caso se retoma esa (no se descarta trabajo sin confirmación).
+    if (wantsReevaluation && !hasStoredProgress) {
       localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
       localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
       localStorage.removeItem(ASSESSMENT_TYPE_KEY);
       localStorage.removeItem(ASSESSMENT_CONTEXT_KEY);
+      // Persistir la intención: si recarga en el selector, vuelve al selector.
+      localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
       setIsReevaluating(true);
       return;
     }
@@ -205,18 +224,14 @@ export default function Assessment() {
     setIsReevaluating(assessmentInProgress || !hasAssessment);
 
     if (assessmentInProgress) {
-      // Recuperar el tipo elegido; una evaluación empezada antes de que
-      // existieran los perfiles se retoma como "experimentado" (era la única).
-      const storedType = localStorage.getItem(ASSESSMENT_TYPE_KEY) as AssessmentTypeKey | null;
-      const resumeType: AssessmentTypeKey =
-        storedType && VALID_TYPES.includes(storedType) ? storedType : 'experimentado';
+      // Re-evaluación confirmada que quedó en el selector (sin tipo elegido
+      // ni respuestas): mantener el selector en vez de forzar un tipo.
+      if (!storedType && !hasStoredProgress) {
+        return;
+      }
+
       setSelectedType(resumeType);
 
-      const resumeDomains = getDomainsForType(resumeType);
-      const restoredValues = parseStoredAnswers(
-        localStorage.getItem(ASSESSMENT_PARTIAL_ANSWERS_KEY),
-        resumeDomains.map((d) => d.key)
-      );
       const restoredOptional = resumeType === 'experimentado'
         ? parseStoredAnswers(
             localStorage.getItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY),
@@ -434,6 +449,9 @@ export default function Assessment() {
     hasTrackedAbandonRef.current = false;
     assessmentStartTimeRef.current = Date.now();
     clearProgressStorage();
+    // Persistir la intención de re-evaluar: si recarga estando en el
+    // selector, vuelve al selector en vez de a sus resultados anteriores.
+    localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -516,14 +534,23 @@ export default function Assessment() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // La persistencia va con debounce: el textarea de contexto dispara un
+  // update por tecla y escribir a localStorage en cada una traba el hilo.
+  const contextPersistTimeoutRef = useRef<number | null>(null);
   const updateContext = (patch: Partial<AssessmentContext>) => {
     const next = { ...contextValues, ...patch };
     setContextValues(next);
-    try {
-      localStorage.setItem(ASSESSMENT_CONTEXT_KEY, JSON.stringify(next));
-    } catch {
-      // Best-effort: sin storage disponible seguimos en memoria
+    if (contextPersistTimeoutRef.current !== null) {
+      window.clearTimeout(contextPersistTimeoutRef.current);
     }
+    contextPersistTimeoutRef.current = window.setTimeout(() => {
+      contextPersistTimeoutRef.current = null;
+      try {
+        localStorage.setItem(ASSESSMENT_CONTEXT_KEY, JSON.stringify(next));
+      } catch {
+        // Best-effort: sin storage disponible seguimos en memoria
+      }
+    }, 400);
   };
 
   const hasContextAnswer = useMemo(() => {
@@ -572,8 +599,11 @@ export default function Assessment() {
       // Guardar en servidor (lanza error si falla, para permitir reintento)
       await saveAssessment(values, result, activeType);
 
-      // Invalidar cache para sincronizar con servidor
+      // Invalidar caches para sincronizar con servidor. El composite alimenta
+      // useHomeRedirect: sin esto, volver al home tras la primera evaluación
+      // puede rebotar de nuevo a /autoevaluacion por el conteo cacheado.
       await queryClient.invalidateQueries({ queryKey: ['assessment-data'] });
+      queryClient.invalidateQueries({ queryKey: ['user-composite-data'] });
 
       // Track assessment completion
       trackEvent('assessment_completed', {
@@ -636,6 +666,20 @@ export default function Assessment() {
   const selectedDomainDef = selectedDomain
     ? activeDomains.find((d) => d.key === selectedDomain) ?? null
     : null;
+
+  // Funnel: quien llega al selector y rebota también cuenta. El evento
+  // assessment_started recién se dispara al elegir perfil.
+  const selectorViewedRef = useRef(false);
+  useEffect(() => {
+    if (showSelector) {
+      if (!selectorViewedRef.current) {
+        selectorViewedRef.current = true;
+        trackEvent('assessment_selector_viewed', { has_assessment: hasAssessment });
+      }
+    } else {
+      selectorViewedRef.current = false;
+    }
+  }, [showSelector, hasAssessment, trackEvent]);
 
   return (
     <>
@@ -711,7 +755,11 @@ export default function Assessment() {
             return null;
           }
 
-          const resultType = effectiveResult.assessmentType ?? null;
+          // Para resultados del servidor manda el hook (mira también la
+          // columna de la DB, no solo el JSON, p. ej. tras un backfill).
+          const resultType = localResult
+            ? (localResult.assessmentType ?? null)
+            : savedAssessmentType;
           const resultTypeDef = resultType ? getAssessmentTypeDef(resultType) : null;
           const nivelDisplay = getNivelDisplay(resultType, effectiveResult.nivel);
           const resultDomains = getDomainsForType(resultType ?? 'experimentado');
@@ -1144,7 +1192,15 @@ export default function Assessment() {
                     <Button
                       type="button"
                       variant="ghost"
-                      onClick={handleStartReevaluation}
+                      onClick={() => {
+                        // Con respuestas cargadas, cambiar de evaluación las
+                        // descarta: pedir confirmación antes de borrarlas.
+                        if (answered === 0) {
+                          handleStartReevaluation();
+                        } else {
+                          setShowChangeTypeDialog(true);
+                        }
+                      }}
                       className="w-full sm:w-auto text-muted-foreground"
                     >
                       <ChevronLeft className="h-4 w-4 mr-1" />
@@ -1291,6 +1347,28 @@ export default function Assessment() {
           isOpen={selectedDomain !== null}
           onClose={() => setSelectedDomain(null)}
         />
+
+        <AlertDialog open={showChangeTypeDialog} onOpenChange={setShowChangeTypeDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Cambiar de evaluación?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Las respuestas que cargaste hasta acá se descartan y volvés al selector de perfil.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Seguir con esta</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setShowChangeTypeDialog(false);
+                  handleStartReevaluation();
+                }}
+              >
+                Cambiar de evaluación
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </section>
     </>
   );

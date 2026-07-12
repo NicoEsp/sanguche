@@ -9,13 +9,9 @@ import { AssessmentTypeKey, getAssessmentTypeDef } from '@/utils/scoring';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const ASSESSMENT_TYPE_LABELS: Record<AssessmentTypeKey | 'legacy', string> = {
-  experimentado: 'Con experiencia',
-  sin_experiencia: 'Dando el salto',
-  builder: 'Product Builder',
-  lider: 'Líder de equipo',
-  legacy: 'Legacy'
-};
+function assessmentTypeLabel(key: AssessmentTypeKey | 'legacy'): string {
+  return key === 'legacy' ? 'Legacy' : getAssessmentTypeDef(key).shortLabel;
+}
 
 export default function AdminDashboard() {
   const { analytics, loading, error, refreshing, refetch, lastUpdated } = useAdminAnalytics();
@@ -140,7 +136,7 @@ export default function AdminDashboard() {
               .map((item) => (
                 <div key={item.key}>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground truncate">{ASSESSMENT_TYPE_LABELS[item.key]}</span>
+                    <span className="text-xs text-muted-foreground truncate">{assessmentTypeLabel(item.key)}</span>
                     <span className="text-xs font-semibold text-foreground">{item.count}</span>
                   </div>
                   <div

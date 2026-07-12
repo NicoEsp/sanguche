@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { exportToCSV } from '@/utils/csvExport';
-import { AssessmentTypeKey, getAssessmentTypeDef, getNivelDisplay } from '@/utils/scoring';
+import { ASSESSMENT_TYPES, AssessmentTypeKey, getAssessmentTypeDef, getContextValueLabel, getNivelDisplay } from '@/utils/scoring';
 import { toast } from 'sonner';
 
 interface Assessment {
@@ -28,29 +28,8 @@ interface Assessment {
   };
 }
 
-const ASSESSMENT_TYPE_LABELS: Record<AssessmentTypeKey, string> = {
-  experimentado: 'Con experiencia',
-  sin_experiencia: 'Dando el salto',
-  builder: 'Product Builder',
-  lider: 'Líder de equipo'
-};
-
-const CONTEXT_ETAPA_LABELS: Record<string, string> = {
-  idea: 'Idea',
-  mvp: 'MVP',
-  usuarios: 'Con usuarios',
-  ingresos: 'Con ingresos'
-};
-
-const CONTEXT_ROL_LABELS: Record<string, string> = {
-  pm: 'Product Manager',
-  diseno: 'Diseño de Producto',
-  dev: 'Desarrollo',
-  no_seguro: 'Todavía no está seguro/a'
-};
-
 function getAssessmentTypeLabel(type: AssessmentTypeKey | null): string {
-  return type ? ASSESSMENT_TYPE_LABELS[type] : 'Legacy';
+  return type ? getAssessmentTypeDef(type).shortLabel : 'Legacy';
 }
 
 export default function AdminAssessments() {
@@ -159,24 +138,23 @@ export default function AdminAssessments() {
     return false;
   }
 
-  const filteredAssessments = (assessments || [])
-    .filter(assessment =>
-      assessment?.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assessment?.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      false
-    )
-    .filter(assessment => 
-      !showOnlyAtRisk || isDiscountCandidate(assessment)
-    )
-    .filter(assessment => {
-      if (selectedLevel === 'all') return true;
-      return assessment?.assessment_result?.nivel === selectedLevel;
-    })
-    .filter(assessment => {
-      if (selectedType === 'all') return true;
+  // Un solo pase de filtrado: la lista es todo el historial sin paginar en
+  // el servidor y esto corre en cada tecla del buscador.
+  const searchLower = searchTerm.toLowerCase();
+  const filteredAssessments = (assessments || []).filter(assessment => {
+    const matchesSearch =
+      assessment?.user?.name?.toLowerCase().includes(searchLower) ||
+      assessment?.user?.email?.toLowerCase().includes(searchLower) ||
+      false;
+    if (!matchesSearch) return false;
+    if (showOnlyAtRisk && !isDiscountCandidate(assessment)) return false;
+    if (selectedLevel !== 'all' && assessment?.assessment_result?.nivel !== selectedLevel) return false;
+    if (selectedType !== 'all') {
       if (selectedType === 'legacy') return !assessment?.assessment_type;
       return assessment?.assessment_type === selectedType;
-    });
+    }
+    return true;
+  });
 
   // Reset page when filters change
   useEffect(() => {
@@ -267,7 +245,7 @@ export default function AdminAssessments() {
     }
     return (
       <Badge variant="outline" className={getAssessmentTypeDef(type).accent.badge}>
-        {ASSESSMENT_TYPE_LABELS[type]}
+        {getAssessmentTypeDef(type).shortLabel}
       </Badge>
     );
   }
@@ -422,10 +400,9 @@ export default function AdminAssessments() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los tipos</SelectItem>
-                  <SelectItem value="experimentado">Con experiencia</SelectItem>
-                  <SelectItem value="sin_experiencia">Dando el salto</SelectItem>
-                  <SelectItem value="builder">Product Builder</SelectItem>
-                  <SelectItem value="lider">Líder de equipo</SelectItem>
+                  {ASSESSMENT_TYPES.map((t) => (
+                    <SelectItem key={t.key} value={t.key}>{t.shortLabel}</SelectItem>
+                  ))}
                   <SelectItem value="legacy">Legacy</SelectItem>
                 </SelectContent>
               </Select>
@@ -584,13 +561,13 @@ export default function AdminAssessments() {
                                   {selectedAssessment.assessment_result.context.etapa && (
                                     <p className="text-sm">
                                       <span className="font-medium">Etapa:</span>{' '}
-                                      {CONTEXT_ETAPA_LABELS[selectedAssessment.assessment_result.context.etapa] || selectedAssessment.assessment_result.context.etapa}
+                                      {getContextValueLabel('etapa', selectedAssessment.assessment_result.context.etapa)}
                                     </p>
                                   )}
                                   {selectedAssessment.assessment_result.context.rolInteres && (
                                     <p className="text-sm">
                                       <span className="font-medium">Rol de interés:</span>{' '}
-                                      {CONTEXT_ROL_LABELS[selectedAssessment.assessment_result.context.rolInteres] || selectedAssessment.assessment_result.context.rolInteres}
+                                      {getContextValueLabel('rolInteres', selectedAssessment.assessment_result.context.rolInteres)}
                                     </p>
                                   )}
                                   {selectedAssessment.assessment_result.context.detalle && (

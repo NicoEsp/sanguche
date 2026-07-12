@@ -48,6 +48,31 @@ const SECTION_TITLES: Record<AssessmentTypeKey, { strengths: string; neutral: st
   }
 };
 
+// Mensaje cuando no hay brechas: la felicitación por seniority no aplica a
+// quien recién arranca ni al diagnóstico de un equipo.
+const NO_GAPS_COPY: Record<AssessmentTypeKey | "legacy", { title: string; text: string }> = {
+  experimentado: {
+    title: "🎉 ¡Excelente desempeño!",
+    text: "No se detectaron áreas críticas de mejora. Tu perfil muestra competencias sólidas en todos los dominios evaluados."
+  },
+  sin_experiencia: {
+    title: "🎉 Tenés una base muy pareja",
+    text: "Tu mapa no muestra zonas en blanco: hay afinidad o base en todos los dominios. Estás en muy buen punto para dar el salto con un plan de estudio."
+  },
+  builder: {
+    title: "🎉 Construís con método",
+    text: "No se detectaron áreas donde estés a pura intuición. El siguiente paso es validar el producto en sí con una mirada externa."
+  },
+  lider: {
+    title: "🎉 Tu equipo tiene procesos sólidos",
+    text: "No se detectaron dominios críticos. El foco ahora está en sostener esos procesos y mantener al equipo actualizado."
+  },
+  legacy: {
+    title: "🎉 ¡Excelente desempeño!",
+    text: "No se detectaron áreas críticas de mejora. Tu perfil muestra competencias sólidas en todos los dominios evaluados."
+  }
+};
+
 export default function SkillGaps() {
   const {
     hasActivePremium
@@ -235,30 +260,33 @@ export default function SkillGaps() {
               </div>}
 
             {/* Mensaje cuando no hay brechas reales */}
-            {gaps.length === 0 && <div className="text-center p-6 rounded-lg bg-green-50 border border-green-200">
-                <h3 className="font-medium text-green-800 mb-2">🎉 ¡Excelente desempeño!</h3>
-                <p className="text-sm text-green-700">
-                  {assessmentType === 'lider'
-                    ? "No se detectaron áreas críticas de mejora. Tu equipo muestra procesos sólidos en todos los dominios evaluados."
-                    : "No se detectaron áreas críticas de mejora. Tu perfil muestra competencias sólidas en todos los dominios evaluados."}
-                </p>
-              </div>}
+            {gaps.length === 0 && (() => {
+              const noGaps = NO_GAPS_COPY[assessmentType ?? "legacy"];
+              return (
+                <div className="text-center p-6 rounded-lg bg-green-50 border border-green-200">
+                  <h3 className="font-medium text-green-800 mb-2">{noGaps.title}</h3>
+                  <p className="text-sm text-green-700">{noGaps.text}</p>
+                </div>
+              );
+            })()}
 
-            {/* CTA de plan recomendado según la evaluación tomada; las
-                evaluaciones legacy conservan la tarjeta Premium anterior */}
-            {gaps.length > 0 && !hasActivePremium && (
+            {/* CTA de plan recomendado según la evaluación tomada. Se muestra
+                también sin brechas: el copy del ctaInfo ya contempla los
+                resultados altos. Las evaluaciones legacy conservan la tarjeta
+                Premium anterior, solo con brechas como antes. */}
+            {!hasActivePremium && (
               assessmentType && result.ctaInfo ? (
                 <PlanCTACard
                   type={assessmentType}
                   text={result.ctaInfo.text}
                   onCtaClick={() => handleCtaClick('plan_cta_card')}
                 />
-              ) : (
+              ) : gaps.length > 0 ? (
                 <PremiumCTACard
                   ctaPath="/premium"
                   onCtaClick={() => handleCtaClick('premium_cta_card')}
                 />
-              )
+              ) : null
             )}
 
             {/* Dominios opcionales explorados */}
