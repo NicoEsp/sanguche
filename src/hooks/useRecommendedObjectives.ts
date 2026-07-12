@@ -5,7 +5,7 @@ import { useAssessmentData } from "./useAssessmentData";
 import { useUserProgressObjectives } from "./useUserProgressObjectives";
 import { useUserProfile } from "./useUserProfile";
 import { RECOMMENDED_OBJECTIVES, RecommendedObjectiveTemplate, getDomainLabel } from "@/utils/recommendedObjectives";
-import { DomainKey, Gap, NeutralArea, SeniorityLevel } from "@/utils/scoring";
+import { AnyDomainKey, Gap, NeutralArea, SeniorityLevel } from "@/utils/scoring";
 import { toast } from "sonner";
 
 export interface GeneratedObjective extends RecommendedObjectiveTemplate {
@@ -138,7 +138,7 @@ export function useRecommendedObjectives(): UseRecommendedObjectivesReturn {
     
     // First: Add objectives for gaps (priority)
     for (const gap of gaps) {
-      const domainKey = gap.key as DomainKey;
+      const domainKey = gap.key as AnyDomainKey;
       const matchingObjectives = RECOMMENDED_OBJECTIVES.filter(
         obj => obj.domainKey === domainKey && shouldShowObjective(obj)
       );
@@ -160,7 +160,7 @@ export function useRecommendedObjectives(): UseRecommendedObjectivesReturn {
     // Second: Add objectives for neutral areas (if space left)
     if (results.length < maxObjectives) {
       for (const neutral of neutralAreas) {
-        const domainKey = neutral.key as DomainKey;
+        const domainKey = neutral.key as AnyDomainKey;
         const matchingObjectives = RECOMMENDED_OBJECTIVES.filter(
           obj => obj.domainKey === domainKey && shouldShowObjective(obj)
         );
