@@ -32,6 +32,13 @@ function getAssessmentTypeLabel(type: AssessmentTypeKey | null): string {
   return type ? getAssessmentTypeDef(type).shortLabel : 'Legacy';
 }
 
+// El cupón del 15% es del producto RePremium: solo la evaluación con
+// experiencia (y las legacy) reciben descuento. Los demás perfiles reciben
+// el email con el pitch de su plan recomendado, sin cupón.
+function receivesDiscountCoupon(type: AssessmentTypeKey | null): boolean {
+  return type === null || type === 'experimentado';
+}
+
 export default function AdminAssessments() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -193,8 +200,10 @@ export default function AdminAssessments() {
         },
         { 
           key: 'id',
-          header: 'Candidato Descuento',
-          format: (_, row) => isDiscountCandidate(row) ? 'SÍ' : 'NO'
+          header: 'Candidato Email',
+          format: (_, row) => isDiscountCandidate(row)
+            ? (receivesDiscountCoupon(row.assessment_type) ? 'SÍ (descuento)' : 'SÍ (pitch de plan)')
+            : 'NO'
         },
         { 
           key: 'assessment_result.gaps', 
@@ -369,7 +378,7 @@ export default function AdminAssessments() {
               />
               <label htmlFor="at-risk-filter" className="text-sm flex items-center gap-2 cursor-pointer">
                 <AlertTriangle className="h-4 w-4 text-destructive" />
-                Mostrar solo usuarios en riesgo (candidatos descuento)
+                Mostrar solo usuarios en riesgo (candidatos a email)
               </label>
             </div>
 
@@ -493,7 +502,7 @@ export default function AdminAssessments() {
                             <div className="flex items-center gap-2">
                               <Badge variant="destructive" className="gap-1">
                                 <AlertTriangle className="h-3 w-3" />
-                                Descuento
+                                {receivesDiscountCoupon(assessment.assessment_type) ? 'Descuento' : 'Oportunidad'}
                               </Badge>
                               <Info className="h-4 w-4 text-muted-foreground" />
                             </div>
@@ -502,7 +511,9 @@ export default function AdminAssessments() {
                             <p className="text-sm">
                               Usuario con <strong>{assessment.assessment_result?.gaps?.length || 0} áreas de mejora</strong>
                               {' '}y promedio de <strong>{assessment.assessment_result?.promedioGlobal?.toFixed(1) || 'N/A'}</strong>.
-                              <br /><strong>Candidato para oferta de descuento.</strong>
+                              <br /><strong>{receivesDiscountCoupon(assessment.assessment_type)
+                                ? 'Candidato para oferta de descuento.'
+                                : 'Candidato para email con el pitch de su plan recomendado (sin cupón).'}</strong>
                             </p>
                           </TooltipContent>
                         </Tooltip>

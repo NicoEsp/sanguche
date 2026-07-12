@@ -421,6 +421,10 @@ Deno.serve(async (req: Request) => {
             tipo: assessmentType,
           },
         });
+        // Cubrir también duplicados dentro de la misma corrida: si el usuario
+        // tiene más de un assessment pendiente en la ventana, el segundo no
+        // debe generar otro email.
+        alreadyEmailedUsers.add(assessment.user_id);
         sentCount++;
       } catch (emailErr) {
         console.error(`Error sending to ${profile.email}:`, emailErr);
