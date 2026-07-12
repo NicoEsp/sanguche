@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { exportToCSV } from '@/utils/csvExport';
-import { ASSESSMENT_TYPES, AssessmentTypeKey, getAssessmentTypeDef, getContextValueLabel, getNivelDisplay } from '@/utils/scoring';
+import { ASSESSMENT_TYPES, AssessmentTypeKey, getAssessmentTypeDef, getAssessmentTypeShortLabel, getContextValueLabel, getNivelDisplay } from '@/utils/scoring';
 import { toast } from 'sonner';
 
 interface Assessment {
@@ -26,10 +26,6 @@ interface Assessment {
     email: string | null;
     user_id: string | null;
   };
-}
-
-function getAssessmentTypeLabel(type: AssessmentTypeKey | null): string {
-  return type ? getAssessmentTypeDef(type).shortLabel : 'Legacy';
 }
 
 // El cupón del 15% es del producto RePremium: solo la evaluación con
@@ -149,7 +145,10 @@ export default function AdminAssessments() {
   // el servidor y esto corre en cada tecla del buscador.
   const searchLower = searchTerm.toLowerCase();
   const filteredAssessments = (assessments || []).filter(assessment => {
+    // Sin término de búsqueda pasa todo: hay filas sin nombre ni email
+    // (perfil huérfano) que de otro modo desaparecerían de la tabla.
     const matchesSearch =
+      searchLower === '' ||
       assessment?.user?.name?.toLowerCase().includes(searchLower) ||
       assessment?.user?.email?.toLowerCase().includes(searchLower) ||
       false;
@@ -186,7 +185,7 @@ export default function AdminAssessments() {
         { key: 'user.name', header: 'Usuario', format: (v) => v || 'Sin nombre' },
         { key: 'user.email', header: 'Email', format: (v) => v || 'Sin email' },
         { key: 'created_at', header: 'Fecha', format: (v) => new Date(v).toLocaleDateString('es-ES') },
-        { key: 'assessment_type', header: 'Tipo', format: (v) => getAssessmentTypeLabel(v ?? null) },
+        { key: 'assessment_type', header: 'Tipo', format: (v) => getAssessmentTypeShortLabel(v ?? null) },
         { key: 'assessment_result.nivel', header: 'Nivel', format: (v) => v || 'N/A' },
         { 
           key: 'assessment_result.promedioGlobal', 

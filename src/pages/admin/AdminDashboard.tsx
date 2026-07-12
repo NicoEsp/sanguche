@@ -5,13 +5,9 @@ import { Loader2, Users, ClipboardList, TrendingUp, Crown, Target, Calendar, Dol
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { AssessmentTypeKey, getAssessmentTypeDef } from '@/utils/scoring';
+import { getAssessmentTypeDef, getAssessmentTypeShortLabel } from '@/utils/scoring';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-
-function assessmentTypeLabel(key: AssessmentTypeKey | 'legacy'): string {
-  return key === 'legacy' ? 'Legacy' : getAssessmentTypeDef(key).shortLabel;
-}
 
 export default function AdminDashboard() {
   const { analytics, loading, error, refreshing, refetch, lastUpdated } = useAdminAnalytics();
@@ -136,7 +132,7 @@ export default function AdminDashboard() {
               .map((item) => (
                 <div key={item.key}>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground truncate">{assessmentTypeLabel(item.key)}</span>
+                    <span className="text-xs text-muted-foreground truncate">{getAssessmentTypeShortLabel(item.key)}</span>
                     <span className="text-xs font-semibold text-foreground">{item.count}</span>
                   </div>
                   <div

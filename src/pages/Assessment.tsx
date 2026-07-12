@@ -517,7 +517,11 @@ export default function Assessment() {
       }
     }
 
-    localStorage.setItem(ASSESSMENT_PARTIAL_ANSWERS_KEY, JSON.stringify(watchedValues));
+    try {
+      localStorage.setItem(ASSESSMENT_PARTIAL_ANSWERS_KEY, JSON.stringify(watchedValues));
+    } catch {
+      // Best-effort: sin storage disponible seguimos en memoria
+    }
     setCurrentStep(currentStep + 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

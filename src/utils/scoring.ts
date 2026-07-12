@@ -735,6 +735,11 @@ export function getAssessmentTypeDef(type: AssessmentTypeKey | null | undefined)
   return ASSESSMENT_TYPES.find((t) => t.key === type) ?? ASSESSMENT_TYPES[0];
 }
 
+/** Etiqueta corta del tipo para admin y reportes; sin tipo es una evaluación legacy. */
+export function getAssessmentTypeShortLabel(type: AssessmentTypeKey | "legacy" | null | undefined): string {
+  return !type || type === "legacy" ? "Legacy" : getAssessmentTypeDef(type).shortLabel;
+}
+
 export function getDomainsForType(type: AssessmentTypeKey): ReadonlyArray<AssessmentDomainDef> {
   switch (type) {
     case "sin_experiencia":

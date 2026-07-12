@@ -493,7 +493,9 @@ export default function Planes() {
       <Seo jsonLd={planesSchema} />
 
       {/* Personalization banner */}
-      {hasAssessment && topGaps.length > 0 && !hasActivePremium && !hasActiveRePremium && (
+      {/* Builders y líderes tienen otro plan recomendado: este banner de Premium los contradeciría */}
+      {hasAssessment && topGaps.length > 0 && !hasActivePremium && !hasActiveRePremium &&
+        assessmentType !== 'builder' && assessmentType !== 'lider' && (
         <div className="max-w-4xl mx-auto px-4 pt-8">
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-5">
             <div className="flex items-start gap-3">

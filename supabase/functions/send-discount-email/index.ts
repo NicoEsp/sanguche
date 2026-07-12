@@ -338,14 +338,14 @@ Deno.serve(async (req: Request) => {
       // Skip if this user already received a discount email (any assessment)
       if (alreadyEmailedUsers.has(assessment.user_id)) {
         skippedAlreadyEmailed++;
-        console.log(`[send-discount-email] SKIP ${profile.email}: already emailed for a previous assessment`);
+        console.log(`[send-discount-email] SKIP user ${assessment.user_id}: already emailed for a previous assessment`);
         continue;
       }
 
       // Skip if not free plan
       if (sub?.plan !== "free") {
         skippedNotFree++;
-        console.log(`[send-discount-email] SKIP ${profile.email}: plan is '${sub?.plan}' (not free)`);
+        console.log(`[send-discount-email] SKIP user ${assessment.user_id}: plan is '${sub?.plan}' (not free)`);
         continue;
       }
 
@@ -353,7 +353,7 @@ Deno.serve(async (req: Request) => {
       const result = assessment.assessment_result as AssessmentResult;
       if (!result || !isDiscountCandidate(result)) {
         skippedNotCandidate++;
-        console.log(`[send-discount-email] SKIP ${profile.email}: not discount candidate (gaps: ${result?.gaps?.length ?? 0}, avg: ${result?.promedioGlobal ?? 'N/A'}, nivel: ${result?.nivel ?? 'N/A'})`);
+        console.log(`[send-discount-email] SKIP user ${assessment.user_id}: not discount candidate (gaps: ${result?.gaps?.length ?? 0}, avg: ${result?.promedioGlobal ?? 'N/A'}, nivel: ${result?.nivel ?? 'N/A'})`);
         continue;
       }
 
@@ -361,7 +361,7 @@ Deno.serve(async (req: Request) => {
       const assessmentType: AssessmentType =
         (assessment.assessment_type as AssessmentType | null) ?? "experimentado";
 
-      console.log(`[send-discount-email] SENDING to ${profile.email} (tipo: ${assessmentType}, nivel: ${result.nivel}, gaps: ${result.gaps.length}, avg: ${result.promedioGlobal})`);
+      console.log(`[send-discount-email] SENDING to user ${assessment.user_id} (tipo: ${assessmentType}, nivel: ${result.nivel}, gaps: ${result.gaps.length}, avg: ${result.promedioGlobal})`);
 
       // Send email via Resend
       try {
@@ -390,7 +390,7 @@ Deno.serve(async (req: Request) => {
         const resendBody = await resendRes.text();
 
         if (!resendRes.ok) {
-          console.error(`Resend error for ${profile.email}:`, resendBody);
+          console.error(`Resend error for user ${assessment.user_id}:`, resendBody);
           await supabase.from("discount_email_queue").insert({
             user_id: assessment.user_id,
             assessment_id: assessment.id,
@@ -404,7 +404,7 @@ Deno.serve(async (req: Request) => {
               tipo: assessmentType,
             },
           });
-          errors.push(`${profile.email}: ${resendBody}`);
+          errors.push(`user ${assessment.user_id}: ${resendBody}`);
           continue;
         }
 
@@ -427,8 +427,8 @@ Deno.serve(async (req: Request) => {
         alreadyEmailedUsers.add(assessment.user_id);
         sentCount++;
       } catch (emailErr) {
-        console.error(`Error sending to ${profile.email}:`, emailErr);
-        errors.push(`${profile.email}: ${String(emailErr)}`);
+        console.error(`Error sending to user ${assessment.user_id}:`, emailErr);
+        errors.push(`user ${assessment.user_id}: ${String(emailErr)}`);
       }
     }
 
