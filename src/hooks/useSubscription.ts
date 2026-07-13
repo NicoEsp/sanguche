@@ -109,11 +109,14 @@ export function useSubscription(options?: UseSubscriptionOptions) {
     };
   }
 
-  // NOTE: isError is intentionally excluded from isStillLoading — once retries
-  // are exhausted, isError stays true forever and would leave callers stuck
-  // showing a loading state with no way out. Callers should check `error`
-  // separately and offer a retry (see Progress.tsx).
-  const isStillLoading = loading || authLoading;
+  // isError is kept in isStillLoading so existing consumers that gate on
+  // `loading` / `hasActivePremium === undefined` keep treating a failed
+  // fetch as "not resolved yet" instead of silently reading it as a free
+  // account. Consumers that want an explicit escape hatch (e.g. a retry
+  // button instead of an indefinite spinner) should check `isError` and
+  // `refetch` directly — see Progress.tsx, which checks isError before
+  // this loading gate.
+  const isStillLoading = loading || authLoading || isError;
 
   const plan = subscription?.plan;
   const isActive = subscription?.status === 'active';
