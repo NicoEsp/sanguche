@@ -13,7 +13,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
   const { user, isLoading: authLoading } = useAuth();
 
   // Use React Query for subscription data
-  const { data: subscription, isLoading: loading, isError } = useQuery({
+  const { data: subscription, isLoading: loading, isError, refetch } = useQuery({
     queryKey: ['subscription', user?.id],
     queryFn: async () => {
       if (!user) {
@@ -104,10 +104,16 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       hasAnyPaidPlan: true,
       isTrialing: false,
       isOneTimePurchase: false,
+      isError: false,
+      refetch,
     };
   }
 
-  const isStillLoading = loading || authLoading || isError;
+  // NOTE: isError is intentionally excluded from isStillLoading — once retries
+  // are exhausted, isError stays true forever and would leave callers stuck
+  // showing a loading state with no way out. Callers should check `error`
+  // separately and offer a retry (see Progress.tsx).
+  const isStillLoading = loading || authLoading;
 
   const plan = subscription?.plan;
   const isActive = subscription?.status === 'active';
@@ -137,5 +143,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       : (hasAccess && ['premium', 'repremium', 'curso_estrategia', 'cursos_all', 'productprepa_business', 'productastic_review'].includes(plan || '')),
     isTrialing: subscription?.trialEnd ? new Date() < subscription.trialEnd : false,
     isOneTimePurchase: subscription?.isOneTimePurchase ?? false,
+    isError,
+    refetch,
   };
 }
