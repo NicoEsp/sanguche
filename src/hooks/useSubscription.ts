@@ -13,7 +13,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
   const { user, isLoading: authLoading } = useAuth();
 
   // Use React Query for subscription data
-  const { data: subscription, isLoading: loading, isError } = useQuery({
+  const { data: subscription, isLoading: loading, isError, refetch } = useQuery({
     queryKey: ['subscription', user?.id],
     queryFn: async () => {
       if (!user) {
@@ -104,9 +104,18 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       hasAnyPaidPlan: true,
       isTrialing: false,
       isOneTimePurchase: false,
+      isError: false,
+      refetch,
     };
   }
 
+  // isError is kept in isStillLoading so existing consumers that gate on
+  // `loading` / `hasActivePremium === undefined` keep treating a failed
+  // fetch as "not resolved yet" instead of silently reading it as a free
+  // account. Consumers that want an explicit escape hatch (e.g. a retry
+  // button instead of an indefinite spinner) should check `isError` and
+  // `refetch` directly — see Progress.tsx, which checks isError before
+  // this loading gate.
   const isStillLoading = loading || authLoading || isError;
 
   const plan = subscription?.plan;
@@ -137,5 +146,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       : (hasAccess && ['premium', 'repremium', 'curso_estrategia', 'cursos_all', 'productprepa_business', 'productastic_review'].includes(plan || '')),
     isTrialing: subscription?.trialEnd ? new Date() < subscription.trialEnd : false,
     isOneTimePurchase: subscription?.isOneTimePurchase ?? false,
+    isError,
+    refetch,
   };
 }

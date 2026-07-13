@@ -11,8 +11,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Lock, Sparkles } from "lucide-react";
+import { AlertTriangle, Lock, Sparkles } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
+import { Button } from "@/components/ui/button";
 import { PaywallCard } from "@/components/PaywallCard";
 import { Seo } from "@/components/Seo";
 import { useRecommendedObjectives, GeneratedObjective } from "@/hooks/useRecommendedObjectives";
@@ -50,7 +51,12 @@ import {
 export default function Progress() {
   const location = useLocation();
   const isDemoMode = import.meta.env.DEV && new URLSearchParams(location.search).has("demo");
-  const { hasActivePremium, loading: subscriptionLoading } = useSubscription({ skip: isDemoMode });
+  const {
+    hasActivePremium,
+    loading: subscriptionLoading,
+    isError: subscriptionError,
+    refetch: refetchSubscription,
+  } = useSubscription({ skip: isDemoMode });
   const { profile, loading: profileLoading } = useUserProfile();
   const profileId = profile?.id;
   const queryClient = useQueryClient();
@@ -424,6 +430,22 @@ export default function Progress() {
     },
     [isDismissing, dismissObjective]
   );
+
+  if (subscriptionError && !isDemoMode) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-4">
+        <div className="text-center space-y-3 max-w-sm">
+          <AlertTriangle className="h-6 w-6 mx-auto text-destructive" />
+          <p className="text-muted-foreground">
+            No pudimos verificar tu suscripción. Puede ser un problema temporal de conexión.
+          </p>
+          <Button onClick={() => refetchSubscription()} variant="outline" size="sm">
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if ((subscriptionLoading || profileLoading || isLoadingData) && !isDemoMode) {
     return (
