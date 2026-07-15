@@ -167,7 +167,7 @@ export default function Recommendations() {
             <AlertDescription className="text-amber-700 dark:text-amber-400">
               Para obtener recomendaciones personalizadas, primero necesitas completar tu{" "}
               <Link to="/autoevaluacion" className="underline font-medium">
-                autoevaluación de Producto
+                evaluación de Producto
               </Link>
               .
             </AlertDescription>

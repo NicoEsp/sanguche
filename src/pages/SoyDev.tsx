@@ -73,7 +73,7 @@ const whyCards = [
 const benefits = [
   {
     icon: Target,
-    text: "Evaluá tus habilidades de producto actuales con una autoevaluación diseñada por un experto con más de 10 años de experiencia.",
+    text: "Evaluá tus habilidades de producto actuales con una evaluación diseñada por un experto con más de 10 años de experiencia.",
   },
   {
     icon: BarChart3,

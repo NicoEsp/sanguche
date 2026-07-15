@@ -129,7 +129,7 @@ export default function GraciasB2B() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white mb-1">¿Llegaste por curiosidad?</p>
                   <p className="text-xs text-indigo-100/70 mb-3 leading-relaxed">
-                    Si todavía no conocés ProductPrepa, podés empezar por una autoevaluación gratuita de tu perfil PM. En 10 minutos sabés en qué áreas trabajar.
+                    Si todavía no conocés ProductPrepa, podés empezar por una evaluación gratuita de tu perfil. En 10 minutos sabés en qué áreas trabajar.
                   </p>
                   <Button
                     onClick={handleAssessmentClick}
@@ -137,7 +137,7 @@ export default function GraciasB2B() {
                     size="sm"
                     className="w-full h-auto whitespace-normal text-left bg-transparent border-indigo-300/50 text-indigo-100 hover:bg-indigo-500/20 hover:text-white hover:border-indigo-300/80"
                   >
-                    Hacer mi autoevaluación gratuita
+                    Hacer mi evaluación gratuita
                     <ArrowRight className="w-4 h-4 ml-2 flex-shrink-0" />
                   </Button>
                 </div>

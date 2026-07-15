@@ -28,7 +28,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
 
   '/planes': {
     title: 'Planes y Precios | ProductPrepa',
-    description: 'Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada y cursos especializados.',
+    description: 'Elige el plan que mejor se adapte a tu momento. Desde evaluación gratuita hasta mentoría personalizada y cursos especializados.',
     canonical: `${SITE_URL}/planes`,
     keywords: 'precios productprepa, planes suscripción, premium PM, mentoría producto, cursos PM, mentoría product builder precio, curso PM con tutor, inversión formación producto',
     image: DEFAULT_IMAGE,
@@ -46,7 +46,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
 
   '/soy-dev': {
     title: 'De Dev a Product Builder — Aprender Producto en la era de la IA | ProductPrepa',
-    description: 'Guía para developers que quieren crecer en Producto en la era de la IA. Autoevaluación gratuita, mentoría 1:1 con NicoProducto y un roadmap para la transición de dev a PM o side-projects.',
+    description: 'Guía para developers que quieren crecer en Producto en la era de la IA. Evaluación gratuita, mentoría 1:1 con NicoProducto y un roadmap para la transición de dev a PM o side-projects.',
     canonical: `${SITE_URL}/soy-dev`,
     keywords: 'developer aprender product management, transición dev a PM, de software engineer a product manager, carrera tech en era IA, side project producto, dev mentalidad de producto, programador product builder, autoevaluación product manager dev, mentoría producto para desarrolladores',
     image: `${SITE_URL}/og-soy-dev.png`,
@@ -56,7 +56,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
         '@context': 'https://schema.org',
         '@type': 'WebPage',
         name: 'De Dev a Product Builder — Aprender Producto en la era de la IA',
-        description: 'Por qué aprender Product Management es clave para developers en la era de la IA. Autoevaluación, recursos curados y mentoría 1:1 para perfiles técnicos.',
+        description: 'Por qué aprender Product Management es clave para developers en la era de la IA. Evaluación, recursos curados y mentoría 1:1 para perfiles técnicos.',
         url: `${SITE_URL}/soy-dev`,
         inLanguage: 'es',
         isPartOf: { '@type': 'WebSite', name: 'ProductPrepa', url: SITE_URL },
@@ -104,7 +104,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
       {
         '@context': 'https://schema.org',
         '@type': 'LearningResource',
-        name: 'Autoevaluación Product Builder para developers',
+        name: 'Evaluación Product Builder para developers',
         description: 'Test gratuito de 5 minutos diseñado para developers: identifica tu nivel de seniority en Producto y tus gaps específicos como perfil técnico.',
         url: `${SITE_URL}/autoevaluacion`,
         inLanguage: 'es',
@@ -226,7 +226,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
   },
 
   '/autoevaluacion': {
-    title: 'Autoevaluación Product Builder Gratis | Descubrí tu nivel',
+    title: 'Evaluación Product Builder Gratis | Descubrí tu nivel',
     description: 'Test gratuito de 5 minutos para conocer tu nivel como Product Builder. Identificá fortalezas, áreas de mejora y recibí un roadmap personalizado.',
     canonical: `${SITE_URL}/autoevaluacion`,
     keywords: 'test product builder gratis, autoevaluación PM, nivel seniority PM, evaluación habilidades producto',

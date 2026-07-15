@@ -12,7 +12,7 @@ export const soyDevFaqs: Faq[] = [
   {
     question: '¿Necesito experiencia previa en producto para empezar?',
     answer:
-      'No. ProductPrepa está pensado para perfiles que vienen de otro rol —desarrollo, diseño, Scrum, marketing— y quieren entender Producto desde la base. Empezás con una autoevaluación gratuita de 5 minutos que identifica tu nivel actual y tus áreas de mejora, y luego accedés a recursos curados según tu perfil.',
+      'No. ProductPrepa está pensado para perfiles que vienen de otro rol —desarrollo, diseño, Scrum, marketing— y quieren entender Producto desde la base. Empezás con una evaluación gratuita de 5 minutos que identifica tu nivel actual y tus áreas de mejora, y luego accedés a recursos curados según tu perfil.',
   },
   {
     question: '¿En qué me ayuda Product Management si quiero seguir programando?',
@@ -27,6 +27,6 @@ export const soyDevFaqs: Faq[] = [
   {
     question: '¿Cómo empiezo si soy dev y quiero aprender Producto?',
     answer:
-      'El primer paso es la autoevaluación gratuita de ProductPrepa: un test de 5 minutos diseñado para identificar tu nivel de seniority en producto y tus gaps específicos. Te lleva a un roadmap personalizado con recursos curados para tu perfil técnico. Si querés acelerar el proceso, podés sumar mentoría 1:1 con NicoProducto, que tiene más de 10 años en Producto.',
+      'El primer paso es la evaluación gratuita de ProductPrepa: un test de 5 minutos diseñado para identificar tu nivel de seniority en producto y tus gaps específicos. Te lleva a un roadmap personalizado con recursos curados para tu perfil técnico. Si querés acelerar el proceso, podés sumar mentoría 1:1 con NicoProducto, que tiene más de 10 años en Producto.',
   },
 ];

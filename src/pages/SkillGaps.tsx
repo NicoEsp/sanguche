@@ -156,7 +156,7 @@ export default function SkillGaps() {
         {!loading && !hasAssessment ? <Alert className="mb-6">
             <AlertTitle>No hay resultados aún</AlertTitle>
             <AlertDescription>
-              Realiza primero la <Link to="/autoevaluacion" className="underline">autoevaluación</Link> para ver tus brechas priorizadas.
+              Realizá primero la <Link to="/autoevaluacion" className="underline">evaluación</Link> para ver tus brechas priorizadas.
             </AlertDescription>
           </Alert> : null}
 

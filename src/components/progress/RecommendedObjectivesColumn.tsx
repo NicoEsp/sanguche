@@ -49,7 +49,7 @@ export const RecommendedObjectivesColumn = memo(function RecommendedObjectivesCo
 
             {objectives.length === 0 && (
               <div className="border border-dashed rounded-lg p-6 text-center text-sm text-muted-foreground">
-                No hay objetivos recomendados. Completá tu autoevaluación para recibir sugerencias personalizadas.
+                No hay objetivos recomendados. Completá tu evaluación para recibir sugerencias personalizadas.
               </div>
             )}
           </div>
