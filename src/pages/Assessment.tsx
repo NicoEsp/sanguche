@@ -31,6 +31,7 @@ import { AssessmentTypeSelector } from "@/components/assessment/AssessmentTypeSe
 import { Info, Star, Trophy, Target, Calendar, ArrowRight, ChevronLeft, ChevronRight, Compass } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,6 +57,9 @@ const ASSESSMENT_PARTIAL_ANSWERS_KEY = 'assessment_partial_answers';
 const ASSESSMENT_OPTIONAL_ANSWERS_KEY = 'assessment_optional_answers';
 const ASSESSMENT_TYPE_KEY = 'assessment_selected_type';
 const ASSESSMENT_CONTEXT_KEY = 'assessment_context_answers';
+// localStorage es por navegador, no por cuenta: sin este dueño, una cuenta
+// nueva en el mismo navegador heredaría la evaluación a medias de otra.
+const ASSESSMENT_OWNER_KEY = 'assessment_progress_owner';
 
 const VALID_TYPES: readonly AssessmentTypeKey[] = ASSESSMENT_TYPES.map((t) => t.key);
 
@@ -137,6 +141,7 @@ export default function Assessment() {
   } = useAssessmentData();
 
   const { hasActivePremium } = useSubscription();
+  const { user, isLoading: authLoading } = useAuth();
 
   // El set de preguntas depende de la evaluación elegida. Mientras no hay
   // tipo elegido se usa el de la evaluación con experiencia (solo para
@@ -165,7 +170,7 @@ export default function Assessment() {
     if (fromSignup && !hasAssessment) {
       toast({
         title: "¡Bienvenido a ProductPrepa! 🎉",
-        description: "Completa tu autoevaluación para obtener recomendaciones personalizadas.",
+        description: "Completá tu evaluación para obtener recomendaciones personalizadas.",
         duration: 5000,
       });
       // Limpiar parámetro
@@ -180,8 +185,21 @@ export default function Assessment() {
   // re-ejecuten el efecto y pisen el formulario a mitad de una evaluación.
   const hasInitializedRef = useRef(false);
   useEffect(() => {
-    if (assessmentLoading || hasInitializedRef.current) return;
+    if (assessmentLoading || authLoading || hasInitializedRef.current) return;
     hasInitializedRef.current = true;
+
+    // El progreso guardado solo vale para la cuenta que lo dejó: otra cuenta
+    // en el mismo navegador arranca de cero (y se limpia lo ajeno).
+    const storedOwner = localStorage.getItem(ASSESSMENT_OWNER_KEY);
+    const ownsStoredProgress = storedOwner === (user?.id ?? null);
+    if (localStorage.getItem(ASSESSMENT_IN_PROGRESS_KEY) === 'true' && !ownsStoredProgress) {
+      localStorage.removeItem(ASSESSMENT_IN_PROGRESS_KEY);
+      localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
+      localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
+      localStorage.removeItem(ASSESSMENT_TYPE_KEY);
+      localStorage.removeItem(ASSESSMENT_CONTEXT_KEY);
+      localStorage.removeItem(ASSESSMENT_OWNER_KEY);
+    }
 
     const assessmentInProgress = localStorage.getItem(ASSESSMENT_IN_PROGRESS_KEY) === 'true';
     const storedTypeRaw = localStorage.getItem(ASSESSMENT_TYPE_KEY) as AssessmentTypeKey | null;
@@ -215,6 +233,7 @@ export default function Assessment() {
       localStorage.removeItem(ASSESSMENT_CONTEXT_KEY);
       // Persistir la intención: si recarga en el selector, vuelve al selector.
       localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
+      if (user?.id) localStorage.setItem(ASSESSMENT_OWNER_KEY, user.id);
       setIsReevaluating(true);
       return;
     }
@@ -269,7 +288,7 @@ export default function Assessment() {
         setCurrentStep(resumeDomains.length);
       }
     }
-  }, [assessmentLoading, hasAssessment, form, searchParams, setSearchParams]);
+  }, [assessmentLoading, authLoading, hasAssessment, form, searchParams, setSearchParams, user]);
 
   // Refs para el evento de abandono (se inicializan después de `answered`)
   const isReevaluatingRef = useRef(isReevaluating);
@@ -429,6 +448,7 @@ export default function Assessment() {
     localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
     localStorage.removeItem(ASSESSMENT_TYPE_KEY);
     localStorage.removeItem(ASSESSMENT_CONTEXT_KEY);
+    localStorage.removeItem(ASSESSMENT_OWNER_KEY);
   };
 
   // Vuelve al selector de perfil (re-evaluación o cambio de evaluación a
@@ -452,6 +472,7 @@ export default function Assessment() {
     // Persistir la intención de re-evaluar: si recarga estando en el
     // selector, vuelve al selector en vez de a sus resultados anteriores.
     localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
+    if (user?.id) localStorage.setItem(ASSESSMENT_OWNER_KEY, user.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -468,6 +489,7 @@ export default function Assessment() {
     assessmentStartTimeRef.current = Date.now();
     localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
     localStorage.setItem(ASSESSMENT_TYPE_KEY, type);
+    if (user?.id) localStorage.setItem(ASSESSMENT_OWNER_KEY, user.id);
     localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
     localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
     localStorage.removeItem(ASSESSMENT_CONTEXT_KEY);
@@ -632,7 +654,7 @@ export default function Assessment() {
 
       const nivelDisplay = getNivelDisplay(activeType, result.nivel);
       toast({
-        title: "Autoevaluación guardada",
+        title: "Evaluación guardada",
         description: `${nivelDisplay.title}: ${nivelDisplay.label} (promedio ${result.promedioGlobal})`
       });
 
@@ -772,7 +794,7 @@ export default function Assessment() {
           <div className="space-y-6">
             <div className="p-6 rounded-lg border bg-card animate-fade-in hover:shadow-lg transition-all">
               <div className="flex items-center justify-between gap-3 mb-4">
-                <h2 className="text-lg font-semibold">Tu última autoevaluación</h2>
+                <h2 className="text-lg font-semibold">Tu última evaluación</h2>
                 {resultTypeDef && (
                   <Badge variant="outline" className={resultTypeDef.accent.badge}>
                     {resultTypeDef.resultTag}
@@ -979,7 +1001,7 @@ export default function Assessment() {
 
             {hasAssessment && (
               <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 max-w-2xl mx-auto">
-                Estás por actualizar tu autoevaluación. Al guardar, tus resultados y áreas de mejora se recalcularán automáticamente.
+                Estás por actualizar tu evaluación. Al guardar, tus resultados y áreas de mejora se recalcularán automáticamente.
               </div>
             )}
 

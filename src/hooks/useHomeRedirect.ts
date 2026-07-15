@@ -22,18 +22,27 @@ const FADE_DURATION = 150;
 export function useHomeRedirect() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { data: compositeData, loading: compositeLoading } = useProfileCompositeData();
-  const hasRedirectedRef = useRef(false);
+  // Se guarda PARA QUÉ usuario se redirigió: al cambiar de cuenta sin recargar,
+  // la identidad puede tardar un instante en actualizarse y la primera pasada
+  // decide con los datos cacheados del usuario anterior. Cuando la identidad
+  // se asienta, el efecto vuelve a correr y corrige el destino.
+  const redirectedForUserRef = useRef<string | null>(null);
   const [isFading, setIsFading] = useState(false);
   const [destination, setDestination] = useState<string | null>(null);
-  
+
   useEffect(() => {
-    if (hasRedirectedRef.current) return;
     if (authLoading || (isAuthenticated && compositeLoading)) return;
-    if (!isAuthenticated) return;
-    
-    hasRedirectedRef.current = true;
+    if (!isAuthenticated || !user) {
+      // Al desloguear se resetea: si vuelve a entrar (misma cuenta u otra)
+      // sin recargar, el redirect corre de nuevo.
+      redirectedForUserRef.current = null;
+      return;
+    }
+    if (redirectedForUserRef.current === user.id) return;
+
+    redirectedForUserRef.current = user.id;
     
     const returnTo = searchParams.get('returnTo');
     
@@ -72,17 +81,18 @@ export function useHomeRedirect() {
     }, FADE_DURATION);
     
   }, [
-    authLoading, 
+    authLoading,
     compositeLoading,
-    isAuthenticated, 
+    isAuthenticated,
+    user,
     compositeData,
-    searchParams, 
+    searchParams,
     setSearchParams,
     navigate
   ]);
 
   const isLoading = authLoading || compositeLoading;
-  const isRedirecting = isAuthenticated && (isLoading || !hasRedirectedRef.current);
+  const isRedirecting = isAuthenticated && (isLoading || redirectedForUserRef.current !== (user?.id ?? null));
 
   return { isRedirecting, isFading, destination };
 }

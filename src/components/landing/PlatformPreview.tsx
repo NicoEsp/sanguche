@@ -4,7 +4,7 @@ import mentoriaImg from '/screenshots/mentoria.jpg';
 
 const previews = [
   {
-    title: 'Autoevaluación de habilidades',
+    title: 'Evaluación de habilidades',
     description: 'Identificá tus fortalezas y áreas de mejora en 5 minutos.',
     image: assessmentImg,
   },

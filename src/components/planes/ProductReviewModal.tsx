@@ -54,8 +54,7 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
           </DialogDescription>
           {/* Pricing */}
           <div className="text-center pt-2">
-            <span className="text-lg text-white/40 line-through decoration-emerald-500/50 mr-3">USD 100</span>
-            <span className="text-3xl font-bold text-white">USD 50</span>
+            <span className="text-3xl font-bold text-white">ARS $100.000</span>
           </div>
         </DialogHeader>
 
@@ -100,7 +99,7 @@ export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalPro
           {/* Checkout CTA */}
           <DirectCheckoutButton
             plan="productastic_review"
-            buttonText="Solicitar mi review · USD 50"
+            buttonText="Solicitar mi review · ARS $100.000"
             emailLabel="Email para recibir el informe"
             className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold shadow-lg shadow-emerald-900/30 border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-emerald-500/20 hover:shadow-xl"
           />

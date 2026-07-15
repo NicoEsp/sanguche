@@ -682,7 +682,7 @@ export const ASSESSMENT_TYPES: ReadonlyArray<AssessmentTypeDef> = [
     shortLabel: "Con experiencia",
     title: "Ya trabajo en producto",
     persona: "PM, Designer o Dev con experiencia",
-    promise: "Sabé dónde estás parado hoy y qué te separa de tu próximo nivel.",
+    promise: "Identificá dónde estás parado hoy y qué te separa de tu próximo nivel.",
     resultTag: "Diagnóstico de seniority",
     plan: { key: "repremium", name: "RePremium", route: "/planes", ctaLabel: "Conocer RePremium" },
     accent: {

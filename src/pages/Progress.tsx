@@ -569,7 +569,7 @@ export default function Progress() {
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                   <RecommendedObjectivesColumn
                     title="✨ Recomendados para ti"
-                    description="Objetivos personalizados basados en tu autoevaluación."
+                    description="Objetivos personalizados basados en tu evaluación."
                     objectives={recommendedObjectives}
                     draggingId={draggingId}
                     onQuickAdd={handleQuickAddRecommended}

@@ -409,7 +409,7 @@ export default function Planes() {
     answer: "Sí, el Plan Gratuito incluye la autoevaluación completa y acceso a recursos introductorios. Así puedes conocer la plataforma antes de suscribirte."
   }, {
     question: "¿Qué es Productastic Review y cómo funciona?",
-    answer: "Es un pago único de USD 50 en el que NicoProducto revisa tu research, hipótesis y decisiones de producto. Después de pagar, le mandás los materiales por mail (link a tu producto, research, hipótesis, decisión a validar) y en 72 hs recibís un informe detallado con recomendaciones accionables. No es una auditoría técnica ni reemplaza un discovery completo."
+    answer: "Es un pago único de ARS $100.000 en el que NicoProducto revisa tu research, hipótesis y decisiones de producto. Después de pagar, le mandás los materiales por mail (link a tu producto, research, hipótesis, decisión a validar) y en 72 hs recibís un informe detallado con recomendaciones accionables. No es una auditoría técnica ni reemplaza un discovery completo."
   }, {
     question: "¿En qué consiste ProductPrepa for B2B?",
     answer: "Es un programa de capacitación a medida para equipos de Producto en empresas. Después de reservar el cupo, NicoProducto coordina un kickoff con el líder del área para entender al equipo y los objetivos, arma el plan a medida y arranca con sesiones grupales en vivo. Incluye acceso de todo el equipo a los cursos de ProductPrepa y reportes de avance. Si querés agendar una llamada antes de contratar, escribinos a nicoproducto@hey.com."
@@ -682,8 +682,7 @@ export default function Planes() {
                   </CardDescription>
 
                   <div className="mt-5 flex items-baseline justify-center gap-3">
-                    <span className="text-lg text-white/40 line-through decoration-emerald-500/50">USD 100</span>
-                    <span className="text-2xl font-bold text-white/90">USD 50</span>
+                    <span className="text-2xl font-bold text-white/90">ARS $100.000</span>
                   </div>
                   <Badge className="mt-2 mx-auto bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
                     Precio de lanzamiento

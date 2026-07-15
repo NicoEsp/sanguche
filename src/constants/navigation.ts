@@ -20,7 +20,7 @@ export interface NavItemType {
 export const navItems: NavItemType[] = [
   {
     href: "/autoevaluacion",
-    label: "Autoevaluación",
+    label: "Evaluación",
     icon: CheckSquare,
     premium: false,
   },

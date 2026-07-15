@@ -25,13 +25,13 @@ export function AssessmentInviteBanner() {
             ¿Ya conoces tu nivel de habilidades?
           </h3>
           <p className="text-sm text-muted-foreground">
-            Completa tu autoevaluación para recibir recursos personalizados según tus áreas de mejora. Solo toma 3-5 minutos.
+            Completá tu evaluación para recibir recursos personalizados según tus áreas de mejora. Solo toma 3-5 minutos.
           </p>
         </div>
 
         <Button asChild onClick={handleClick} className="flex-shrink-0">
           <Link to="/autoevaluacion">
-            Hacer autoevaluación
+            Hacer la evaluación
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
