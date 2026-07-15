@@ -56,10 +56,12 @@ export function CompetencyRadar({ scores, accentHex, className = "" }: Competenc
 
   return (
     <svg
-      viewBox="0 0 400 400"
+      // El viewBox se ensancha 44px por lado (centro sigue en 200) para que
+      // las etiquetas laterales largas, como "IA aplicada", no se corten.
+      viewBox="-44 0 488 400"
       role="img"
       aria-label={`Gráfico de radar con tu puntaje en ${total} dominios`}
-      className={`w-full max-w-md mx-auto ${className}`}
+      className={`w-full max-w-lg mx-auto ${className}`}
     >
       {/* Anillos de referencia (1 a 5) */}
       {rings.map((ring) => {
