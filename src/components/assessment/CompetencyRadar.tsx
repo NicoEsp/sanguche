@@ -54,10 +54,10 @@ export function CompetencyRadar({ scores, accentHex, className = "" }: Competenc
   const dataPoints = scores.map((s, i) => pointAt(i, total, (s.value / MAX_VALUE) * MAX_RADIUS));
   const dataPolygon = dataPoints.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
 
+  // El viewBox se ensancha 44px por lado (centro sigue en 200) para que las
+  // etiquetas laterales largas, como "IA aplicada", no se corten.
   return (
     <svg
-      // El viewBox se ensancha 44px por lado (centro sigue en 200) para que
-      // las etiquetas laterales largas, como "IA aplicada", no se corten.
       viewBox="-44 0 488 400"
       role="img"
       aria-label={`Gráfico de radar con tu puntaje en ${total} dominios`}
