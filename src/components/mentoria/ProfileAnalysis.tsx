@@ -1,28 +1,37 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp } from "lucide-react";
-import { AssessmentResult } from "@/utils/scoring";
+import { AssessmentResult, AssessmentTypeKey, getNivelDisplay } from "@/utils/scoring";
 import { memo } from "react";
 
 interface ProfileAnalysisProps {
   result: AssessmentResult;
 }
 
+const CARD_TITLES: Record<AssessmentTypeKey, string> = {
+  experimentado: "Tu perfil de Product Builder",
+  sin_experiencia: "Tu mapa de afinidad",
+  builder: "Tu perfil de Product Builder",
+  lider: "El perfil de tu equipo"
+};
+
 export const ProfileAnalysis = memo(function ProfileAnalysis({ result }: ProfileAnalysisProps) {
   const focusArea = result.gaps[0]?.label ?? result.neutralAreas[0]?.label ?? "Sin brechas críticas";
+  const nivelDisplay = getNivelDisplay(result.assessmentType, result.nivel);
+  const title = CARD_TITLES[result.assessmentType ?? "experimentado"];
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-primary" />
-          Tu perfil de Product Builder
+          {title}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="flex flex-col items-center justify-center text-center p-4 bg-primary/5 rounded-lg min-h-[110px]">
-            <div className="text-2xl font-bold text-primary leading-tight">{result.nivel}</div>
-            <div className="text-sm text-muted-foreground mt-1">Nivel actual</div>
+            <div className="text-2xl font-bold text-primary leading-tight">{nivelDisplay.label}</div>
+            <div className="text-sm text-muted-foreground mt-1">{nivelDisplay.title}</div>
           </div>
           <div className="flex flex-col items-center justify-center text-center p-4 bg-secondary/50 rounded-lg min-h-[110px]">
             <div className="text-2xl font-bold text-foreground leading-tight">{result.promedioGlobal}/5</div>

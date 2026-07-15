@@ -6,20 +6,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { DOMAINS, type DomainKey } from "@/utils/scoring";
+import { type AssessmentDomainDef } from "@/utils/scoring";
 
 interface DomainInfoPopupProps {
-  domainKey: DomainKey;
+  domain: AssessmentDomainDef | null;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function DomainInfoPopup({ domainKey, isOpen, onClose }: DomainInfoPopupProps) {
-  const domain = DOMAINS.find(d => d.key === domainKey);
-  
+export function DomainInfoPopup({ domain, isOpen, onClose }: DomainInfoPopupProps) {
   if (!domain) return null;
-
-  const levelLabels = ["Novato", "Básico", "Intermedio", "Avanzado", "Experto"];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -30,24 +26,28 @@ export function DomainInfoPopup({ domainKey, isOpen, onClose }: DomainInfoPopupP
             {domain.description}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           <div>
-            <h3 className="font-medium mb-3">Niveles de seniority</h3>
+            <h3 className="font-medium mb-3">Qué significa cada nivel</h3>
             <div className="space-y-3">
-              {domain.levelDefinitions.map((definition, index) => (
-                <div key={index} className="flex gap-3 p-3 rounded-lg border bg-card">
-                  <Badge variant="outline" className="min-w-fit">
-                    {index + 1}
-                  </Badge>
-                  <div className="flex-1">
-                    <div className="font-medium text-sm mb-1">{levelLabels[index]}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {definition.split(': ')[1]}
+              {domain.levelDefinitions.map((definition, index) => {
+                // Cada definición viene como "Nombre: descripción".
+                const [levelName, ...rest] = definition.split(': ');
+                return (
+                  <div key={index} className="flex gap-3 p-3 rounded-lg border bg-card">
+                    <Badge variant="outline" className="min-w-fit">
+                      {index + 1}
+                    </Badge>
+                    <div className="flex-1">
+                      <div className="font-medium text-sm mb-1">{levelName}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {rest.join(': ')}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

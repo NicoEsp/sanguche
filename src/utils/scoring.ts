@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export type SeniorityLevel = "Junior" | "Mid" | "Senior" | "Lead" | "Head";
 
+export type AssessmentTypeKey = "experimentado" | "sin_experiencia" | "builder" | "lider";
+
 export const DOMAINS = [
   {
     key: "estrategia",
@@ -227,11 +229,14 @@ export const DOMAINS = [
 
 export type DomainKey = (typeof DOMAINS)[number]["key"];
 
-const shape: Record<DomainKey, z.ZodNumber> = DOMAINS.reduce((acc, d) => {
-  (acc as Record<string, z.ZodNumber>)[d.key] = z.number({ 
+const domainScoreSchema = () =>
+  z.number({
     required_error: "Obligatorio para avanzar",
     invalid_type_error: "Debe seleccionar una opción válida"
   }).int().min(1, "Debe seleccionar al menos 1").max(5, "El valor máximo es 5");
+
+const shape: Record<DomainKey, z.ZodNumber> = DOMAINS.reduce((acc, d) => {
+  (acc as Record<string, z.ZodNumber>)[d.key] = domainScoreSchema();
   return acc;
 }, {} as Record<DomainKey, z.ZodNumber>);
 
@@ -240,7 +245,7 @@ export const assessmentSchema = z.object(shape);
 export type AssessmentValues = z.infer<typeof assessmentSchema>;
 
 export type DomainScore = {
-  key: DomainKey;
+  key: AnyDomainKey;
   label: string;
   value: number;
 };
@@ -325,6 +330,577 @@ export type OptionalDomainFeedback = {
   description: string;
 };
 
+// ============= EVALUACIONES POR PERFIL =============
+// Cuatro evaluaciones sobre los mismos dominios. Lo que cambia por perfil es
+// el subconjunto de dominios, el ángulo de la pregunta y la escalera de
+// opciones: la vara de "qué es un 5" no es la misma para alguien sin
+// experiencia, un builder o un líder de equipo.
+
+export type AnyDomainKey = DomainKey | OptionalDomainKey;
+
+export type AnyAssessmentValues = Partial<Record<AnyDomainKey, number>>;
+
+export type AssessmentDomainDef = {
+  key: AnyDomainKey;
+  label: string;
+  description: string;
+  question: string;
+  statements: ReadonlyArray<{ value: number; label: string }>;
+  levelDefinitions: ReadonlyArray<string>;
+};
+
+export type AssessmentContext = {
+  rolInteres?: "pm" | "diseno" | "dev" | "no_seguro";
+  etapa?: "idea" | "mvp" | "usuarios" | "ingresos";
+  detalle?: string;
+};
+
+export type SuggestedRole = {
+  key: "pm" | "diseno" | "dev";
+  label: string;
+  coincideConInteres: boolean | null;
+};
+
+// --- Sin experiencia: mide afinidad y conocimiento teórico, no seniority ---
+
+const SIN_EXPERIENCIA_STATEMENTS = [
+  { value: 1, label: "Nunca lo pensé o no sé bien de qué se trata (1)" },
+  { value: 2, label: "Tengo una idea vaga, lo escuché o leí alguna vez (2)" },
+  { value: 3, label: "Entiendo el concepto y podría explicarlo con mis palabras (3)" },
+  { value: 4, label: "Ya lo apliqué en algún proyecto personal, académico o freelance (4)" },
+  { value: 5, label: "Me genera mucha curiosidad, es de lo que más me atrae explorar (5)" }
+] as const;
+
+const SIN_EXPERIENCIA_LEVELS = [
+  "Sin contacto: Todavía no te cruzaste con este tema",
+  "Explorando: Lo conocés de oídas y te da curiosidad",
+  "Con base: Podés explicar el concepto con tus palabras",
+  "Con práctica: Ya lo aplicaste en algún proyecto propio",
+  "Alta afinidad: Es de las áreas que más te atraen para profundizar"
+] as const;
+
+export const SIN_EXPERIENCIA_DOMAINS: ReadonlyArray<AssessmentDomainDef> = [
+  {
+    key: "estrategia",
+    label: "Estrategia de producto",
+    description: "Pensar un producto en términos de visión, objetivos y el problema que resuelve.",
+    question: "¿Qué tan familiarizado estás con pensar un producto en términos de visión, objetivo y para quién resuelve un problema?",
+    statements: SIN_EXPERIENCIA_STATEMENTS,
+    levelDefinitions: SIN_EXPERIENCIA_LEVELS
+  },
+  {
+    key: "discovery",
+    label: "Discovery de usuarios",
+    description: "Hablar con usuarios para entender sus problemas antes de construir la solución.",
+    question: "¿Qué tan cómodo te sentís hablando con usuarios para entender sus problemas antes de proponer una solución?",
+    statements: SIN_EXPERIENCIA_STATEMENTS,
+    levelDefinitions: SIN_EXPERIENCIA_LEVELS
+  },
+  {
+    key: "analitica",
+    label: "Analítica y métricas",
+    description: "Usar números y datos para decidir qué hacer con un producto.",
+    question: "¿Qué tan natural te resulta pensar en números y datos para decidir qué hacer con un producto?",
+    statements: SIN_EXPERIENCIA_STATEMENTS,
+    levelDefinitions: SIN_EXPERIENCIA_LEVELS
+  },
+  {
+    key: "ux",
+    label: "UX e investigación",
+    description: "Cómo se ve, se siente y se usa un producto desde los ojos de quien lo usa.",
+    question: "¿Qué tanto te atrae pensar cómo se ve y se usa un producto desde la experiencia de quien lo usa?",
+    statements: SIN_EXPERIENCIA_STATEMENTS,
+    levelDefinitions: SIN_EXPERIENCIA_LEVELS
+  },
+  {
+    key: "tecnico",
+    label: "Conocimiento técnico",
+    description: "Entender cómo funciona un producto por dentro, sin necesidad de programar.",
+    question: "¿Qué tan cómodo te sentís entendiendo (aunque no programes) cómo funciona algo por dentro, como APIs, bases de datos o lógica?",
+    statements: SIN_EXPERIENCIA_STATEMENTS,
+    levelDefinitions: SIN_EXPERIENCIA_LEVELS
+  },
+  {
+    key: "ejecucion",
+    label: "Ejecución y entregas",
+    description: "Llevar una idea desde la intención hasta algo terminado, con pasos y prioridades.",
+    question: "¿Qué tan organizado sos para llevar una idea de \"quiero hacer esto\" a \"está hecho\", con pasos y prioridades?",
+    statements: SIN_EXPERIENCIA_STATEMENTS,
+    levelDefinitions: SIN_EXPERIENCIA_LEVELS
+  },
+  {
+    key: "comunicacion",
+    label: "Comunicación y alineación",
+    description: "Explicar una idea para que otros la entiendan y se sumen.",
+    question: "¿Qué tan cómodo te sentís explicando una idea o un proyecto para que otros lo entiendan y se sumen?",
+    statements: SIN_EXPERIENCIA_STATEMENTS,
+    levelDefinitions: SIN_EXPERIENCIA_LEVELS
+  },
+  {
+    key: "liderazgo",
+    label: "Liderazgo",
+    description: "Influir en un grupo o proyecto sin tener el rol formal de líder.",
+    question: "¿Qué tanto te pasó ya de influir en un grupo o proyecto sin tener el rol formal de líder?",
+    statements: SIN_EXPERIENCIA_STATEMENTS,
+    levelDefinitions: SIN_EXPERIENCIA_LEVELS
+  },
+  {
+    key: "roadmap",
+    label: "Roadmap y priorización",
+    description: "Decidir qué hacer primero cuando hay muchas cosas por hacer y poco tiempo.",
+    question: "¿Qué tan natural te resulta priorizar, decidir qué hacer primero cuando hay muchas cosas por hacer y poco tiempo?",
+    statements: SIN_EXPERIENCIA_STATEMENTS,
+    levelDefinitions: SIN_EXPERIENCIA_LEVELS
+  }
+];
+
+// --- Builder: mide madurez de método, instinto versus proceso ---
+
+const BUILDER_STATEMENTS = [
+  { value: 1, label: "Lo hago a instinto, sin método ni marco de referencia (1)" },
+  { value: 2, label: "Conozco algo de teoría pero no la aplico de forma consistente (2)" },
+  { value: 3, label: "Aplico un proceso básico, pero sé que me falta profundidad (3)" },
+  { value: 4, label: "Tengo un proceso sólido y lo uso de forma consistente en mi producto (4)" },
+  { value: 5, label: "Tengo un proceso propio, iterado, que podría enseñarle a otro builder (5)" }
+] as const;
+
+const BUILDER_LEVELS = [
+  "A instinto: Resolvés sin método y cada decisión arranca de cero",
+  "Teoría suelta: Conocés conceptos pero todavía no los bajás a la práctica",
+  "Proceso básico: Tenés una forma de trabajar, con espacio para profundizar",
+  "Proceso sólido: Aplicás un método consistente en tu producto",
+  "Método propio: Iteraste tu proceso al punto de poder enseñarlo"
+] as const;
+
+export const BUILDER_DOMAINS: ReadonlyArray<AssessmentDomainDef> = [
+  {
+    key: "estrategia",
+    label: "Estrategia de producto",
+    description: "Tener claro y validado el para quién y el por qué de tu producto.",
+    question: "¿Qué tan claro y validado tenés el \"para quién\" y \"por qué\" de tu producto?",
+    statements: BUILDER_STATEMENTS,
+    levelDefinitions: BUILDER_LEVELS
+  },
+  {
+    key: "discovery",
+    label: "Discovery de usuarios",
+    description: "Hablar con usuarios reales y validar hipótesis antes de construir.",
+    question: "¿Qué tan sistemático es tu proceso para hablar con usuarios reales y validar hipótesis antes de construir?",
+    statements: BUILDER_STATEMENTS,
+    levelDefinitions: BUILDER_LEVELS
+  },
+  {
+    key: "ux",
+    label: "UX e investigación",
+    description: "El flujo de tu producto visto desde la experiencia real de quien lo usa.",
+    question: "¿Qué tan trabajado está el flujo de tu producto desde la experiencia real de quien lo usa?",
+    statements: BUILDER_STATEMENTS,
+    levelDefinitions: BUILDER_LEVELS
+  },
+  {
+    key: "ejecucion",
+    label: "Ejecución y entregas",
+    description: "Tu proceso para pasar de idea a feature shippeada.",
+    question: "¿Qué tan ordenado es tu proceso para pasar de idea a feature shippeada?",
+    statements: BUILDER_STATEMENTS,
+    levelDefinitions: BUILDER_LEVELS
+  },
+  {
+    key: "analitica",
+    label: "Analítica y métricas",
+    description: "Saber si tu producto funciona, con qué métricas y con qué frecuencia mirarlas.",
+    question: "¿Qué tan bien sabés hoy si tu producto está funcionando, con qué métricas y con qué frecuencia las mirás?",
+    statements: BUILDER_STATEMENTS,
+    levelDefinitions: BUILDER_LEVELS
+  },
+  {
+    key: "monetizacion",
+    label: "Monetización y negocio",
+    description: "Cómo tu producto genera o va a generar ingresos.",
+    question: "¿Qué tan claro y probado tenés cómo tu producto genera (o va a generar) ingresos?",
+    statements: BUILDER_STATEMENTS,
+    levelDefinitions: BUILDER_LEVELS
+  },
+  {
+    key: "growth",
+    label: "Growth",
+    description: "Tu proceso para conseguir usuarios y clientes nuevos.",
+    question: "¿Qué tan sistemático es tu proceso para conseguir usuarios o clientes nuevos?",
+    statements: BUILDER_STATEMENTS,
+    levelDefinitions: BUILDER_LEVELS
+  },
+  {
+    key: "tecnico",
+    label: "Conocimiento técnico",
+    description: "Decisiones de arquitectura, stack y deuda técnica en función del negocio.",
+    question: "¿Qué tan bien tomás decisiones técnicas (arquitectura, stack, deuda técnica) en función del negocio y no solo de lo que te resulta cómodo?",
+    statements: BUILDER_STATEMENTS,
+    levelDefinitions: BUILDER_LEVELS
+  },
+  {
+    key: "ia_aplicada",
+    label: "IA aplicada a Producto",
+    description: "Cuánto usás la IA para construir, desde código hasta soporte y contenido.",
+    question: "¿Qué tan integrada tenés la IA en tu forma de construir (desde código hasta soporte o contenido)?",
+    statements: BUILDER_STATEMENTS,
+    levelDefinitions: BUILDER_LEVELS
+  },
+  {
+    key: "comunicacion",
+    label: "Comunicación y alineación",
+    description: "Cómo contás tu producto a usuarios, inversores o socios.",
+    question: "¿Qué tan clara y convincente es tu forma de contar tu producto a usuarios, inversores o socios?",
+    statements: BUILDER_STATEMENTS,
+    levelDefinitions: BUILDER_LEVELS
+  }
+];
+
+// --- Líder: mide la madurez del equipo, no la práctica individual ---
+
+const LIDER_STATEMENTS = [
+  { value: 1, label: "Mi equipo no tiene un proceso definido para esto, cada uno lo hace a su manera (1)" },
+  { value: 2, label: "Existe una noción básica, pero no está sistematizada ni es pareja en el equipo (2)" },
+  { value: 3, label: "Tenemos un proceso definido que seguimos con cierta consistencia (3)" },
+  { value: 4, label: "El proceso está bien instalado, documentado, y el equipo lo aplica de forma autónoma (4)" },
+  { value: 5, label: "Es una fortaleza distintiva, el equipo innova acá y podría ser referente para otros equipos (5)" }
+] as const;
+
+const LIDER_LEVELS = [
+  "Sin proceso: Cada persona resuelve a su manera",
+  "Incipiente: Hay una noción básica pero despareja",
+  "Definido: Existe un proceso que se sigue con cierta consistencia",
+  "Instalado: El proceso está documentado y el equipo lo aplica solo",
+  "Referente: El equipo innova acá y puede marcar el camino a otros"
+] as const;
+
+export const LIDER_DOMAINS: ReadonlyArray<AssessmentDomainDef> = [
+  {
+    key: "estrategia",
+    label: "Estrategia de producto",
+    description: "Cuánto entiende tu equipo la estrategia y cómo la traduce al día a día.",
+    question: "¿Qué tan bien tu equipo entiende y puede traducir la estrategia de producto en su trabajo del día a día?",
+    statements: LIDER_STATEMENTS,
+    levelDefinitions: LIDER_LEVELS
+  },
+  {
+    key: "roadmap",
+    label: "Roadmap y priorización",
+    description: "La madurez del proceso de priorización y roadmap en tu equipo.",
+    question: "¿Qué tan maduro es el proceso de priorización y construcción del roadmap en tu equipo?",
+    statements: LIDER_STATEMENTS,
+    levelDefinitions: LIDER_LEVELS
+  },
+  {
+    key: "discovery",
+    label: "Discovery de usuarios",
+    description: "La cultura de research y validación con usuarios dentro del equipo.",
+    question: "¿Qué tan instalada está la cultura de research y validación con usuarios en tu equipo?",
+    statements: LIDER_STATEMENTS,
+    levelDefinitions: LIDER_LEVELS
+  },
+  {
+    key: "analitica",
+    label: "Analítica y métricas",
+    description: "Cómo usa datos tu equipo para decidir, más allá de reportarlos.",
+    question: "¿Qué tan bien tu equipo usa datos para tomar decisiones, más allá de reportarlas?",
+    statements: LIDER_STATEMENTS,
+    levelDefinitions: LIDER_LEVELS
+  },
+  {
+    key: "ejecucion",
+    label: "Ejecución y entregas",
+    description: "Qué tan predecible y saludable es el proceso de entrega del equipo.",
+    question: "¿Qué tan predecible y saludable es el proceso de entrega de tu equipo?",
+    statements: LIDER_STATEMENTS,
+    levelDefinitions: LIDER_LEVELS
+  },
+  {
+    key: "ux",
+    label: "UX e investigación",
+    description: "La colaboración entre producto y diseño dentro del equipo.",
+    question: "¿Qué tan fluida es la colaboración entre producto y diseño en tu equipo?",
+    statements: LIDER_STATEMENTS,
+    levelDefinitions: LIDER_LEVELS
+  },
+  {
+    key: "stakeholders",
+    label: "Gestión de stakeholders",
+    description: "Cómo gestiona el equipo las expectativas de otras áreas.",
+    question: "¿Qué tan bien gestiona tu equipo (y vos como líder) las expectativas de stakeholders y otras áreas?",
+    statements: LIDER_STATEMENTS,
+    levelDefinitions: LIDER_LEVELS
+  },
+  {
+    key: "comunicacion",
+    label: "Comunicación y alineación",
+    description: "Qué tan alineada está la organización sobre qué se construye y por qué.",
+    question: "¿Qué tan alineada está tu organización sobre qué se está construyendo y por qué?",
+    statements: LIDER_STATEMENTS,
+    levelDefinitions: LIDER_LEVELS
+  },
+  {
+    key: "liderazgo",
+    label: "Liderazgo",
+    description: "Cuánto invertís en desarrollar el criterio de producto de tu equipo.",
+    question: "¿Qué tanto invertís en desarrollar el criterio de producto de tu equipo (coaching, feedback, autonomía)?",
+    statements: LIDER_STATEMENTS,
+    levelDefinitions: LIDER_LEVELS
+  },
+  {
+    key: "ia_aplicada",
+    label: "IA aplicada a Producto",
+    description: "Qué tan al día está tu equipo con las formas actuales de construir producto.",
+    question: "¿Qué tan actualizado está tu equipo en las formas actuales de construir producto (IA, nuevas herramientas, nuevos métodos)?",
+    statements: LIDER_STATEMENTS,
+    levelDefinitions: LIDER_LEVELS
+  }
+];
+
+// --- Metadata de cada evaluación: tarjeta del selector, plan y color ---
+
+export type AssessmentTypeDef = {
+  key: AssessmentTypeKey;
+  title: string;
+  /** Etiqueta corta para admin, filtros y reportes. */
+  shortLabel: string;
+  persona: string;
+  promise: string;
+  resultTag: string;
+  plan: { key: string; name: string; route: string; ctaLabel: string };
+  // Clases visuales por tipo: solo lo que se consume de forma compartida.
+  // Las variantes compuestas (hover, gradientes) viven como literales en cada
+  // componente porque Tailwind no genera clases armadas dinámicamente.
+  accent: {
+    hex: string;
+    badge: string;
+  };
+};
+
+export const ASSESSMENT_TYPES: ReadonlyArray<AssessmentTypeDef> = [
+  {
+    key: "experimentado",
+    shortLabel: "Con experiencia",
+    title: "Ya trabajo en producto",
+    persona: "PM, Designer o Dev con experiencia",
+    promise: "Sabé dónde estás parado hoy y qué te separa de tu próximo nivel.",
+    resultTag: "Diagnóstico de seniority",
+    plan: { key: "repremium", name: "RePremium", route: "/planes", ctaLabel: "Conocer RePremium" },
+    accent: {
+      hex: "#a855f7",
+      badge: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30"
+    }
+  },
+  {
+    key: "sin_experiencia",
+    shortLabel: "Dando el salto",
+    title: "Quiero dar el salto",
+    persona: "Sin experiencia en producto digital",
+    promise: "Descubrí tu afinidad con cada área y por dónde te conviene entrar.",
+    resultTag: "Mapa de afinidad",
+    plan: { key: "premium", name: "Premium", route: "/planes", ctaLabel: "Conocer Premium" },
+    accent: {
+      hex: "#f59e0b",
+      badge: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+    }
+  },
+  {
+    key: "builder",
+    shortLabel: "Product Builder",
+    title: "Estoy construyendo un producto",
+    persona: "Founder o Product Builder",
+    promise: "Medí cuánto método hay detrás de lo que estás creando.",
+    resultTag: "Madurez de método",
+    plan: { key: "productastic_review", name: "Productastic Review", route: "/planes", ctaLabel: "Conocer Productastic Review" },
+    accent: {
+      hex: "#10b981",
+      badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+    }
+  },
+  {
+    key: "lider",
+    shortLabel: "Líder de equipo",
+    title: "Lidero un equipo de producto",
+    persona: "Manager, Head o Team Lead",
+    promise: "Evaluá la madurez de tu equipo y encontrá dónde nivelarlo.",
+    resultTag: "Radiografía del equipo",
+    plan: { key: "productprepa_business", name: "ProductPrepa for B2B", route: "/empresas", ctaLabel: "Ver ProductPrepa for B2B" },
+    accent: {
+      hex: "#6366f1",
+      badge: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30"
+    }
+  }
+];
+
+export function getAssessmentTypeDef(type: AssessmentTypeKey | null | undefined): AssessmentTypeDef {
+  return ASSESSMENT_TYPES.find((t) => t.key === type) ?? ASSESSMENT_TYPES[0];
+}
+
+/** Etiqueta corta del tipo para admin y reportes; sin tipo es una evaluación legacy. */
+export function getAssessmentTypeShortLabel(type: AssessmentTypeKey | "legacy" | null | undefined): string {
+  return !type || type === "legacy" ? "Legacy" : getAssessmentTypeDef(type).shortLabel;
+}
+
+export function getDomainsForType(type: AssessmentTypeKey): ReadonlyArray<AssessmentDomainDef> {
+  switch (type) {
+    case "sin_experiencia":
+      return SIN_EXPERIENCIA_DOMAINS;
+    case "builder":
+      return BUILDER_DOMAINS;
+    case "lider":
+      return LIDER_DOMAINS;
+    default:
+      return DOMAINS;
+  }
+}
+
+const schemaCache: Partial<Record<AssessmentTypeKey, ReturnType<typeof z.object>>> = {};
+
+export function getAssessmentSchema(type: AssessmentTypeKey) {
+  if (type === "experimentado") return assessmentSchema;
+  const cached = schemaCache[type];
+  if (cached) return cached;
+  const typeShape: Record<string, z.ZodNumber> = {};
+  for (const d of getDomainsForType(type)) {
+    typeShape[d.key] = domainScoreSchema();
+  }
+  const schema = z.object(typeShape);
+  schemaCache[type] = schema;
+  return schema;
+}
+
+// --- Pregunta de contexto (no puntuada) al final de cada evaluación nueva ---
+
+export type AssessmentContextDef = {
+  question: string;
+  helper: string;
+  optionsField?: "rolInteres" | "etapa";
+  options?: ReadonlyArray<{ value: string; label: string }>;
+  textLabel?: string;
+  textPlaceholder?: string;
+};
+
+export const CONTEXT_QUESTIONS: Partial<Record<AssessmentTypeKey, AssessmentContextDef>> = {
+  sin_experiencia: {
+    question: "¿Qué rol te imaginás probando primero?",
+    helper: "No suma ni resta puntaje. Ayuda a orientar la recomendación final.",
+    optionsField: "rolInteres",
+    options: [
+      { value: "pm", label: "Product Manager" },
+      { value: "diseno", label: "Diseño de Producto" },
+      { value: "dev", label: "Desarrollo" },
+      { value: "no_seguro", label: "Todavía no estoy seguro/a" }
+    ]
+  },
+  builder: {
+    question: "¿En qué etapa está tu producto?",
+    helper: "No afecta tu puntaje. Ordena las prioridades de tu resultado.",
+    optionsField: "etapa",
+    options: [
+      { value: "idea", label: "Idea" },
+      { value: "mvp", label: "MVP" },
+      { value: "usuarios", label: "Con usuarios" },
+      { value: "ingresos", label: "Con ingresos" }
+    ],
+    textLabel: "Contanos en una línea qué estás construyendo",
+    textPlaceholder: "Ej: una app para gestionar turnos de canchas de pádel"
+  },
+  lider: {
+    question: "¿Cómo está formado tu equipo?",
+    helper: "No afecta tu puntaje. Da contexto a la recomendación final.",
+    textLabel: "Personas a cargo y roles",
+    textPlaceholder: "Ej: 6 personas, 2 PMs, 1 diseñadora, 3 devs"
+  }
+};
+
+/**
+ * Etiqueta visible de un valor de contexto (etapa o rol de interés), derivada
+ * de las mismas opciones que ve el usuario en el wizard.
+ */
+export function getContextValueLabel(field: "etapa" | "rolInteres", value: string): string {
+  for (const def of Object.values(CONTEXT_QUESTIONS)) {
+    if (def.optionsField === field && def.options) {
+      const option = def.options.find((o) => o.value === value);
+      if (option) return option.label;
+    }
+  }
+  return value;
+}
+
+// --- Cómo se muestra el nivel según la evaluación ---
+// El bucket numérico es el mismo para todas; el nombre cambia porque no es lo
+// mismo seniority individual que afinidad o madurez de equipo.
+
+const NIVEL_DISPLAY: Record<AssessmentTypeKey, { title: string; labels: Record<SeniorityLevel, string> }> = {
+  experimentado: {
+    title: "Nivel estimado",
+    labels: { Junior: "Junior", Mid: "Mid", Senior: "Senior", Lead: "Lead", Head: "Head" }
+  },
+  sin_experiencia: {
+    title: "Afinidad general",
+    labels: { Junior: "Explorando", Mid: "Con base", Senior: "Con práctica", Lead: "Alta afinidad", Head: "Alta afinidad" }
+  },
+  builder: {
+    title: "Madurez de método",
+    labels: { Junior: "A instinto", Mid: "Proceso incipiente", Senior: "Proceso sólido", Lead: "Método afilado", Head: "Método de referencia" }
+  },
+  lider: {
+    title: "Madurez del equipo",
+    labels: { Junior: "Inicial", Mid: "En desarrollo", Senior: "Establecido", Lead: "Avanzado", Head: "Referente" }
+  }
+};
+
+export function getNivelDisplay(
+  type: AssessmentTypeKey | null | undefined,
+  nivel: SeniorityLevel
+): { title: string; label: string } {
+  const display = NIVEL_DISPLAY[type ?? "experimentado"];
+  return { title: display.title, label: display.labels[nivel] };
+}
+
+// Dominios que más pesan según la etapa declarada por el builder: una brecha
+// ahí frena más que el resto y se prioriza primero.
+const STAGE_CRITICAL_DOMAINS: Record<NonNullable<AssessmentContext["etapa"]>, ReadonlyArray<AnyDomainKey>> = {
+  idea: ["discovery", "estrategia"],
+  mvp: ["discovery", "ejecucion", "ux"],
+  usuarios: ["analitica", "ux", "growth"],
+  ingresos: ["monetizacion", "growth", "analitica"]
+};
+
+const ETAPA_LABELS: Record<NonNullable<AssessmentContext["etapa"]>, string> = {
+  idea: "idea",
+  mvp: "MVP",
+  usuarios: "con usuarios",
+  ingresos: "con ingresos"
+};
+
+const ROLE_AFFINITY: ReadonlyArray<{ key: SuggestedRole["key"]; label: string; domains: ReadonlyArray<AnyDomainKey> }> = [
+  { key: "pm", label: "Product Manager", domains: ["estrategia", "roadmap", "comunicacion", "liderazgo"] },
+  { key: "diseno", label: "Diseño de Producto", domains: ["ux", "discovery", "comunicacion"] },
+  { key: "dev", label: "Desarrollo con mirada de producto", domains: ["tecnico", "ejecucion", "analitica"] }
+];
+
+function computeSuggestedRole(values: AnyAssessmentValues, context?: AssessmentContext): SuggestedRole {
+  const scored = ROLE_AFFINITY.map((role) => ({
+    ...role,
+    score: role.domains.reduce((acc, k) => acc + (values[k] ?? 0), 0) / role.domains.length
+  })).sort((a, b) => b.score - a.score);
+
+  // Si declaró interés y está cerca del puntaje más alto, su preferencia desempata.
+  let top = scored[0];
+  const declared = context?.rolInteres;
+  if (declared && declared !== "no_seguro") {
+    const cercanos = scored.filter((r) => scored[0].score - r.score < 0.2);
+    const preferido = cercanos.find((r) => r.key === declared);
+    if (preferido) top = preferido;
+  }
+
+  return {
+    key: top.key,
+    label: top.label,
+    coincideConInteres: declared && declared !== "no_seguro" ? top.key === declared : null
+  };
+}
+
 export type AssessmentResult = {
   promedioGlobal: number;
   nivel: SeniorityLevel;
@@ -337,6 +913,9 @@ export type AssessmentResult = {
   ctaInfo: { text: string; route: string };
   optionalDomains?: OptionalAssessmentValues;
   optionalImprovements?: OptionalDomainFeedback[];
+  assessmentType?: AssessmentTypeKey;
+  context?: AssessmentContext;
+  suggestedRole?: SuggestedRole;
 };
 
 export function computeOptionalImprovements(
@@ -366,10 +945,15 @@ export function computeOptionalImprovements(
 }
 
 export function computeSeniorityScore(
-  values: AssessmentValues,
-  optionalValues?: OptionalAssessmentValues
+  values: AnyAssessmentValues,
+  optionalValues?: OptionalAssessmentValues,
+  assessmentType: AssessmentTypeKey = "experimentado",
+  context?: AssessmentContext
 ): AssessmentResult {
-  const entries = Object.entries(values) as [keyof AssessmentValues, number][];
+  const domains = getDomainsForType(assessmentType);
+  const entries = Object.entries(values).filter(
+    ([, v]) => typeof v === "number"
+  ) as [AnyDomainKey, number][];
   const sum = entries.reduce((acc, [, v]) => acc + v, 0);
   const n = entries.length || 1;
   const mean = sum / n;
@@ -391,8 +975,8 @@ export function computeSeniorityScore(
       : "Head";
 
   const all: DomainScore[] = entries.map(([key, value]) => ({
-    key: key as DomainKey,
-    label: DOMAINS.find((d) => d.key === key)!.label,
+    key,
+    label: domains.find((d) => d.key === key)?.label ?? key,
     value,
   }));
 
@@ -410,55 +994,100 @@ export function computeSeniorityScore(
     }));
 
   // Brechas con priorización inteligente
-  const gaps: Gap[] = realGaps
+  let gaps: Gap[] = realGaps
     .sort((a, b) => a.value - b.value)
     .map(g => ({
       ...g,
       prioridad: g.value < 2.5 ? "Alta" : "Media"
     }));
 
+  // Para builders, una brecha en un dominio crítico de su etapa frena más
+  // que el resto: sube a prioridad Alta y encabeza la lista.
+  if (assessmentType === "builder" && context?.etapa) {
+    const criticos = STAGE_CRITICAL_DOMAINS[context.etapa];
+    gaps = gaps
+      .map((g) => (criticos.includes(g.key) ? { ...g, prioridad: "Alta" as const } : g))
+      .sort((a, b) => {
+        const aCritico = criticos.includes(a.key) ? 0 : 1;
+        const bCritico = criticos.includes(b.key) ? 0 : 1;
+        return aCritico - bCritico || a.value - b.value;
+      });
+  }
+
   // Identificar especialización (área más fuerte)
-  const specialization = all.reduce((prev, current) => 
+  const specialization = all.reduce((prev, current) =>
     current.value > prev.value ? current : prev
   ).label;
 
-  // Generar perfil estimado
-  const profileEstimate = generateProfileEstimate(
-    nivel, 
-    promedioGlobal, 
-    standardDeviation, 
-    specialization, 
-    strengths.length, 
-    gaps.filter(g => g.prioridad === "Alta").length
-  );
+  const brechasCriticas = gaps.filter(g => g.prioridad === "Alta").length;
+  const suggestedRole =
+    assessmentType === "sin_experiencia" ? computeSuggestedRole(values, context) : undefined;
 
-  // Generar CTA dinámico
-  const ctaInfo = generateProfileCTA(
+  const bag: EstimateBag = {
     nivel,
-    promedioGlobal,
-    standardDeviation,
-    specialization,
-    strengths.length,
-    gaps.filter(g => g.prioridad === "Alta").length
-  );
+    promedio: promedioGlobal,
+    desviacion: standardDeviation,
+    especializacion: specialization,
+    fortalezas: strengths.length,
+    brechasCriticas
+  };
+
+  let profileEstimate: string;
+  let ctaInfo: { text: string; route: string };
+  switch (assessmentType) {
+    case "sin_experiencia": {
+      const topDomains = [...all].sort((a, b) => b.value - a.value).slice(0, 2);
+      profileEstimate = generateAffinityEstimate(bag, topDomains, suggestedRole!);
+      ctaInfo = generateAffinityCTA(bag);
+      break;
+    }
+    case "builder":
+      profileEstimate = generateBuilderEstimate(bag, gaps, context);
+      ctaInfo = generateBuilderCTA(bag);
+      break;
+    case "lider":
+      profileEstimate = generateTeamEstimate(bag);
+      ctaInfo = generateTeamCTA(bag);
+      break;
+    default:
+      profileEstimate = generateProfileEstimate(
+        nivel,
+        promedioGlobal,
+        standardDeviation,
+        specialization,
+        strengths.length,
+        brechasCriticas
+      );
+      ctaInfo = generateProfileCTA(
+        nivel,
+        promedioGlobal,
+        standardDeviation,
+        specialization,
+        strengths.length,
+        brechasCriticas
+      );
+  }
 
   // Calcular mejoras opcionales si se proporcionaron valores
-  const optionalImprovements = optionalValues 
-    ? computeOptionalImprovements(optionalValues) 
+  const optionalImprovements = optionalValues
+    ? computeOptionalImprovements(optionalValues)
     : undefined;
 
-  return { 
-    promedioGlobal, 
-    nivel, 
-    strengths, 
-    gaps, 
+  return {
+    promedioGlobal,
+    nivel,
+    strengths,
+    gaps,
     neutralAreas,
     profileEstimate,
     standardDeviation,
     specialization,
     ctaInfo,
     optionalDomains: optionalValues,
-    optionalImprovements
+    optionalImprovements,
+    assessmentType,
+    context,
+    suggestedRole
   };
 }
 
@@ -470,8 +1099,8 @@ function generateProfileEstimate(
   fortalezas: number,
   brechasCriticas: number
 ): string {
-  const isBalanced = desviacion < 0.8;
-  const hasSpecialization = desviacion > 1.2;
+  const isBalanced = isBalancedProfile(desviacion);
+  const hasSpecialization = isSpecializedProfile(desviacion);
 
   // 3+ brechas críticas
   if (brechasCriticas >= 3) {
@@ -515,8 +1144,8 @@ function generateProfileCTA(
   fortalezas: number,
   brechasCriticas: number
 ): { text: string; route: string } {
-  const isBalanced = desviacion < 0.8;
-  const hasSpecialization = desviacion > 1.2;
+  const isBalanced = isBalancedProfile(desviacion);
+  const hasSpecialization = isSpecializedProfile(desviacion);
 
   // 3+ brechas críticas
   if (brechasCriticas >= 3) {
@@ -538,13 +1167,13 @@ function generateProfileCTA(
   if (hasSpecialization) {
     if (nivel === "Senior" || nivel === "Lead" || nivel === "Head") {
       return {
-        text: "El plan Premium te permite trabajar sobre esas áreas complementarias de forma concreta y enfocada.",
+        text: "El plan RePremium te permite trabajar sobre esas áreas complementarias de forma concreta y enfocada.",
         route: "/planes"
       };
     } else {
       // Especializado + Junior/Mid
       return {
-        text: "El plan Premium te puede ayudar a construir ese perfil más balanceado, paso a paso.",
+        text: "El plan RePremium te puede ayudar a construir ese perfil más balanceado, paso a paso.",
         route: "/planes"
       };
     }
@@ -561,7 +1190,7 @@ function generateProfileCTA(
   // Promedio ≥ 3.5
   if (promedio >= 3.5) {
     return {
-      text: "Con el plan Premium podés acelerar ese proceso con foco y acompañamiento.",
+      text: "Con el plan RePremium podés acelerar ese proceso con foco y acompañamiento.",
       route: "/planes"
     };
   }
@@ -570,5 +1199,203 @@ function generateProfileCTA(
   return {
     text: "La mentoría puede ayudarte a ordenar ese camino y avanzar con claridad.",
     route: "/planes"
+  };
+}
+
+// ============= GENERADORES POR EVALUACIÓN =============
+
+type EstimateBag = {
+  nivel: SeniorityLevel;
+  promedio: number;
+  desviacion: number;
+  especializacion: string;
+  fortalezas: number;
+  brechasCriticas: number;
+};
+
+// Umbrales de forma de perfil compartidos por todos los generadores: si el
+// diagnóstico y su CTA usaran valores distintos podrían contradecirse en la
+// misma pantalla.
+const isBalancedProfile = (desviacion: number) => desviacion < 0.8;
+const isSpecializedProfile = (desviacion: number) => desviacion > 1.2;
+
+// --- Sin experiencia: mapa de afinidad y rol de entrada sugerido ---
+
+function generateAffinityEstimate(
+  bag: EstimateBag,
+  topDomains: DomainScore[],
+  rol: SuggestedRole
+): string {
+  const [top1, top2] = topDomains;
+  const zonas = top2 ? `${top1.label} y ${top2.label}` : top1?.label ?? "varias áreas";
+  const coincidencia =
+    rol.coincideConInteres === true
+      ? " Coincide con el rol que tenías en mente, buena señal."
+      : rol.coincideConInteres === false
+        ? " Es distinto del rol que tenías en mente: vale la pena explorarlo antes de decidir."
+        : "";
+
+  if (bag.promedio >= 3.5) {
+    return `Tenés más terreno ganado del que probablemente creés. Tus respuestas muestran base y curiosidad en ${zonas}, dos puntos de apoyo concretos para arrancar. El perfil de entrada que mejor se ajusta a tu combinación es ${rol.label}.${coincidencia}`;
+  }
+  if (bag.promedio >= 2.5) {
+    return `Ya tenés puntos de apoyo claros, sobre todo en ${zonas}. Te falta vocabulario y práctica en el resto, algo que se resuelve con un plan de estudio ordenado. El perfil de entrada que mejor se ajusta hoy es ${rol.label}.${coincidencia}`;
+  }
+  return `Estás arrancando casi de cero, y eso no es un problema: este mapa muestra por dónde te conviene empezar. Tu afinidad más clara está en ${zonas}, un buen primer foco. Como perfil de entrada, ${rol.label} es el que mejor se ajusta a tus respuestas.${coincidencia}`;
+}
+
+function generateAffinityCTA(bag: EstimateBag): { text: string; route: string } {
+  const route = "/planes";
+  if (bag.promedio >= 3.5) {
+    return {
+      text: "El plan Premium te ayuda a convertir esa base en tu primer rol en producto, con un plan concreto y acompañamiento.",
+      route
+    };
+  }
+  if (bag.promedio >= 2.5) {
+    return {
+      text: "Con el plan Premium convertís esa afinidad en un plan de estudio concreto, con recursos y acompañamiento.",
+      route
+    };
+  }
+  return {
+    text: "El plan Premium te ordena el camino desde cero: la base teórica, los recursos y el acompañamiento para dar el salto.",
+    route
+  };
+}
+
+// --- Builder: madurez de método, con la etapa del producto como lente ---
+
+function generateBuilderEstimate(bag: EstimateBag, gaps: Gap[], context?: AssessmentContext): string {
+  const etapa = context?.etapa;
+  const gapDeEtapa = etapa
+    ? gaps.find((g) => STAGE_CRITICAL_DOMAINS[etapa].includes(g.key))
+    : undefined;
+  const notaEtapa =
+    etapa && gapDeEtapa
+      ? ` Para la etapa en la que estás (${ETAPA_LABELS[etapa]}), ${gapDeEtapa.label} es la brecha que más te frena hoy.`
+      : "";
+
+  const isBalanced = isBalancedProfile(bag.desviacion);
+  const hasSpecialization = isSpecializedProfile(bag.desviacion);
+
+  if (bag.brechasCriticas >= 3) {
+    return `Estás construyendo a pura intuición en varias áreas clave. Para arrancar alcanza, pero ya estás en el punto donde el método te ahorra meses de prueba y error.${notaEtapa}`;
+  }
+  if (isBalanced && bag.fortalezas >= 3) {
+    return `Tenés un método más maduro que el de la mayoría de los builders: tu proceso es consistente en casi todos los frentes. El próximo salto está en los detalles finos y en validar el producto en sí.${notaEtapa}`;
+  }
+  if (hasSpecialization) {
+    if (bag.promedio >= 3.2) {
+      return `Tu proceso en ${bag.especializacion} está muy por encima del resto. Esa asimetría es común: se profundiza donde se disfruta. Emparejar el método en las áreas relegadas te va a rendir más que seguir afilando tu punto fuerte.${notaEtapa}`;
+    }
+    return `Ya construiste método en ${bag.especializacion}, y eso demuestra que podés hacerlo en el resto. Las otras áreas todavía corren a pura intuición.${notaEtapa}`;
+  }
+  if (bag.promedio >= 4.0) {
+    return `Construís con un método sólido y consistente. Lo que sigue no es más teoría: es una mirada externa sobre el producto que estás haciendo con esa base.${notaEtapa}`;
+  }
+  if (bag.promedio >= 3.5) {
+    return `Tu método va tomando forma: hay proceso en varias áreas y todavía intuición en otras. Con foco en las brechas correctas, nivelás rápido.${notaEtapa}`;
+  }
+  return `Hoy estás construyendo más con intuición que con método. Es lo normal al principio, y también lo más caro de sostener: cada decisión arranca de cero. La teoría aplicada a tu producto te ahorra iteraciones.${notaEtapa}`;
+}
+
+function generateBuilderCTA(bag: EstimateBag): { text: string; route: string } {
+  const route = "/planes";
+  if (bag.brechasCriticas >= 3) {
+    return {
+      text: "Una revisión externa de tu producto te muestra exactamente dónde el método te está faltando. Eso es Productastic Review.",
+      route
+    };
+  }
+  if (bag.promedio >= 4.0) {
+    return {
+      text: "El siguiente paso es feedback concreto sobre tu producto: una Productastic Review a fondo, con devolución accionable.",
+      route
+    };
+  }
+  if (bag.promedio >= 3.5) {
+    return {
+      text: "Productastic Review te marca en qué parte de tu producto aplicar la teoría que te falta, sin vueltas.",
+      route
+    };
+  }
+  return {
+    text: "Productastic Review revisa tu producto de punta a punta y te dice por dónde empezar a ordenar el método.",
+    route
+  };
+}
+
+// --- Líder: diagnóstico del equipo, hablado en función del equipo ---
+
+function generateTeamEstimate(bag: EstimateBag): string {
+  const isBalanced = isBalancedProfile(bag.desviacion);
+  const hasSpecialization = isSpecializedProfile(bag.desviacion);
+
+  if (bag.brechasCriticas >= 3) {
+    return "El diagnóstico muestra varios frentes donde el equipo todavía trabaja sin un proceso común. Antes de sumar herramientas o frameworks nuevos, conviene nivelar la base: pocas prácticas, bien instaladas.";
+  }
+  if (isBalanced && bag.fortalezas >= 3) {
+    return "Tu equipo muestra una madurez pareja y sólida en la mayoría de los dominios. Con esa base, el salto está en actualizar la forma de trabajo a cómo se construye producto hoy.";
+  }
+  if (hasSpecialization) {
+    if (bag.promedio >= 3.2) {
+      return `Tu equipo destaca con fuerza en ${bag.especializacion}, bastante por encima del resto. Esa asimetría suele indicar prácticas que dependen de personas puntuales más que de un proceso instalado.`;
+    }
+    return `El equipo ya construyó una práctica clara en ${bag.especializacion}. Ese mismo camino se puede repetir en los dominios que hoy quedaron atrás.`;
+  }
+  if (bag.promedio >= 4.0) {
+    return "El equipo opera con procesos maduros y consistentes. El foco ahora está en sostenerlos y mantenerse actualizado, más que en construir desde cero.";
+  }
+  if (bag.promedio >= 3.5) {
+    return "El equipo tiene procesos definidos en buena parte de los dominios, con margen para instalarlos de forma más pareja entre las personas.";
+  }
+  return "El equipo todavía descansa más en el esfuerzo individual que en procesos compartidos. Es el punto de partida más común, y el que más rápido mejora con un programa estructurado.";
+}
+
+function generateTeamCTA(bag: EstimateBag): { text: string; route: string } {
+  const route = "/empresas";
+  const isBalanced = isBalancedProfile(bag.desviacion);
+  const hasSpecialization = isSpecializedProfile(bag.desviacion);
+
+  if (bag.brechasCriticas >= 3) {
+    return {
+      text: "Tu equipo todavía tiene procesos de producto poco parejos entre sus miembros. ProductPrepa for B2B les da una base común antes de escalar.",
+      route
+    };
+  }
+  if (isBalanced && bag.fortalezas >= 3) {
+    return {
+      text: "Tu equipo ya tiene un nivel sólido y consistente en la mayoría de los dominios. Con ProductPrepa for B2B pueden llevar ese nivel a la forma en que se construye producto hoy.",
+      route
+    };
+  }
+  if (hasSpecialization) {
+    if (bag.promedio >= 3.2) {
+      return {
+        text: `Tu equipo tiene un punto fuerte marcado en ${bag.especializacion}, pero hay dominios más atrasados. ProductPrepa for B2B ayuda a emparejar ese nivel entre todos.`,
+        route
+      };
+    }
+    return {
+      text: `Tu equipo ya mostró una fortaleza clara en ${bag.especializacion}. ProductPrepa for B2B les da el resto de las bases para que ese criterio sea compartido por todos.`,
+      route
+    };
+  }
+  if (bag.promedio >= 4.0) {
+    return {
+      text: "Tu equipo tiene una base fuerte de producto. ProductPrepa for B2B convierte esa base en una ventaja concreta frente a otros equipos.",
+      route
+    };
+  }
+  if (bag.promedio >= 3.5) {
+    return {
+      text: "Tu equipo va en buen camino. Con ProductPrepa for B2B pueden acelerar ese proceso con un plan pensado para todo el grupo.",
+      route
+    };
+  }
+  return {
+    text: "ProductPrepa for B2B les da un punto de partida claro para nivelar a tu equipo, con foco en lo que hoy más lo necesita.",
+    route
   };
 }

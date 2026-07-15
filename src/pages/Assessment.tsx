@@ -2,16 +2,33 @@ import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm, useWatch } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { assessmentSchema, DOMAINS, OPTIONAL_DOMAINS, type AssessmentValues, type OptionalAssessmentValues, computeSeniorityScore, type DomainKey, type AssessmentResult } from "@/utils/scoring";
+import {
+  ASSESSMENT_TYPES,
+  DOMAINS,
+  OPTIONAL_DOMAINS,
+  CONTEXT_QUESTIONS,
+  type AnyAssessmentValues,
+  type AssessmentContext,
+  type AssessmentTypeKey,
+  type OptionalAssessmentValues,
+  computeSeniorityScore,
+  getAssessmentSchema,
+  getAssessmentTypeDef,
+  getDomainsForType,
+  getNivelDisplay,
+  type AnyDomainKey,
+  type AssessmentResult,
+} from "@/utils/scoring";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { saveAssessment } from "@/utils/storage";
 import { DomainInfoPopup } from "@/components/DomainInfoPopup";
 import { OptionalQuestionTooltip } from "@/components/OptionalQuestionTooltip";
-import { Info, Star, Trophy, Target, Calendar, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { AssessmentTypeSelector } from "@/components/assessment/AssessmentTypeSelector";
+import { Info, Star, Trophy, Target, Calendar, ArrowRight, ChevronLeft, ChevronRight, Compass } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import {
@@ -37,6 +54,10 @@ import { useQueryClient } from "@tanstack/react-query";
 const ASSESSMENT_IN_PROGRESS_KEY = 'assessment_in_progress';
 const ASSESSMENT_PARTIAL_ANSWERS_KEY = 'assessment_partial_answers';
 const ASSESSMENT_OPTIONAL_ANSWERS_KEY = 'assessment_optional_answers';
+const ASSESSMENT_TYPE_KEY = 'assessment_selected_type';
+const ASSESSMENT_CONTEXT_KEY = 'assessment_context_answers';
+
+const VALID_TYPES: readonly AssessmentTypeKey[] = ASSESSMENT_TYPES.map((t) => t.key);
 
 // Parsea respuestas guardadas en localStorage descartando claves desconocidas
 // o valores corruptos (solo acepta enteros entre 1 y 5 de dominios válidos).
@@ -61,22 +82,46 @@ function parseStoredAnswers<T extends string>(
   }
 }
 
+function parseStoredContext(raw: string | null): AssessmentContext {
+  if (!raw) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return {};
+    const source = parsed as Record<string, unknown>;
+    const context: AssessmentContext = {};
+    if (source.rolInteres === 'pm' || source.rolInteres === 'diseno' || source.rolInteres === 'dev' || source.rolInteres === 'no_seguro') {
+      context.rolInteres = source.rolInteres;
+    }
+    if (source.etapa === 'idea' || source.etapa === 'mvp' || source.etapa === 'usuarios' || source.etapa === 'ingresos') {
+      context.etapa = source.etapa;
+    }
+    if (typeof source.detalle === 'string' && source.detalle.trim() !== '') {
+      context.detalle = source.detalle;
+    }
+    return context;
+  } catch {
+    return {};
+  }
+}
+
 export default function Assessment() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedDomain, setSelectedDomain] = useState<DomainKey | null>(null);
+  const [selectedDomain, setSelectedDomain] = useState<AnyDomainKey | null>(null);
+  const [selectedType, setSelectedType] = useState<AssessmentTypeKey | null>(null);
   const [isReevaluating, setIsReevaluating] = useState(false);
   const [showReevaluationDialog, setShowReevaluationDialog] = useState(false);
+  const [showChangeTypeDialog, setShowChangeTypeDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [optionalValues, setOptionalValues] = useState<OptionalAssessmentValues>({});
-  
+  const [contextValues, setContextValues] = useState<AssessmentContext>({});
+
   // Estado local para mostrar resultados inmediatamente después de guardar
   const [localResult, setLocalResult] = useState<AssessmentResult | null>(null);
-  const [localValues, setLocalValues] = useState<AssessmentValues | null>(null);
-  
-  const totalSteps = DOMAINS.length + OPTIONAL_DOMAINS.length;
+  const [localValues, setLocalValues] = useState<AnyAssessmentValues | null>(null);
+
   const { trackEvent, setUserProperties } = useMixpanelTracking();
 
   // Ref para trackear el tiempo en cada pregunta
@@ -88,17 +133,30 @@ export default function Assessment() {
     hasAssessment,
     loading: assessmentLoading,
     updatedAt,
+    assessmentType: savedAssessmentType,
   } = useAssessmentData();
 
   const { hasActivePremium } = useSubscription();
 
-  const form = useForm<AssessmentValues>({
-    resolver: zodResolver(assessmentSchema),
-    defaultValues: {} as AssessmentValues,
+  // El set de preguntas depende de la evaluación elegida. Mientras no hay
+  // tipo elegido se usa el de la evaluación con experiencia (solo para
+  // mantener estables los hooks; el wizard no se muestra sin tipo).
+  const activeType: AssessmentTypeKey = selectedType ?? 'experimentado';
+  const isExperimentado = activeType === 'experimentado';
+  const activeDomains = useMemo(() => getDomainsForType(activeType), [activeType]);
+  const contextDef = isExperimentado ? undefined : CONTEXT_QUESTIONS[activeType];
+  const extraSteps = isExperimentado ? OPTIONAL_DOMAINS.length : (contextDef ? 1 : 0);
+  const totalSteps = activeDomains.length + extraSteps;
+  const activeTypeDef = getAssessmentTypeDef(activeType);
+
+  // La validación por schema ocurre al enviar (getAssessmentSchema depende
+  // del tipo elegido); el avance pregunta a pregunta ya exige respuesta.
+  const form = useForm<AnyAssessmentValues>({
+    defaultValues: {},
     mode: "onChange",
   });
 
-  const watchedValues = useWatch<AssessmentValues>({ control: form.control });
+  const watchedValues = useWatch<AnyAssessmentValues>({ control: form.control });
   const persistenceTimeoutRef = useRef<number | null>(null);
 
   // Toast de bienvenida para usuarios nuevos
@@ -116,66 +174,109 @@ export default function Assessment() {
     }
   }, [searchParams, hasAssessment, setSearchParams]);
 
-  // Inicialización única al resolver la carga: decide si mostrar el formulario
-  // y recupera una evaluación en progreso. El guard evita que cambios de
-  // identidad en `trackEvent` (auth) re-ejecuten el efecto y pisen el
-  // formulario a mitad de una evaluación.
+  // Inicialización única al resolver la carga: decide si mostrar el selector,
+  // el formulario o los resultados, y recupera una evaluación en progreso.
+  // El guard evita que cambios de identidad en `trackEvent` (auth)
+  // re-ejecuten el efecto y pisen el formulario a mitad de una evaluación.
   const hasInitializedRef = useRef(false);
   useEffect(() => {
     if (assessmentLoading || hasInitializedRef.current) return;
     hasInitializedRef.current = true;
 
     const assessmentInProgress = localStorage.getItem(ASSESSMENT_IN_PROGRESS_KEY) === 'true';
+    const storedTypeRaw = localStorage.getItem(ASSESSMENT_TYPE_KEY) as AssessmentTypeKey | null;
+    const storedType = storedTypeRaw && VALID_TYPES.includes(storedTypeRaw) ? storedTypeRaw : null;
+    const wantsReevaluation = searchParams.get('reevaluar') === '1';
 
-    // Si hay assessment en progreso O no hay assessment guardado, mostrar formulario
-    setIsReevaluating(assessmentInProgress || !hasAssessment);
+    if (wantsReevaluation) {
+      searchParams.delete('reevaluar');
+      setSearchParams(searchParams, { replace: true });
+    }
 
-    // Si no hay assessment y tampoco había una en progreso, marcar como nueva
-    if (!hasAssessment && !assessmentInProgress) {
-      trackEvent('assessment_started', { is_reevaluation: false });
+    // Recuperar el tipo elegido; una evaluación empezada antes de que
+    // existieran los perfiles se retoma como "experimentado" (era la única).
+    const resumeType: AssessmentTypeKey = storedType ?? 'experimentado';
+    const resumeDomains = getDomainsForType(resumeType);
+    const restoredValues = assessmentInProgress
+      ? parseStoredAnswers(
+          localStorage.getItem(ASSESSMENT_PARTIAL_ANSWERS_KEY),
+          resumeDomains.map((d) => d.key)
+        )
+      : {};
+    const hasStoredProgress = Object.keys(restoredValues).length > 0;
+
+    // Pedido explícito de re-evaluación (banner de /mejoras): arranca desde
+    // el selector, salvo que haya una evaluación a medias con respuestas, en
+    // cuyo caso se retoma esa (no se descarta trabajo sin confirmación).
+    if (wantsReevaluation && !hasStoredProgress) {
+      localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
+      localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
+      localStorage.removeItem(ASSESSMENT_TYPE_KEY);
+      localStorage.removeItem(ASSESSMENT_CONTEXT_KEY);
+      // Persistir la intención: si recarga en el selector, vuelve al selector.
       localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
+      setIsReevaluating(true);
       return;
     }
 
+    // Si hay assessment en progreso O no hay assessment guardado, mostrar
+    // el flujo de evaluación (selector primero si aún no eligió tipo).
+    setIsReevaluating(assessmentInProgress || !hasAssessment);
+
     if (assessmentInProgress) {
-      // Recuperar respuestas parciales (requeridas y opcionales)
-      const restoredValues = parseStoredAnswers(
-        localStorage.getItem(ASSESSMENT_PARTIAL_ANSWERS_KEY),
-        DOMAINS.map((d) => d.key)
-      );
-      const restoredOptional = parseStoredAnswers(
-        localStorage.getItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY),
-        OPTIONAL_DOMAINS.map((d) => d.key)
-      );
+      // Re-evaluación confirmada que quedó en el selector (sin tipo elegido
+      // ni respuestas): mantener el selector en vez de forzar un tipo.
+      if (!storedType && !hasStoredProgress) {
+        return;
+      }
+
+      setSelectedType(resumeType);
+
+      const restoredOptional = resumeType === 'experimentado'
+        ? parseStoredAnswers(
+            localStorage.getItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY),
+            OPTIONAL_DOMAINS.map((d) => d.key)
+          )
+        : {};
+      const restoredContext = resumeType === 'experimentado'
+        ? {}
+        : parseStoredContext(localStorage.getItem(ASSESSMENT_CONTEXT_KEY));
 
       if (Object.keys(restoredValues).length > 0) {
-        form.reset(restoredValues as AssessmentValues);
+        form.reset(restoredValues);
       }
       if (Object.keys(restoredOptional).length > 0) {
         setOptionalValues(restoredOptional);
       }
+      if (Object.keys(restoredContext).length > 0) {
+        setContextValues(restoredContext);
+      }
 
       // Posicionar en la primera pregunta sin responder
-      const firstUnanswered = DOMAINS.findIndex((d) => typeof restoredValues[d.key] !== 'number');
+      const firstUnanswered = resumeDomains.findIndex((d) => typeof restoredValues[d.key] !== 'number');
       if (firstUnanswered !== -1) {
         setCurrentStep(firstUnanswered);
-      } else {
+      } else if (resumeType === 'experimentado') {
         const firstUnansweredOptional = OPTIONAL_DOMAINS.findIndex(
           (d) => typeof restoredOptional[d.key] !== 'number'
         );
         setCurrentStep(
           firstUnansweredOptional === -1
-            ? totalSteps - 1
-            : DOMAINS.length + firstUnansweredOptional
+            ? resumeDomains.length + OPTIONAL_DOMAINS.length - 1
+            : resumeDomains.length + firstUnansweredOptional
         );
+      } else {
+        setCurrentStep(resumeDomains.length);
       }
     }
-  }, [assessmentLoading, hasAssessment, trackEvent, form, totalSteps]);
+  }, [assessmentLoading, hasAssessment, form, searchParams, setSearchParams]);
 
   // Refs para el evento de abandono (se inicializan después de `answered`)
   const isReevaluatingRef = useRef(isReevaluating);
   const currentStepRef = useRef(currentStep);
   const answeredRef = useRef(0);
+  const totalQuestionsRef = useRef(DOMAINS.length);
+  const selectedTypeRef = useRef<AssessmentTypeKey | null>(selectedType);
   const assessmentStartTimeRef = useRef(Date.now());
   const completedThisSessionRef = useRef(false);
   const sessionActiveRef = useRef(false);
@@ -187,6 +288,8 @@ export default function Assessment() {
 
   useEffect(() => { isReevaluatingRef.current = isReevaluating; }, [isReevaluating]);
   useEffect(() => { currentStepRef.current = currentStep; }, [currentStep]);
+  useEffect(() => { totalQuestionsRef.current = activeDomains.length; }, [activeDomains]);
+  useEffect(() => { selectedTypeRef.current = selectedType; }, [selectedType]);
 
   useEffect(() => {
     // Disparar assessment_abandoned al desmontar el componente o cerrar pestaña
@@ -199,13 +302,15 @@ export default function Assessment() {
       hasTrackedAbandonRef.current = true;
       const timeSpent = Math.round((Date.now() - assessmentStartTimeRef.current) / 1000);
       const answered = answeredRef.current;
+      const totalQuestions = totalQuestionsRef.current || 1;
       trackEventRef.current('assessment_abandoned', {
         last_question_answered: answered,
         current_step: currentStepRef.current + 1,
         questions_answered: answered,
-        total_questions: DOMAINS.length,
-        completion_percentage: Math.round((answered / DOMAINS.length) * 100),
+        total_questions: totalQuestions,
+        completion_percentage: Math.round((answered / totalQuestions) * 100),
         time_in_assessment: timeSpent,
+        assessment_type: selectedTypeRef.current ?? 'experimentado',
       });
     };
 
@@ -222,10 +327,10 @@ export default function Assessment() {
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!isReevaluating) return;
-      
+
       const formValues = form.getValues();
       const hasAnswers = Object.values(formValues || {}).some((v) => typeof v === 'number');
-      
+
       if (hasAnswers) {
         try {
           localStorage.setItem(ASSESSMENT_PARTIAL_ANSWERS_KEY, JSON.stringify(formValues));
@@ -234,7 +339,7 @@ export default function Assessment() {
             console.error('Error guardando respuestas antes de cerrar:', error);
           }
         }
-        
+
         e.preventDefault();
         e.returnValue = '';
       }
@@ -293,13 +398,13 @@ export default function Assessment() {
     };
   }, [watchedValues, isReevaluating]);
 
-  const total = DOMAINS.length;
+  const total = activeDomains.length;
   const answered = useMemo(() => {
     if (!watchedValues) {
       return 0;
     }
-    return Object.values(watchedValues).filter((v) => typeof v === "number").length;
-  }, [watchedValues]);
+    return activeDomains.filter((d) => typeof watchedValues[d.key] === "number").length;
+  }, [watchedValues, activeDomains]);
   const progress = total ? Math.round((answered / total) * 100) : 0;
   useEffect(() => {
     answeredRef.current = answered;
@@ -318,26 +423,56 @@ export default function Assessment() {
     }).format(date);
   }, [updatedAt]);
 
+  const clearProgressStorage = () => {
+    localStorage.removeItem(ASSESSMENT_IN_PROGRESS_KEY);
+    localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
+    localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
+    localStorage.removeItem(ASSESSMENT_TYPE_KEY);
+    localStorage.removeItem(ASSESSMENT_CONTEXT_KEY);
+  };
+
+  // Vuelve al selector de perfil (re-evaluación o cambio de evaluación a
+  // mitad de camino). El evento assessment_started se dispara al elegir tipo.
   const handleStartReevaluation = () => {
     setIsReevaluating(true);
+    setSelectedType(null);
     setCurrentStep(0);
     // Limpiar resultado local para permitir nueva evaluación
     setLocalResult(null);
     setLocalValues(null);
-    // Limpiar respuestas previas (el efecto de inicialización ya no corre acá)
     setOptionalValues({});
-    form.reset({} as AssessmentValues);
+    setContextValues({});
+    form.reset({});
     // Reset de refs de tracking para permitir que un nuevo abandono (o completion) dispare en esta sesión
     completedThisSessionRef.current = false;
     sessionActiveRef.current = false;
     hasTrackedAbandonRef.current = false;
     assessmentStartTimeRef.current = Date.now();
-    trackEvent('assessment_started', { is_reevaluation: true });
-    // Marcar que hay una evaluación en progreso
+    clearProgressStorage();
+    // Persistir la intención de re-evaluar: si recarga estando en el
+    // selector, vuelve al selector en vez de a sus resultados anteriores.
     localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
-    // Limpiar respuestas parciales previas
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // El usuario eligió su perfil: arranca el wizard de esa evaluación.
+  const handleSelectType = (type: AssessmentTypeKey) => {
+    setSelectedType(type);
+    setCurrentStep(0);
+    setOptionalValues({});
+    setContextValues({});
+    form.reset({});
+    completedThisSessionRef.current = false;
+    sessionActiveRef.current = false;
+    hasTrackedAbandonRef.current = false;
+    assessmentStartTimeRef.current = Date.now();
+    localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
+    localStorage.setItem(ASSESSMENT_TYPE_KEY, type);
     localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
     localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
+    localStorage.removeItem(ASSESSMENT_CONTEXT_KEY);
+    trackEvent('assessment_started', { is_reevaluation: hasAssessment, assessment_type: type });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Helper para mensaje motivacional según progreso
@@ -358,8 +493,9 @@ export default function Assessment() {
       answer_value: answerValue,
       is_optional: isOptional,
       time_on_question: timeOnQuestion,
+      assessment_type: activeType,
     });
-  }, [trackEvent]);
+  }, [trackEvent, activeType]);
 
   // Reset question timer when step changes
   useEffect(() => {
@@ -367,10 +503,10 @@ export default function Assessment() {
   }, [currentStep]);
 
   const handleNextStep = () => {
-    if (currentStep < DOMAINS.length) {
-      const currentDomain = DOMAINS[currentStep];
+    if (currentStep < activeDomains.length) {
+      const currentDomain = activeDomains[currentStep];
       const currentValue = watchedValues?.[currentDomain.key];
-      
+
       if (!currentValue) {
         toast({
           title: "Respuesta requerida",
@@ -380,8 +516,12 @@ export default function Assessment() {
         return;
       }
     }
-    
-    localStorage.setItem(ASSESSMENT_PARTIAL_ANSWERS_KEY, JSON.stringify(watchedValues));
+
+    try {
+      localStorage.setItem(ASSESSMENT_PARTIAL_ANSWERS_KEY, JSON.stringify(watchedValues));
+    } catch {
+      // Best-effort: sin storage disponible seguimos en memoria
+    }
     setCurrentStep(currentStep + 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -398,24 +538,76 @@ export default function Assessment() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  async function onSubmit(data: AssessmentValues) {
+  // La persistencia va con debounce: el textarea de contexto dispara un
+  // update por tecla y escribir a localStorage en cada una traba el hilo.
+  const contextPersistTimeoutRef = useRef<number | null>(null);
+  const updateContext = (patch: Partial<AssessmentContext>) => {
+    const next = { ...contextValues, ...patch };
+    setContextValues(next);
+    if (contextPersistTimeoutRef.current !== null) {
+      window.clearTimeout(contextPersistTimeoutRef.current);
+    }
+    contextPersistTimeoutRef.current = window.setTimeout(() => {
+      contextPersistTimeoutRef.current = null;
+      try {
+        localStorage.setItem(ASSESSMENT_CONTEXT_KEY, JSON.stringify(next));
+      } catch {
+        // Best-effort: sin storage disponible seguimos en memoria
+      }
+    }, 400);
+  };
+
+  const hasContextAnswer = useMemo(() => {
+    if (!contextDef) return false;
+    if (contextDef.optionsField && contextValues[contextDef.optionsField]) return true;
+    if (contextDef.textLabel && contextValues.detalle?.trim()) return true;
+    return false;
+  }, [contextDef, contextValues]);
+
+  async function onSubmit(data: AnyAssessmentValues) {
+    // La validación completa corre acá porque el schema depende del tipo.
+    const parsed = getAssessmentSchema(activeType).safeParse(data);
+    if (!parsed.success) {
+      toast({
+        title: "Faltan respuestas",
+        description: "Respondé todas las preguntas antes de ver tus resultados.",
+        variant: "destructive"
+      });
+      return;
+    }
+    const values = parsed.data as AnyAssessmentValues;
+
     setIsSaving(true);
-    
+
     try {
       // Solo pasar optionalValues si hay alguna respuesta
-      const hasOptionalAnswers = Object.keys(optionalValues).length > 0;
-      const result = computeSeniorityScore(data, hasOptionalAnswers ? optionalValues : undefined);
+      const hasOptionalAnswers = isExperimentado && Object.keys(optionalValues).length > 0;
+      const cleanContext: AssessmentContext = {};
+      if (contextValues.rolInteres) cleanContext.rolInteres = contextValues.rolInteres;
+      if (contextValues.etapa) cleanContext.etapa = contextValues.etapa;
+      if (contextValues.detalle?.trim()) cleanContext.detalle = contextValues.detalle.trim();
+      const hasContext = Object.keys(cleanContext).length > 0;
+
+      const result = computeSeniorityScore(
+        values,
+        hasOptionalAnswers ? optionalValues : undefined,
+        activeType,
+        hasContext ? cleanContext : undefined
+      );
       const timeSpent = Math.round((Date.now() - assessmentStartTimeRef.current) / 1000); // segundos
 
       // Guardar resultado localmente para mostrar inmediatamente
       setLocalResult(result);
-      setLocalValues(data);
+      setLocalValues(values);
 
       // Guardar en servidor (lanza error si falla, para permitir reintento)
-      await saveAssessment(data, result);
+      await saveAssessment(values, result, activeType);
 
-      // Invalidar cache para sincronizar con servidor
+      // Invalidar caches para sincronizar con servidor. El composite alimenta
+      // useHomeRedirect: sin esto, volver al home tras la primera evaluación
+      // puede rebotar de nuevo a /autoevaluacion por el conteo cacheado.
       await queryClient.invalidateQueries({ queryKey: ['assessment-data'] });
+      queryClient.invalidateQueries({ queryKey: ['user-composite-data'] });
 
       // Track assessment completion
       trackEvent('assessment_completed', {
@@ -425,42 +617,47 @@ export default function Assessment() {
         gaps_count: result.gaps?.length || 0,
         strengths_count: result.strengths?.length || 0,
         optional_answered_count: Object.keys(optionalValues).length,
-        is_reevaluation: hasAssessment
+        is_reevaluation: hasAssessment,
+        assessment_type: activeType,
+        has_context_answer: hasContext,
       });
-      
+
       // Actualizar propiedades del usuario
       setUserProperties({
         assessment_completed: true,
         estimated_level: result.nivel,
+        assessment_type: activeType,
         last_assessment_date: new Date().toISOString()
       });
-        
-      toast({ title: "Autoevaluación guardada", description: `Nivel estimado: ${result.nivel} (promedio ${result.promedioGlobal})` });
-      
+
+      const nivelDisplay = getNivelDisplay(activeType, result.nivel);
+      toast({
+        title: "Autoevaluación guardada",
+        description: `${nivelDisplay.title}: ${nivelDisplay.label} (promedio ${result.promedioGlobal})`
+      });
+
       // Limpiar las flags de evaluación en progreso
-      localStorage.removeItem(ASSESSMENT_IN_PROGRESS_KEY);
-      localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
-      localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
-      
+      clearProgressStorage();
+
       // Marcar completado ANTES de cambiar isReevaluating para evitar race condition
       completedThisSessionRef.current = true;
-      
+
       // Resetear estado de re-evaluación para mostrar los resultados
       setIsReevaluating(false);
       isReevaluatingRef.current = false; // prevent abandon event on unmount
-      
+
       // Scroll suave al top para que vea su resultado
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       // Limpiar resultado local en caso de error
       setLocalResult(null);
       setLocalValues(null);
-      
+
       if (import.meta.env.DEV) {
         console.error('Error guardando evaluación:', error);
       }
-      toast({ 
-        title: "Error al guardar", 
+      toast({
+        title: "Error al guardar",
         description: "Hubo un problema guardando tu evaluación. Por favor intenta de nuevo.",
         variant: "destructive"
       });
@@ -469,47 +666,29 @@ export default function Assessment() {
     }
   }
 
+  const showSelector = !assessmentLoading && isReevaluating && !selectedType;
+  const selectedDomainDef = selectedDomain
+    ? activeDomains.find((d) => d.key === selectedDomain) ?? null
+    : null;
+
+  // Funnel: quien llega al selector y rebota también cuenta. El evento
+  // assessment_started recién se dispara al elegir perfil.
+  const selectorViewedRef = useRef(false);
+  useEffect(() => {
+    if (showSelector) {
+      if (!selectorViewedRef.current) {
+        selectorViewedRef.current = true;
+        trackEvent('assessment_selector_viewed', { has_assessment: hasAssessment });
+      }
+    } else {
+      selectorViewedRef.current = false;
+    }
+  }, [showSelector, hasAssessment, trackEvent]);
+
   return (
     <>
       <Seo />
       <section className="container py-6 sm:py-10 px-4 sm:px-6 animate-fade-in">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-          <h1 className="text-2xl sm:text-3xl font-semibold">Tu diagnóstico en Producto</h1>
-          {hasAssessment && (
-            <AlertDialog open={showReevaluationDialog} onOpenChange={setShowReevaluationDialog}>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" className="sm:w-auto w-full">
-                  Volver a evaluarme
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Los resultados de tu evaluación cambiarán por ende tus Áreas de Mejora también. Tenelo presente antes de avanzar.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => {
-                      setShowReevaluationDialog(false);
-                      handleStartReevaluation();
-                    }}
-                  >
-                    Continuar
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-        </div>
-        <p className="text-muted-foreground mb-4">
-          {(hasAssessment || localResult) && !isReevaluating
-            ? "Estos son tus resultados"
-            : "Elegí la afirmación que mejor describa tu experiencia en cada dominio."}
-        </p>
-
         {assessmentLoading && (
           <div className="space-y-4">
             <Skeleton className="h-24 w-full" />
@@ -517,17 +696,90 @@ export default function Assessment() {
           </div>
         )}
 
+        {/* Selector de perfil: lo primero que ve un usuario sin evaluación */}
+        {showSelector && (
+          <div className="max-w-3xl mx-auto">
+            <AssessmentTypeSelector
+              onSelect={handleSelectType}
+              isReevaluation={hasAssessment}
+            />
+          </div>
+        )}
+
+        {!assessmentLoading && !showSelector && (
+          <>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+              <h1 className="text-2xl sm:text-3xl font-semibold">Tu diagnóstico en Producto</h1>
+              {hasAssessment && !isReevaluating && (
+                <AlertDialog open={showReevaluationDialog} onOpenChange={setShowReevaluationDialog}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="sm:w-auto w-full">
+                      Volver a evaluarme
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tu resultado anterior se reemplaza por el nuevo, y con él tus Áreas de Mejora. Vas a poder elegir de nuevo tu perfil antes de empezar.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => {
+                          setShowReevaluationDialog(false);
+                          handleStartReevaluation();
+                        }}
+                      >
+                        Continuar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+            <p className="text-muted-foreground mb-4">
+              {(hasAssessment || localResult) && !isReevaluating
+                ? "Estos son tus resultados"
+                : activeType === 'lider'
+                  ? "Elegí la afirmación que mejor describa cómo trabaja hoy tu equipo en cada dominio."
+                  : "Elegí la afirmación que mejor describa tu experiencia en cada dominio."}
+            </p>
+          </>
+        )}
+
         {/* Usar resultado local si existe, sino el del servidor */}
-        {(() => {
+        {!showSelector && (() => {
           const effectiveResult = localResult || savedResult;
           const effectiveValues = localValues || savedValues;
           const effectiveHasAssessment = hasAssessment || !!localResult;
-          
-          return !assessmentLoading && effectiveHasAssessment && !isReevaluating && effectiveResult && (
+
+          if (assessmentLoading || !effectiveHasAssessment || isReevaluating || !effectiveResult) {
+            return null;
+          }
+
+          // Para resultados del servidor manda el hook (mira también la
+          // columna de la DB, no solo el JSON, p. ej. tras un backfill).
+          const resultType = localResult
+            ? (localResult.assessmentType ?? null)
+            : savedAssessmentType;
+          const resultTypeDef = resultType ? getAssessmentTypeDef(resultType) : null;
+          const nivelDisplay = getNivelDisplay(resultType, effectiveResult.nivel);
+          const resultDomains = getDomainsForType(resultType ?? 'experimentado');
+
+          return (
           <div className="space-y-6">
             <div className="p-6 rounded-lg border bg-card animate-fade-in hover:shadow-lg transition-all">
-              <h2 className="text-lg font-semibold mb-4">Tu última autoevaluación</h2>
-              
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h2 className="text-lg font-semibold">Tu última autoevaluación</h2>
+                {resultTypeDef && (
+                  <Badge variant="outline" className={resultTypeDef.accent.badge}>
+                    {resultTypeDef.resultTag}
+                  </Badge>
+                )}
+              </div>
+
               {/* Promedio destacado en círculo */}
               <div className="flex flex-col items-center justify-center py-6 space-y-2">
                 <div className="relative">
@@ -541,14 +793,14 @@ export default function Assessment() {
                     </span>
                   </div>
                 </div>
-                
+
                 {/* Profile estimate */}
                 {effectiveResult.profileEstimate && (
                   <div className="text-sm text-center text-muted-foreground max-w-md mt-2">
                     <p className="mb-2">{effectiveResult.profileEstimate}</p>
                     {effectiveResult.ctaInfo && (
-                      <Link 
-                        to={hasActivePremium ? '/mentoria' : '/premium'}
+                      <Link
+                        to={hasActivePremium ? '/mentoria' : (effectiveResult.ctaInfo.route || '/planes')}
                         className="text-primary hover:text-primary/80 font-medium underline transition-colors"
                       >
                         {effectiveResult.ctaInfo.text}
@@ -567,16 +819,29 @@ export default function Assessment() {
                   {/* Nivel estimado */}
                   <div className="flex items-center gap-2">
                     <Trophy className="h-4 w-4 text-primary" />
-                    <span className="text-sm text-muted-foreground">Nivel estimado:</span>
+                    <span className="text-sm text-muted-foreground">{nivelDisplay.title}:</span>
                     <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                      {effectiveResult.nivel}
+                      {nivelDisplay.label}
                     </Badge>
                   </div>
+
+                  {/* Rol de entrada sugerido (solo evaluación sin experiencia) */}
+                  {effectiveResult.suggestedRole && (
+                    <div className="flex items-center gap-2">
+                      <Compass className="h-4 w-4 text-primary" />
+                      <span className="text-sm text-muted-foreground">Rol de entrada sugerido:</span>
+                      <Badge variant="secondary">
+                        {effectiveResult.suggestedRole.label}
+                      </Badge>
+                    </div>
+                  )}
 
                   {/* Especialización */}
                   <div className="flex items-center gap-2">
                     <Target className="h-4 w-4 text-primary" />
-                    <span className="text-sm text-muted-foreground">Especialización:</span>
+                    <span className="text-sm text-muted-foreground">
+                      {resultType === 'lider' ? 'Fortaleza del equipo:' : 'Especialización:'}
+                    </span>
                     <Badge variant="secondary">
                       {effectiveResult.specialization}
                     </Badge>
@@ -600,7 +865,7 @@ export default function Assessment() {
                       variant="outline"
                       className="border-primary text-primary hover:bg-primary hover:text-white font-semibold transition-all duration-300"
                     >
-                      <Link to="/planes" className="flex items-center gap-2">
+                      <Link to={resultTypeDef ? resultTypeDef.plan.route : "/planes"} className="flex items-center gap-2">
                         <span>Quiero mejorar</span>
                       </Link>
                     </Button>
@@ -622,7 +887,7 @@ export default function Assessment() {
               <div>
                 <h3 className="text-base font-semibold mb-3">Tus respuestas guardadas</h3>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {DOMAINS.map((d) => {
+                  {resultDomains.map((d) => {
                     const score = effectiveValues ? effectiveValues[d.key] : undefined;
                     return (
                       <div key={d.key} className="rounded-md border p-4 bg-card">
@@ -651,50 +916,63 @@ export default function Assessment() {
         );
         })()}
 
-        {isReevaluating && (
+        {!showSelector && isReevaluating && selectedType && (
           <>
             {/* Barra de progreso sticky unificada */}
             <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b shadow-sm p-4 mb-6 -mx-4 sm:rounded-lg sm:border sm:max-w-2xl sm:mx-auto">
               <div className="max-w-2xl mx-auto">
                 <div className="flex items-center justify-between mb-2 text-sm">
                   <span className="font-medium">
-                    {currentStep < DOMAINS.length 
-                      ? `Pregunta ${currentStep + 1} de ${DOMAINS.length}` 
-                      : `Opcional ${currentStep - DOMAINS.length + 1} de ${OPTIONAL_DOMAINS.length}`
+                    {currentStep < activeDomains.length
+                      ? `Pregunta ${currentStep + 1} de ${activeDomains.length}`
+                      : isExperimentado
+                        ? `Opcional ${currentStep - activeDomains.length + 1} de ${OPTIONAL_DOMAINS.length}`
+                        : 'Última pregunta · contexto'
                     }
                   </span>
                   <span className="text-muted-foreground">{progress}%</span>
                 </div>
                 <Progress value={progress} className="h-4" />
                 {/* Mensaje motivacional (solo durante las preguntas requeridas) */}
-                {currentStep < DOMAINS.length && getProgressMessage(progress) && (
+                {currentStep < activeDomains.length && getProgressMessage(progress) && (
                   <p className="text-sm font-medium text-primary mt-2 text-center animate-fade-in">
                     {getProgressMessage(progress)}
                   </p>
                 )}
                 {/* Indicador de pasos */}
                 <div className="flex gap-1 mt-3">
-                  {DOMAINS.map((_, idx) => (
+                  {activeDomains.map((_, idx) => (
                     <div
                       key={idx}
                       className={`h-1.5 flex-1 rounded-full transition-colors ${
-                        idx < currentStep ? 'bg-primary' : 
-                        idx === currentStep ? 'bg-primary/60' : 
+                        idx < currentStep ? 'bg-primary' :
+                        idx === currentStep ? 'bg-primary/60' :
                         'bg-muted'
                       }`}
                     />
                   ))}
-                  <div className="w-1" />
-                  {OPTIONAL_DOMAINS.map((_, idx) => (
-                    <div
-                      key={`opt-${idx}`}
-                      className={`h-1.5 flex-1 rounded-full transition-colors ${
-                        DOMAINS.length + idx < currentStep ? 'bg-purple-500' : 
-                        DOMAINS.length + idx === currentStep ? 'bg-purple-400' : 
-                        'bg-purple-200'
-                      }`}
-                    />
-                  ))}
+                  {extraSteps > 0 && <div className="w-1" />}
+                  {isExperimentado
+                    ? OPTIONAL_DOMAINS.map((_, idx) => (
+                        <div
+                          key={`opt-${idx}`}
+                          className={`h-1.5 flex-1 rounded-full transition-colors ${
+                            activeDomains.length + idx < currentStep ? 'bg-purple-500' :
+                            activeDomains.length + idx === currentStep ? 'bg-purple-400' :
+                            'bg-purple-200'
+                          }`}
+                        />
+                      ))
+                    : contextDef && (
+                        <div
+                          key="context"
+                          className="h-1.5 flex-1 rounded-full transition-colors"
+                          style={{
+                            backgroundColor: activeTypeDef.accent.hex,
+                            opacity: currentStep === activeDomains.length ? 0.9 : 0.25
+                          }}
+                        />
+                      )}
                 </div>
               </div>
             </div>
@@ -708,8 +986,8 @@ export default function Assessment() {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-2xl mx-auto">
                 {/* Pregunta actual - siempre una sola card */}
-                {currentStep < DOMAINS.length && (() => {
-                  const d = DOMAINS[currentStep];
+                {currentStep < activeDomains.length && (() => {
+                  const d = activeDomains[currentStep];
                   return (
                     <fieldset key={d.key} className="rounded-lg border p-5 sm:p-6 bg-card space-y-4 animate-fade-in">
                       <legend className="flex items-start justify-between gap-3">
@@ -732,7 +1010,7 @@ export default function Assessment() {
                       </legend>
                       <FormField
                         control={form.control}
-                        name={d.key as keyof AssessmentValues}
+                        name={d.key}
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="sr-only">{d.label}</FormLabel>
@@ -774,9 +1052,9 @@ export default function Assessment() {
                   );
                 })()}
 
-                {/* Pregunta opcional actual */}
-                {currentStep >= DOMAINS.length && (() => {
-                  const optIdx = currentStep - DOMAINS.length;
+                {/* Pregunta opcional actual (solo evaluación con experiencia) */}
+                {isExperimentado && currentStep >= activeDomains.length && (() => {
+                  const optIdx = currentStep - activeDomains.length;
                   const d = OPTIONAL_DOMAINS[optIdx];
                   if (!d) return null;
                   const currentOptionalValue = optionalValues[d.key as keyof OptionalAssessmentValues];
@@ -794,7 +1072,7 @@ export default function Assessment() {
                           </p>
                         </div>
                       )}
-                      
+
                       <fieldset className="rounded-lg border border-purple-200 p-5 sm:p-6 bg-card space-y-4">
                         <legend className="flex items-start justify-between gap-3">
                           <div>
@@ -850,8 +1128,89 @@ export default function Assessment() {
                   );
                 })()}
 
+                {/* Pregunta de contexto (evaluaciones nuevas): no puntúa, orienta la recomendación */}
+                {!isExperimentado && contextDef && currentStep >= activeDomains.length && (
+                  <div className="space-y-4 animate-fade-in">
+                    <fieldset className="rounded-lg border p-5 sm:p-6 bg-card space-y-4">
+                      <legend className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="outline" className={`${activeTypeDef.accent.badge} text-xs`}>
+                              Contexto · no afecta tu puntaje
+                            </Badge>
+                          </div>
+                          <p className="font-semibold text-base sm:text-lg leading-snug">
+                            {contextDef.question}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">{contextDef.helper}</p>
+                        </div>
+                      </legend>
+
+                      {contextDef.options && contextDef.optionsField && (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {contextDef.options.map((option) => {
+                            const isSelected = contextValues[contextDef.optionsField!] === option.value;
+                            return (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => {
+                                  updateContext({ [contextDef.optionsField!]: option.value } as Partial<AssessmentContext>);
+                                }}
+                                className={`flex items-center gap-3 rounded-lg border p-3 sm:p-4 cursor-pointer transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                                  isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-input hover:bg-muted/40"
+                                }`}
+                              >
+                                <span
+                                  aria-hidden="true"
+                                  className={`h-2.5 w-2.5 rounded-full shrink-0 border ${
+                                    isSelected ? "bg-primary border-primary" : "border-muted-foreground/40"
+                                  }`}
+                                />
+                                <span className="text-sm sm:text-base leading-snug">{option.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {contextDef.textLabel && (
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">{contextDef.textLabel}</p>
+                          <Textarea
+                            value={contextValues.detalle ?? ""}
+                            onChange={(e) => updateContext({ detalle: e.target.value })}
+                            placeholder={contextDef.textPlaceholder}
+                            rows={3}
+                            maxLength={400}
+                          />
+                        </div>
+                      )}
+                    </fieldset>
+                  </div>
+                )}
+
                 {/* Navegación unificada */}
                 <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                  {currentStep === 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        // Con respuestas cargadas, cambiar de evaluación las
+                        // descarta: pedir confirmación antes de borrarlas.
+                        if (answered === 0) {
+                          handleStartReevaluation();
+                        } else {
+                          setShowChangeTypeDialog(true);
+                        }
+                      }}
+                      className="w-full sm:w-auto text-muted-foreground"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Cambiar de evaluación
+                    </Button>
+                  )}
                   {currentStep > 0 && (
                     <Button
                       type="button"
@@ -863,37 +1222,47 @@ export default function Assessment() {
                       Anterior
                     </Button>
                   )}
-                  {currentStep < DOMAINS.length - 1 ? (
+                  {currentStep < activeDomains.length - 1 ? (
                     <Button
                       type="button"
                       onClick={handleNextStep}
                       className="w-full"
-                      disabled={!watchedValues?.[DOMAINS[currentStep].key]}
+                      disabled={!watchedValues?.[activeDomains[currentStep].key]}
                     >
                       Siguiente
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
-                  ) : currentStep === DOMAINS.length - 1 ? (
-                    <>
-                      <Button
-                        type="button"
-                        onClick={handleNextStep}
-                        className="w-full sm:flex-1"
-                        disabled={!watchedValues?.[DOMAINS[currentStep].key]}
-                      >
-                        Siguiente (Opcionales)
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
+                  ) : currentStep === activeDomains.length - 1 ? (
+                    extraSteps > 0 ? (
+                      <>
+                        <Button
+                          type="button"
+                          onClick={handleNextStep}
+                          className="w-full sm:flex-1"
+                          disabled={!watchedValues?.[activeDomains[currentStep].key]}
+                        >
+                          {isExperimentado ? 'Siguiente (Opcionales)' : 'Siguiente (Contexto)'}
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          className="w-full sm:flex-1"
+                          disabled={isSaving || answered < activeDomains.length}
+                        >
+                          {isSaving ? "Guardando..." : "Ver resultados"}
+                        </Button>
+                      </>
+                    ) : (
                       <Button
                         type="submit"
-                        variant="outline"
                         className="w-full sm:flex-1"
-                        disabled={isSaving || answered < DOMAINS.length}
+                        disabled={isSaving || answered < activeDomains.length}
                       >
                         {isSaving ? "Guardando..." : "Ver resultados"}
                       </Button>
-                    </>
-                  ) : currentStep < totalSteps - 1 ? (
+                    )
+                  ) : isExperimentado && currentStep < totalSteps - 1 ? (
                     <div className="flex flex-col sm:flex-row gap-2 w-full">
                       <Button
                         type="button"
@@ -912,7 +1281,7 @@ export default function Assessment() {
                         <ChevronRight className="h-4 w-4 ml-1" />
                       </Button>
                     </div>
-                  ) : (
+                  ) : isExperimentado ? (
                     <div className="flex flex-col gap-2 w-full">
                       <div className="flex flex-col sm:flex-row gap-2 w-full">
                         <Button
@@ -929,7 +1298,7 @@ export default function Assessment() {
                             form.handleSubmit(onSubmit)();
                           }}
                           className="w-full sm:flex-1"
-                          disabled={isSaving || !optionalValues[OPTIONAL_DOMAINS[currentStep - DOMAINS.length]?.key as keyof OptionalAssessmentValues]}
+                          disabled={isSaving || !optionalValues[OPTIONAL_DOMAINS[currentStep - activeDomains.length]?.key as keyof OptionalAssessmentValues]}
                         >
                           {isSaving ? (
                             <>
@@ -942,6 +1311,34 @@ export default function Assessment() {
                         </Button>
                       </div>
                     </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row gap-2 w-full">
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        className="w-full sm:flex-1"
+                        disabled={isSaving}
+                      >
+                        {isSaving ? "Guardando..." : "Saltar y ver resultados"}
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          form.handleSubmit(onSubmit)();
+                        }}
+                        className="w-full sm:flex-1"
+                        disabled={isSaving || !hasContextAnswer}
+                      >
+                        {isSaving ? (
+                          <>
+                            <span className="inline-block animate-spin mr-2">⏳</span>
+                            Guardando...
+                          </>
+                        ) : (
+                          'Guardar y ver resultados'
+                        )}
+                      </Button>
+                    </div>
                   )}
                 </div>
               </form>
@@ -950,10 +1347,32 @@ export default function Assessment() {
         )}
 
         <DomainInfoPopup
-          domainKey={selectedDomain!}
+          domain={selectedDomainDef}
           isOpen={selectedDomain !== null}
           onClose={() => setSelectedDomain(null)}
         />
+
+        <AlertDialog open={showChangeTypeDialog} onOpenChange={setShowChangeTypeDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Cambiar de evaluación?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Las respuestas que cargaste hasta acá se descartan y volvés al selector de perfil.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Seguir con esta</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setShowChangeTypeDialog(false);
+                  handleStartReevaluation();
+                }}
+              >
+                Cambiar de evaluación
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </section>
     </>
   );

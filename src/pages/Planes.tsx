@@ -127,6 +127,8 @@ const GAP_CONTEXT_MAP: Record<string, { area: string; context: string }> = {
   tecnico: { area: "Técnica", context: "trabajamos tu perfil técnico con recursos específicos" },
   monetizacion: { area: "Monetización", context: "el plan Premium cubre estrategias de monetización de producto" },
   liderazgo: { area: "Liderazgo", context: "en el plan Premium trabajamos tu liderazgo de producto" },
+  growth: { area: "Growth", context: "el plan Premium incluye recursos y mentoría en growth de producto" },
+  ia_aplicada: { area: "IA aplicada", context: "el plan Premium te ayuda a incorporar IA a tu forma de trabajar" },
 };
 
 function getHeadlineVariant(
@@ -178,7 +180,7 @@ export default function Planes() {
   const location = useLocation();
 
   // Assessment personalization
-  const { result: assessmentResult, hasAssessment } = useAssessmentData();
+  const { result: assessmentResult, hasAssessment, assessmentType } = useAssessmentData();
   const topGaps = useMemo(() => {
     if (!assessmentResult?.gaps) return [];
     return assessmentResult.gaps
@@ -188,6 +190,11 @@ export default function Planes() {
 
   const enrichedPremiumCta = useMemo(() => {
     if (!hasAssessment || !assessmentResult?.gaps?.length) return null;
+    // El pitch personalizado de Premium solo aplica a los perfiles cuyo plan
+    // recomendado es Premium/RePremium: a builders y líderes su evaluación ya
+    // les recomienda Productastic Review / ProductPrepa B2B y este texto los
+    // contradeciría.
+    if (assessmentType === 'builder' || assessmentType === 'lider') return null;
     const topGap = assessmentResult.gaps.find((g) => g.prioridad === 'Alta') || assessmentResult.gaps[0];
     const mapping = GAP_CONTEXT_MAP[topGap.key];
     if (!mapping) return null;
@@ -195,7 +202,7 @@ export default function Planes() {
       ctaText: "Empezar con Premium — ideal para tu perfil",
       subtext: `Tu assessment muestra oportunidad en ${mapping.area} — ${mapping.context}.`,
     };
-  }, [hasAssessment, assessmentResult]);
+  }, [hasAssessment, assessmentResult, assessmentType]);
 
   // Dynamic headline based on referrer
   const referrerPath = useMemo(() => {
@@ -486,7 +493,9 @@ export default function Planes() {
       <Seo jsonLd={planesSchema} />
 
       {/* Personalization banner */}
-      {hasAssessment && topGaps.length > 0 && !hasActivePremium && !hasActiveRePremium && (
+      {/* Builders y líderes tienen otro plan recomendado: este banner de Premium los contradeciría */}
+      {hasAssessment && topGaps.length > 0 && !hasActivePremium && !hasActiveRePremium &&
+        assessmentType !== 'builder' && assessmentType !== 'lider' && (
         <div className="max-w-4xl mx-auto px-4 pt-8">
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-5">
             <div className="flex items-start gap-3">

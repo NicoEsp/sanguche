@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { ASSESSMENT_TYPES, type AssessmentTypeKey } from '@/utils/scoring';
 
 // Fallback prices in case pricing-config fails (amounts in centavos ARS)
 const FALLBACK_PRICES = {
@@ -56,6 +57,7 @@ interface AdminAnalytics {
   daysElapsedInMonth: number;
   // Top skill gaps (all-time, top 3)
   topSkillGaps: Array<{ skill: string; count: number; percentage: number }>;
+  assessmentsByType: { key: AssessmentTypeKey | 'legacy'; count: number }[];
   subscriptionsByPlan: {
     premium: PlanBreakdown;
     repremium: PlanBreakdown;
@@ -117,8 +119,8 @@ export function useAdminAnalytics() {
         fetchAllRows<{ created_at: string }>((from, to) =>
           supabase.from('assessments').select('created_at').gte('created_at', monthStart.toISOString()).order('id', { ascending: true }).range(from, to)
         ),
-        fetchAllRows<{ assessment_result: unknown }>((from, to) =>
-          supabase.from('assessments').select('assessment_result').order('id', { ascending: true }).range(from, to)
+        fetchAllRows<{ assessment_result: unknown; assessment_type: AssessmentTypeKey | null }>((from, to) =>
+          supabase.from('assessments').select('assessment_result, assessment_type').order('id', { ascending: true }).range(from, to)
         ),
         fetchAllRows<{ plan: string; status: string; user_id: string; is_comped: boolean | null; paid_amount: number | null }>((from, to) =>
           supabase.from('user_subscriptions').select('plan, status, user_id, is_comped, paid_amount').order('id', { ascending: true }).range(from, to)
@@ -272,10 +274,18 @@ export function useAdminAnalytics() {
 
       // Average score + skill gaps from assessment results
       const skillGapCounts = new Map<string, number>();
+      const assessmentTypeKeys: ReadonlyArray<AssessmentTypeKey | 'legacy'> = [
+        ...ASSESSMENT_TYPES.map(t => t.key),
+        'legacy',
+      ];
+      const assessmentTypeCounts = Object.fromEntries(
+        assessmentTypeKeys.map(key => [key, 0])
+      ) as Record<AssessmentTypeKey | 'legacy', number>;
       let totalScores = 0;
       let totalScoreCount = 0;
 
       assessmentResults.forEach(assessment => {
+        assessmentTypeCounts[assessment.assessment_type ?? 'legacy']++;
         try {
           const result = assessment.assessment_result as any;
 
@@ -306,6 +316,8 @@ export function useAdminAnalytics() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 3);
 
+      const assessmentsByType = assessmentTypeKeys.map(key => ({ key, count: assessmentTypeCounts[key] }));
+
       const conversionRate = totalUsers > 0 ? (premiumUsers / totalUsers) * 100 : 0;
       const averageAssessmentScore = totalScoreCount > 0 ? totalScores / totalScoreCount : 0;
 
@@ -332,6 +344,7 @@ export function useAdminAnalytics() {
         monthName: formattedMonthName,
         daysElapsedInMonth,
         topSkillGaps,
+        assessmentsByType,
         subscriptionsByPlan,
         pricingSource: pricingSourceValue,
       };

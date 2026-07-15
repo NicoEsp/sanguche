@@ -12,11 +12,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { exportToCSV } from '@/utils/csvExport';
+import { ASSESSMENT_TYPES, AssessmentTypeKey, getAssessmentTypeDef, getAssessmentTypeShortLabel, getContextValueLabel, getNivelDisplay } from '@/utils/scoring';
 import { toast } from 'sonner';
 
 interface Assessment {
   id: string;
   created_at: string;
+  assessment_type: AssessmentTypeKey | null;
   assessment_values: any;
   assessment_result: any;
   user: {
@@ -24,6 +26,13 @@ interface Assessment {
     email: string | null;
     user_id: string | null;
   };
+}
+
+// El cupón del 15% es del producto RePremium: solo la evaluación con
+// experiencia (y las legacy) reciben descuento. Los demás perfiles reciben
+// el email con el pitch de su plan recomendado, sin cupón.
+function receivesDiscountCoupon(type: AssessmentTypeKey | null): boolean {
+  return type === null || type === 'experimentado';
 }
 
 export default function AdminAssessments() {
@@ -35,6 +44,7 @@ export default function AdminAssessments() {
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
   const [showOnlyAtRisk, setShowOnlyAtRisk] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
@@ -52,6 +62,7 @@ export default function AdminAssessments() {
         .select(`
           id,
           created_at,
+          assessment_type,
           assessment_values,
           assessment_result,
           user_id,
@@ -64,6 +75,7 @@ export default function AdminAssessments() {
       const transformedData = assessments?.map(assessment => ({
         id: assessment?.id || '',
         created_at: assessment?.created_at || '',
+        assessment_type: assessment?.assessment_type ?? null,
         assessment_values: assessment?.assessment_values || {},
         assessment_result: assessment?.assessment_result || {},
         user: {
@@ -129,24 +141,31 @@ export default function AdminAssessments() {
     return false;
   }
 
-  const filteredAssessments = (assessments || [])
-    .filter(assessment =>
-      assessment?.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      assessment?.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      false
-    )
-    .filter(assessment => 
-      !showOnlyAtRisk || isDiscountCandidate(assessment)
-    )
-    .filter(assessment => {
-      if (selectedLevel === 'all') return true;
-      return assessment?.assessment_result?.nivel === selectedLevel;
-    });
+  // Un solo pase de filtrado: la lista es todo el historial sin paginar en
+  // el servidor y esto corre en cada tecla del buscador.
+  const searchLower = searchTerm.toLowerCase();
+  const filteredAssessments = (assessments || []).filter(assessment => {
+    // Sin término de búsqueda pasa todo: hay filas sin nombre ni email
+    // (perfil huérfano) que de otro modo desaparecerían de la tabla.
+    const matchesSearch =
+      searchLower === '' ||
+      assessment?.user?.name?.toLowerCase().includes(searchLower) ||
+      assessment?.user?.email?.toLowerCase().includes(searchLower) ||
+      false;
+    if (!matchesSearch) return false;
+    if (showOnlyAtRisk && !isDiscountCandidate(assessment)) return false;
+    if (selectedLevel !== 'all' && assessment?.assessment_result?.nivel !== selectedLevel) return false;
+    if (selectedType !== 'all') {
+      if (selectedType === 'legacy') return !assessment?.assessment_type;
+      return assessment?.assessment_type === selectedType;
+    }
+    return true;
+  });
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, showOnlyAtRisk, selectedLevel]);
+  }, [searchTerm, showOnlyAtRisk, selectedLevel, selectedType]);
 
   // Pagination
   const totalPages = Math.ceil(filteredAssessments.length / ITEMS_PER_PAGE);
@@ -166,6 +185,7 @@ export default function AdminAssessments() {
         { key: 'user.name', header: 'Usuario', format: (v) => v || 'Sin nombre' },
         { key: 'user.email', header: 'Email', format: (v) => v || 'Sin email' },
         { key: 'created_at', header: 'Fecha', format: (v) => new Date(v).toLocaleDateString('es-ES') },
+        { key: 'assessment_type', header: 'Tipo', format: (v) => getAssessmentTypeShortLabel(v ?? null) },
         { key: 'assessment_result.nivel', header: 'Nivel', format: (v) => v || 'N/A' },
         { 
           key: 'assessment_result.promedioGlobal', 
@@ -179,8 +199,10 @@ export default function AdminAssessments() {
         },
         { 
           key: 'id',
-          header: 'Candidato Descuento',
-          format: (_, row) => isDiscountCandidate(row) ? 'SÍ' : 'NO'
+          header: 'Candidato Email',
+          format: (_, row) => isDiscountCandidate(row)
+            ? (receivesDiscountCoupon(row.assessment_type) ? 'SÍ (descuento)' : 'SÍ (pitch de plan)')
+            : 'NO'
         },
         { 
           key: 'assessment_result.gaps', 
@@ -214,8 +236,30 @@ export default function AdminAssessments() {
     return !!(optionalDomains && (optionalDomains.growth || optionalDomains.ia_aplicada));
   }
 
+  function hasContextInfo(assessment: Assessment): boolean {
+    const context = assessment.assessment_result?.context;
+    return !!(context && (context.etapa || context.rolInteres || context.detalle));
+  }
+
+  function getNivelLabel(assessment: Assessment): string {
+    const nivel = assessment.assessment_result?.nivel;
+    if (!nivel) return 'N/A';
+    return getNivelDisplay(assessment.assessment_type, nivel).label || nivel;
+  }
+
+  function renderTypeBadge(type: AssessmentTypeKey | null) {
+    if (!type) {
+      return <Badge variant="outline">Legacy</Badge>;
+    }
+    return (
+      <Badge variant="outline" className={getAssessmentTypeDef(type).accent.badge}>
+        {getAssessmentTypeDef(type).shortLabel}
+      </Badge>
+    );
+  }
+
   if (loading) {
-    return <SkeletonAdminTable columns={6} rows={8} showFilters />;
+    return <SkeletonAdminTable columns={7} rows={8} showFilters />;
   }
 
   return (
@@ -333,7 +377,7 @@ export default function AdminAssessments() {
               />
               <label htmlFor="at-risk-filter" className="text-sm flex items-center gap-2 cursor-pointer">
                 <AlertTriangle className="h-4 w-4 text-destructive" />
-                Mostrar solo usuarios en riesgo (candidatos descuento)
+                Mostrar solo usuarios en riesgo (candidatos a email)
               </label>
             </div>
 
@@ -354,8 +398,24 @@ export default function AdminAssessments() {
                   <SelectItem value="Head">Head</SelectItem>
                 </SelectContent>
               </Select>
-              
-              {selectedLevel !== 'all' && (
+
+              <label htmlFor="type-filter" className="text-sm font-medium">
+                Filtrar por tipo:
+              </label>
+              <Select value={selectedType} onValueChange={setSelectedType}>
+                <SelectTrigger id="type-filter" className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="Todos los tipos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los tipos</SelectItem>
+                  {ASSESSMENT_TYPES.map((t) => (
+                    <SelectItem key={t.key} value={t.key}>{t.shortLabel}</SelectItem>
+                  ))}
+                  <SelectItem value="legacy">Legacy</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {(selectedLevel !== 'all' || selectedType !== 'all') && (
                 <Badge variant="secondary" className="gap-1">
                   {filteredAssessments.length} evaluaciones
                 </Badge>
@@ -393,6 +453,7 @@ export default function AdminAssessments() {
                 <TableRow>
                   <TableHead>Usuario</TableHead>
                   <TableHead>Fecha</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Nivel General</TableHead>
                   <TableHead>Riesgo</TableHead>
                   <TableHead>Áreas Evaluadas</TableHead>
@@ -425,8 +486,11 @@ export default function AdminAssessments() {
                     {new Date(assessment.created_at).toLocaleDateString('es-ES')}
                   </TableCell>
                   <TableCell>
+                    {renderTypeBadge(assessment.assessment_type)}
+                  </TableCell>
+                  <TableCell>
                     <Badge variant={getLevelBadgeVariant(assessment.assessment_result?.nivel)}>
-                      {assessment.assessment_result?.nivel || 'N/A'}
+                      {getNivelLabel(assessment)}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -437,7 +501,7 @@ export default function AdminAssessments() {
                             <div className="flex items-center gap-2">
                               <Badge variant="destructive" className="gap-1">
                                 <AlertTriangle className="h-3 w-3" />
-                                Descuento
+                                {receivesDiscountCoupon(assessment.assessment_type) ? 'Descuento' : 'Oportunidad'}
                               </Badge>
                               <Info className="h-4 w-4 text-muted-foreground" />
                             </div>
@@ -446,7 +510,9 @@ export default function AdminAssessments() {
                             <p className="text-sm">
                               Usuario con <strong>{assessment.assessment_result?.gaps?.length || 0} áreas de mejora</strong>
                               {' '}y promedio de <strong>{assessment.assessment_result?.promedioGlobal?.toFixed(1) || 'N/A'}</strong>.
-                              <br /><strong>Candidato para oferta de descuento.</strong>
+                              <br /><strong>{receivesDiscountCoupon(assessment.assessment_type)
+                                ? 'Candidato para oferta de descuento.'
+                                : 'Candidato para email con el pitch de su plan recomendado (sin cupón).'}</strong>
                             </p>
                           </TooltipContent>
                         </Tooltip>
@@ -487,13 +553,48 @@ export default function AdminAssessments() {
                           <div className="space-y-4">
                             <div>
                               <h4 className="font-semibold mb-2">Nivel General</h4>
-                              <Badge variant={getLevelBadgeVariant(selectedAssessment.assessment_result?.nivel)}>
-                                {selectedAssessment.assessment_result?.nivel || 'N/A'}
-                              </Badge>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant={getLevelBadgeVariant(selectedAssessment.assessment_result?.nivel)}>
+                                  {getNivelLabel(selectedAssessment)}
+                                </Badge>
+                                {renderTypeBadge(selectedAssessment.assessment_type)}
+                              </div>
                               <p className="text-sm text-muted-foreground mt-1">
                                 Promedio Global: <strong>{selectedAssessment.assessment_result?.promedioGlobal?.toFixed(2) || 'N/A'}</strong>
                               </p>
                             </div>
+
+                            {hasContextInfo(selectedAssessment) && (
+                              <div>
+                                <h4 className="font-semibold mb-2">Contexto</h4>
+                                <div className="space-y-1 rounded border bg-muted/50 p-3">
+                                  {selectedAssessment.assessment_result.context.etapa && (
+                                    <p className="text-sm">
+                                      <span className="font-medium">Etapa:</span>{' '}
+                                      {getContextValueLabel('etapa', selectedAssessment.assessment_result.context.etapa)}
+                                    </p>
+                                  )}
+                                  {selectedAssessment.assessment_result.context.rolInteres && (
+                                    <p className="text-sm">
+                                      <span className="font-medium">Rol de interés:</span>{' '}
+                                      {getContextValueLabel('rolInteres', selectedAssessment.assessment_result.context.rolInteres)}
+                                    </p>
+                                  )}
+                                  {selectedAssessment.assessment_result.context.detalle && (
+                                    <p className="text-sm">
+                                      <span className="font-medium">Detalle:</span>{' '}
+                                      {selectedAssessment.assessment_result.context.detalle}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {selectedAssessment.assessment_result?.suggestedRole && (
+                              <p className="text-sm text-muted-foreground">
+                                Rol sugerido: <strong className="text-foreground">{selectedAssessment.assessment_result.suggestedRole.label}</strong>
+                              </p>
+                            )}
 
                             {selectedAssessment.assessment_result?.gaps && selectedAssessment.assessment_result.gaps.length > 0 && (
                               <div>

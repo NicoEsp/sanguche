@@ -5,7 +5,7 @@ import { useAssessmentData } from "./useAssessmentData";
 import { useUserProgressObjectives } from "./useUserProgressObjectives";
 import { useUserProfile } from "./useUserProfile";
 import { RECOMMENDED_OBJECTIVES, RecommendedObjectiveTemplate, getDomainLabel } from "@/utils/recommendedObjectives";
-import { DomainKey, Gap, NeutralArea, SeniorityLevel } from "@/utils/scoring";
+import { AnyDomainKey, Gap, NeutralArea, SeniorityLevel } from "@/utils/scoring";
 import { toast } from "sonner";
 
 export interface GeneratedObjective extends RecommendedObjectiveTemplate {
@@ -93,7 +93,11 @@ export function useRecommendedObjectives(): UseRecommendedObjectivesReturn {
     if (!assessmentResult) return [];
     
     const { gaps = [], neutralAreas = [], nivel, promedioGlobal } = assessmentResult;
-    const userLevel = nivel as SeniorityLevel;
+    // Para quien todavía no trabaja en producto, el "nivel" es un bucket de
+    // afinidad, no seniority laboral: los objetivos correctos son los de
+    // entrada (Junior), no los de liderazgo organizacional.
+    const userLevel: SeniorityLevel =
+      assessmentResult.assessmentType === "sin_experiencia" ? "Junior" : (nivel as SeniorityLevel);
     
     // Use promedioGlobal from assessment (global average score)
     const globalAverage = promedioGlobal ?? 3;
@@ -138,7 +142,7 @@ export function useRecommendedObjectives(): UseRecommendedObjectivesReturn {
     
     // First: Add objectives for gaps (priority)
     for (const gap of gaps) {
-      const domainKey = gap.key as DomainKey;
+      const domainKey = gap.key as AnyDomainKey;
       const matchingObjectives = RECOMMENDED_OBJECTIVES.filter(
         obj => obj.domainKey === domainKey && shouldShowObjective(obj)
       );
@@ -160,7 +164,7 @@ export function useRecommendedObjectives(): UseRecommendedObjectivesReturn {
     // Second: Add objectives for neutral areas (if space left)
     if (results.length < maxObjectives) {
       for (const neutral of neutralAreas) {
-        const domainKey = neutral.key as DomainKey;
+        const domainKey = neutral.key as AnyDomainKey;
         const matchingObjectives = RECOMMENDED_OBJECTIVES.filter(
           obj => obj.domainKey === domainKey && shouldShowObjective(obj)
         );

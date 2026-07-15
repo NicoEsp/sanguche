@@ -59,6 +59,7 @@ export type Database = {
       assessments: {
         Row: {
           assessment_result: Json
+          assessment_type: Database["public"]["Enums"]["assessment_type"] | null
           assessment_values: Json
           created_at: string
           id: string
@@ -67,6 +68,7 @@ export type Database = {
         }
         Insert: {
           assessment_result: Json
+          assessment_type?: Database["public"]["Enums"]["assessment_type"] | null
           assessment_values: Json
           created_at?: string
           id?: string
@@ -75,6 +77,7 @@ export type Database = {
         }
         Update: {
           assessment_result?: Json
+          assessment_type?: Database["public"]["Enums"]["assessment_type"] | null
           assessment_values?: Json
           created_at?: string
           id?: string
@@ -1479,6 +1482,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      assessment_type: "experimentado" | "sin_experiencia" | "builder" | "lider"
       course_status: "draft" | "coming_soon" | "published"
       progress_objective_access_level: "free" | "premium"
       resource_access_level: "public" | "authenticated" | "premium"
@@ -1620,6 +1624,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      assessment_type: ["experimentado", "sin_experiencia", "builder", "lider"],
       course_status: ["draft", "coming_soon", "published"],
       progress_objective_access_level: ["free", "premium"],
       resource_access_level: ["public", "authenticated", "premium"],

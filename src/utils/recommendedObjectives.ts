@@ -1,8 +1,8 @@
-import { DomainKey, SeniorityLevel } from "./scoring";
+import { AnyDomainKey, SeniorityLevel } from "./scoring";
 
 export interface RecommendedObjectiveTemplate {
   key: string;                                 // Unique ID: "discovery_junior_1"
-  domainKey: DomainKey;                        // Assessment domain
+  domainKey: AnyDomainKey;                     // Assessment domain
   targetLevels: SeniorityLevel[];              // Which levels this applies to
   title: string;
   summary: string;
@@ -577,6 +577,104 @@ export const RECOMMENDED_OBJECTIVES: RecommendedObjectiveTemplate[] = [
       { title: "Crear business case con proyecciones" },
       { title: "Presentar a liderazgo ejecutivo" }
     ]
+  },
+  // ============= GROWTH =============
+  {
+    key: "growth_junior_1",
+    domainKey: "growth",
+    targetLevels: ["Junior"],
+    title: "Correr tu primer experimento de growth",
+    summary: "Pasar de la intuición a un experimento medido de punta a punta",
+    type: "Habilidad técnica",
+    suggestedTimeframe: "now",
+    priority: 2,
+    steps: [
+      { title: "Identificar el canal principal por donde llegan tus usuarios hoy" },
+      { title: "Formular una hipótesis de mejora con métrica objetivo" },
+      { title: "Diseñar un experimento simple de 1 a 2 semanas" },
+      { title: "Medir el resultado y documentar el aprendizaje" }
+    ]
+  },
+  {
+    key: "growth_mid_1",
+    domainKey: "growth",
+    targetLevels: ["Mid"],
+    title: "Armar un pipeline de experimentos de growth",
+    summary: "Convertir ideas sueltas en un flujo priorizado de experimentos",
+    type: "Proceso",
+    suggestedTimeframe: "now",
+    priority: 2,
+    steps: [
+      { title: "Listar 10 oportunidades de crecimiento del producto" },
+      { title: "Priorizarlas por impacto y esfuerzo" },
+      { title: "Correr 3 experimentos de forma consecutiva" },
+      { title: "Armar un tablero para seguir resultados" }
+    ]
+  },
+  {
+    key: "growth_senior_1",
+    domainKey: "growth",
+    targetLevels: ["Senior", "Lead", "Head"],
+    title: "Sistematizar el proceso de growth",
+    summary: "Instalar un modelo de crecimiento que no dependa de una sola persona",
+    type: "Estrategia",
+    suggestedTimeframe: "soon",
+    priority: 3,
+    steps: [
+      { title: "Definir la métrica norte y el modelo de crecimiento" },
+      { title: "Instalar una cadencia estable de experimentos" },
+      { title: "Documentar un playbook de canales validados" },
+      { title: "Enseñar el proceso a otra persona del equipo" }
+    ]
+  },
+  // ============= IA APLICADA =============
+  {
+    key: "ia_aplicada_junior_1",
+    domainKey: "ia_aplicada",
+    targetLevels: ["Junior"],
+    title: "Incorporar IA a tu día a día de producto",
+    summary: "Probar IA en tareas concretas y quedarte con lo que funciona",
+    type: "Habilidad técnica",
+    suggestedTimeframe: "now",
+    priority: 2,
+    steps: [
+      { title: "Elegir 3 tareas repetitivas (research, documentación, análisis)" },
+      { title: "Probar un asistente de IA en cada una durante una semana" },
+      { title: "Guardar los prompts que funcionaron" },
+      { title: "Medir el tiempo ahorrado por tarea" }
+    ]
+  },
+  {
+    key: "ia_aplicada_mid_1",
+    domainKey: "ia_aplicada",
+    targetLevels: ["Mid"],
+    title: "Construir tu workflow de producto con IA",
+    summary: "Pasar de usos sueltos a un flujo de trabajo estable",
+    type: "Proceso",
+    suggestedTimeframe: "now",
+    priority: 2,
+    steps: [
+      { title: "Mapear tu proceso de discovery a delivery" },
+      { title: "Identificar dónde la IA acelera cada etapa" },
+      { title: "Armar una biblioteca de prompts propia" },
+      { title: "Estandarizar lo que funciona en tu rutina semanal" }
+    ]
+  },
+  {
+    key: "ia_aplicada_senior_1",
+    domainKey: "ia_aplicada",
+    targetLevels: ["Senior", "Lead", "Head"],
+    title: "Llevar la IA a la forma de trabajo del equipo",
+    summary: "Convertir el uso individual de IA en una práctica compartida",
+    type: "Estrategia",
+    suggestedTimeframe: "soon",
+    priority: 3,
+    steps: [
+      { title: "Auditar dónde el equipo pierde tiempo en tareas automatizables" },
+      { title: "Seleccionar herramientas y definir criterios de uso" },
+      { title: "Correr un piloto con una parte del equipo" },
+      { title: "Documentar y extender las prácticas que funcionaron" }
+    ]
   }
 ];
 
@@ -584,7 +682,7 @@ export const RECOMMENDED_OBJECTIVES: RecommendedObjectiveTemplate[] = [
  * Get recommended objectives for a user based on their assessment
  */
 export function getObjectivesForDomain(
-  domainKey: DomainKey, 
+  domainKey: AnyDomainKey,
   userLevel: SeniorityLevel
 ): RecommendedObjectiveTemplate[] {
   return RECOMMENDED_OBJECTIVES.filter(obj => 
@@ -596,8 +694,8 @@ export function getObjectivesForDomain(
 /**
  * Get domain label for display
  */
-export function getDomainLabel(domainKey: DomainKey): string {
-  const domainLabels: Record<DomainKey, string> = {
+export function getDomainLabel(domainKey: AnyDomainKey): string {
+  const domainLabels: Record<AnyDomainKey, string> = {
     estrategia: "Estrategia de producto",
     roadmap: "Roadmap y priorización",
     ejecucion: "Ejecución y entregas",
@@ -608,7 +706,9 @@ export function getDomainLabel(domainKey: DomainKey): string {
     ux: "UX e investigación",
     tecnico: "Conocimiento técnico",
     liderazgo: "Liderazgo",
-    monetizacion: "Monetización y negocio"
+    monetizacion: "Monetización y negocio",
+    growth: "Growth",
+    ia_aplicada: "IA aplicada a Producto"
   };
   return domainLabels[domainKey] || domainKey;
 }
