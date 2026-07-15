@@ -141,7 +141,7 @@ export default function Assessment() {
   } = useAssessmentData();
 
   const { hasActivePremium } = useSubscription();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
   // El set de preguntas depende de la evaluación elegida. Mientras no hay
   // tipo elegido se usa el de la evaluación con experiencia (solo para
@@ -185,13 +185,13 @@ export default function Assessment() {
   // re-ejecuten el efecto y pisen el formulario a mitad de una evaluación.
   const hasInitializedRef = useRef(false);
   useEffect(() => {
-    if (assessmentLoading || hasInitializedRef.current) return;
+    if (assessmentLoading || authLoading || hasInitializedRef.current) return;
     hasInitializedRef.current = true;
 
     // El progreso guardado solo vale para la cuenta que lo dejó: otra cuenta
     // en el mismo navegador arranca de cero (y se limpia lo ajeno).
     const storedOwner = localStorage.getItem(ASSESSMENT_OWNER_KEY);
-    const ownsStoredProgress = !!user?.id && storedOwner === user.id;
+    const ownsStoredProgress = storedOwner === (user?.id ?? null);
     if (localStorage.getItem(ASSESSMENT_IN_PROGRESS_KEY) === 'true' && !ownsStoredProgress) {
       localStorage.removeItem(ASSESSMENT_IN_PROGRESS_KEY);
       localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
@@ -288,7 +288,7 @@ export default function Assessment() {
         setCurrentStep(resumeDomains.length);
       }
     }
-  }, [assessmentLoading, hasAssessment, form, searchParams, setSearchParams, user]);
+  }, [assessmentLoading, authLoading, hasAssessment, form, searchParams, setSearchParams, user]);
 
   // Refs para el evento de abandono (se inicializan después de `answered`)
   const isReevaluatingRef = useRef(isReevaluating);

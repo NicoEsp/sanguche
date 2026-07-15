@@ -34,7 +34,12 @@ export function useHomeRedirect() {
 
   useEffect(() => {
     if (authLoading || (isAuthenticated && compositeLoading)) return;
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated || !user) {
+      // Al desloguear se resetea: si vuelve a entrar (misma cuenta u otra)
+      // sin recargar, el redirect corre de nuevo.
+      redirectedForUserRef.current = null;
+      return;
+    }
     if (redirectedForUserRef.current === user.id) return;
 
     redirectedForUserRef.current = user.id;
