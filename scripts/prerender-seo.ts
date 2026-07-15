@@ -34,6 +34,14 @@ export const prerenderSeoPlugin = () => ({
     }
     const template = fs.readFileSync(templatePath, 'utf-8');
 
+    // La home ya tiene los meta correctos en el template, pero le falta el
+    // JSON-LD (Seo.tsx lo inyecta client-side). Lo emitimos estático para que
+    // los crawlers que no ejecutan JS también lo vean.
+    const homeData = SEO_ROUTES['/'];
+    if (homeData?.jsonLd) {
+      fs.writeFileSync(templatePath, injectJsonLd(template, homeData.jsonLd));
+    }
+
     let routesWritten = 0;
     for (const [route, data] of Object.entries(SEO_ROUTES)) {
       // Home is already correct in dist/index.html (no replacement needed).
@@ -64,6 +72,10 @@ export const prerenderSeoPlugin = () => ({
         html = html.replace(regex, value);
       }
 
+      if (data.jsonLd) {
+        html = injectJsonLd(html, data.jsonLd);
+      }
+
       // Strip leading slash so we can join: /planes -> dist/planes/index.html
       const outDir = path.join(distDir, route.replace(/^\//, ''));
       fs.mkdirSync(outDir, { recursive: true });
@@ -74,6 +86,19 @@ export const prerenderSeoPlugin = () => ({
     console.log(`✓ Prerendered ${routesWritten} routes with SEO meta tags`);
   },
 });
+
+/**
+ * Inserta el structured data como <script type="application/ld+json"> estático
+ * antes de </head>. Usa el mismo atributo data-seo-jsonld que Seo.tsx: en
+ * runtime, Seo.tsx encuentra este script, lo remueve y lo reemplaza por uno
+ * idéntico, así no quedan duplicados. Se serializa igual que en Seo.tsx
+ * (JSON.stringify del valor completo, sea objeto o array).
+ */
+function injectJsonLd(html: string, jsonLd: object | object[]): string {
+  const json = JSON.stringify(jsonLd).replace(/</g, '\\u003c');
+  const tag = `<script type="application/ld+json" data-seo-jsonld="true">${json}</script>`;
+  return html.replace('</head>', `${tag}</head>`);
+}
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

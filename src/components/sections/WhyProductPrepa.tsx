@@ -1,7 +1,7 @@
 const statements = [
   {
     bold: "No es un test genérico.",
-    body: "Diseñado específicamente para evaluar las 11 competencias core de Producto.",
+    body: "Se adapta a tu perfil y evalúa las competencias core de Producto que te corresponden.",
   },
   {
     bold: "No es contenido automático.",

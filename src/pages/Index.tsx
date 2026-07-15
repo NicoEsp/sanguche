@@ -7,6 +7,7 @@ import { StickyMobileCTA } from "@/components/landing/StickyMobileCTA";
 import { WhyProductPrepa } from "@/components/sections/WhyProductPrepa";
 import { SocialProofStrip } from "@/components/landing/SocialProofStrip";
 import { PlatformPreview } from "@/components/landing/PlatformPreview";
+import { LandingFaq } from "@/components/landing/LandingFaq";
 import { SocialProofBlock } from "@/components/planes/SocialProofBlock";
 import { useAuth } from '@/contexts/AuthContext';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
@@ -43,7 +44,7 @@ const Index = () => {
           </h1>
 
           <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mb-10 leading-relaxed">
-            Una autoevaluación gratuita de 5 minutos, diseñada por{" "}
+            Una evaluación gratuita de 5 minutos, diseñada por{" "}
             <a
               href="https://www.linkedin.com/in/nicolas-espindola/"
               target="_blank"
@@ -104,7 +105,7 @@ const Index = () => {
             Empezá gratis. Crecé a tu ritmo.
           </h2>
           <p className="text-muted-foreground mb-8">
-            La autoevaluación es completamente gratuita. Cuando quieras mentoría 1:1, cursos y un career path personalizado, tenemos planes pensados para cada etapa.
+            La evaluación es completamente gratuita. Cuando quieras mentoría 1:1, cursos y un career path personalizado, tenemos planes pensados para cada etapa.
           </p>
           <Button
             asChild
@@ -121,6 +122,8 @@ const Index = () => {
           </Button>
         </div>
       </section>
+
+      <LandingFaq />
 
       <StickyMobileCTA isAuthenticated={isAuthenticated} />
     </main>

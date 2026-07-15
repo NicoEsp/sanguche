@@ -27,6 +27,6 @@ export const soyDevFaqs: Faq[] = [
   {
     question: '¿Cómo empiezo si soy dev y quiero aprender Producto?',
     answer:
-      'El primer paso es la evaluación gratuita de ProductPrepa: un test de 5 minutos diseñado para identificar tu nivel de seniority en producto y tus gaps específicos. Te lleva a un roadmap personalizado con recursos curados para tu perfil técnico. Si querés acelerar el proceso, podés sumar mentoría 1:1 con NicoProducto, que tiene más de 10 años en Producto.',
+      'El primer paso es la evaluación gratuita de ProductPrepa: un test de 5 minutos que se adapta a tu perfil (con o sin experiencia previa) para identificar dónde estás parado en producto y tus áreas de mejora. Te lleva a un roadmap personalizado con recursos curados para tu perfil técnico. Si querés acelerar el proceso, podés sumar mentoría 1:1 con NicoProducto, que tiene más de 10 años en Producto.',
   },
 ];

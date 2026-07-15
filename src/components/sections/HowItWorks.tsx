@@ -4,7 +4,7 @@ const steps = [
     title: "Evaluáte",
     detail: "5 min",
     description:
-      "Respondé preguntas sobre tus habilidades en 11 competencias de Producto.",
+      "Elegí tu perfil y respondé preguntas sobre tus competencias de Producto.",
   },
   {
     number: "02",

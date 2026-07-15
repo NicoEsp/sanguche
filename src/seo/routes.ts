@@ -1,5 +1,6 @@
 import { soyDevFaqs } from './faqs/soyDev';
 import { empresasFaqs } from './faqs/empresas';
+import { homeFaqs } from './faqs/home';
 
 export interface SeoRouteData {
   title: string;
@@ -21,9 +22,23 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     title: 'ProductPrepa - Plataforma para crecer en Producto',
     description: 'Aprendé Producto en una plataforma que combina Cursos, evaluación de habilidades, tu propio Career Path y mentoría personalizada.',
     canonical: `${SITE_URL}/`,
-    keywords: 'product builder, product management, autoevaluación PM, seniority, carrera producto, evaluación profesional, desarrollo PM',
+    keywords: 'product builder, product management, evaluación PM, seniority, carrera producto, evaluación profesional, desarrollo PM, mapa de afinidad producto, madurez de equipo de producto, evaluación para founders',
     image: DEFAULT_IMAGE,
     imageAlt: DEFAULT_IMAGE_ALT,
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: homeFaqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: faq.answer,
+          },
+        })),
+      },
+    ],
   },
 
   '/planes': {
