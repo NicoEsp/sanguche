@@ -1,0 +1,8 @@
+{
+  "name": "promo-evaluaciones",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0"
+  }
+}

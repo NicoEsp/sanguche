@@ -1,0 +1,7 @@
+node_modules/
+seg*.mp4
+concat.txt
+stills*/
+sfx_*.wav
+mix.wav
+video_silent.mp4
