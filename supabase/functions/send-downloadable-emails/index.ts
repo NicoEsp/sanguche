@@ -351,12 +351,15 @@ Deno.serve(async (req: Request) => {
         `Skipped (already claimed): ${skippedClaimed}, Errors: ${errors.length}`,
     );
 
+    // Only counts go in the body. The function runs with verify_jwt = false, so
+    // anyone can invoke it and read this response — the per-recipient failures
+    // carry addresses (masked, but still) and belong in the logs, not here.
     return new Response(
       JSON.stringify({
         message: `Processed ${userIds.length} active premium user(s)`,
         resources: resources.length,
         sent: sentCount,
-        errors: errors.length > 0 ? errors : undefined,
+        errors: errors.length,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
