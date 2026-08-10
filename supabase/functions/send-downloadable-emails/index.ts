@@ -157,12 +157,18 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Audience: Premium + RePremium, active.
+    // Audience: Premium + RePremium who can actually open the resource.
+    //
+    // The status filter mirrors useSubscription.ts, where access is
+    // `isActive || isComped` — is_comped is the admin override that keeps a
+    // user in when LemonSqueezy has already marked the subscription cancelled.
+    // Filtering on status alone would email a strictly smaller set than the one
+    // that sees the download unlocked in the app.
     const { data: subs, error: subsError } = await supabase
       .from("user_subscriptions")
       .select("user_id, plan")
       .in("plan", ["premium", "repremium"])
-      .eq("status", "active");
+      .or("status.eq.active,is_comped.is.true");
 
     if (subsError) {
       console.error("[send-downloadable-emails] Error fetching subscriptions:", subsError);

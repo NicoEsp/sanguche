@@ -45,7 +45,7 @@ FROM public.profiles p
 JOIN public.user_subscriptions s
   ON s.user_id = p.id
  AND s.plan IN ('premium', 'repremium')
- AND s.status = 'active'
+ AND (s.status = 'active' OR s.is_comped)
 CROSS JOIN public.downloadable_resources d
 WHERE p.email IS NOT NULL
   AND d.is_active
