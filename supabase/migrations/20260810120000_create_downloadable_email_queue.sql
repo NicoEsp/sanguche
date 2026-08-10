@@ -15,7 +15,12 @@ CREATE TABLE public.downloadable_email_queue (
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   resource_id uuid NOT NULL REFERENCES public.downloadable_resources(id) ON DELETE CASCADE,
   email text NOT NULL,
-  sent_at timestamptz NOT NULL DEFAULT now(),
+  -- Nullable and undefaulted, unlike the sibling queues. Those insert their row
+  -- after the send, so now() is the delivery time. This one claims the row
+  -- BEFORE sending, and also seeds 'backfill' rows that never send at all — a
+  -- default here would stamp a delivery time on both. The function sets it
+  -- explicitly once Resend confirms.
+  sent_at timestamptz,
   status text NOT NULL DEFAULT 'sent',
   error_message text,
   UNIQUE(user_id, resource_id)

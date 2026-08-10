@@ -292,13 +292,28 @@ Deno.serve(async (req: Request) => {
           html,
         });
 
-        await supabase
+        // sent_at is stamped only on a real delivery. Claim rows and the
+        // migration's backfill rows leave it null, so the queue can never
+        // report a send time for an email that never went out.
+        const { error: statusError } = await supabase
           .from("downloadable_email_queue")
           .update({
             status: result.ok ? "sent" : "error",
             error_message: result.ok ? null : result.body,
+            sent_at: result.ok ? new Date().toISOString() : null,
           })
           .in("id", claimedIds);
+
+        // supabase-js resolves with an error instead of throwing, so this can't
+        // be left to the catch below. The rows still count as announced (nobody
+        // gets a duplicate), but they stay labelled 'sending' — log loudly so
+        // the audit trail doesn't go wrong silently.
+        if (statusError) {
+          console.error(
+            `[send-downloadable-emails] Send ${result.ok ? "succeeded" : "failed"} for ${maskEmail(profile.email)} but the queue update did not land (rows stuck in 'sending'):`,
+            statusError,
+          );
+        }
 
         if (!result.ok) {
           console.error(
@@ -315,10 +330,16 @@ Deno.serve(async (req: Request) => {
           emailErr,
         );
         errors.push(`${maskEmail(profile.email)}: ${String(emailErr)}`);
-        await supabase
+        const { error: statusError } = await supabase
           .from("downloadable_email_queue")
           .update({ status: "error", error_message: String(emailErr) })
           .in("id", claimedIds);
+        if (statusError) {
+          console.error(
+            `[send-downloadable-emails] Queue update did not land for ${maskEmail(profile.email)} after a send error (rows stuck in 'sending'):`,
+            statusError,
+          );
+        }
       }
     }
 
