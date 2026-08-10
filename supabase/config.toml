@@ -101,6 +101,9 @@ verify_jwt = false
 [functions.send-mentoria-reminder-emails]
 verify_jwt = false
 
+[functions.send-downloadable-emails]
+verify_jwt = false
+
 [edge_runtime]
 policy = "per_worker"
 inspector_port = 8083
