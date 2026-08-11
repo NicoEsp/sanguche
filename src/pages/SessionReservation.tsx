@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Seo } from '@/components/Seo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 
 interface Session {
   id: string;
@@ -34,6 +35,7 @@ const SessionReservation = () => {
   const [searchParams] = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const { hasActivePremium, loading: subLoading } = useSubscription();
+  const { trackEvent } = useMixpanelTracking();
 
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,13 +100,29 @@ const SessionReservation = () => {
   useEffect(() => {
     const intent = searchParams.get('intent');
     if (intent === 'reserve' && user && hasActivePremium && session && !alreadyReserved) {
-      handleReserve();
+      handleReserve('auto_intent');
     }
   }, [user, hasActivePremium, session, alreadyReserved, searchParams]);
 
-  const handleReserve = async () => {
+  // Navegación de salida: siempre queda registrado desde qué estado se sale.
+  const goTo = (destination: string, ctaLocation: string) => {
+    trackEvent('sesion_reserva_cta_clicked', {
+      cta_location: ctaLocation,
+      destination,
+      session_slug: slug,
+    });
+    navigate(destination);
+  };
+
+  const handleReserve = async (source: 'cta' | 'auto_intent' = 'cta') => {
     if (!session || !user) return;
     setReserving(true);
+
+    trackEvent('sesion_reserva_iniciada', {
+      session_slug: session.slug,
+      source,
+      spots_left: spotsLeft,
+    });
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -127,21 +145,39 @@ const SessionReservation = () => {
         setAlreadyReserved(true);
         toast.info('Ya tenés tu lugar reservado 🎉');
       } else {
+        trackEvent('sesion_reserva_fallida', {
+          session_slug: session.slug,
+          source,
+        });
         toast.error('No se pudo reservar. ¿Tenés plan Premium activo?');
       }
     } else {
       setAlreadyReserved(true);
       setSpotsLeft(prev => prev !== null ? prev - 1 : null);
+      trackEvent('sesion_reserva_completada', {
+        session_slug: session.slug,
+        source,
+      });
       toast.success('¡Lugar reservado con éxito! 🎉');
     }
     setReserving(false);
   };
 
   const handleGoToAuth = () => {
+    trackEvent('sesion_reserva_cta_clicked', {
+      cta_location: 'sesion_paso_auth',
+      destination: '/auth',
+      session_slug: slug,
+    });
     navigate(`/auth?redirect=/sesion/${slug}?intent=reserve`);
   };
 
   const handleGoToPlanes = () => {
+    trackEvent('sesion_reserva_cta_clicked', {
+      cta_location: 'sesion_paso_upgrade',
+      destination: '/planes',
+      session_slug: slug,
+    });
     navigate(`/planes?redirect=/sesion/${slug}?intent=reserve`);
   };
 
@@ -152,8 +188,18 @@ const SessionReservation = () => {
       <div className="min-h-[70vh] flex items-center justify-center px-4">
         <Card className="p-8 text-center max-w-md">
           <h1 className="text-2xl font-bold text-foreground mb-2">Sesión no encontrada</h1>
-          <p className="text-muted-foreground mb-4">Este link no es válido o la sesión ya no está disponible.</p>
-          <Button onClick={() => navigate('/')}>Volver al inicio</Button>
+          <p className="text-muted-foreground mb-4">
+            Este link no es válido o la sesión ya no está disponible. Mirá los planes: las próximas sesiones
+            exclusivas salen para quienes tienen un plan activo.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <Button onClick={() => goTo('/planes', 'sesion_no_encontrada')}>
+              Ver planes <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+            <Button variant="outline" onClick={() => goTo('/', 'sesion_no_encontrada')}>
+              Volver al inicio
+            </Button>
+          </div>
         </Card>
       </div>
     );
@@ -227,14 +273,33 @@ const SessionReservation = () => {
 
               {/* Funnel steps */}
               {isFull && !alreadyReserved ? (
-                <div className="text-center py-4">
+                <div className="text-center py-4 space-y-3">
                   <p className="text-muted-foreground font-medium">Esta sesión ya está llena 😔</p>
+                  <p className="text-sm text-muted-foreground">
+                    Con un plan activo entrás primero a las próximas sesiones exclusivas.
+                  </p>
+                  <Button onClick={() => goTo('/planes', 'sesion_llena')} className="w-full" size="lg">
+                    Ver planes <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                 </div>
               ) : step === 'done' ? (
                 <div className="text-center py-4 space-y-3">
                   <CheckCircle2 className="h-12 w-12 text-primary mx-auto" />
                   <p className="text-lg font-semibold text-foreground">¡Tu lugar está reservado!</p>
                   <p className="text-sm text-muted-foreground">Te avisaremos con los detalles de la sesión.</p>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <Button onClick={() => goTo('/mentoria', 'sesion_reservada')} className="w-full" size="lg">
+                      Ir a mentoría <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                    <Button
+                      onClick={() => goTo('/progreso', 'sesion_reservada')}
+                      variant="outline"
+                      className="w-full"
+                      size="lg"
+                    >
+                      Ver mi progreso
+                    </Button>
+                  </div>
                 </div>
               ) : step === 'auth' ? (
                 <div className="space-y-4">
@@ -272,7 +337,7 @@ const SessionReservation = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <Button onClick={handleReserve} className="w-full" size="lg" disabled={reserving}>
+                  <Button onClick={() => handleReserve('cta')} className="w-full" size="lg" disabled={reserving}>
                     {reserving ? 'Reservando...' : 'Reservar mi lugar'} 
                     {!reserving && <CheckCircle2 className="ml-2 h-4 w-4" />}
                   </Button>

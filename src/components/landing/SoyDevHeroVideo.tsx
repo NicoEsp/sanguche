@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Play } from "lucide-react";
+import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 
 const VIDEO_URL =
   "https://lgscevufwnetegglgpnw.supabase.co/storage/v1/object/public/resources/Video%20Soy%20Dev.mp4";
@@ -7,11 +8,13 @@ const VIDEO_URL =
 export const SoyDevHeroVideo = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const { trackEvent } = useMixpanelTracking();
 
   const handlePlay = () => {
     const video = videoRef.current;
     if (!video) return;
     setIsPlaying(true);
+    trackEvent('soy_dev_video_play');
     void video.play();
   };
 

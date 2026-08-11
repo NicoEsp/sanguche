@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/accordion";
 import { DirectCheckoutButton } from "@/components/planes/DirectCheckoutButton";
 import { empresasFaqs } from "@/seo/faqs/empresas";
+import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import {
   Home,
   ChevronRight,
@@ -28,7 +29,8 @@ import {
 
 const RESERVA_ID = "reservar";
 
-// Ejes del temario. Cada uno linkea a un artículo del blog (autoridad + SEO interno).
+// Ejes del temario. Cada uno linkea a un artículo del cluster de equipos
+// (autoridad + SEO interno). Los posts de audiencia individual quedan para /blog.
 const ejes = [
   {
     key: "estrategia",
@@ -42,8 +44,8 @@ const ejes = [
       "Tener señales de que están operando sin un rumbo claro.",
     ],
     article: {
-      to: "/blog/estrategia-de-producto-como-saber-si-tu-startup-la-tiene-o-si-solo-esta-improvisando",
-      label: "Estrategia: ¿la tenés o estás improvisando?",
+      slug: "cuando-tu-equipo-entrega-pero-las-definiciones-siguen-siendo-tuyas",
+      label: "Cuando el equipo entrega pero las definiciones siguen siendo tuyas",
     },
   },
   {
@@ -58,8 +60,8 @@ const ejes = [
       "Cuándo un discovery se termina y empieza el delivery.",
     ],
     article: {
-      to: "/blog/discovery-de-producto-que-es-por-que-importa-y-como-saber-si-el-tuyo-es-real-o-decorativo",
-      label: "Discovery real vs. decorativo",
+      slug: "como-saber-que-necesita-tu-equipo-de-producto-antes-de-invertir-en-el",
+      label: "Cómo saber qué necesita tu equipo antes de invertir en él",
     },
   },
   {
@@ -74,8 +76,8 @@ const ejes = [
       "Criterios de priorización que el equipo (y vos) puedan defender.",
     ],
     article: {
-      to: "/blog/outputs-vs-outcomes-por-que-tu-equipo-trabaja-mucho-y-mueve-poco-la-aguja",
-      label: "Outputs vs. outcomes",
+      slug: "intentaron-scrum-tres-veces-y-nunca-funciono-cambiar-de-framework-no-va-a-resolverlo",
+      label: "Cambiar de framework no va a resolverlo",
     },
   },
   {
@@ -90,8 +92,8 @@ const ejes = [
       "Cómo adaptar el proceso del equipo sin romperlo.",
     ],
     article: {
-      to: "/blog/product-management-en-tiempos-de-ia-que-cambia-que-no-cambia-y-que-tenes-que-hacer-al-respecto",
-      label: "Producto en tiempos de IA",
+      slug: "mandar-pms-a-cursos-sueltos-no-cambia-la-cultura-del-equipo",
+      label: "Mandar PMs a cursos sueltos no cambia la cultura del equipo",
     },
   },
 ] as const;
@@ -147,6 +149,7 @@ const Margin = ({
 const Empresas = () => {
   const [activeEje, setActiveEje] = useState<string>(ejes[0].key);
   const eje = ejes.find((e) => e.key === activeEje) ?? ejes[0];
+  const { trackEvent } = useMixpanelTracking();
 
   return (
     <>
@@ -210,6 +213,12 @@ const Empresas = () => {
               <div className="mt-10 flex flex-col sm:flex-row sm:items-center gap-4">
                 <a
                   href={`#${RESERVA_ID}`}
+                  onClick={() =>
+                    trackEvent("empresas_hero_cta_clicked", {
+                      cta_location: "hero",
+                      cta_text: "Reservar un cupo",
+                    })
+                  }
                   className="inline-flex items-center justify-center gap-2 h-12 px-7 rounded-xl bg-foreground text-background font-semibold transition-transform hover:scale-[1.02]"
                 >
                   Reservar un cupo
@@ -217,6 +226,11 @@ const Empresas = () => {
                 </a>
                 <a
                   href='mailto:nicoproducto@hey.com?subject=ProductPrepa%20for%20Business'
+                  onClick={() =>
+                    trackEvent("empresas_contacto_email_clicked", {
+                      cta_location: "hero",
+                    })
+                  }
                   className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
                   o agendá una llamada antes
@@ -322,7 +336,13 @@ const Empresas = () => {
                   <button
                     key={e.key}
                     type="button"
-                    onClick={() => setActiveEje(e.key)}
+                    onClick={() => {
+                      setActiveEje(e.key);
+                      trackEvent("empresas_eje_seleccionado", {
+                        cta_location: "temario_selector",
+                        eje: e.key,
+                      });
+                    }}
                     aria-pressed={isActive}
                     className={`group flex items-baseline gap-4 text-left rounded-xl px-5 py-4 transition-colors ${
                       isActive
@@ -368,7 +388,14 @@ const Empresas = () => {
                 ))}
               </ul>
               <Link
-                to={eje.article.to}
+                to={`/blog/${eje.article.slug}`}
+                onClick={() =>
+                  trackEvent("empresas_articulo_clicked", {
+                    cta_location: "temario_detalle",
+                    eje: eje.key,
+                    slug: eje.article.slug,
+                  })
+                }
                 className="mt-7 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-300 hover:gap-2.5 transition-all"
               >
                 Leé más: {eje.article.label}
@@ -487,6 +514,11 @@ const Empresas = () => {
                   ¿Preferís hablar antes? Escribime a{" "}
                   <a
                     href='mailto:nicoproducto@hey.com?subject=ProductPrepa%20for%20Business'
+                    onClick={() =>
+                      trackEvent("empresas_contacto_email_clicked", {
+                        cta_location: "reserva",
+                      })
+                    }
                     className="text-indigo-100 hover:text-white underline underline-offset-2"
                   >
                     nicoproducto@hey.com

@@ -145,7 +145,14 @@ export default function SkillGaps() {
     }
   }, [loading, result, gaps, strengths, neutralAreas, trackEvent, assessmentType]);
   return <>
-      <Seo />
+      {/* Ruta protegida: sin sesión redirige a /auth, así que no se indexa.
+          El title y la description van explícitos porque /mejoras salió del
+          config de SEO_ROUTES justamente por eso. */}
+      <Seo
+        title="Áreas de mejora | ProductPrepa"
+        description="Tus áreas de mejora priorizadas a partir de la evaluación de competencias de Producto."
+        robots="noindex, follow"
+      />
 
       <section className="container py-8 sm:py-12 px-4 sm:px-6 animate-fade-in">
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">Resultados de tu evaluación</h1>
@@ -251,7 +258,7 @@ export default function SkillGaps() {
                       {g.prioridad === "Alta" && !hasActivePremium && (
                         <ContextualCTA
                           skillName={g.label}
-                          ctaPath={typeDef ? typeDef.plan.route : "/premium"}
+                          ctaPath={typeDef ? typeDef.plan.route : "/planes"}
                           onCtaClick={() => handleCtaClick('contextual_skill_card', g.label)}
                         />
                       )}
@@ -283,7 +290,7 @@ export default function SkillGaps() {
                 />
               ) : gaps.length > 0 ? (
                 <PremiumCTACard
-                  ctaPath="/premium"
+                  ctaPath="/planes"
                   onCtaClick={() => handleCtaClick('premium_cta_card')}
                 />
               ) : null

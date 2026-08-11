@@ -22,10 +22,10 @@ export function AssessmentInviteBanner() {
         
         <div className="flex-1 space-y-1">
           <h3 className="font-semibold text-foreground">
-            ¿Ya conoces tu nivel de habilidades?
+            ¿Ya conocés tu nivel de habilidades?
           </h3>
           <p className="text-sm text-muted-foreground">
-            Completá tu evaluación para recibir recursos personalizados según tus áreas de mejora. Solo toma 3-5 minutos.
+            Completá tu evaluación para recibir recursos personalizados según tus áreas de mejora. Solo toma 5 minutos.
           </p>
         </div>
 

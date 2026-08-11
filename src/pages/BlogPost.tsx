@@ -7,11 +7,26 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 
 const SITE_URL = 'https://productprepa.com';
 
+// Cluster B2B: estos posts hablan del equipo, no de la carrera individual.
+// El cierre los manda a /empresas en vez de a la autoevaluación.
+const B2B_CLUSTER_SLUGS = [
+  'como-saber-que-necesita-tu-equipo-de-producto-antes-de-invertir-en-el',
+  'cuando-tu-equipo-entrega-pero-las-definiciones-siguen-siendo-tuyas',
+  'cuando-producto-es-una-caja-negra-para-el-resto-de-la-empresa',
+  'intentaron-scrum-tres-veces-y-nunca-funciono-cambiar-de-framework-no-va-a-resolverlo',
+  'mandar-pms-a-cursos-sueltos-no-cambia-la-cultura-del-equipo',
+  'que-pasa-cuando-un-equipo-de-producto-trabaja-un-temario-armado-para-sus-problemas',
+];
+
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
+  const { isAuthenticated } = useAuth();
+  const { trackEvent } = useMixpanelTracking();
 
   const { data: post, isLoading, isError } = useQuery({
     queryKey: ['blog-post-public', slug],
@@ -83,6 +98,8 @@ export default function BlogPost() {
     return <Navigate to="/blog" replace />;
   }
 
+  const isB2BPost = B2B_CLUSTER_SLUGS.includes(post.slug);
+
   return (
     <>
       <Seo
@@ -146,20 +163,39 @@ export default function BlogPost() {
         </article>
 
         <div className="border-t border-border pt-8">
-          <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 space-y-3 text-center">
-            <h3 className="font-semibold text-foreground text-lg">
-              ¿Querés crecer como Product Builder?
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              Hacé la autoevaluación gratuita y descubrí qué habilidades necesitás desarrollar.
-            </p>
-            <Link
-              to="/autoevaluacion"
-              className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-6 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              Evaluar mis habilidades gratis
-            </Link>
-          </div>
+          {isB2BPost ? (
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 space-y-3 text-center">
+              <h3 className="font-semibold text-foreground text-lg">
+                ¿Esto le está pasando a tu equipo?
+              </h3>
+              <p className="text-muted-foreground text-sm">
+                Armamos un programa de Producto a medida de los desafíos que tiene tu equipo hoy.
+              </p>
+              <Link
+                to="/empresas"
+                onClick={() => trackEvent('blog_b2b_cta_clicked', { cta_location: 'blog_post_footer', slug: post.slug })}
+                className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-6 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                Ver el programa para equipos
+              </Link>
+            </div>
+          ) : (
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 space-y-3 text-center">
+              <h3 className="font-semibold text-foreground text-lg">
+                ¿Querés crecer como Product Builder?
+              </h3>
+              <p className="text-muted-foreground text-sm">
+                Hacé la autoevaluación gratuita y descubrí qué habilidades necesitás desarrollar.
+              </p>
+              <Link
+                to={isAuthenticated ? '/autoevaluacion' : '/auth'}
+                onClick={() => trackEvent('blog_cta_clicked', { cta_location: 'blog_post_footer', slug: post.slug })}
+                className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-6 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+              >
+                Evaluar mis habilidades gratis
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </>

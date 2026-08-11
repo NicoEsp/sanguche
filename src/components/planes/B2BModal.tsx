@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Building2 } from "lucide-react";
@@ -12,10 +13,17 @@ interface B2BModalProps {
 export const B2BModal = ({ open, onOpenChange }: B2BModalProps) => {
   const { trackEvent } = useMixpanelTracking();
 
-  const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen) {
+  // La apertura se dispara desde afuera (Planes.tsx setea `open`), no hay
+  // DialogTrigger: Radix nunca llama a onOpenChange(true), así que el evento
+  // de apertura tiene que salir del cambio de la prop.
+  useEffect(() => {
+    if (open) {
       trackEvent("productprepa_business_modal_opened");
-    } else {
+    }
+  }, [open, trackEvent]);
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
       trackEvent("productprepa_business_modal_closed");
     }
     onOpenChange(isOpen);
@@ -43,7 +51,7 @@ export const B2BModal = ({ open, onOpenChange }: B2BModalProps) => {
             <Building2 className="w-6 h-6 text-indigo-300" />
           </div>
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-white via-indigo-100 to-blue-200 bg-clip-text text-transparent">
-            ProductPrepa for B2B
+            ProductPrepa for Business
           </DialogTitle>
           <div className="flex justify-center gap-2 mt-2">
             <Badge className="bg-indigo-500/20 text-indigo-200 border-indigo-500/30 text-xs">Equipos</Badge>

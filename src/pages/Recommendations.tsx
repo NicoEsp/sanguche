@@ -114,7 +114,11 @@ export default function Recommendations() {
   if (subscriptionLoading || assessmentLoading || profileLoading || hasActivePremium === undefined) {
     return (
       <>
-        <Seo />
+        <Seo
+          title="Mentoría | ProductPrepa"
+          description="Tu mentoría 1:1: recomendaciones, recursos dedicados y ejercicios con feedback."
+          robots="noindex, follow"
+        />
         <div className="container py-10 flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
@@ -128,10 +132,14 @@ export default function Recommendations() {
   if (isFullyLoaded && !hasAccess) {
     return (
       <>
-        <Seo />
+        <Seo
+          title="Mentoría | ProductPrepa"
+          description="Tu mentoría 1:1: recomendaciones, recursos dedicados y ejercicios con feedback."
+          robots="noindex, follow"
+        />
         <div className="container mx-auto p-6 max-w-6xl">
           <PaywallCard
-            title="Accede a tu Mentoría Personalizada"
+            title="Accedé a tu Mentoría Personalizada"
             feature="mentoría personalizada"
           />
         </div>
@@ -141,7 +149,11 @@ export default function Recommendations() {
 
   return (
     <>
-      <Seo />
+      <Seo
+        title="Mentoría | ProductPrepa"
+        description="Tu mentoría 1:1: recomendaciones, recursos dedicados y ejercicios con feedback."
+        robots="noindex, follow"
+      />
       <section className="container py-8 sm:py-12 px-4 sm:px-6 space-y-8 animate-fade-in">
         {/* Personal greeting header */}
         <div className="space-y-1.5">

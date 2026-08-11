@@ -22,11 +22,19 @@ type AssessmentType = "experimentado" | "sin_experiencia" | "builder" | "lider";
 interface EmailVariant {
   subject: string;
   intro: (gapCount: number, nivel: string) => string;
+  /**
+   * Bajada que enmarca el resultado, entre el intro y la caja de valor.
+   * Opcional: si no está, se usa DEFAULT_FRAMING.
+   */
+  framing?: (gapCount: number) => string;
   boxTitle: string;
   boxItems: string[];
   offerHtml: (checkoutUrl: string) => string;
   couponLine: string | null;
 }
+
+const DEFAULT_FRAMING =
+  "Eso no es malo, al contrario: significa que hay mucho espacio para crecer rápido si enfocás bien los esfuerzos.";
 
 const REPREMIUM_VARIANT: EmailVariant = {
   subject: "Tu diagnóstico reveló oportunidades de mejora 🎯",
@@ -106,9 +114,20 @@ const EMAIL_VARIANTS: Record<AssessmentType, EmailVariant> = {
     couponLine: null,
   },
   lider: {
-    subject: "El diagnóstico de tu equipo reveló dónde nivelar 🎯",
-    intro: (gapCount) =>
-      `Hace unos días completaste el diagnóstico de tu equipo en ProductPrepa y detectamos <strong>${gapCount} dominios donde el equipo puede nivelar</strong> su forma de construir producto.`,
+    // El mail de líder ya no sale sólo cuando al equipo le fue mal, así que ni
+    // el asunto ni el cuerpo pueden dar por sentado que hay brechas.
+    subject: "El diagnóstico de tu equipo y el próximo paso 🎯",
+    intro: (gapCount) => {
+      if (gapCount === 0) {
+        return `Hace unos días completaste el diagnóstico de tu equipo en ProductPrepa y el resultado dio sólido: <strong>no detectamos dominios críticos</strong> para nivelar.`;
+      }
+      const dominios = gapCount === 1 ? "1 dominio" : `${gapCount} dominios`;
+      return `Hace unos días completaste el diagnóstico de tu equipo en ProductPrepa y detectamos <strong>${dominios} donde el equipo puede nivelar</strong> su forma de construir producto.`;
+    },
+    framing: (gapCount) =>
+      gapCount === 0
+        ? "Cuando la base ya está, lo que sigue es consolidarla: que la forma de construir producto sea la misma en todo el equipo y no dependa de quién lleve cada iniciativa."
+        : "Eso no es malo, al contrario: son justo los puntos donde una base común de proceso rinde rápido en todo el equipo.",
     boxTitle: "Con ProductPrepa for B2B tu equipo obtiene:",
     boxItems: [
       "✅ Un programa a medida según las brechas detectadas",
@@ -176,7 +195,7 @@ function buildEmailHtml(
     ${variant.intro(gapCount, nivel)}
   </p>
   <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 24px;">
-    Eso no es malo, al contrario: significa que hay mucho espacio para crecer rápido si enfocás bien los esfuerzos.
+    ${variant.framing ? variant.framing(gapCount) : DEFAULT_FRAMING}
   </p>
 
   <!-- Value Prop Box -->
@@ -349,17 +368,23 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
-      // Check discount candidate logic
       const result = assessment.assessment_result as AssessmentResult;
-      if (!result || !isDiscountCandidate(result)) {
-        skippedNotCandidate++;
-        console.log(`[send-discount-email] SKIP user ${assessment.user_id}: not discount candidate (gaps: ${result?.gaps?.length ?? 0}, avg: ${result?.promedioGlobal ?? 'N/A'}, nivel: ${result?.nivel ?? 'N/A'})`);
-        continue;
-      }
 
       // Las evaluaciones legacy (sin tipo) eran la de experiencia previa.
       const assessmentType: AssessmentType =
         (assessment.assessment_type as AssessmentType | null) ?? "experimentado";
+
+      // El mail de líder no ofrece descuento: es el pitch de ProductPrepa for
+      // B2B. Filtrarlo por "le fue mal" dejaba afuera justo al líder del equipo
+      // maduro, que es el que tiene presupuesto. Para 'lider' sale siempre.
+      const skipsDiscountFilter = assessmentType === "lider";
+
+      // Check discount candidate logic
+      if (!result || (!skipsDiscountFilter && !isDiscountCandidate(result))) {
+        skippedNotCandidate++;
+        console.log(`[send-discount-email] SKIP user ${assessment.user_id}: not discount candidate (gaps: ${result?.gaps?.length ?? 0}, avg: ${result?.promedioGlobal ?? 'N/A'}, nivel: ${result?.nivel ?? 'N/A'})`);
+        continue;
+      }
 
       console.log(`[send-discount-email] SENDING to user ${assessment.user_id} (tipo: ${assessmentType}, nivel: ${result.nivel}, gaps: ${result.gaps.length}, avg: ${result.promedioGlobal})`);
 

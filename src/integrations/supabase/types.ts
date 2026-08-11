@@ -1430,6 +1430,18 @@ export type Database = {
       clean_old_rate_limits: { Args: never; Returns: undefined }
       create_admin_user: { Args: { admin_user_id: string }; Returns: boolean }
       ensure_user_defaults: { Args: never; Returns: undefined }
+      set_signup_attribution: {
+        Args: {
+          p_utm_source?: string | null
+          p_utm_medium?: string | null
+          p_utm_campaign?: string | null
+          p_utm_content?: string | null
+          p_utm_term?: string | null
+          p_landing_page?: string | null
+          p_referrer?: string | null
+        }
+        Returns: undefined
+      }
       get_profile_id_for_auth: { Args: never; Returns: string }
       get_session_spots_left: {
         Args: { p_session_id: string }

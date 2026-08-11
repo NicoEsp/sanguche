@@ -27,7 +27,7 @@ export const homeFaqs: Faq[] = [
   {
     question: 'Lidero un equipo de producto, ¿qué me aporta?',
     answer:
-      'El perfil "Lidero un equipo de producto" evalúa la madurez de tu equipo en cada dominio y te muestra dónde nivelarlo. En vez de mirar tu práctica individual, diagnostica los procesos del equipo y tu rol como habilitador. La recomendación apunta a ProductPrepa for B2B, un programa de capacitación a medida para tu equipo.',
+      'El perfil "Lidero un equipo de producto" evalúa la madurez de tu equipo en cada dominio y te muestra dónde nivelarlo. En vez de mirar tu práctica individual, diagnostica los procesos del equipo y tu rol como habilitador. La recomendación apunta a ProductPrepa for Business, un programa de capacitación a medida para tu equipo.',
   },
   {
     question: '¿Qué obtengo al terminar la evaluación?',

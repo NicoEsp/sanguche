@@ -416,7 +416,7 @@ export const SIN_EXPERIENCIA_DOMAINS: ReadonlyArray<AssessmentDomainDef> = [
     key: "tecnico",
     label: "Conocimiento técnico",
     description: "Entender cómo funciona un producto por dentro, sin necesidad de programar.",
-    question: "¿Qué tan cómodo te sentís entendiendo (aunque no programes) cómo funciona algo por dentro, como APIs, bases de datos o lógica?",
+    question: "¿Qué tan cómodo te sentís entendiendo cómo funciona un producto por dentro (APIs, bases de datos, lógica), sepas programar o no?",
     statements: SIN_EXPERIENCIA_STATEMENTS,
     levelDefinitions: SIN_EXPERIENCIA_LEVELS
   },
@@ -694,7 +694,10 @@ export const ASSESSMENT_TYPES: ReadonlyArray<AssessmentTypeDef> = [
     key: "sin_experiencia",
     shortLabel: "Dando el salto",
     title: "Quiero dar el salto",
-    persona: "Sin experiencia en producto digital",
+    // Un dev construye producto digital todos los días: si la persona dice
+    // "sin experiencia en producto digital" se auto-excluye. Lo que no tuvo
+    // todavía es el rol.
+    persona: "Todavía no trabajaste con el rol de producto formalmente",
     promise: "Descubrí tu afinidad con cada área y por dónde te conviene entrar.",
     resultTag: "Mapa de afinidad",
     plan: { key: "premium", name: "Premium", route: "/planes", ctaLabel: "Conocer Premium" },
@@ -710,7 +713,7 @@ export const ASSESSMENT_TYPES: ReadonlyArray<AssessmentTypeDef> = [
     persona: "Founder o Product Builder",
     promise: "Medí cuánto método hay detrás de lo que estás creando.",
     resultTag: "Madurez de método",
-    plan: { key: "productastic_review", name: "Productastic Review", route: "/planes", ctaLabel: "Conocer Productastic Review" },
+    plan: { key: "productastic_review", name: "Productastic Review", route: "/planes#plan-review", ctaLabel: "Conocer Productastic Review" },
     accent: {
       hex: "#10b981",
       badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
@@ -723,7 +726,7 @@ export const ASSESSMENT_TYPES: ReadonlyArray<AssessmentTypeDef> = [
     persona: "Manager, Head o Team Lead",
     promise: "Evaluá la madurez de tu equipo y encontrá dónde nivelarlo.",
     resultTag: "Radiografía del equipo",
-    plan: { key: "productprepa_business", name: "ProductPrepa for B2B", route: "/empresas", ctaLabel: "Ver ProductPrepa for B2B" },
+    plan: { key: "productprepa_business", name: "ProductPrepa for Business", route: "/empresas", ctaLabel: "Ver ProductPrepa for Business" },
     accent: {
       hex: "#6366f1",
       badge: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30"
@@ -1301,7 +1304,9 @@ function generateBuilderEstimate(bag: EstimateBag, gaps: Gap[], context?: Assess
 }
 
 function generateBuilderCTA(bag: EstimateBag): { text: string; route: string } {
-  const route = "/planes";
+  // Ancla directa a la card de Productastic Review: el texto la nombra, y sin
+  // el ancla el usuario cae arriba de todo en /planes.
+  const route = "/planes#plan-review";
   if (bag.brechasCriticas >= 3) {
     return {
       text: "Una revisión externa de tu producto te muestra exactamente dónde el método te está faltando. Eso es Productastic Review.",
@@ -1360,42 +1365,42 @@ function generateTeamCTA(bag: EstimateBag): { text: string; route: string } {
 
   if (bag.brechasCriticas >= 3) {
     return {
-      text: "Tu equipo todavía tiene procesos de producto poco parejos entre sus miembros. ProductPrepa for B2B les da una base común antes de escalar.",
+      text: "Tu equipo todavía tiene procesos de producto poco parejos entre sus miembros. ProductPrepa for Business les da una base común antes de escalar.",
       route
     };
   }
   if (isBalanced && bag.fortalezas >= 3) {
     return {
-      text: "Tu equipo ya tiene un nivel sólido y consistente en la mayoría de los dominios. Con ProductPrepa for B2B pueden llevar ese nivel a la forma en que se construye producto hoy.",
+      text: "Tu equipo ya tiene un nivel sólido y consistente en la mayoría de los dominios. Con ProductPrepa for Business pueden llevar ese nivel a la forma en que se construye producto hoy.",
       route
     };
   }
   if (hasSpecialization) {
     if (bag.promedio >= 3.2) {
       return {
-        text: `Tu equipo tiene un punto fuerte marcado en ${bag.especializacion}, pero hay dominios más atrasados. ProductPrepa for B2B ayuda a emparejar ese nivel entre todos.`,
+        text: `Tu equipo tiene un punto fuerte marcado en ${bag.especializacion}, pero hay dominios más atrasados. ProductPrepa for Business ayuda a emparejar ese nivel entre todos.`,
         route
       };
     }
     return {
-      text: `Tu equipo ya mostró una fortaleza clara en ${bag.especializacion}. ProductPrepa for B2B les da el resto de las bases para que ese criterio sea compartido por todos.`,
+      text: `Tu equipo ya mostró una fortaleza clara en ${bag.especializacion}. ProductPrepa for Business les da el resto de las bases para que ese criterio sea compartido por todos.`,
       route
     };
   }
   if (bag.promedio >= 4.0) {
     return {
-      text: "Tu equipo tiene una base fuerte de producto. ProductPrepa for B2B convierte esa base en una ventaja concreta frente a otros equipos.",
+      text: "Tu equipo tiene una base fuerte de producto. ProductPrepa for Business convierte esa base en una ventaja concreta frente a otros equipos.",
       route
     };
   }
   if (bag.promedio >= 3.5) {
     return {
-      text: "Tu equipo va en buen camino. Con ProductPrepa for B2B pueden acelerar ese proceso con un plan pensado para todo el grupo.",
+      text: "Tu equipo va en buen camino. Con ProductPrepa for Business pueden acelerar ese proceso con un plan pensado para todo el grupo.",
       route
     };
   }
   return {
-    text: "ProductPrepa for B2B les da un punto de partida claro para nivelar a tu equipo, con foco en lo que hoy más lo necesita.",
+    text: "ProductPrepa for Business les da un punto de partida claro para nivelar a tu equipo, con foco en lo que hoy más lo necesita.",
     route
   };
 }

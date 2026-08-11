@@ -7,6 +7,13 @@ import { Mixpanel } from '@/lib/mixpanel';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchCompositeData } from '@/hooks/useProfileCompositeData';
 import { getAuthErrorMessage } from '@/utils/errorMessages';
+import {
+  getAttributionEventProps,
+  getAttributionUserProps,
+  getFirstTouchForUserMetadata,
+  getSignupAttributionArgs,
+  registerAttributionSuperProps,
+} from '@/lib/attribution';
 
 interface AuthContextType {
   user: User | null;
@@ -31,6 +38,41 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  * If not, the user is almost certainly unauthenticated and we can skip
  * the loading spinner entirely.
  */
+/**
+ * Identifica al usuario en Mixpanel. Es idempotente, así que se puede llamar en
+ * cada evento de auth sin ensuciar el perfil.
+ *
+ * El `$name` sale de full_name (Google) o name (registro por email). Si no hay
+ * ninguno no se manda la clave: antes se escribía el literal 'Usuario' y pisaba
+ * el nombre real de los usuarios de Google.
+ */
+function identifyInMixpanel(user: User) {
+  const metadata = user.user_metadata as { full_name?: string; name?: string } | undefined;
+  const fullName = metadata?.full_name ?? metadata?.name;
+
+  Mixpanel.identify(user.id);
+  Mixpanel.people.set({
+    $email: user.email,
+    ...(fullName ? { $name: fullName } : {}),
+    $created: user.created_at,
+  });
+  // Después de un reset() en el logout las super properties se pierden.
+  registerAttributionSuperProps();
+}
+
+/** Ventana en la que una cuenta todavía se considera recién creada. */
+const FRESH_ACCOUNT_WINDOW_MS = 10 * 60 * 1000;
+
+/**
+ * Distingue un alta nueva de un login de una cuenta vieja. Se usa para no
+ * escribir atribución de origen sobre perfiles que ya existían.
+ */
+function isFreshAccount(user: User): boolean {
+  const createdAt = new Date(user.created_at).getTime();
+  if (Number.isNaN(createdAt)) return false;
+  return Date.now() - createdAt < FRESH_ACCOUNT_WINDOW_MS;
+}
+
 function hasAuthTokenInStorage(): boolean {
   try {
     for (let i = 0; i < localStorage.length; i++) {
@@ -168,6 +210,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentUser);
         setIsLoading(false);
 
+        // Identify centralizado: antes solo ocurría en el flujo de Google, así
+        // que los usuarios de email quedaban anónimos en Mixpanel.
+        if (currentUser) {
+          identifyInMixpanel(currentUser);
+        }
+
         // Detectar flujo de recovery - emitir evento para que Auth.tsx pueda procesar
         if (event === 'PASSWORD_RECOVERY') {
           window.dispatchEvent(new CustomEvent('supabase:password_recovery'));
@@ -177,6 +225,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (currentUser) {
           Promise.allSettled([
             supabase.rpc('ensure_user_defaults'),
+            // La atribución solo se escribe para cuentas recién creadas. Si
+            // corriera en cada login, a un usuario que se registró hace meses
+            // se le estamparía como origen de alta el toque de hoy, y el RPC
+            // es write-once: quedaría mal para siempre.
+            ...(isFreshAccount(currentUser)
+              ? [supabase.rpc('set_signup_attribution', getSignupAttributionArgs())]
+              : []),
             queryClient.prefetchQuery({
               queryKey: ['user-composite-data', currentUser.id],
               queryFn: () => fetchCompositeData(currentUser.id),
@@ -204,10 +259,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               (currentUser.user_metadata as { full_name?: string; name?: string } | undefined)?.full_name ??
               (currentUser.user_metadata as { full_name?: string; name?: string } | undefined)?.name;
 
-            Mixpanel.identify(currentUser.id);
+            // El identify ya corrió arriba para cualquier método de auth; acá
+            // solo se agregan las propiedades propias del alta por Google.
             Mixpanel.people.set({
-              $email: currentUser.email,
-              $name: fullName,
               signup_provider: provider,
               signup_date: currentUser.created_at,
             });
@@ -218,6 +272,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
 
             if (isNewSignup) {
+              Mixpanel.people.set_once(getAttributionUserProps());
               Mixpanel.track('signup_started', {
                 method: 'google',
                 email: currentUser.email,
@@ -226,6 +281,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 method: 'google',
                 email: currentUser.email,
                 name: fullName,
+                ...getAttributionEventProps(),
               });
             } else {
               Mixpanel.track('login_started', {
@@ -257,6 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Bootstrap inicial si ya está logueado
       if (currentUser) {
+        identifyInMixpanel(currentUser);
         (async () => {
           try {
             await supabase.rpc('ensure_user_defaults');
@@ -284,12 +341,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         redirectUrl += `&returnTo=${encodeURIComponent(returnTo)}`;
       }
       
+      // El origen viaja en la metadata del alta para que el trigger de creación
+      // de perfil lo persista sin depender de un round trip extra del cliente.
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: redirectUrl,
-          data: name ? { name } : undefined
+          data: {
+            ...(name ? { name } : {}),
+            ...getFirstTouchForUserMetadata()
+          }
         }
       });
 
@@ -383,6 +445,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       Mixpanel.track('user_logout');
       Mixpanel.reset();
+      // reset() borra las super properties: sin esto, el visitante deslogueado
+      // deja de viajar atribuido hasta que vuelva a entrar a la app.
+      registerAttributionSuperProps();
       const { error } = await supabase.auth.signOut();
       
       if (!error) {

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { AlertCircle, FileDown, Search, Star, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { AlertCircle, ArrowRight, FileDown, Search, Star, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,6 +12,7 @@ import { DownloadableCard } from '@/components/downloads/DownloadableCard';
 import { AssessmentInviteBanner } from '@/components/downloads/AssessmentInviteBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAssessmentData } from '@/hooks/useAssessmentData';
+import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 import { DownloadableResource, DownloadableAccessLevel, DownloadableType } from '@/types/downloads';
 
 type TypeFilter = 'all' | DownloadableType;
@@ -48,6 +50,7 @@ export default function Descargables() {
   const { user } = useAuth();
   const { hasAssessment, loading: assessmentLoading } = useAssessmentData();
   const { downloadedIds, markDownloaded } = useDownloadedResources();
+  const { trackEvent } = useMixpanelTracking();
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -99,6 +102,52 @@ export default function Descargables() {
         </div>
 
         {showAssessmentBanner && <AssessmentInviteBanner />}
+
+        {/* Bloque de conversión permanente: antes la única acción de la página
+            estaba condicionada a estar logueado, así que el visitante anónimo
+            veía el catálogo sin ninguna salida. */}
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <h2 className="font-semibold text-foreground">
+                {user
+                  ? '¿Querés los recursos Premium?'
+                  : 'Creá tu cuenta y desbloqueá más recursos'}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {user
+                  ? 'Los templates y guías Premium se desbloquean con un plan. Mirá qué incluye cada uno.'
+                  : 'Con una cuenta gratis accedés a los descargables reservados. Con Premium, a todo el catálogo.'}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-shrink-0 sm:flex-row">
+              {!user && (
+                <Button
+                  asChild
+                  onClick={() => trackEvent('descargables_cta_clicked', {
+                    cta_location: 'descargables_top',
+                    destination: '/auth',
+                  })}
+                >
+                  <Link to="/auth">
+                    Crear cuenta gratis
+                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+              )}
+              <Button
+                asChild
+                variant={user ? 'default' : 'outline'}
+                onClick={() => trackEvent('descargables_cta_clicked', {
+                  cta_location: 'descargables_top',
+                  destination: '/planes',
+                })}
+              >
+                <Link to="/planes">Ver Premium</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
 
         {isLoading ? (
           <LoadingSkeleton />

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCourses } from "@/hooks/useCourses";
 import { useCourseAccess } from "@/hooks/useCourseAccess";
+import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { Mixpanel } from "@/lib/mixpanel";
 import sanguche from "@/assets/sanguche-build.png";
 
@@ -44,6 +45,7 @@ const getPlanMessage = (plan: string | null) => {
 export default function Courses() {
   const { data: courses, isLoading: coursesLoading } = useCourses();
   const { hasAccess: hasGlobalAccess, isLoading: accessLoading, plan } = useCourseAccess();
+  const { trackEvent } = useMixpanelTracking();
 
   const isLoading = coursesLoading || accessLoading;
 
@@ -89,7 +91,7 @@ export default function Courses() {
       <>
         <Seo
           title="Cursos - ProductPrepa"
-          description="Aprende habilidades de producto con cursos cortos y prácticos."
+          description="Aprendé habilidades de producto con cursos cortos y prácticos."
           canonical="/cursos"
           keywords="cursos product management, capacitación PM, videos producto, formación PM, aprender producto, cursos para ser product builder, curso product builder, que hace un product builder"
         />
@@ -121,7 +123,7 @@ export default function Courses() {
     <>
       <Seo
         title="Cursos - ProductPrepa"
-        description="Aprende habilidades de producto con cursos cortos y prácticos. Videos de menos de 10 minutos con ejercicios aplicables."
+        description="Aprendé habilidades de producto con cursos cortos y prácticos. Videos de menos de 10 minutos con ejercicios aplicables."
         canonical="/cursos"
         keywords="cursos product management, capacitación PM, videos producto, formación PM, aprender producto, cursos para ser product builder, curso product builder, que hace un product builder"
         jsonLd={coursesSchema}
@@ -155,27 +157,53 @@ export default function Courses() {
               />
               <div className="space-y-3">
                 <h2 className="text-2xl font-bold text-foreground">
-                  ¡Ya tienes acceso!
+                  ¡Ya tenés acceso!
                 </h2>
                 <p className="text-lg text-muted-foreground max-w-lg mx-auto">
                   Estamos terminando de cocinar tu Sanguche especial 🥪
                 </p>
               </div>
-              
+
               <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 px-4 py-2">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Acceso garantizado
               </Badge>
-              
+
               <p className="text-muted-foreground max-w-md mx-auto">
                 {planMessage.prefix} <span className="font-medium text-foreground">{planMessage.planName}</span>
                 {planMessage.suffix && ` ${planMessage.suffix}`}.
               </p>
-              
+
               <p className="text-sm text-muted-foreground">
-                Te notificaremos cuando {planMessage.singular ? 'esté listo' : 'estén listos'}.
+                Te avisamos cuando {planMessage.singular ? 'esté listo' : 'estén listos'}.
               </p>
 
+              {/* Mientras se cocinan los cursos, dejamos algo para hacer ahora */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                {plan === 'repremium' && (
+                  <Link
+                    to="/mentoria"
+                    onClick={() => trackEvent('landing_page_cta_click', {
+                      cta_location: 'cursos_empty_state_comprador_mentoria'
+                    })}>
+
+                    <Button>
+                      Ir a tu mentoría
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </Link>
+                )}
+                <Link
+                  to="/cursos-info"
+                  onClick={() => trackEvent('landing_page_cta_click', {
+                    cta_location: 'cursos_empty_state_comprador_info'
+                  })}>
+
+                  <Button variant="outline">
+                    Ver qué incluyen los cursos
+                  </Button>
+                </Link>
+              </div>
             </div>
           ) : (
             // Generic empty state for non-buyers
@@ -187,10 +215,15 @@ export default function Courses() {
                 Próximamente
               </h2>
               <p className="text-muted-foreground max-w-md mx-auto">
-                Estamos preparando cursos increíbles para ti. 
-                Serás notificado cuando estén disponibles.
+                Estamos preparando cursos increíbles para vos.
+                Te avisamos cuando estén disponibles.
               </p>
-              <Link to="/planes">
+              <Link
+                to="/planes"
+                onClick={() => trackEvent('landing_page_cta_click', {
+                  cta_location: 'cursos_empty_state_planes'
+                })}>
+
                 <Button variant="outline" className="mt-4">
                   Ver planes disponibles
                   <ArrowRight className="h-4 w-4 ml-2" />
@@ -208,10 +241,15 @@ export default function Courses() {
                 <div className="flex items-center gap-3">
                   <BookOpen className="h-5 w-5 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
-                    Desbloquea todos los cursos con un plan que incluya acceso a cursos.
+                    Desbloqueá todos los cursos con un plan que incluya acceso a cursos.
                   </p>
                 </div>
-                <Link to="/planes">
+                <Link
+                  to="/planes"
+                  onClick={() => trackEvent('landing_page_cta_click', {
+                    cta_location: 'cursos_banner_bloqueado'
+                  })}>
+
                   <Button size="sm">Ver planes</Button>
                 </Link>
               </div>

@@ -9,7 +9,9 @@ const VARIANT_IDS = {
   repremium: '1170898',
   curso_estrategia: '1170897',
   cursos_all: '1170900',
-  productprepa_business: '1037226',
+  // Variant del checkout hosteado actual de ProductPrepa for B2B. El 1037226
+  // es el variant legacy (ver lemon-squeezy-webhook): traía el precio viejo.
+  productprepa_business: '1626770',
 };
 
 // Fallback prices in case API fails (all in ARS)

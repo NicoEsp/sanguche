@@ -9,10 +9,7 @@ import { Seo } from "@/components/Seo";
 import { LemonSqueezyCheckout, PlanType } from "@/components/LemonSqueezyCheckout";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
 import { usePricing } from "@/hooks/usePricing";
-import { CourseInquiryCta } from "@/components/planes/CourseInquiryCta";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
@@ -168,8 +165,6 @@ export default function Planes() {
     hasCursosAll
   } = useSubscription();
   const { trackEvent } = useMixpanelTracking();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
   const {
     premium,
     repremium,
@@ -200,7 +195,7 @@ export default function Planes() {
     if (!mapping) return null;
     return {
       ctaText: "Empezar con Premium — ideal para tu perfil",
-      subtext: `Tu assessment muestra oportunidad en ${mapping.area} — ${mapping.context}.`,
+      subtext: `Tu evaluación muestra oportunidad en ${mapping.area} — ${mapping.context}.`,
     };
   }, [hasAssessment, assessmentResult, assessmentType]);
 
@@ -335,59 +330,8 @@ export default function Planes() {
     };
   }, []);
 
-  // Check for success payment
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('success') !== 'true') return;
-    const checkoutIntentId = urlParams.get('intent');
-    const checkoutEmail = urlParams.get('email');
-    const isAnonymous = urlParams.get('anonymous') === 'true';
-    trackEvent('checkout_redirect_received', {
-      intent_id: checkoutIntentId,
-      email: checkoutEmail,
-      is_anonymous: isAnonymous
-    });
-    let attempts = 0;
-    const maxAttempts = 3;
-    const checkSubscription = async () => {
-      attempts++;
-      await queryClient.invalidateQueries({
-        queryKey: ['subscription']
-      });
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const currentSubscription: any = queryClient.getQueryData(['subscription', user?.id]);
-      if (currentSubscription?.status === 'active') {
-        trackEvent('checkout_completed', {
-          plan: currentSubscription.plan,
-          provider: 'lemon_squeezy',
-          attempts
-        });
-        toast({
-          title: "¡Compra exitosa!",
-          description: "Ya tienes acceso a tu nuevo plan."
-        });
-        window.history.replaceState({}, '', '/planes');
-        return true;
-      }
-      if (attempts < maxAttempts) {
-        setTimeout(checkSubscription, 2000);
-        return false;
-      }
-      trackEvent('checkout_activation_failed', {
-        provider: 'lemon_squeezy',
-        attempts
-      });
-      toast({
-        variant: "destructive",
-        title: "Problema con la activación",
-        description: "Tu pago fue procesado pero hay un retraso. Por favor contacta a soporte si no se activa en unos minutos.",
-        duration: 10000
-      });
-      window.history.replaceState({}, '', '/planes');
-      return false;
-    };
-    setTimeout(checkSubscription, 2000);
-  }, [user?.id, toast, trackEvent, queryClient]);
+  // El retorno del checkout no pasa por acá: LemonSqueezy redirige a /welcome,
+  // /gracias-review o /gracias-b2b. Los eventos de checkout viven en esas páginas.
 
   const isFreePlan = !hasActivePremium && !hasActiveRePremium && !hasCursoEstrategia && !hasCursosAll;
 
@@ -397,21 +341,21 @@ export default function Planes() {
     answer: "Sí, todos los planes de suscripción se pueden cancelar en cualquier momento desde tu perfil. No hay compromisos de permanencia."
   }, {
     question: "¿Qué incluye la mentoría 1:1?",
-    answer: "Cada mes tendrás una sesión de 45 minutos con NicoProducto donde revisamos tu progreso, definimos objetivos concretos y trabajamos en tus áreas de mejora específicas."
+    answer: "Cada mes tenés una sesión de 45 minutos con NicoProducto donde revisamos tu progreso, definimos objetivos concretos y trabajamos en tus áreas de mejora específicas."
   }, {
     question: "¿Qué diferencia hay entre Premium y RePremium?",
     answer: "RePremium incluye todo lo de Premium más 2 sesiones mensuales en lugar de 1, acceso completo a todos los cursos, feedback personalizado en ejercicios y un canal directo de comunicación."
   }, {
     question: "¿Cómo funciona el pago único de los cursos?",
-    answer: "Al comprar un curso con pago único, tienes acceso de por vida al contenido. No hay suscripción ni renovaciones automáticas."
+    answer: "Al comprar un curso con pago único, tenés acceso de por vida al contenido. No hay suscripción ni renovaciones automáticas."
   }, {
     question: "¿Puedo probar antes de pagar?",
-    answer: "Sí, el Plan Gratuito incluye la autoevaluación completa y acceso a recursos introductorios. Así puedes conocer la plataforma antes de suscribirte."
+    answer: "Sí, el Plan Gratuito incluye la autoevaluación completa y acceso a recursos introductorios. Así podés conocer la plataforma antes de suscribirte."
   }, {
     question: "¿Qué es Productastic Review y cómo funciona?",
     answer: "Es un pago único de ARS $100.000 en el que NicoProducto revisa tu research, hipótesis y decisiones de producto. Después de pagar, le mandás los materiales por mail (link a tu producto, research, hipótesis, decisión a validar) y en 72 hs recibís un informe detallado con recomendaciones accionables. No es una auditoría técnica ni reemplaza un discovery completo."
   }, {
-    question: "¿En qué consiste ProductPrepa for B2B?",
+    question: "¿En qué consiste ProductPrepa for Business?",
     answer: "Es un programa de capacitación a medida para equipos de Producto en empresas. Después de reservar el cupo, NicoProducto coordina un kickoff con el líder del área para entender al equipo y los objetivos, arma el plan a medida y arranca con sesiones grupales en vivo. Incluye acceso de todo el equipo a los cursos de ProductPrepa y reportes de avance. Si querés agendar una llamada antes de contratar, escribinos a nicoproducto@hey.com."
   }];
 
@@ -420,7 +364,7 @@ export default function Planes() {
       "@context": "https://schema.org",
       "@type": "WebPage",
       "name": "Planes y Precios | ProductPrepa",
-      "description": "Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada.",
+      "description": "Elegí el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada.",
       "offers": [{
         "@type": "Offer",
         "name": "Plan Premium",
@@ -649,7 +593,7 @@ export default function Planes() {
         </section>
 
         {/* Product Review - One-time payment */}
-        <section className="px-4 py-16">
+        <section id="plan-review" className="px-4 py-16 scroll-mt-24">
           <div className="max-w-lg mx-auto">
             <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">¿Ya tenés tu propio producto?</h3>
             <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">Validá tus decisiones con alguien externo y con experiencia</p>
@@ -726,8 +670,8 @@ export default function Planes() {
           </div>
         </section>
 
-        {/* ProductPrepa for B2B - Empresas */}
-        <section className="px-4 pb-16">
+        {/* ProductPrepa for Business - Empresas */}
+        <section id="plan-business" className="px-4 pb-16 scroll-mt-24">
           <div className="max-w-lg mx-auto">
             <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">¿Trabajás en una empresa con equipo de Producto?</h3>
             <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">
@@ -753,7 +697,7 @@ export default function Planes() {
                   </div>
 
                   <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white via-indigo-100 to-blue-200 bg-clip-text text-transparent">
-                    ProductPrepa for B2B
+                    ProductPrepa for Business
                   </CardTitle>
 
                   <CardDescription className="text-indigo-100/70 mt-2 text-sm leading-relaxed max-w-sm mx-auto shadow-none font-bold">
@@ -782,23 +726,32 @@ export default function Planes() {
                     ))}
                   </ul>
 
+                  {/* La landing /empresas es la que convierte y se puede medir:
+                      queda como CTA primario y el modal pasa a secundario. */}
                   <div className="mt-8">
                     <Button
+                      asChild
                       className="w-full h-12 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-400 hover:to-blue-400 text-white font-semibold shadow-lg shadow-indigo-900/30 border-0 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-indigo-500/20 hover:shadow-xl"
-                      onClick={() => {
-                        trackEvent('productprepa_business_interest_clicked');
-                        setB2bModalOpen(true);
-                      }}
                     >
-                      Ver detalle y reservar cupo
-                    </Button>
-                    <div className="mt-3 text-center">
                       <Link
                         to="/empresas"
-                        className="inline-flex items-center gap-1 text-sm text-indigo-200/70 hover:text-white underline underline-offset-2 transition-colors"
+                        onClick={() => trackEvent('empresas_cta_click', { cta_location: 'planes_card_b2b' })}
                       >
-                        Ver el programa completo
+                        Ver el programa para empresas
+                        <ArrowRight className="w-4 h-4 ml-2" />
                       </Link>
+                    </Button>
+                    <div className="mt-3 text-center">
+                      <Button
+                        variant="link"
+                        className="h-auto p-0 text-sm text-indigo-200/70 hover:text-white underline underline-offset-2"
+                        onClick={() => {
+                          trackEvent('productprepa_business_interest_clicked');
+                          setB2bModalOpen(true);
+                        }}
+                      >
+                        Ver detalle y reservar cupo
+                      </Button>
                     </div>
                   </div>
                 </CardContent>

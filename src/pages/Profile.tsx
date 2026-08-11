@@ -30,8 +30,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LemonSqueezyCheckout } from '@/components/LemonSqueezyCheckout';
-import { 
-  FileText, 
+import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
+import { getPlanBadgeInfo } from '@/constants/plans';
+import { cn } from '@/lib/utils';
+import type { LucideIcon } from 'lucide-react';
+import {
+  FileText,
   Target, 
   TrendingUp, 
   Clock, 
@@ -53,6 +57,15 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { usePricing } from '@/hooks/usePricing';
 
+// El nombre y el color de cada plan salen de constants/plans.ts, para que el
+// perfil no lo llame distinto que el resto de la app. Acá solo vive el ícono.
+const PLAN_ICONS: Record<string, LucideIcon> = {
+  premium: Crown,
+  repremium: Sparkles,
+  curso_estrategia: GraduationCap,
+  cursos_all: GraduationCap,
+};
+
 export default function Profile() {
   const { user, signOut, isSigningOut } = useAuth();
   const { data: compositeData, loading } = useProfileCompositeData();
@@ -64,9 +77,13 @@ export default function Profile() {
   const [isCanceling, setIsCanceling] = useState(false);
   const { toast } = useToast();
   const pricing = usePricing();
+  const { trackEvent } = useMixpanelTracking();
 
   const handleCancelSubscription = async () => {
     setIsCanceling(true);
+    trackEvent('suscripcion_cancelacion_confirmada', {
+      plan: subscription?.plan,
+    });
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -81,6 +98,10 @@ export default function Profile() {
 
       if (error) throw error;
 
+      trackEvent('suscripcion_cancelada', {
+        plan: subscription?.plan,
+      });
+
       toast({
         title: "Suscripción cancelada",
         description: "Tu suscripción ha sido cancelada. Seguirás teniendo acceso hasta el fin del período actual.",
@@ -93,7 +114,7 @@ export default function Profile() {
       }
       toast({
         title: "Error al cancelar",
-        description: "No pudimos cancelar tu suscripción. Por favor intenta nuevamente.",
+        description: "No pudimos cancelar tu suscripción. Por favor intentá nuevamente.",
         variant: "destructive",
       });
     } finally {
@@ -152,43 +173,9 @@ export default function Profile() {
     ['submitted', 'reviewed'].includes(e.status || '')
   ).length || 0;
 
-  // Helper to get plan badge
-  const getPlanBadge = () => {
-    const plan = subscription?.plan;
-    
-    if (plan === 'repremium') {
-      return (
-        <Badge variant="repremium" className="text-base px-3 py-1">
-          <Sparkles className="h-4 w-4 mr-1" />
-          RePremium
-        </Badge>
-      );
-    }
-    
-    if (plan === 'cursos_all') {
-      return (
-        <Badge variant="cursosAll" className="text-base px-3 py-1">
-          <GraduationCap className="h-4 w-4 mr-1" />
-          Acceso a todos los Cursos
-        </Badge>
-      );
-    }
-    
-    if (plan === 'premium' || plan === 'curso_estrategia') {
-      return (
-        <Badge variant="default" className="text-base px-3 py-1">
-          <Crown className="h-4 w-4 mr-1" />
-          Premium
-        </Badge>
-      );
-    }
-    
-    return (
-      <Badge variant="secondary" className="text-base px-3 py-1">
-        Free
-      </Badge>
-    );
-  };
+  // Badge del plan: fuente única en constants/plans.ts
+  const planBadge = getPlanBadgeInfo(subscription?.plan);
+  const PlanIcon = subscription?.plan ? PLAN_ICONS[subscription.plan] : undefined;
 
   // Check if user has any "other badges"
   const hasOtherBadges = profile?.is_founder;
@@ -248,7 +235,7 @@ export default function Profile() {
     <>
       <Seo 
         title="Mi Perfil - ProductPrepa"
-        description="Gestiona tu perfil, revisa tu Career Path y mantén el control de tu plan de suscripción"
+        description="Gestioná tu perfil, revisá tu Career Path y mantené el control de tu plan de suscripción"
         canonical="/perfil"
         keywords="perfil usuario, configuración cuenta, suscripción Product Builder"
       />
@@ -289,7 +276,10 @@ export default function Profile() {
           <CardContent className="space-y-4">
             {/* Primary badges row: Plan + Status chips */}
             <div className="flex flex-wrap items-center gap-3">
-              {getPlanBadge()}
+              <Badge variant={planBadge.variant} className={cn('text-base px-3 py-1', planBadge.className)}>
+                {PlanIcon && <PlanIcon className="h-4 w-4 mr-1" />}
+                {planBadge.label}
+              </Badge>
 
               {subscription?.status === 'active' && (
                 <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400">
@@ -365,12 +355,17 @@ export default function Profile() {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {upgradeInfo.options.map((option) => (
-                          <LemonSqueezyCheckout 
+                          <LemonSqueezyCheckout
                             key={option.plan}
-                            plan={option.plan} 
+                            plan={option.plan}
                             buttonText={option.label}
                             variant="default"
                             size="sm"
+                            onCheckoutStart={() => trackEvent('perfil_upgrade_cta_clicked', {
+                              cta_location: 'perfil_upgrade',
+                              current_plan: subscription?.plan,
+                              target_plan: option.plan,
+                            })}
                           />
                         ))}
                       </div>
@@ -399,7 +394,7 @@ export default function Profile() {
                           <li>No podrás acceder a la mentoría personalizada</li>
                           <li>Seguirás teniendo acceso hasta el fin de tu período actual</li>
                         </ul>
-                        <p className="font-medium mt-4">¿Estás seguro de que deseas continuar?</p>
+                        <p className="font-medium mt-4">¿Seguro que querés continuar?</p>
                       </div>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
@@ -425,7 +420,14 @@ export default function Profile() {
             )}
 
             {subscription?.plan === 'free' && (
-              <Button asChild>
+              <Button
+                asChild
+                onClick={() => trackEvent('perfil_upgrade_cta_clicked', {
+                  cta_location: 'perfil_plan_free',
+                  current_plan: 'free',
+                  destination: '/planes',
+                })}
+              >
                 <Link to="/planes">
                   <Crown className="h-4 w-4 mr-2" />
                   Ver planes
@@ -502,7 +504,18 @@ export default function Profile() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
                   <Target className="h-6 w-6 text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">No tienes objetivos activos</p>
+                  <p className="text-sm text-muted-foreground">Todavía no tenés objetivos activos</p>
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    onClick={() => trackEvent('perfil_empty_state_cta_clicked', {
+                      cta_location: 'perfil_objetivos_vacios',
+                      destination: '/progreso',
+                    })}
+                  >
+                    <Link to="/progreso">Armar mi plan de progreso</Link>
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -545,7 +558,18 @@ export default function Profile() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
                   <Clock className="h-6 w-6 text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">No tienes ejercicios próximos</p>
+                  <p className="text-sm text-muted-foreground">No tenés ejercicios próximos</p>
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    onClick={() => trackEvent('perfil_empty_state_cta_clicked', {
+                      cta_location: 'perfil_ejercicios_vacios',
+                      destination: '/mentoria',
+                    })}
+                  >
+                    <Link to="/mentoria">Pedir ejercicios en mentoría</Link>
+                  </Button>
                 </div>
               )}
             </CardContent>

@@ -19,13 +19,43 @@ const VARIANT_CONFIG: Record<string, { variantId: string; purchaseType: 'subscri
 
 type PlanType = keyof typeof VARIANT_CONFIG;
 
+// Únicas claves de atribución que se aceptan del body. Lo que llega acá termina
+// en el custom_data del webhook y de ahí a la base, así que es entrada no
+// confiable: whitelist estricta, String() forzado y recorte de longitud.
+const ATTRIBUTION_KEYS = [
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_content',
+  'utm_term',
+  'landing_page',
+] as const;
+
+const MAX_ATTRIBUTION_LENGTH = 200;
+
+function sanitizeAttribution(raw: unknown): Record<string, string> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+
+  const source = raw as Record<string, unknown>;
+  const clean: Record<string, string> = {};
+
+  for (const key of ATTRIBUTION_KEYS) {
+    const value = source[key];
+    if (value === null || value === undefined) continue;
+    const asString = String(value).trim().slice(0, MAX_ATTRIBUTION_LENGTH);
+    if (asString) clean[key] = asString;
+  }
+
+  return clean;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { userId, email, plan = 'premium' } = await req.json();
+    const { userId, email, plan = 'premium', attribution } = await req.json();
     
     // Validate plan
     if (!VARIANT_CONFIG[plan as PlanType]) {
@@ -205,6 +235,9 @@ serve(async (req) => {
             email: checkoutEmail,
             ...(userName && { name: userName }),
             custom: {
+              // Va primero para que los campos propios de abajo siempre ganen,
+              // aunque alguien agregue una clave que colisione con la whitelist.
+              ...sanitizeAttribution(attribution),
               anonymous_checkout: String(isAnonymousCheckout),
               checkout_intent_id: checkoutIntentId,
               plan: plan,

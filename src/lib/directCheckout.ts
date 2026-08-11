@@ -12,6 +12,8 @@
 // de LemonSqueezy → Products → cada producto → "Confirmation" / "Redirect URL".
 // Dejamos el query param igual como capa extra por si LS lo respeta.
 
+import { getFirstTouch } from '@/lib/attribution';
+
 export type DirectCheckoutKey = 'productastic_review' | 'productprepa_business';
 
 interface DirectCheckoutConfig {
@@ -51,6 +53,27 @@ export function buildDirectCheckoutUrl(key: DirectCheckoutKey, options: BuildOpt
     params.set('checkout[email]', options.email);
   }
   params.set('checkout[custom][plan]', key);
+
+  // Atribución de primer toque como campos custom. LemonSqueezy los devuelve en
+  // `meta.custom_data` del webhook, así la venta queda atada a su origen sin
+  // depender de que el comprador tenga cuenta. Sólo van los que tienen valor:
+  // un custom vacío ensucia el payload del webhook.
+  const firstTouch = getFirstTouch();
+  if (firstTouch) {
+    const attributionFields: Array<[string, string | null]> = [
+      ['utm_source', firstTouch.utm_source],
+      ['utm_medium', firstTouch.utm_medium],
+      ['utm_campaign', firstTouch.utm_campaign],
+      ['utm_content', firstTouch.utm_content],
+      ['utm_term', firstTouch.utm_term],
+      ['landing_page', firstTouch.landing_page],
+    ];
+    for (const [field, value] of attributionFields) {
+      if (value) {
+        params.set(`checkout[custom][${field}]`, value);
+      }
+    }
+  }
 
   return `${LEMONSQUEEZY_STORE_BASE}/${config.checkoutUuid}?${params.toString()}`;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Clock, CheckCircle2, PlayCircle, CalendarClock, BookOpen, ArrowRight } from "lucide-react";
 import { Seo } from "@/components/Seo";
@@ -56,13 +56,30 @@ export default function CourseDetail() {
   }, [course, user]);
 
   // Track course completion
+  // Guardamos el slug ya trackeado para no re-emitir el evento en cada montaje
+  // de un curso terminado (ni en cada refetch del progreso).
+  const completeTrackedSlugRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (progressStats.isCompleted && course) {
-      Mixpanel.track("course_complete", {
-        course_slug: course.slug,
-        course_title: course.title,
-      });
+    if (!course || !progressStats.isCompleted) return;
+    if (completeTrackedSlugRef.current === course.slug) return;
+
+    completeTrackedSlugRef.current = course.slug;
+
+    // El ref solo cubre este montaje: sin memoria persistente, cada visita a un
+    // curso ya terminado volvería a contar como una finalización.
+    const storageKey = `course_complete_tracked_${course.slug}`;
+    try {
+      if (localStorage.getItem(storageKey)) return;
+      localStorage.setItem(storageKey, "1");
+    } catch {
+      // Sin storage se acepta el sobreconteo antes que perder el evento.
     }
+
+    Mixpanel.track("course_complete", {
+      course_slug: course.slug,
+      course_title: course.title,
+    });
   }, [progressStats.isCompleted, course]);
 
   // Build JSON-LD schema for individual course with Breadcrumbs
@@ -453,7 +470,7 @@ export default function CourseDetail() {
                 <div className="text-center">
                   <PlayCircle className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
                   <p className="text-muted-foreground">
-                    Selecciona una lección para comenzar
+                    Elegí una lección para empezar
                   </p>
                 </div>
               </div>

@@ -54,7 +54,7 @@ export const navItems: NavItemType[] = [
 
 export const extraItems: NavItemType[] = [
   {
-    href: "/preguntas",
+    href: "/descargables",
     label: "Descargables",
     icon: FileDown,
     premium: false,

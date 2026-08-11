@@ -60,8 +60,27 @@ const ASSESSMENT_CONTEXT_KEY = 'assessment_context_answers';
 // localStorage es por navegador, no por cuenta: sin este dueño, una cuenta
 // nueva en el mismo navegador heredaría la evaluación a medias de otra.
 const ASSESSMENT_OWNER_KEY = 'assessment_progress_owner';
+// Perfil elegido en una landing antes de loguearse. Se escribe sin sesión (no
+// tiene dueño posible), así que se consume una sola vez y se borra.
+const ASSESSMENT_TYPE_HINT_KEY = 'assessment_type_hint';
 
 const VALID_TYPES: readonly AssessmentTypeKey[] = ASSESSMENT_TYPES.map((t) => t.key);
+
+// Vence a las 24 h: el hint se escribe sin sesión y no puede protegerse con
+// dueño, así que se acota la ventana en la que otra cuenta lo heredaría.
+const TYPE_HINT_TTL_MS = 24 * 60 * 60 * 1000;
+
+function readTypeHint(raw: string | null): AssessmentTypeKey | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { tipo?: string; ts?: number };
+    if (!parsed?.tipo || typeof parsed.ts !== 'number') return null;
+    if (Date.now() - parsed.ts > TYPE_HINT_TTL_MS) return null;
+    return VALID_TYPES.find((t) => t === parsed.tipo) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 // Parsea respuestas guardadas en localStorage descartando claves desconocidas
 // o valores corruptos (solo acepta enteros entre 1 y 5 de dominios válidos).
@@ -184,6 +203,10 @@ export default function Assessment() {
   // El guard evita que cambios de identidad en `trackEvent` (auth)
   // re-ejecuten el efecto y pisen el formulario a mitad de una evaluación.
   const hasInitializedRef = useRef(false);
+  // De dónde vino la intención de perfil (landing con ?tipo= o hint pre-login).
+  // Viaja en los eventos para separar a quien eligió en el selector de quien
+  // llegó con el perfil ya decidido.
+  const preselectedFromRef = useRef<'query_param' | 'storage_hint' | 'none'>('none');
   useEffect(() => {
     if (assessmentLoading || authLoading || hasInitializedRef.current) return;
     hasInitializedRef.current = true;
@@ -211,6 +234,31 @@ export default function Assessment() {
       setSearchParams(searchParams, { replace: true });
     }
 
+    // Perfil preseleccionado desde una landing (/soy-dev manda ?tipo=...).
+    // Un valor desconocido se ignora y sigue el flujo normal del selector:
+    // assessment_type es un enum en la DB y un valor inventado rompe el insert.
+    const tipoParamRaw = searchParams.get('tipo');
+    const tipoParam = VALID_TYPES.find((t) => t === tipoParamRaw) ?? null;
+    if (tipoParamRaw !== null) {
+      searchParams.delete('tipo');
+      setSearchParams(searchParams, { replace: true });
+    }
+
+    // Respaldo del canal anterior: el login por email termina en navigate('/')
+    // y descarta el state de la ruta, así que la landing deja la intención en
+    // localStorage. Se consume una sola vez y se borra: no está protegido por
+    // dueño, y si quedara, otro usuario del mismo navegador arrancaría con el
+    // perfil ajeno.
+    const hintRaw = localStorage.getItem(ASSESSMENT_TYPE_HINT_KEY);
+    if (hintRaw !== null) localStorage.removeItem(ASSESSMENT_TYPE_HINT_KEY);
+    const hintType = readTypeHint(hintRaw);
+
+    // El query param manda: es la intención de este click, el hint es memoria.
+    const preselectedType = tipoParam ?? hintType;
+    if (preselectedType) {
+      preselectedFromRef.current = tipoParam ? 'query_param' : 'storage_hint';
+    }
+
     // Recuperar el tipo elegido; una evaluación empezada antes de que
     // existieran los perfiles se retoma como "experimentado" (era la única).
     const resumeType: AssessmentTypeKey = storedType ?? 'experimentado';
@@ -222,6 +270,30 @@ export default function Assessment() {
         )
       : {};
     const hasStoredProgress = Object.keys(restoredValues).length > 0;
+
+    // Llegó con el perfil ya elegido: se saltea el selector y arranca el wizard
+    // en esa evaluación, igual que si hubiera tocado la tarjeta. Nunca pisa una
+    // evaluación guardada ni respuestas a medio cargar: ahí manda lo que el
+    // usuario ya hizo y el selector decide.
+    if (preselectedType && !hasAssessment && !hasStoredProgress) {
+      setIsReevaluating(true);
+      setSelectedType(preselectedType);
+      setCurrentStep(0);
+      localStorage.setItem(ASSESSMENT_IN_PROGRESS_KEY, 'true');
+      localStorage.setItem(ASSESSMENT_TYPE_KEY, preselectedType);
+      if (user?.id) localStorage.setItem(ASSESSMENT_OWNER_KEY, user.id);
+      localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
+      localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
+      localStorage.removeItem(ASSESSMENT_CONTEXT_KEY);
+      // El resto del estado (respuestas, opcionales, contexto, refs de
+      // tracking) ya está limpio: esto corre una sola vez al montar.
+      trackEvent('assessment_started', {
+        is_reevaluation: hasAssessment,
+        assessment_type: preselectedType,
+        preselected_from: preselectedFromRef.current,
+      });
+      return;
+    }
 
     // Pedido explícito de re-evaluación (banner de /mejoras): arranca desde
     // el selector, salvo que haya una evaluación a medias con respuestas, en
@@ -288,7 +360,7 @@ export default function Assessment() {
         setCurrentStep(resumeDomains.length);
       }
     }
-  }, [assessmentLoading, authLoading, hasAssessment, form, searchParams, setSearchParams, user]);
+  }, [assessmentLoading, authLoading, hasAssessment, form, searchParams, setSearchParams, user, trackEvent]);
 
   // Refs para el evento de abandono (se inicializan después de `answered`)
   const isReevaluatingRef = useRef(isReevaluating);
@@ -493,7 +565,13 @@ export default function Assessment() {
     localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
     localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
     localStorage.removeItem(ASSESSMENT_CONTEXT_KEY);
-    trackEvent('assessment_started', { is_reevaluation: hasAssessment, assessment_type: type });
+    trackEvent('assessment_started', {
+      is_reevaluation: hasAssessment,
+      assessment_type: type,
+      // Eligió a mano en el selector: si igual venía con intención de landing,
+      // queda registrado que la preselección no se pudo aplicar.
+      preselected_from: preselectedFromRef.current,
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -700,7 +778,10 @@ export default function Assessment() {
     if (showSelector) {
       if (!selectorViewedRef.current) {
         selectorViewedRef.current = true;
-        trackEvent('assessment_selector_viewed', { has_assessment: hasAssessment });
+        trackEvent('assessment_selector_viewed', {
+          has_assessment: hasAssessment,
+          preselected_from: preselectedFromRef.current,
+        });
       }
     } else {
       selectorViewedRef.current = false;
@@ -887,7 +968,15 @@ export default function Assessment() {
                       variant="outline"
                       className="border-primary text-primary hover:bg-primary hover:text-white font-semibold transition-all duration-300"
                     >
-                      <Link to={resultTypeDef ? resultTypeDef.plan.route : "/planes"} className="flex items-center gap-2">
+                      <Link
+                        to={resultTypeDef ? resultTypeDef.plan.route : "/planes"}
+                        onClick={() => trackEvent('landing_page_cta_click', {
+                          cta_location: 'assessment_result_plan',
+                          assessment_type: resultType ?? 'experimentado',
+                          plan: resultTypeDef?.plan.key ?? null,
+                        })}
+                        className="flex items-center gap-2"
+                      >
                         <span>Quiero mejorar</span>
                       </Link>
                     </Button>
@@ -896,7 +985,14 @@ export default function Assessment() {
                     asChild
                     size="lg"
                   >
-                    <Link to="/mejoras" className="flex items-center gap-2">
+                    <Link
+                      to="/mejoras"
+                      onClick={() => trackEvent('landing_page_cta_click', {
+                        cta_location: 'assessment_result_mejoras',
+                        assessment_type: resultType ?? 'experimentado',
+                      })}
+                      className="flex items-center gap-2"
+                    >
                       <span>Ver áreas de mejora</span>
                       <ArrowRight className="h-5 w-5" />
                     </Link>
@@ -924,7 +1020,15 @@ export default function Assessment() {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <Button asChild className="w-full sm:w-auto">
-                <Link to="/mejoras">Ver mis resultados detallados</Link>
+                <Link
+                  to="/mejoras"
+                  onClick={() => trackEvent('landing_page_cta_click', {
+                    cta_location: 'assessment_result_detalle',
+                    assessment_type: resultType ?? 'experimentado',
+                  })}
+                >
+                  Ver mis resultados detallados
+                </Link>
               </Button>
               <Button
                 variant="outline"

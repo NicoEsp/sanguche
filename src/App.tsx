@@ -13,6 +13,8 @@ import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { PageViewTracker } from "@/components/analytics/PageViewTracker";
+import { AttributionTracker } from "@/components/analytics/AttributionTracker";
 import { Analytics } from '@vercel/analytics/react';
 
 // Lazy load all pages for code splitting
@@ -93,6 +95,13 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
+          <AttributionTracker />
+          {/* Único emisor de page_view. Va FUERA de AuthProvider a propósito:
+              mientras la sesión carga, el provider renderiza una pantalla de
+              carga en lugar de sus children, así que adentro el tracker se
+              desmontaría y volvería a montar, duplicando la vista. No necesita
+              la sesión: el user_id lo aporta el identify de AuthContext. */}
+          <PageViewTracker />
           <AuthProvider>
             <Suspense fallback={<LoadingScreen />}>
               <Routes>
@@ -129,7 +138,10 @@ const App = () => (
                       <Route path="/welcome" element={<Welcome />} />
                       <Route path="/gracias-review" element={<GraciasReview />} />
                       <Route path="/gracias-b2b" element={<GraciasB2B />} />
-                      <Route path="/preguntas" element={<Descargables />} />
+                      {/* /descargables es la canónica (es la que tiene SEO).
+                          /preguntas se mantiene como redirect porque está
+                          compartida en mails y PDFs ya distribuidos. */}
+                      <Route path="/preguntas" element={<Navigate to="/descargables" replace />} />
                       <Route path="/descargables" element={<Descargables />} />
                       <Route path="/soy-dev" element={<SoyDev />} />
                       <Route path="/empresas" element={<Empresas />} />

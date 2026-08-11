@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Search } from "lucide-react";
@@ -12,10 +13,17 @@ interface ProductReviewModalProps {
 export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalProps) => {
   const { trackEvent } = useMixpanelTracking();
 
-  const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen) {
+  // La apertura se dispara desde afuera (Planes.tsx setea `open`), no hay
+  // DialogTrigger: Radix nunca llama a onOpenChange(true), así que el evento
+  // de apertura tiene que salir del cambio de la prop.
+  useEffect(() => {
+    if (open) {
       trackEvent("productastic_review_modal_opened");
-    } else {
+    }
+  }, [open, trackEvent]);
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
       trackEvent("productastic_review_modal_closed");
     }
     onOpenChange(isOpen);

@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { EmailCaptureDialog } from "./EmailCaptureDialog";
 import { usePricing } from "@/hooks/usePricing";
+import { getFirstTouch } from "@/lib/attribution";
 
 export type PlanType = 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all';
 
@@ -61,10 +62,13 @@ export function LemonSqueezyCheckout({
     
     try {
       const { data, error } = await supabase.functions.invoke('lemon-squeezy-checkout', {
-        body: { 
+        body: {
           userId: user?.id,
           email: email,
-          plan
+          plan,
+          // La edge function filtra las claves que conoce y las mete en el
+          // custom del checkout, así la orden llega atribuida al webhook.
+          attribution: getFirstTouch()
         }
       });
 

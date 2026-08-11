@@ -123,6 +123,25 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Franja B2B — única entrada a /empresas desde el home */}
+      <section className="border-y bg-muted/30">
+        <div className="container py-5 px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 text-center sm:text-left">
+            <p className="text-sm sm:text-base text-muted-foreground">
+              ¿Liderás un equipo de producto? Medí el nivel de todo el equipo y detectá los gaps reales.
+            </p>
+            <Link
+              to="/empresas"
+              onClick={() => trackEvent('empresas_cta_click', { cta_location: 'home_b2b_strip' })}
+              className="inline-flex items-center gap-1 shrink-0 text-sm font-medium text-foreground underline underline-offset-4 hover:text-primary transition-colors">
+
+              Conocer ProductPrepa for Business
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <LandingFaq />
 
       <StickyMobileCTA isAuthenticated={isAuthenticated} />

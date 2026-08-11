@@ -1,41 +1,32 @@
-import { useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useCallback, useEffect, useRef } from 'react';
 import { Mixpanel } from '@/lib/mixpanel';
 import { useAuth } from '@/contexts/AuthContext';
 
+/**
+ * Helper para emitir eventos de producto desde cualquier componente.
+ *
+ * Ya NO emite `page_view` (eso vive en PageViewTracker, montado una sola vez en
+ * App.tsx) ni hace `identify` (eso vive en AuthContext, donde está la sesión).
+ * Montar este hook solo tiene sentido si el componente necesita `trackEvent`.
+ */
 export function useMixpanelTracking() {
   const { user, isAuthenticated } = useAuth();
-  const location = useLocation();
 
-  // Identificar usuario cuando hace login
+  // El objeto `user` de Supabase cambia de identidad en cada refresco de token.
+  // Guardarlo en un ref permite dejar `trackEvent` estable de por vida y que no
+  // re-dispare los efectos de quien lo tenga en su array de dependencias.
+  const userRef = useRef(user);
   useEffect(() => {
-    if (isAuthenticated && user) {
-      Mixpanel.identify(user.id);
-      Mixpanel.people.set({
-        $email: user.email,
-        $name: user.user_metadata?.name || 'Usuario',
-        $created: user.created_at
-      });
-    }
-  }, [isAuthenticated, user]);
-
-  // Track page views automáticamente
-  useEffect(() => {
-    Mixpanel.track('page_view', {
-      page_path: location.pathname,
-      page_title: document.title,
-      referrer: document.referrer,
-      user_id: user?.id
-    });
-  }, [location, user]);
+    userRef.current = user;
+  }, [user]);
 
   const trackEvent = useCallback((eventName: string, properties?: Record<string, any>) => {
     Mixpanel.track(eventName, {
       ...properties,
-      user_id: user?.id,
+      user_id: userRef.current?.id,
       timestamp: new Date().toISOString()
     });
-  }, [user]);
+  }, []);
 
   const setUserProperties = useCallback((properties: Record<string, any>) => {
     if (isAuthenticated) {

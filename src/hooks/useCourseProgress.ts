@@ -35,14 +35,17 @@ export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []
   });
 
   // Calculate progress stats
+  // Ojo: `completed_at` puede ser null o undefined según la fila, así que la
+  // única lectura confiable de "completada" es la verdad del valor.
+  const completedLessons = progressQuery.data?.filter((p) => Boolean(p.completed_at)).length || 0;
+
   const progressStats: CourseProgress = {
     totalLessons: lessons.length,
-    completedLessons: progressQuery.data?.filter((p) => p.completed_at !== null).length || 0,
+    completedLessons,
     progressPercentage: lessons.length > 0
-      ? Math.round(((progressQuery.data?.filter((p) => p.completed_at !== null).length || 0) / lessons.length) * 100)
+      ? Math.round((completedLessons / lessons.length) * 100)
       : 0,
-    isCompleted: lessons.length > 0 && 
-      (progressQuery.data?.filter((p) => p.completed_at !== null).length || 0) === lessons.length,
+    isCompleted: lessons.length > 0 && completedLessons === lessons.length,
   };
 
   // Get lessons with progress attached
@@ -51,7 +54,9 @@ export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []
     return {
       ...lesson,
       progress,
-      isCompleted: progress?.completed_at !== null,
+      // Sin fila de progreso esto tiene que dar false: comparar contra null daba
+      // true para toda lección sin progreso y ocultaba el botón de completar.
+      isCompleted: Boolean(progress?.completed_at),
     };
   });
 

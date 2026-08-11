@@ -2,12 +2,19 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Seo } from '@/components/Seo';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CalendarDays, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 
 export default function BlogList() {
+  const { isAuthenticated } = useAuth();
+  const { trackEvent } = useMixpanelTracking();
+  const assessmentPath = isAuthenticated ? '/autoevaluacion' : '/auth';
+
   const { data: posts, isLoading } = useQuery({
     queryKey: ['blog-posts-public'],
     queryFn: async () => {
@@ -79,6 +86,43 @@ export default function BlogList() {
                 </Link>
               </article>
             ))}
+          </div>
+        )}
+
+        {/* Cierre editorial: hasta acá el blog no ofrecía ninguna salida. */}
+        {!isLoading && (
+          <div className="border-t border-border pt-10 space-y-4">
+            <h2 className="text-xl md:text-2xl font-semibold text-foreground">
+              Leer está bien. Medir dónde estás parado está mejor.
+            </h2>
+            <p className="text-muted-foreground leading-relaxed max-w-2xl">
+              La evaluación gratuita te devuelve tus fortalezas y tus áreas de mejora como
+              Product Builder en 5 minutos. Si venís del lado técnico, arrancá por la ruta para devs.
+            </p>
+            <div className="flex flex-col sm:flex-row items-start gap-3 pt-1">
+              <Button
+                asChild
+                onClick={() => trackEvent('blog_list_cta_clicked', {
+                  cta_location: 'blog_list_footer',
+                  destination: assessmentPath
+                })}
+              >
+                <Link to={assessmentPath}>
+                  Hacer la evaluación gratis
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                onClick={() => trackEvent('blog_list_cta_clicked', {
+                  cta_location: 'blog_list_footer',
+                  destination: '/soy-dev'
+                })}
+              >
+                <Link to="/soy-dev">Soy dev, ¿qué hago?</Link>
+              </Button>
+            </div>
           </div>
         )}
       </div>

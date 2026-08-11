@@ -8,6 +8,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft } from 'lucide-react';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
+import { Mixpanel } from '@/lib/mixpanel';
+import { getAttributionEventProps, getAttributionUserProps } from '@/lib/attribution';
 import {
   LoginForm,
   SignUpForm,
@@ -87,7 +89,7 @@ export default function Auth() {
       recoveryTimeoutRef.current = setTimeout(() => {
         toast({
           title: "Enlace no válido",
-          description: "Este enlace ya fue usado o ha expirado. Cada enlace de recuperación solo puede usarse una vez. Solicita uno nuevo.",
+          description: "Este enlace ya fue usado o ha expirado. Cada enlace de recuperación solo puede usarse una vez. Pedí uno nuevo.",
           variant: "destructive",
         });
         setMode('reset');
@@ -138,7 +140,14 @@ export default function Auth() {
     trackEvent('signup_started', { method: 'email', email: data.email, from_path: fromPath });
     const { error } = await signUp(data.email, data.password, data.name, fromPath);
     if (!error) {
-      trackEvent('signup_completed', { method: 'email', email: data.email, name: data.name, from_path: fromPath });
+      Mixpanel.people.set_once(getAttributionUserProps());
+      trackEvent('signup_completed', {
+        method: 'email',
+        email: data.email,
+        name: data.name,
+        from_path: fromPath,
+        ...getAttributionEventProps(),
+      });
       setVerificationEmail(data.email);
       setMode('email-verification');
     } else {
@@ -147,6 +156,7 @@ export default function Auth() {
   };
 
   const handleResetPassword = async (data: ResetFormData) => {
+    trackEvent('password_reset_requested');
     await resetPassword(data.email);
     setMode('login');
   };
@@ -172,18 +182,18 @@ export default function Auth() {
       case 'login': return 'Iniciar Sesión';
       case 'signup': return 'Crear Cuenta';
       case 'reset': return 'Recuperar Contraseña';
-      case 'email-verification': return 'Verifica tu Email';
+      case 'email-verification': return 'Verificá tu Email';
       case 'update-password': return 'Nueva Contraseña';
     }
   };
 
   const getDescription = () => {
     switch (mode) {
-      case 'login': return 'Ingresa tus credenciales para acceder a tu cuenta';
-      case 'signup': return 'Crea una cuenta nueva para empezar';
+      case 'login': return 'Ingresá tus credenciales para acceder a tu cuenta';
+      case 'signup': return 'Creá una cuenta nueva para empezar';
       case 'reset': return 'Te enviaremos un enlace para restablecer tu contraseña';
       case 'email-verification': return 'Te enviamos un correo para validar tu cuenta';
-      case 'update-password': return 'Ingresa tu nueva contraseña';
+      case 'update-password': return 'Ingresá tu nueva contraseña';
     }
   };
 
@@ -191,8 +201,8 @@ export default function Auth() {
     <>
       <Seo
         title={`${getTitle()} — ProductPrepa`}
-        description="Accede a tu cuenta de ProductPrepa para continuar con tu evaluación y recomendaciones personalizadas."
-        canonical="/login"
+        description="Accedé a tu cuenta de ProductPrepa para continuar con tu evaluación y recomendaciones personalizadas."
+        canonical="/auth"
         keywords="login productprepa, registro PM, acceso cuenta"
       />
       
@@ -246,7 +256,7 @@ export default function Auth() {
                         className="w-full"
                         onClick={() => setMode('signup')}
                       >
-                        ¿No tienes cuenta? Regístrate
+                        ¿No tenés cuenta? Registrate
                       </Button>
                       <Button
                         variant="ghost"
@@ -264,7 +274,7 @@ export default function Auth() {
                       className="w-full"
                       onClick={() => setMode('login')}
                     >
-                      ¿Ya tienes cuenta? Inicia sesión
+                      ¿Ya tenés cuenta? Iniciá sesión
                     </Button>
                   )}
                   

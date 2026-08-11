@@ -10,6 +10,7 @@ import { LemonSqueezyCheckout } from "@/components/LemonSqueezyCheckout";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePricing } from "@/hooks/usePricing";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -38,6 +39,7 @@ export default function CursosInfo() {
     hasCursoEstrategia,
   } = useSubscription();
   const { toast } = useToast();
+  const { trackEvent } = useMixpanelTracking();
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistLoading, setWaitlistLoading] = useState(false);
 
@@ -52,21 +54,28 @@ export default function CursosInfo() {
         .from('course_waitlist')
         .insert({ email });
 
-      if (error) {
-        if (error.code === '23505') {
-          toast({
-            title: "Ya estás en la lista",
-            description: "Este email ya está registrado. Te avisamos cuando haya novedades.",
-          });
-        } else {
-          throw error;
-        }
+      const alreadySubscribed = error?.code === '23505';
+
+      if (error && !alreadySubscribed) throw error;
+
+      if (alreadySubscribed) {
+        toast({
+          title: "Ya estás en la lista",
+          description: "Este email ya está registrado. Te avisamos cuando haya novedades.",
+        });
       } else {
         toast({
           title: "¡Listo!",
           description: "Te avisamos cuando los nuevos módulos estén disponibles.",
         });
       }
+
+      // Sin el email: no metemos PII nueva en los eventos.
+      trackEvent('course_waitlist_submitted', {
+        cta_location: 'cursos_info_waitlist',
+        already_subscribed: alreadySubscribed,
+      });
+
       setWaitlistEmail("");
     } catch {
       toast({
@@ -95,15 +104,15 @@ export default function CursosInfo() {
     },
     {
       question: "¿Puedo acceder desde el celular?",
-      answer: "Sí, la plataforma es 100% responsive y puedes ver los videos y hacer ejercicios desde cualquier dispositivo."
+      answer: "Sí, la plataforma es 100% responsive y podés ver los videos y hacer ejercicios desde cualquier dispositivo."
     },
     {
       question: "¿Qué pasa si compro el curso y lanzan nuevos contenidos?",
-      answer: "Al comprar el curso tienes acceso a todas las actualizaciones futuras del mismo curso sin costo adicional."
+      answer: "Al comprar el curso tenés acceso a todas las actualizaciones futuras del mismo curso sin costo adicional."
     },
     {
       question: "¿Los cursos tienen certificado?",
-      answer: "Los cursos incluyen certificado de finalización que puedes compartir en LinkedIn una vez completes todas las lecciones y ejercicios."
+      answer: "Los cursos incluyen certificado de finalización que podés compartir en LinkedIn una vez que completes todas las lecciones y ejercicios."
     }
   ];
 
@@ -120,7 +129,7 @@ export default function CursosInfo() {
           "@id": "https://productprepa.com/cursos/estrategia-producto",
           "position": 1,
           "name": "Estrategia de Producto desde cero",
-          "description": "Aprende los conceptos básicos de lo que implica una Estrategia de Producto con un framework concreto de 6 dimensiones.",
+          "description": "Aprendé los conceptos básicos de lo que implica una Estrategia de Producto con un framework concreto de 6 dimensiones.",
           "provider": {
             "@type": "Organization",
             "name": "ProductPrepa",
@@ -387,7 +396,15 @@ export default function CursosInfo() {
                     </div>
                   </div>
 
-                  <Button asChild variant="outline">
+                  <Button
+                    asChild
+                    variant="outline"
+                    onClick={() => trackEvent('landing_page_cta_click', {
+                      cta_location: 'cursos_info_pm101',
+                      cta_text: isAuthenticated ? 'Acceder' : 'Registrarse gratis',
+                      is_authenticated: isAuthenticated
+                    })}>
+
                     <Link to={isAuthenticated ? "/cursos" : "/auth"}>
                       {isAuthenticated ? "Acceder" : "Registrarse gratis"}
                     </Link>
@@ -438,7 +455,7 @@ export default function CursosInfo() {
               {/* Mentoría personalizada */}
               <Card className={`p-6 text-center ${hasActiveRePremium ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : ''}`}>
                 <Crown className="w-8 h-8 text-amber-500 mx-auto mb-4" />
-                <h3 className="font-bold mb-2">Mentoría personalizada</h3>
+                <h3 className="font-bold mb-2">RePremium · Mentoría personalizada</h3>
                 <p className="text-2xl font-bold mb-1">
                   {pricingLoading ? "..." : repremium.formatted}
                 </p>
@@ -463,9 +480,17 @@ export default function CursosInfo() {
                     <Link to="/mentoria">Ir a tu mentoría</Link>
                   </Button>
                 ) : (
-                  <Button asChild variant="default" className="w-full">
+                  <Button
+                    asChild
+                    variant="default"
+                    className="w-full"
+                    onClick={() => trackEvent('landing_page_cta_click', {
+                      cta_location: 'cursos_info_repremium',
+                      cta_text: 'Ver qué incluye'
+                    })}>
+
                     <Link to="/planes">
-                      Ver qué incluye
+                      Ver qué incluye RePremium
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Link>
                   </Button>

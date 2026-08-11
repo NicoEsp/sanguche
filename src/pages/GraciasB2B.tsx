@@ -1,20 +1,25 @@
 import { useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Building2, Mail, Calendar, ArrowRight, Compass } from "lucide-react";
 import { Seo } from "@/components/Seo";
+import { isReturningFromCheckout } from "@/utils/checkoutReturn";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function GraciasB2B() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { trackEvent } = useMixpanelTracking();
   const { isAuthenticated } = useAuth();
   const hasTrackedRef = useRef(false);
+  // El checkout hosteado de LemonSqueezy vuelve a la URL pelada, sin
+  // success=true, así que el referrer es la única señal de compra real.
+  const success = isReturningFromCheckout(searchParams.toString());
 
   useEffect(() => {
-    if (hasTrackedRef.current) return;
+    if (!success || hasTrackedRef.current) return;
     hasTrackedRef.current = true;
     trackEvent("checkout_completed", {
       plan: "productprepa_business",
@@ -23,7 +28,7 @@ export default function GraciasB2B() {
       source: "gracias_b2b_page",
       is_authenticated: isAuthenticated,
     });
-  }, [trackEvent, isAuthenticated]);
+  }, [success, trackEvent, isAuthenticated]);
 
   const handleAssessmentClick = () => {
     trackEvent("gracias_b2b_assessment_cta_clicked", {
@@ -55,8 +60,9 @@ export default function GraciasB2B() {
   return (
     <>
       <Seo
-        title="¡Gracias! · ProductPrepa for B2B"
+        title="¡Gracias! · ProductPrepa for Business"
         description="Confirmamos tu reserva. Mirá los próximos pasos para arrancar la capacitación del equipo."
+        robots="noindex, follow"
       />
 
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-indigo-900 to-blue-950 flex items-center justify-center p-4 text-white">
@@ -69,7 +75,7 @@ export default function GraciasB2B() {
               ¡Cupo reservado!
             </CardTitle>
             <CardDescription className="text-indigo-100/80 text-lg">
-              Recibí tu pago de ProductPrepa for B2B. Ahora seguimos por mail para coordinar el kickoff con el equipo.
+              Recibí tu pago de ProductPrepa for Business. Ahora seguimos por mail para coordinar el kickoff con el equipo.
             </CardDescription>
           </CardHeader>
 
@@ -102,7 +108,7 @@ export default function GraciasB2B() {
 
             <div className="grid gap-3 pt-2">
               <Button
-                onClick={() => (window.location.href = `mailto:${contactEmail}?subject=Kickoff%20ProductPrepa%20for%20B2B`)}
+                onClick={() => (window.location.href = `mailto:${contactEmail}?subject=Kickoff%20ProductPrepa%20for%20Business`)}
                 size="lg"
                 className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-400 hover:to-blue-400 text-white"
               >
@@ -129,7 +135,7 @@ export default function GraciasB2B() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white mb-1">¿Llegaste por curiosidad?</p>
                   <p className="text-xs text-indigo-100/70 mb-3 leading-relaxed">
-                    Si todavía no conocés ProductPrepa, podés empezar por una evaluación gratuita de tu perfil. En 10 minutos sabés en qué áreas trabajar.
+                    Si todavía no conocés ProductPrepa, podés empezar por una evaluación gratuita de tu perfil. En 5 minutos sabés en qué áreas trabajar.
                   </p>
                   <Button
                     onClick={handleAssessmentClick}
