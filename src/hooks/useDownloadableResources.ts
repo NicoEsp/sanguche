@@ -1,8 +1,44 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { DownloadableResource } from '@/types/downloads';
 import { AssessmentResult, DomainKey } from '@/utils/scoring';
+
+export type ResourceAccessState = 'accessible' | 'requires_login' | 'requires_subscription';
+
+export interface ResourceViewer {
+  isAuthenticated: boolean;
+  /**
+   * Debe ser el `hasActivePremium` de useSubscription, no `isPremiumPlan(plan)`:
+   * la policy de storage exige suscripción vigente, así que un premium cancelado
+   * ve la card abierta pero la descarga le falla si nos guiamos solo por el plan.
+   */
+  isPremium: boolean;
+}
+
+/**
+ * Única fuente de verdad de qué puede abrir un usuario. La metadata de todos los
+ * recursos activos es pública (ver 20260811120000_align_downloadable_metadata_visibility),
+ * así que quien reciba una fila tiene que decidir por su cuenta si la muestra
+ * abierta, bloqueada o directamente no la muestra.
+ */
+export function getResourceAccessState(
+  resource: Pick<DownloadableResource, 'access_level'>,
+  viewer: ResourceViewer,
+): ResourceAccessState {
+  switch (resource.access_level) {
+    case 'public':
+      return 'accessible';
+    case 'authenticated':
+      return viewer.isAuthenticated ? 'accessible' : 'requires_login';
+    case 'premium':
+      return viewer.isPremium ? 'accessible' : 'requires_subscription';
+    default:
+      return 'accessible';
+  }
+}
 
 export function useDownloadableResources() {
   return useQuery({
@@ -43,6 +79,9 @@ export function useDownloadableResourceBySlug(slug: string) {
 }
 
 export function useSkillGapsResources(assessmentResult: AssessmentResult | null) {
+  const { isAuthenticated } = useAuth();
+  const { hasActivePremium, loading: subscriptionLoading } = useSubscription();
+
   const { data: resources = [], isLoading: loading, error } = useQuery({
     queryKey: ['skill-gaps-resources'],
     queryFn: async () => {
@@ -69,7 +108,15 @@ export function useSkillGapsResources(assessmentResult: AssessmentResult | null)
       ...assessmentResult.neutralAreas,
     ];
 
+    const viewer = { isAuthenticated, isPremium: hasActivePremium === true };
+
     return resources.filter(resource => {
+      // Estas recomendaciones no tienen estado bloqueado: cada card ofrece Ver y
+      // Descargar funcionando. Como la query ahora devuelve también lo que el
+      // usuario no puede abrir, filtramos acá en vez de prometer una descarga
+      // que storage va a rechazar.
+      if (getResourceAccessState(resource, viewer) !== 'accessible') return false;
+
       if (!resource.condition_domain) return false;
       const domainScore = allDomains.find(d => d.key === resource.condition_domain as DomainKey);
       if (!domainScore) return false;
@@ -78,9 +125,11 @@ export function useSkillGapsResources(assessmentResult: AssessmentResult | null)
       const maxLevel = resource.condition_max_level ?? 5;
       return domainScore.value >= minLevel && domainScore.value <= maxLevel;
     });
-  }, [resources, assessmentResult]);
+  }, [resources, assessmentResult, isAuthenticated, hasActivePremium]);
 
-  return { resources: availableResources, loading, error };
+  // Esperamos también a la suscripción: sin esto un premium ve la lista sin sus
+  // recursos premium por un instante y después aparecen.
+  return { resources: availableResources, loading: loading || subscriptionLoading, error };
 }
 
 const PUBLIC_BUCKETS = new Set(['resources']);

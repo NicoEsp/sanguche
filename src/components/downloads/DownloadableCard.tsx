@@ -27,11 +27,14 @@ import {
   Star,
 } from 'lucide-react';
 import { DownloadableResource, DownloadableType } from '@/types/downloads';
-import { resolveResourceUrl } from '@/hooks/useDownloadableResources';
+import {
+  ResourceAccessState,
+  getResourceAccessState,
+  resolveResourceUrl,
+} from '@/hooks/useDownloadableResources';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
-import { isPremiumPlan } from '@/constants/plans';
 import { cn } from '@/lib/utils';
 
 const RESOURCE_ERROR_MESSAGE =
@@ -64,7 +67,6 @@ const typeGradients: Record<DownloadableType, string> = {
   image: 'from-amber-500/20 to-primary/5',
 };
 
-type AccessState = 'accessible' | 'requires_login' | 'requires_subscription';
 type PriceVariant = 'free' | 'premium';
 
 function getPriceBadge(resource: DownloadableResource): { label: string; variant: PriceVariant } {
@@ -96,7 +98,7 @@ export function DownloadableCard({ resource, isDownloaded, onDownloaded }: Downl
   const [isDescriptionTruncated, setIsDescriptionTruncated] = useState(false);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
   const { isAuthenticated } = useAuth();
-  const { subscription } = useSubscription();
+  const { hasActivePremium } = useSubscription();
   const { trackEvent } = useMixpanelTracking();
   const navigate = useNavigate();
   const location = useLocation();
@@ -107,18 +109,17 @@ export function DownloadableCard({ resource, isDownloaded, onDownloaded }: Downl
 
   const Icon = typeIcons[resource.type] || FileText;
 
-  const accessState: AccessState = useMemo(() => {
-    if (resource.access_level === 'public') return 'accessible';
-    if (resource.access_level === 'authenticated') {
-      return isAuthenticated ? 'accessible' : 'requires_login';
-    }
-    if (resource.access_level === 'premium') {
-      if (!isAuthenticated) return 'requires_login';
-      if (!isPremiumPlan(subscription?.plan)) return 'requires_subscription';
-      return 'accessible';
-    }
-    return 'accessible';
-  }, [resource.access_level, isAuthenticated, subscription?.plan]);
+  // Un premium deslogueado también cae en 'requires_subscription': el candado
+  // decía "Inicia sesión", así que el visitante se registraba creyendo que eso
+  // alcanzaba y terminaba con la card bloqueada igual.
+  const accessState: ResourceAccessState = useMemo(
+    () =>
+      getResourceAccessState(resource, {
+        isAuthenticated,
+        isPremium: hasActivePremium === true,
+      }),
+    [resource, isAuthenticated, hasActivePremium],
+  );
 
   const isLocked = accessState !== 'accessible';
   const priceBadge = getPriceBadge(resource);
