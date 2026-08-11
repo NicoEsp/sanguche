@@ -98,7 +98,7 @@ export function DownloadableCard({ resource, isDownloaded, onDownloaded }: Downl
   const [isDescriptionTruncated, setIsDescriptionTruncated] = useState(false);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
   const { isAuthenticated } = useAuth();
-  const { hasActivePremium } = useSubscription();
+  const { hasActivePremium, isError: subscriptionFailed } = useSubscription();
   const { trackEvent } = useMixpanelTracking();
   const navigate = useNavigate();
   const location = useLocation();
@@ -121,6 +121,23 @@ export function DownloadableCard({ resource, isDownloaded, onDownloaded }: Downl
     [resource, isAuthenticated, hasActivePremium],
   );
 
+  // Mientras useSubscription no resuelve, hasActivePremium es undefined y la
+  // card premium se pinta bloqueada. Es un instante, pero alcanza para que un
+  // premium le pegue al click y termine en /planes teniendo el plan. No lo
+  // dejamos accionar hasta saber la respuesta.
+  //
+  // Gateamos solo este caso y no el `loading` de useSubscription: ese loading se
+  // queda en true para siempre si la query falla (mete isError adentro a
+  // propósito), así que usarlo acá dejaría toda card muerta al primer error,
+  // incluidas las gratuitas. Por lo mismo soltamos el bloqueo si la query falló:
+  // mandar a /planes a alguien que quizás ya es premium es molesto, pero una
+  // card que no responde y no explica nada es el dead-end que vinimos a matar.
+  const isPremiumStatePending =
+    resource.access_level === 'premium' &&
+    isAuthenticated &&
+    hasActivePremium === undefined &&
+    !subscriptionFailed;
+
   const isLocked = accessState !== 'accessible';
   const priceBadge = getPriceBadge(resource);
   const isNew = useMemo(() => isRecent(resource.created_at), [resource.created_at]);
@@ -140,6 +157,8 @@ export function DownloadableCard({ resource, isDownloaded, onDownloaded }: Downl
   const toggleDescription = () => setIsDescriptionExpanded((prev) => !prev);
 
   const handleCardActivate = async () => {
+    if (isPremiumStatePending) return;
+
     if (isLocked) {
       if (accessState === 'requires_login') {
         navigate('/auth', { state: { from: location } });
@@ -213,7 +232,7 @@ export function DownloadableCard({ resource, isDownloaded, onDownloaded }: Downl
         <button
           type="button"
           onClick={() => void handleCardActivate()}
-          disabled={isPreviewLoading}
+          disabled={isPreviewLoading || isPremiumStatePending}
           aria-label={primaryAriaLabel}
           className="flex flex-col items-stretch text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
         >

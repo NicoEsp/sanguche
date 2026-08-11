@@ -80,7 +80,11 @@ export function useDownloadableResourceBySlug(slug: string) {
 
 export function useSkillGapsResources(assessmentResult: AssessmentResult | null) {
   const { isAuthenticated } = useAuth();
-  const { hasActivePremium, loading: subscriptionLoading } = useSubscription();
+  const {
+    hasActivePremium,
+    loading: subscriptionLoading,
+    isError: subscriptionFailed,
+  } = useSubscription();
 
   const { data: resources = [], isLoading: loading, error } = useQuery({
     queryKey: ['skill-gaps-resources'],
@@ -129,7 +133,15 @@ export function useSkillGapsResources(assessmentResult: AssessmentResult | null)
 
   // Esperamos también a la suscripción: sin esto un premium ve la lista sin sus
   // recursos premium por un instante y después aparecen.
-  return { resources: availableResources, loading: loading || subscriptionLoading, error };
+  //
+  // Pero no la esperamos si la query falló. useSubscription deja `loading` en
+  // true para siempre cuando isError (mete el error adentro del loading a
+  // propósito), y acá eso sería un skeleton eterno que además esconde los
+  // recursos públicos y de cuenta, que no dependen de la suscripción. Si falló,
+  // seguimos sin ella: se pierden las recomendaciones premium, no la lista.
+  const waitingForSubscription = subscriptionLoading && !subscriptionFailed;
+
+  return { resources: availableResources, loading: loading || waitingForSubscription, error };
 }
 
 const PUBLIC_BUCKETS = new Set(['resources']);
