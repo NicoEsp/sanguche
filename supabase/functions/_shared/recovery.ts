@@ -39,9 +39,14 @@ export async function generateRecoveryLink(
   });
 
   if (error) {
-    const code = (error as { code?: string; message?: string }).code ?? "";
-    const message = (error as { message?: string }).message ?? String(error);
-    const userNotFound = code === "user_not_found" ||
+    const authError = error as { code?: string; status?: number; message?: string };
+    const message = authError.message ?? String(error);
+    // auth-js keeps the HTTP status on the error, and a missing user is the
+    // only 404 this endpoint can produce. Checking it as well as the code
+    // matters for privacy: an address we fail to classify would answer 500
+    // while a registered one answers 200, which tells the caller who exists.
+    const userNotFound = authError.code === "user_not_found" ||
+      authError.status === 404 ||
       /user not found/i.test(message);
     return { link: null, userNotFound, error: message };
   }

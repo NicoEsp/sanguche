@@ -67,9 +67,12 @@ export default function Auth() {
     });
   };
 
-  // Redirigir usuarios autenticados (excepto si están actualizando contraseña)
+  // Redirigir usuarios autenticados. 'reset' queda exceptuado además de
+  // 'update-password': se llega ahí desde un enlace vencido, y si quedó una
+  // sesión vieja en el browser el redirect se los llevaba a la home en vez de
+  // dejarlos pedir el enlace nuevo.
   useEffect(() => {
-    if (isAuthenticated && mode !== 'update-password') {
+    if (isAuthenticated && mode !== 'update-password' && mode !== 'reset') {
       navigate('/', { replace: true });
     }
   }, [isAuthenticated, navigate, mode]);

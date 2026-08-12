@@ -49,17 +49,28 @@ function parseRecoveryFromUrl(): ParsedRecovery {
   const query = new URLSearchParams(window.location.search);
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
 
+  const type = query.get('type') ?? hash.get('type');
+
+  // Supabase's failed-link redirect carries no `type`, so the error branch has
+  // to recognise itself by the error code. It must stay narrow: a cancelled
+  // Google consent also redirects with `error=access_denied`, and reading that
+  // as a dead recovery link would tell the user their password link expired
+  // when they never asked for one.
   const errorCode = query.get('error_code') ?? hash.get('error_code');
-  const error = query.get('error') ?? hash.get('error');
-  if (errorCode || error) {
+  const errorDescription =
+    query.get('error_description') ?? hash.get('error_description') ?? '';
+  const isEmailLinkError =
+    errorCode === 'otp_expired' ||
+    errorCode === 'otp_disabled' ||
+    /email link|recovery/i.test(errorDescription);
+
+  if (isEmailLinkError) {
     return {
       ...empty,
       status: 'expired',
-      errorMessage: getRecoveryErrorMessage(errorCode ?? error),
+      errorMessage: getRecoveryErrorMessage(errorCode),
     };
   }
-
-  const type = query.get('type') ?? hash.get('type');
 
   const tokenHash = query.get('token_hash');
   if (tokenHash && type === 'recovery') {
@@ -70,8 +81,12 @@ function parseRecoveryFromUrl(): ParsedRecovery {
     return { ...empty, status: 'verifying' };
   }
 
+  // `code` on its own is also the OAuth callback parameter, so this needs the
+  // recovery marker too. Unused today (the client runs the implicit flow); it
+  // is here so a switch to PKCE doesn't silently drop recovery links, and the
+  // links we build ourselves always carry type=recovery.
   const code = query.get('code');
-  if (code) {
+  if (code && type === 'recovery') {
     return { ...empty, status: 'verifying', code };
   }
 
@@ -121,9 +136,13 @@ export function useRecoveryLink(session: unknown) {
     setStatus('ready');
   }, [parsed.tokenHash, markExpired]);
 
-  // `?code=` — PKCE exchange.
+  // `?code=` — PKCE exchange. The ref survives StrictMode's remount, which
+  // would otherwise spend the code on the first run and fail on the second.
+  const exchangeStarted = useRef(false);
+
   useEffect(() => {
-    if (!parsed.code) return;
+    if (!parsed.code || exchangeStarted.current) return;
+    exchangeStarted.current = true;
     let cancelled = false;
 
     supabase.auth.exchangeCodeForSession(parsed.code).then(({ error }) => {

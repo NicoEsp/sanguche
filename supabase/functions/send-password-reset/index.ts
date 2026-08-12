@@ -24,6 +24,9 @@ const corsHeaders = {
 // on separate rows.
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_MAX = 3;
+// Second dimension, so one client can't mail-bomb many different addresses.
+// Looser than the per-email cap because whole offices share an IP.
+const IP_RATE_LIMIT_MAX = 15;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -38,16 +41,34 @@ function json(body: unknown, status = 200) {
 // who has an account.
 const GENERIC_OK = { ok: true };
 
-async function isRateLimited(supabase: any, identifier: string): Promise<boolean> {
-  const { data: row } = await supabase
+// `identifier` carries a plain index, not a unique one, so two requests racing
+// on a first-ever reset can each insert a row. Every read therefore treats the
+// identifier as a set of rows rather than one: duplicates add up towards the
+// limit instead of defeating it, and the window reset collapses them back to a
+// single row. (A .maybeSingle() here would error on the duplicate and hand back
+// a null row, which reads as "no attempts yet" and would let the limit be
+// bypassed indefinitely.)
+async function isRateLimited(
+  supabase: any,
+  identifier: string,
+  max: number,
+): Promise<boolean> {
+  const { data: rows, error } = await supabase
     .from("checkout_rate_limit")
-    .select("request_count, first_request_at")
+    .select("id, request_count, first_request_at")
     .eq("identifier", identifier)
-    .maybeSingle();
+    .order("first_request_at", { ascending: true })
+    .limit(20);
+
+  // Can't tell how many attempts came before: refuse rather than send.
+  if (error) {
+    console.error(`[send-password-reset] Rate limit read failed for ${identifier}:`, error);
+    return true;
+  }
 
   const now = new Date();
 
-  if (!row) {
+  if (!rows || rows.length === 0) {
     await supabase.from("checkout_rate_limit").insert({
       identifier,
       request_count: 1,
@@ -57,7 +78,8 @@ async function isRateLimited(supabase: any, identifier: string): Promise<boolean
     return false;
   }
 
-  const elapsed = now.getTime() - new Date(row.first_request_at).getTime();
+  const oldest = rows[0];
+  const elapsed = now.getTime() - new Date(oldest.first_request_at).getTime();
 
   if (elapsed >= RATE_LIMIT_WINDOW_MS) {
     await supabase
@@ -67,21 +89,33 @@ async function isRateLimited(supabase: any, identifier: string): Promise<boolean
         first_request_at: now.toISOString(),
         last_request_at: now.toISOString(),
       })
-      .eq("identifier", identifier);
+      .eq("id", oldest.id);
+
+    if (rows.length > 1) {
+      await supabase
+        .from("checkout_rate_limit")
+        .delete()
+        .in("id", rows.slice(1).map((r: { id: string }) => r.id));
+    }
     return false;
   }
 
-  if (row.request_count >= RATE_LIMIT_MAX) {
+  const attempts = rows.reduce(
+    (total: number, r: { request_count: number | null }) => total + (r.request_count ?? 1),
+    0,
+  );
+
+  if (attempts >= max) {
     return true;
   }
 
   await supabase
     .from("checkout_rate_limit")
     .update({
-      request_count: row.request_count + 1,
+      request_count: oldest.request_count + 1,
       last_request_at: now.toISOString(),
     })
-    .eq("identifier", identifier);
+    .eq("id", oldest.id);
   return false;
 }
 
@@ -132,8 +166,16 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    if (await isRateLimited(supabase, `pwreset:${email}`)) {
+    // First hop in x-forwarded-for is the client as seen by the edge.
+    const clientIp = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
+
+    if (await isRateLimited(supabase, `pwreset:${email}`, RATE_LIMIT_MAX)) {
       console.warn(`[send-password-reset] Rate limited ${emailMasked}`);
+      return json({ error: "rate_limited" }, 429);
+    }
+
+    if (clientIp && await isRateLimited(supabase, `pwreset-ip:${clientIp}`, IP_RATE_LIMIT_MAX)) {
+      console.warn(`[send-password-reset] Rate limited IP ${clientIp}`);
       return json({ error: "rate_limited" }, 429);
     }
 
@@ -155,11 +197,20 @@ Deno.serve(async (req) => {
       return json({ error: "email_not_configured" }, 500);
     }
 
-    const { data: profile } = await supabase
+    // Only used for the greeting: a failed lookup degrades to "¡Hola ahí!"
+    // rather than holding back the email, but it shouldn't do so silently.
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("name")
       .eq("email", email)
       .maybeSingle();
+
+    if (profileError) {
+      console.error(
+        `[send-password-reset] Profile lookup failed for ${emailMasked}:`,
+        profileError,
+      );
+    }
 
     const result = await sendResendEmail({
       apiKey: resendApiKey,

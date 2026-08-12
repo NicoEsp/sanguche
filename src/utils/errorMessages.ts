@@ -123,7 +123,14 @@ export function getRecoveryErrorMessage(raw: string | null | undefined): string 
     return 'Por seguridad necesitamos verificar tu identidad de nuevo. Volvé a pedir el enlace y usalo apenas te llegue.';
   }
 
-  if (value.includes('rate') || value.includes('429')) {
+  // Matched as whole phrases: a bare 'rate' also hits "generateLink returned
+  // no token" and every other message containing "generate".
+  if (
+    value.includes('rate limit') ||
+    value.includes('rate_limit') ||
+    value.includes('too many') ||
+    value.includes('429')
+  ) {
     return 'Demasiados intentos seguidos. Esperá unos minutos antes de pedir otro enlace.';
   }
 
