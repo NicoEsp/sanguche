@@ -104,6 +104,11 @@ verify_jwt = false
 [functions.send-downloadable-emails]
 verify_jwt = false
 
+# Called from the login screen by anyone who forgot their password, so it can't
+# require a JWT. Abuse is bounded by the per-email rate limit inside.
+[functions.send-password-reset]
+verify_jwt = false
+
 [edge_runtime]
 policy = "per_worker"
 inspector_port = 8083

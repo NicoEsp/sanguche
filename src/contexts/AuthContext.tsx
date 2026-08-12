@@ -397,28 +397,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      // Redirect to /auth - Supabase will append recovery params automatically
-      const redirectUrl = `${window.location.origin}/auth`;
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
+      // Goes through our own function (Resend + a link on productprepa.com)
+      // instead of supabase.auth.resetPasswordForEmail(), whose mails leave
+      // from noreply@mail.app.supabase.io: rate-capped project-wide and
+      // regularly dropped or spam-foldered by Outlook/Hotmail.
+      const { error } = await supabase.functions.invoke('send-password-reset', {
+        body: { email: email.trim().toLowerCase() },
       });
 
       if (error) {
+        const isRateLimit = (error as { context?: { status?: number } })?.context?.status === 429;
         toast({
           title: "Error al enviar email",
-          description: getAuthErrorMessage(error.message),
+          description: isRateLimit
+            ? "Ya pediste varios enlaces seguidos. Esperá unos minutos e intentá de nuevo."
+            : "No pudimos enviar el email. Intentá de nuevo en unos minutos o escribinos a hola@productprepa.com.",
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Email enviado",
-          description: "Revisa tu correo para restablecer tu contraseña.",
-        });
+        return { error };
       }
 
-      return { error };
+      // Deliberately the same message whether or not the address has an
+      // account, so the form can't be used to check who is registered.
+      toast({
+        title: "Email enviado",
+        description: "Si el email está registrado, vas a recibir el enlace en unos minutos. Revisá también spam o correo no deseado.",
+      });
+
+      return { error: null };
     } catch (error: any) {
+      toast({
+        title: "Error al enviar email",
+        description: "No pudimos enviar el email. Intentá de nuevo en unos minutos.",
+        variant: "destructive",
+      });
       return { error };
     }
   };

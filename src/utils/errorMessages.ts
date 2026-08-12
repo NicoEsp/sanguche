@@ -94,7 +94,46 @@ export function getAuthErrorMessage(message: string): string {
     'flow_state_expired': 'El enlace ha expirado. Solicita uno nuevo.',
     'Invalid Refresh Token: Already Used': 'Este enlace ya fue usado. Cada enlace de recuperación solo puede usarse una vez.',
     'Invalid Refresh Token: Refresh Token Not Found': 'Enlace inválido o ya usado. Solicita uno nuevo.',
+    // Raised when "Secure password change" is on and the session isn't recent
+    'reauthentication_needed': 'Por seguridad necesitamos verificar tu identidad de nuevo. Volvé a pedir el enlace y usalo apenas te llegue.',
+    'Password update requires reauthentication.': 'Por seguridad necesitamos verificar tu identidad de nuevo. Volvé a pedir el enlace y usalo apenas te llegue.',
+    'New password should be different from the old password.': 'La nueva contraseña debe ser distinta a la anterior.',
   };
 
   return errorMessages[message] || GENERIC_ERROR;
+}
+
+const RECOVERY_LINK_DEAD =
+  'Este enlace ya fue usado o venció. Pedí uno nuevo y usalo dentro de la hora siguiente.';
+
+/**
+ * Message for a recovery link that didn't work. Unlike getAuthErrorMessage this
+ * matches on substrings — Supabase reports the same failure as an `error_code`
+ * (`otp_expired`), as a sentence ("Email link is invalid or has expired"), or
+ * as a `flow_state_not_found`, depending on which flow produced it — and it
+ * falls back to "ask for a new link" rather than to a generic error, because
+ * that is the useful next step in every one of these cases.
+ */
+export function getRecoveryErrorMessage(raw: string | null | undefined): string {
+  if (!raw) return RECOVERY_LINK_DEAD;
+
+  const value = raw.toLowerCase();
+
+  if (value.includes('reauthentication')) {
+    return 'Por seguridad necesitamos verificar tu identidad de nuevo. Volvé a pedir el enlace y usalo apenas te llegue.';
+  }
+
+  if (value.includes('rate') || value.includes('429')) {
+    return 'Demasiados intentos seguidos. Esperá unos minutos antes de pedir otro enlace.';
+  }
+
+  if (
+    value.includes('network') ||
+    value.includes('failed to fetch') ||
+    value.includes('connection')
+  ) {
+    return 'Problema de conexión. Verificá tu internet e intentá nuevamente.';
+  }
+
+  return RECOVERY_LINK_DEAD;
 }
