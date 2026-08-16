@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { findOrCreateUser } from './helpers.ts';
+import { findOrCreateUser, type Defer } from './helpers.ts';
 import { sendPaymentFailedEmail, sendSubscriptionCancelledEmail } from './subscription-emails.ts';
 import { maskEmail } from '../_shared/pii.ts';
 
@@ -9,6 +9,8 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-signature, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
 
 // Mapping from variant ID to plan configuration
 const VARIANT_TO_PLAN: Record<string, { plan: string; purchaseType: 'subscription' | 'one_time' }> = {
@@ -32,6 +34,28 @@ const CUSTOM_DATA_PLAN_FALLBACK: Record<string, { plan: string; purchaseType: 'o
   productprepa_business: { plan: 'productprepa_business', purchaseType: 'one_time' },
 };
 
+// Events this function acts on. Anything else is acknowledged with 200 and
+// dropped before we touch the database — see the early return in the handler.
+const HANDLED_EVENTS = new Set([
+  'order_created',
+  'subscription_created',
+  'subscription_updated',
+  'subscription_cancelled',
+  'subscription_expired',
+  'subscription_payment_success',
+  'subscription_payment_failed',
+]);
+
+// Known-noise events: LemonSqueezy fires these alongside every purchase and we
+// have nothing to do with them. Dropped without an audit-log row so they stop
+// burying real failures in the admin webhook log. Any *other* unhandled event
+// still gets logged, so a new event type (order_refunded, license_key_created…)
+// shows up instead of vanishing.
+const IGNORED_EVENTS = new Set([
+  'customer_created',
+  'customer_updated',
+]);
+
 interface LemonSqueezyWebhookEvent {
   meta: {
     event_name: string;
@@ -47,7 +71,7 @@ interface LemonSqueezyWebhookEvent {
     attributes: {
       status: string;
       customer_id: number;
-      order_id: number;
+      order_id?: number;
       variant_id?: number;
       first_order_item?: {
         variant_id?: number;
@@ -59,11 +83,14 @@ interface LemonSqueezyWebhookEvent {
       updated_at: string;
       user_email?: string;
       customer_email?: string;
+      // Customer objects carry the address as plain `email`.
+      email?: string;
       user_name?: string;
+      name?: string;
       total?: number; // Total amount in cents (includes discounts)
       subtotal?: number;
       discount_total?: number;
-      // subscription_payment_failed delivers a subscription-INVOICE object, so
+      // subscription_payment_* events deliver a subscription-INVOICE object, so
       // data.id is the invoice id and its `urls` only expose invoice_url. The
       // update-payment-method link lives on the Subscription object, which we
       // fetch from the LS API using this subscription_id (C1 dunning).
@@ -72,45 +99,77 @@ interface LemonSqueezyWebhookEvent {
   };
 }
 
-async function verifySignature(request: Request, secret: string): Promise<boolean> {
-  const signature = request.headers.get('x-signature');
+// ── Background work ─────────────────────────────────────────────────────────
+// Everything that isn't required for LemonSqueezy to consider the event
+// delivered (analytics, audit logs, transactional emails, LS API side calls)
+// runs after the response is flushed. This is what keeps p95 in the low
+// hundreds of ms instead of ~2s.
+function makeDefer(): Defer {
+  const runtime = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  const guard = (promise: Promise<unknown>) =>
+    promise.catch((error) => console.error('[Webhook] Deferred task failed:', error));
+
+  if (runtime && typeof runtime.waitUntil === 'function') {
+    return (promise) => runtime.waitUntil!(guard(promise));
+  }
+  // Local `supabase functions serve` has no EdgeRuntime: fire and forget.
+  return (promise) => { void guard(promise); };
+}
+
+// ── Signature verification ──────────────────────────────────────────────────
+
+// Importing the HMAC key costs a few ms; the secret never changes within an
+// instance, so import it once and reuse it across warm invocations.
+let cachedKey: { secret: string; key: CryptoKey } | null = null;
+
+async function hmacKey(secret: string): Promise<CryptoKey> {
+  if (cachedKey?.secret === secret) return cachedKey.key;
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  cachedKey = { secret, key };
+  return key;
+}
+
+// Constant-time hex comparison: a plain `===` leaks how many leading bytes of
+// a forged signature were correct.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function verifySignature(rawBody: string, signature: string | null, secret: string): Promise<boolean> {
   if (!signature) {
-    console.error('Missing x-signature header');
+    console.error('[Webhook] Missing x-signature header');
     return false;
   }
 
-  const body = await request.text();
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-
   const signatureBytes = await crypto.subtle.sign(
     'HMAC',
-    key,
-    encoder.encode(body)
+    await hmacKey(secret),
+    new TextEncoder().encode(rawBody),
   );
 
-  const expectedSignature = Array.from(new Uint8Array(signatureBytes))
+  const expected = Array.from(new Uint8Array(signatureBytes))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
 
-  const isValid = signature === expectedSignature;
-  if (!isValid) {
-    console.error('Signature verification failed');
-  }
-  return isValid;
+  return timingSafeEqual(signature.trim().toLowerCase(), expected);
 }
 
-// Helper to send server-side events to Mixpanel
+// ── Analytics ───────────────────────────────────────────────────────────────
+
 async function trackMixpanelServerEvent(
   eventName: string,
   distinctId: string,
-  properties: Record<string, any>
+  insertId: string,
+  properties: Record<string, unknown>,
 ) {
   const MIXPANEL_TOKEN = '35fe7a2706398ebc90ae3f1012d0a558';
   try {
@@ -120,7 +179,10 @@ async function trackMixpanelServerEvent(
         token: MIXPANEL_TOKEN,
         distinct_id: distinctId,
         time: Math.floor(Date.now() / 1000),
-        $insert_id: crypto.randomUUID(),
+        // Deterministic so a LemonSqueezy retry of the same order doesn't
+        // double-count the conversion (Mixpanel dedupes on $insert_id +
+        // event + distinct_id within 5 days).
+        $insert_id: insertId,
         ...properties,
       },
     }];
@@ -131,87 +193,150 @@ async function trackMixpanelServerEvent(
       body: JSON.stringify(eventData),
     });
 
-    const result = await response.text();
-    console.log(`[Mixpanel] Tracked "${eventName}" for ${distinctId}: ${result}`);
+    console.log(`[Mixpanel] Tracked "${eventName}" for ${distinctId}: ${await response.text()}`);
   } catch (error) {
     // Non-fatal: don't break webhook processing for analytics
     console.error(`[Mixpanel] Failed to track "${eventName}":`, error);
   }
 }
 
-// Helper function to log webhook event
-async function logWebhookEvent(
-  supabase: any,
-  eventName: string,
-  eventData: LemonSqueezyWebhookEvent,
-  userEmail: string | null,
-  userId: string | null,
-  subscriptionId: string | null,
-  customerId: string | null,
-  orderId: string | null,
-  status: 'success' | 'error',
-  errorMessage: string | null,
-  processingTimeMs: number
-) {
+// ── Audit log ───────────────────────────────────────────────────────────────
+
+interface WebhookLogRow {
+  eventName: string;
+  eventData: LemonSqueezyWebhookEvent | Record<string, never>;
+  userEmail: string | null;
+  userId: string | null;
+  subscriptionId: string | null;
+  customerId: string | null;
+  orderId: string | null;
+  status: 'success' | 'error';
+  errorMessage: string | null;
+  // Time until the 200 was returned, not including deferred work.
+  processingTimeMs: number;
+}
+
+async function logWebhookEvent(supabase: any, row: WebhookLogRow) {
   try {
     await supabase.from('payment_webhook_logs').insert({
-      event_name: eventName,
-      event_data: eventData,
-      user_email: userEmail,
-      user_id: userId,
-      lemon_squeezy_subscription_id: subscriptionId,
-      lemon_squeezy_customer_id: customerId,
-      lemon_squeezy_order_id: orderId,
-      status,
-      error_message: errorMessage,
-      processing_time_ms: processingTimeMs,
+      event_name: row.eventName,
+      event_data: row.eventData,
+      user_email: row.userEmail,
+      user_id: row.userId,
+      lemon_squeezy_subscription_id: row.subscriptionId,
+      lemon_squeezy_customer_id: row.customerId,
+      lemon_squeezy_order_id: row.orderId,
+      status: row.status,
+      error_message: row.errorMessage,
+      processing_time_ms: row.processingTimeMs,
     });
   } catch (error) {
-    console.error('Failed to log webhook event:', error);
+    console.error('[Webhook] Failed to log webhook event:', error);
   }
 }
 
-// Helper to extract variant ID from event
+// ── Event shape helpers ─────────────────────────────────────────────────────
+
+interface EventIds {
+  subscriptionId: string | null;
+  orderId: string | null;
+  customerId: string | null;
+}
+
+/**
+ * `data.id` means a different thing per event type, and getting it wrong is
+ * silent: the `.eq('lemon_squeezy_subscription_id', …)` updates just match
+ * zero rows.
+ *   order_created            → data is an Order, data.id IS the order id
+ *   subscription_payment_*   → data is a Subscription Invoice, data.id is the
+ *                              invoice id; the subscription is in attributes
+ *   subscription_*           → data is a Subscription, data.id is its id
+ */
+function extractIds(eventName: string, event: LemonSqueezyWebhookEvent): EventIds {
+  const attrs = event.data.attributes;
+  const dataId = event.data.id?.toString() ?? null;
+  const customerId = attrs.customer_id?.toString() ?? null;
+
+  if (eventName === 'order_created') {
+    return { subscriptionId: null, orderId: dataId, customerId };
+  }
+
+  if (eventName.startsWith('subscription_payment_')) {
+    return {
+      subscriptionId: attrs.subscription_id?.toString() ?? null,
+      orderId: attrs.order_id?.toString() ?? null,
+      customerId,
+    };
+  }
+
+  return {
+    subscriptionId: dataId,
+    orderId: attrs.order_id?.toString() ?? null,
+    customerId,
+  };
+}
+
 function extractVariantId(event: LemonSqueezyWebhookEvent): string | null {
-  // Try multiple locations where variant_id might be
-  const variantId = 
+  return (
     event.data.attributes.variant_id?.toString() ||
     event.data.attributes.first_order_item?.variant_id?.toString() ||
-    null;
-  
-  console.log('[Webhook] Extracted variant_id:', variantId);
-  return variantId;
+    null
+  );
 }
 
-// Helper to log structured event summary
-function logEventSummary(
-  phase: 'START' | 'END',
+// ── Subscription row updates ────────────────────────────────────────────────
+
+/**
+ * Applies `patch` to the row carrying `subscriptionId`.
+ *
+ * Returns a warning string instead of throwing when nothing matched: a retry
+ * won't conjure the row, so we ack the event (200) and surface the miss in
+ * payment_webhook_logs rather than letting LemonSqueezy hammer the endpoint.
+ */
+async function updateSubscriptionByLsId(
+  supabase: any,
   eventName: string,
-  data: {
-    email?: string | null;
-    variantId?: string | null;
-    plan?: string | null;
-    purchaseType?: string | null;
-    result?: 'success' | 'error';
-    errorMessage?: string | null;
-    processingTimeMs?: number;
+  subscriptionId: string | null,
+  userId: string | null,
+  patch: Record<string, unknown>,
+): Promise<string | null> {
+  if (!subscriptionId) {
+    return `${eventName}: event carried no subscription id`;
   }
-) {
-  const timestamp = new Date().toISOString();
-  if (phase === 'START') {
-    console.log(`[Webhook][${timestamp}] ========== START: ${eventName} ==========`);
-    console.log(`[Webhook] Email: ${maskEmail(data.email)}`);
-    console.log(`[Webhook] Variant ID: ${data.variantId || 'N/A'}`);
-    console.log(`[Webhook] Plan: ${data.plan || 'N/A'}`);
-    console.log(`[Webhook] Purchase Type: ${data.purchaseType || 'N/A'}`);
-  } else {
-    console.log(`[Webhook][${timestamp}] Result: ${data.result?.toUpperCase()}`);
-    if (data.errorMessage) {
-      console.log(`[Webhook] Error: ${data.errorMessage}`);
-    }
-    console.log(`[Webhook] Processing time: ${data.processingTimeMs}ms`);
-    console.log(`[Webhook] ========== END: ${eventName} ==========`);
+
+  const { data: updated, error } = await supabase
+    .from('user_subscriptions')
+    .update(patch)
+    .eq('lemon_squeezy_subscription_id', subscriptionId)
+    .select('id');
+
+  if (error) throw new Error(`Failed to update ${eventName}: ${error.message}`);
+  if (updated?.length) return null;
+
+  // Nothing carries this LS subscription id. The usual cause: order_created
+  // created the row (an Order payload has no subscription id to store) and
+  // subscription_created never landed. Adopt that orphan row — otherwise a
+  // cancellation never reaches the user and they keep paid access forever.
+  if (!userId) {
+    return `${eventName}: no row for subscription ${subscriptionId} and no user to adopt it`;
   }
+
+  const { data: adopted, error: adoptError } = await supabase
+    .from('user_subscriptions')
+    .update({ ...patch, lemon_squeezy_subscription_id: subscriptionId })
+    .eq('user_id', userId)
+    .eq('purchase_type', 'subscription')
+    .is('lemon_squeezy_subscription_id', null)
+    .select('id');
+
+  if (adoptError) throw new Error(`Failed to adopt subscription on ${eventName}: ${adoptError.message}`);
+
+  if (!adopted?.length) {
+    return `${eventName}: no user_subscriptions row matched subscription ${subscriptionId}`;
+  }
+
+  console.log(`[Webhook] ${eventName}: adopted orphan row for user ${userId} → subscription ${subscriptionId}`);
+  return null;
 }
 
 // Resolve the recipient's email + name for lifecycle emails. Prefers the
@@ -240,9 +365,110 @@ async function loadRecipient(
   return { email, name: name ?? null };
 }
 
+// Cancels the subscription the user is upgrading away from. Deferred: it's a
+// ~300ms LemonSqueezy API round trip and the new plan is already active.
+async function cancelPreviousSubscription(previousId: string, plan: string | null) {
+  const lsApiKey = Deno.env.get('LEMON_SQUEEZY_API_KEY');
+  if (!lsApiKey) {
+    console.warn('[Webhook] LEMON_SQUEEZY_API_KEY missing; cannot cancel previous subscription');
+    return;
+  }
+
+  const res = await fetch(`https://api.lemonsqueezy.com/v1/subscriptions/${previousId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${lsApiKey}`,
+      'Accept': 'application/vnd.api+json',
+    },
+  });
+
+  if (res.ok) {
+    console.log(`[Webhook] Cancelled previous subscription ${previousId} (plan: ${plan})`);
+  } else {
+    console.error(`[Webhook] Failed to cancel previous subscription ${previousId}:`, await res.text());
+  }
+}
+
+// Dunning email needs the update-payment-method URL, which lives on the
+// Subscription object rather than on the invoice the event delivered.
+async function sendDunningEmail(
+  supabase: any,
+  userId: string | null,
+  subscriptionId: string | null,
+  fallbackEmail: string | null,
+  fallbackName: string | null,
+) {
+  let updateUrl: string | null = null;
+  const lsApiKey = Deno.env.get('LEMON_SQUEEZY_API_KEY');
+
+  if (lsApiKey && subscriptionId) {
+    try {
+      const res = await fetch(`https://api.lemonsqueezy.com/v1/subscriptions/${subscriptionId}`, {
+        headers: { 'Authorization': `Bearer ${lsApiKey}`, 'Accept': 'application/vnd.api+json' },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        updateUrl = json?.data?.attributes?.urls?.update_payment_method || null;
+      } else {
+        console.warn(`[Webhook] Could not fetch subscription ${subscriptionId} for update URL: ${res.status}`);
+      }
+    } catch (error) {
+      console.warn('[Webhook] Error fetching update_payment_method URL:', error);
+    }
+  }
+
+  const recipient = await loadRecipient(supabase, userId, fallbackEmail, fallbackName);
+  if (!recipient) {
+    console.warn('[Webhook] subscription_payment_failed: no recipient email resolved');
+    return;
+  }
+
+  await sendPaymentFailedEmail({
+    email: recipient.email,
+    name: recipient.name,
+    updatePaymentUrl: updateUrl,
+  });
+}
+
+// C2 · Confirmation / soft win-back. Skipped when this is really an
+// upgrade/downgrade swap: subscription_created auto-cancels the previous LS
+// subscription, which fires subscription_cancelled even though the user still
+// has an active plan. Only email genuine churn.
+async function sendCancellationEmail(
+  supabase: any,
+  userId: string | null,
+  fallbackEmail: string | null,
+  fallbackName: string | null,
+  endsAt: string | null,
+) {
+  const { data: activeSub } = await supabase
+    .from('user_subscriptions')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .maybeSingle();
+
+  if (activeSub) {
+    console.log('[Webhook] subscription_cancelled: user still active — skipping goodbye email (upgrade swap)');
+    return;
+  }
+
+  const recipient = await loadRecipient(supabase, userId, fallbackEmail, fallbackName);
+  if (!recipient) return;
+
+  await sendSubscriptionCancelledEmail({
+    email: recipient.email,
+    name: recipient.name,
+    endsAt,
+  });
+}
+
+// ── Handler ─────────────────────────────────────────────────────────────────
+
 serve(async (req) => {
   const startTime = Date.now();
-  
+  const defer = makeDefer();
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -251,214 +477,169 @@ serve(async (req) => {
   let eventName = 'unknown';
   let userEmail: string | null = null;
   let userId: string | null = null;
-  let subscriptionId: string | null = null;
-  let customerId: string | null = null;
-  let orderId: string | null = null;
+  let ids: EventIds = { subscriptionId: null, orderId: null, customerId: null };
   let variantId: string | null = null;
-  let planConfig: { plan: string; purchaseType: 'subscription' | 'one_time' } | null = null;
 
   try {
     const webhookSecret = Deno.env.get('LEMON_SQUEEZY_WEBHOOK_SECRET');
     if (!webhookSecret) {
       console.error('[Webhook] LEMON_SQUEEZY_WEBHOOK_SECRET not configured');
-      return new Response(
-        JSON.stringify({ error: 'Webhook secret not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), { status: 500, headers: jsonHeaders });
     }
 
-    // Clone request to verify signature and parse body
-    const clonedRequest = req.clone();
-    const isValid = await verifySignature(clonedRequest, webhookSecret);
-    
-    if (!isValid) {
+    // Read the body exactly once — the old code cloned the request and parsed
+    // the payload twice (once as text for the HMAC, once as JSON).
+    const rawBody = await req.text();
+    if (!await verifySignature(rawBody, req.headers.get('x-signature'), webhookSecret)) {
       console.error('[Webhook] Invalid webhook signature');
-      return new Response(
-        JSON.stringify({ error: 'Invalid signature' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: 'Invalid signature' }), { status: 401, headers: jsonHeaders });
     }
 
-    event = await req.json();
+    event = JSON.parse(rawBody) as LemonSqueezyWebhookEvent;
+    eventName = event.meta?.event_name ?? 'unknown';
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Ack-and-drop events we don't act on, before any user resolution.
+    // LemonSqueezy delivers customer_created/customer_updated for every
+    // purchase; those payloads carry the address as `email`, so the old code
+    // answered 400 ("No user email provided") and LS retried each one three
+    // times — 63 bogus error rows in payment_webhook_logs.
+    if (IGNORED_EVENTS.has(eventName)) {
+      console.log(`[Webhook] Ignoring known-noise event: ${eventName}`);
+      return new Response(JSON.stringify({ received: true, ignored: true }), { status: 200, headers: jsonHeaders });
+    }
 
-    eventName = event!.meta.event_name;
-    subscriptionId = event!.data.id;
-    customerId = event!.data.attributes.customer_id?.toString();
-    orderId = event!.data.attributes.order_id?.toString();
-    const status = event!.data.attributes.status;
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
 
-    // Extract variant ID to determine plan
-    variantId = extractVariantId(event!);
-    planConfig = variantId ? VARIANT_TO_PLAN[variantId] : null;
+    if (!HANDLED_EVENTS.has(eventName)) {
+      console.log(`[Webhook] Unhandled event type: ${eventName}`);
+      defer(logWebhookEvent(supabase, {
+        eventName,
+        eventData: event,
+        userEmail: null,
+        userId: null,
+        ...extractIds(eventName, event),
+        status: 'success',
+        errorMessage: 'Unhandled event type — acknowledged, no action taken',
+        processingTimeMs: Date.now() - startTime,
+      }));
+      return new Response(JSON.stringify({ received: true, ignored: true }), { status: 200, headers: jsonHeaders });
+    }
 
-    // Fallback for products whose variant is not in VARIANT_TO_PLAN:
-    // trust meta.custom_data.plan only if it's in the safe whitelist
-    // (one-time plans only, never subscriptions).
+    const attrs = event.data.attributes;
+    const status = attrs.status;
+    ids = extractIds(eventName, event);
+    variantId = extractVariantId(event);
+
+    let planConfig: { plan: string; purchaseType: 'subscription' | 'one_time' } | null =
+      variantId ? VARIANT_TO_PLAN[variantId] ?? null : null;
+
+    // Fallback for products whose variant is not in VARIANT_TO_PLAN: trust
+    // meta.custom_data.plan only if it's in the safe whitelist (one-time plans
+    // only, never subscriptions).
     if (!planConfig) {
-      const customPlan = event!.meta?.custom_data?.plan;
+      const customPlan = event.meta?.custom_data?.plan;
       if (customPlan && CUSTOM_DATA_PLAN_FALLBACK[customPlan]) {
         planConfig = CUSTOM_DATA_PLAN_FALLBACK[customPlan];
         console.log(`[Webhook] Resolved plan via custom_data fallback: ${planConfig.plan} (variant ${variantId} not in VARIANT_TO_PLAN)`);
       }
     }
 
-    // Get user email from webhook event
-    userEmail = event!.data.attributes.user_email || event!.data.attributes.customer_email || null;
+    userEmail = attrs.user_email || attrs.customer_email || attrs.email || null;
+    const userName = attrs.user_name || attrs.name || null;
 
-    // Log structured event summary at start
-    logEventSummary('START', eventName, {
-      email: userEmail,
-      variantId,
-      plan: planConfig?.plan,
-      purchaseType: planConfig?.purchaseType,
-    });
+    console.log(
+      `[Webhook] START ${eventName} · email=${maskEmail(userEmail)} · variant=${variantId ?? 'N/A'} · ` +
+      `plan=${planConfig?.plan ?? 'N/A'} · sub=${ids.subscriptionId ?? 'N/A'} · order=${ids.orderId ?? 'N/A'}`,
+    );
 
     if (!userEmail) {
       console.error('[Webhook] No user email in webhook event');
-      
-      logEventSummary('END', eventName, {
-        result: 'error',
-        errorMessage: 'No user email provided',
-        processingTimeMs: Date.now() - startTime,
-      });
-      
-      // Log the failed event
-      await logWebhookEvent(
-        supabase, eventName, event!, null, null, subscriptionId, customerId, orderId,
-        'error', 'No user email provided', Date.now() - startTime
-      );
-      
-      return new Response(
-        JSON.stringify({ error: 'No user email provided' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      defer(logWebhookEvent(supabase, {
+        eventName, eventData: event, userEmail: null, userId: null, ...ids,
+        status: 'error', errorMessage: 'No user email provided', processingTimeMs: Date.now() - startTime,
+      }));
+      return new Response(JSON.stringify({ error: 'No user email provided' }), { status: 400, headers: jsonHeaders });
     }
 
-    // Find or create user profile by email
-    console.log(`[Webhook] Finding or creating user for email: ${maskEmail(userEmail)}`);
-    
     try {
-      const userName = event!.data.attributes.user_name || null;
-      const result = await findOrCreateUser(userEmail, userName, supabase);
+      const result = await findOrCreateUser(userEmail, userName, supabase, defer);
       userId = result.profileId;
-      console.log(`[Webhook] User profile ready: ${userId} (wasJustCreated: ${result.wasJustCreated})`);
     } catch (error) {
       console.error('[Webhook] Failed to find or create user:', error);
-      
-      logEventSummary('END', eventName, {
-        result: 'error',
-        errorMessage: `Failed to process user account: ${error}`,
+      defer(logWebhookEvent(supabase, {
+        eventName, eventData: event, userEmail, userId: null, ...ids,
+        status: 'error', errorMessage: `Failed to process user account: ${error}`,
         processingTimeMs: Date.now() - startTime,
-      });
-      
-      // Log the failed event
-      await logWebhookEvent(
-        supabase, eventName, event!, userEmail, null, subscriptionId, customerId, orderId,
-        'error', `Failed to process user account: ${error}`, Date.now() - startTime
-      );
-      
-      return new Response(
-        JSON.stringify({ error: 'Failed to process user account' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      }));
+      return new Response(JSON.stringify({ error: 'Failed to process user account' }), { status: 500, headers: jsonHeaders });
     }
 
-    // Handle different event types
+    // Non-fatal problems worth seeing in the admin webhook log without making
+    // LemonSqueezy retry the delivery.
+    const warnings: string[] = [];
+
     switch (eventName) {
-      case 'order_created':
-        console.log(`[Webhook] Processing order_created - Plan: ${planConfig?.plan || 'unknown'}, Type: ${planConfig?.purchaseType || 'unknown'}`);
-        
-        // Extract the actual paid amount (with discounts applied)
-        const orderTotal = event!.data.attributes.total;
-        console.log(`[Webhook] Order total (with discounts): ${orderTotal} centavos`);
-        
-        // For one-time purchases, activate the plan immediately
-        if (planConfig?.purchaseType === 'one_time') {
-          console.log('[Webhook] One-time purchase detected, activating plan:', planConfig.plan);
-          
-          const { error: oneTimeError } = await supabase
+      case 'order_created': {
+        const orderTotal = attrs.total ?? null;
+        console.log(`[Webhook] order_created · plan=${planConfig?.plan ?? 'unknown'} · type=${planConfig?.purchaseType ?? 'unknown'} · total=${orderTotal} centavos`);
+
+        if (planConfig) {
+          const isOneTime = planConfig.purchaseType === 'one_time';
+          const { error: upsertError } = await supabase
             .from('user_subscriptions')
             .upsert({
               user_id: userId,
               plan: planConfig.plan,
               status: 'active',
-              purchase_type: 'one_time',
+              purchase_type: planConfig.purchaseType,
               lemon_squeezy_variant_id: variantId,
-              lemon_squeezy_order_id: orderId,
-              lemon_squeezy_customer_id: customerId,
-              paid_amount: orderTotal || null, // Store actual paid amount
-              // No current_period_end for one-time purchases (permanent access)
-              current_period_end: null,
+              lemon_squeezy_order_id: ids.orderId,
+              lemon_squeezy_customer_id: ids.customerId,
+              paid_amount: orderTotal,
+              // One-time purchases grant permanent access. For subscriptions we
+              // set the plan proactively so the buyer isn't locked out if
+              // subscription_created is delayed; renews_at arrives with it.
+              ...(isOneTime ? { current_period_end: null } : {}),
               updated_at: new Date().toISOString(),
-            }, {
-              onConflict: 'user_id',
-              ignoreDuplicates: false
-            });
-          if (oneTimeError) {
-            throw new Error(`Failed to upsert one-time purchase: ${oneTimeError.message}`);
-          }
+            }, { onConflict: 'user_id', ignoreDuplicates: false });
 
-          console.log('[Webhook] One-time purchase activated successfully');
-        } else if (planConfig?.purchaseType === 'subscription') {
-          // For subscriptions, record the order with paid_amount and set plan proactively
-          // This ensures the user has access even if subscription_created webhook is delayed
-          const subPlan = planConfig.plan;
-          console.log('[Webhook] Subscription order - setting plan proactively:', subPlan);
-
-          const { error: subOrderError } = await supabase
-            .from('user_subscriptions')
-            .upsert({
-              user_id: userId,
-              plan: subPlan,
-              status: 'active',
-              purchase_type: 'subscription',
-              lemon_squeezy_order_id: orderId,
-              lemon_squeezy_customer_id: customerId,
-              lemon_squeezy_variant_id: variantId,
-              paid_amount: orderTotal || null,
-              updated_at: new Date().toISOString(),
-            }, {
-              onConflict: 'user_id',
-              ignoreDuplicates: false
-            });
-          if (subOrderError) {
-            throw new Error(`Failed to upsert subscription order: ${subOrderError.message}`);
+          if (upsertError) {
+            throw new Error(`Failed to upsert ${planConfig.purchaseType} order: ${upsertError.message}`);
           }
         } else {
           // Unknown variant and no safe custom_data fallback: do NOT grant any
           // plan. Record the event for debugging but skip the upsert to avoid
           // accidentally elevating the buyer to Premium.
-          console.error(
-            `[Webhook] order_created with unmapped variant ${variantId} and no custom_data plan match — skipping subscription upsert.`
-          );
+          warnings.push(`order_created with unmapped variant ${variantId} and no custom_data plan match — no plan granted`);
+          console.error(`[Webhook] ${warnings[warnings.length - 1]}`);
         }
 
-        // Server-side checkout completed tracking (captures 100% of conversions)
-        await trackMixpanelServerEvent('checkout_completed_server', userId!, {
-          plan: planConfig?.plan || 'unknown',
-          purchase_type: planConfig?.purchaseType || 'unknown',
-          variant_id: variantId,
-          paid_amount_cents: orderTotal || 0,
-          email: userEmail,
-          order_id: orderId,
-          source: 'webhook',
-        });
+        // Server-side checkout tracking (captures 100% of conversions).
+        defer(trackMixpanelServerEvent(
+          'checkout_completed_server',
+          userId!,
+          `order_created:${ids.orderId ?? event.data.id}`,
+          {
+            plan: planConfig?.plan || 'unknown',
+            purchase_type: planConfig?.purchaseType || 'unknown',
+            variant_id: variantId,
+            paid_amount_cents: orderTotal ?? 0,
+            email: userEmail,
+            order_id: ids.orderId,
+            source: 'webhook',
+          },
+        ));
         break;
+      }
 
-      case 'subscription_created':
-        console.log(`[Webhook] Processing subscription_created - Plan: ${planConfig?.plan || 'premium'}`);
-        const renews_at = event!.data.attributes.renews_at;
-        const trial_ends_at = event!.data.attributes.trial_ends_at;
-        
-        // Determine plan from variant or default to premium
+      case 'subscription_created': {
         const subscriptionPlan = planConfig?.plan || 'premium';
-        console.log('[Webhook] Subscription plan:', subscriptionPlan);
+        console.log(`[Webhook] subscription_created · plan=${subscriptionPlan}`);
 
-        // Auto-cancel previous subscription if upgrading
+        // Auto-cancel the subscription being upgraded away from.
         const { data: currentSub } = await supabase
           .from('user_subscriptions')
           .select('lemon_squeezy_subscription_id, plan')
@@ -467,33 +648,9 @@ serve(async (req) => {
           .not('lemon_squeezy_subscription_id', 'is', null)
           .maybeSingle();
 
-        if (currentSub?.lemon_squeezy_subscription_id 
-            && currentSub.lemon_squeezy_subscription_id !== subscriptionId) {
-          console.log(`[Webhook] Auto-cancelling previous subscription: ${currentSub.lemon_squeezy_subscription_id} (plan: ${currentSub.plan})`);
-          
-          const lsApiKey = Deno.env.get('LEMON_SQUEEZY_API_KEY');
-          if (lsApiKey) {
-            try {
-              const cancelResponse = await fetch(
-                `https://api.lemonsqueezy.com/v1/subscriptions/${currentSub.lemon_squeezy_subscription_id}`,
-                {
-                  method: 'DELETE',
-                  headers: {
-                    'Authorization': `Bearer ${lsApiKey}`,
-                    'Accept': 'application/vnd.api+json',
-                  },
-                }
-              );
-              
-              if (cancelResponse.ok) {
-                console.log('[Webhook] Previous subscription cancelled successfully');
-              } else {
-                console.error('[Webhook] Failed to cancel previous subscription:', await cancelResponse.text());
-              }
-            } catch (cancelError) {
-              console.error('[Webhook] Error cancelling previous subscription:', cancelError);
-            }
-          }
+        if (currentSub?.lemon_squeezy_subscription_id
+            && currentSub.lemon_squeezy_subscription_id !== ids.subscriptionId) {
+          defer(cancelPreviousSubscription(currentSub.lemon_squeezy_subscription_id, currentSub.plan));
         }
 
         const { error: subCreatedError } = await supabase
@@ -503,128 +660,83 @@ serve(async (req) => {
             plan: subscriptionPlan,
             status: 'active',
             purchase_type: 'subscription',
-            lemon_squeezy_subscription_id: subscriptionId,
-            lemon_squeezy_customer_id: customerId,
+            lemon_squeezy_subscription_id: ids.subscriptionId,
+            lemon_squeezy_customer_id: ids.customerId,
             lemon_squeezy_variant_id: variantId,
-            current_period_end: renews_at
-              ? new Date(renews_at).toISOString()
-              : null,
-            trial_end: trial_ends_at
-              ? new Date(trial_ends_at).toISOString()
-              : null,
+            // order_created may not have landed yet; keep the id when it did.
+            ...(ids.orderId ? { lemon_squeezy_order_id: ids.orderId } : {}),
+            current_period_end: attrs.renews_at ? new Date(attrs.renews_at).toISOString() : null,
+            trial_end: attrs.trial_ends_at ? new Date(attrs.trial_ends_at).toISOString() : null,
             updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'user_id',
-            ignoreDuplicates: false
-          });
+          }, { onConflict: 'user_id', ignoreDuplicates: false });
+
         if (subCreatedError) {
           throw new Error(`Failed to upsert subscription_created: ${subCreatedError.message}`);
         }
         break;
+      }
 
-      case 'subscription_updated':
-        console.log(`[Webhook] Processing subscription_updated - Status: ${status}`);
-        
-        // Map Lemon Squeezy statuses to our DB statuses
+      case 'subscription_updated': {
         // LS statuses: active, paused, past_due, unpaid, cancelled, expired
-        const mappedStatus = (() => {
-          switch (status) {
-            case 'active':
-              return 'active' as const;
-            case 'cancelled':
-            case 'expired':
-              return 'cancelled' as const;
-            case 'paused':
-            case 'past_due':
-            case 'unpaid':
-            default:
-              return 'inactive' as const;
-          }
-        })();
-        
-        console.log(`[Webhook] Mapped LS status "${status}" -> DB status "${mappedStatus}"`);
-        
-        const { error: subUpdatedError } = await supabase
-          .from('user_subscriptions')
-          .update({
-            status: mappedStatus,
-            current_period_end: event!.data.attributes.renews_at
-              ? new Date(event!.data.attributes.renews_at).toISOString()
-              : null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('lemon_squeezy_subscription_id', subscriptionId);
-        if (subUpdatedError) {
-          throw new Error(`Failed to update subscription_updated: ${subUpdatedError.message}`);
-        }
+        const mappedStatus =
+          status === 'active' ? 'active' as const
+          : (status === 'cancelled' || status === 'expired') ? 'cancelled' as const
+          : 'inactive' as const;
+
+        console.log(`[Webhook] subscription_updated · LS "${status}" → DB "${mappedStatus}"`);
+
+        const warning = await updateSubscriptionByLsId(supabase, eventName, ids.subscriptionId, userId, {
+          status: mappedStatus,
+          current_period_end: attrs.renews_at ? new Date(attrs.renews_at).toISOString() : null,
+          updated_at: new Date().toISOString(),
+        });
+        if (warning) warnings.push(warning);
         break;
+      }
 
       case 'subscription_cancelled':
       case 'subscription_expired': {
-        console.log(`[Webhook] Processing ${eventName} - Subscription ID: ${subscriptionId}`);
-        const { error: subCancelledError } = await supabase
-          .from('user_subscriptions')
-          .update({
-            status: 'cancelled',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('lemon_squeezy_subscription_id', subscriptionId);
-        if (subCancelledError) {
-          throw new Error(`Failed to update ${eventName}: ${subCancelledError.message}`);
+        const warning = await updateSubscriptionByLsId(supabase, eventName, ids.subscriptionId, userId, {
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+        });
+
+        if (warning) {
+          // Expected miss: on an upgrade, subscription_created already replaced
+          // the stored id with the new subscription and then auto-cancelled the
+          // old one, so this event names a subscription we no longer track.
+          const { data: liveSub } = await supabase
+            .from('user_subscriptions')
+            .select('lemon_squeezy_subscription_id')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .maybeSingle();
+
+          if (liveSub?.lemon_squeezy_subscription_id
+              && liveSub.lemon_squeezy_subscription_id !== ids.subscriptionId) {
+            console.log(`[Webhook] ${eventName}: subscription ${ids.subscriptionId} already superseded by ${liveSub.lemon_squeezy_subscription_id} (upgrade swap)`);
+          } else {
+            warnings.push(warning);
+          }
         }
 
-        // C2 · Confirmation / soft win-back. Email only on subscription_cancelled
-        // (one event → one goodbye; subscription_expired would double it). Skip
-        // when this is really an upgrade/downgrade swap: subscription_created
-        // auto-cancels the previous LS subscription, which fires this event even
-        // though the user still has an active plan. Only email genuine churn.
+        // Email only on subscription_cancelled — one event, one goodbye;
+        // subscription_expired would double it.
         if (eventName === 'subscription_cancelled') {
-          try {
-            const { data: activeSub } = await supabase
-              .from('user_subscriptions')
-              .select('id')
-              .eq('user_id', userId)
-              .eq('status', 'active')
-              .maybeSingle();
-
-            if (activeSub) {
-              console.log(`[Webhook] ${eventName}: user still active — skipping goodbye email (upgrade swap)`);
-            } else {
-              const recipient = await loadRecipient(
-                supabase, userId, userEmail, event!.data.attributes.user_name || null,
-              );
-              if (recipient) {
-                await sendSubscriptionCancelledEmail({
-                  email: recipient.email,
-                  name: recipient.name,
-                  endsAt: event!.data.attributes.ends_at || null,
-                });
-              }
-            }
-          } catch (mailError) {
-            // Non-fatal: never fail the webhook over an email.
-            console.error('[Webhook] Error sending cancellation email (non-fatal):', mailError);
-          }
+          defer(sendCancellationEmail(supabase, userId, userEmail, userName, attrs.ends_at || null));
         }
         break;
       }
 
-      case 'subscription_payment_success':
-        console.log(`[Webhook] Processing subscription_payment_success - Subscription ID: ${subscriptionId}`);
-        const { error: paymentSuccessError } = await supabase
-          .from('user_subscriptions')
-          .update({
-            status: 'active',
-            current_period_end: event!.data.attributes.renews_at
-              ? new Date(event!.data.attributes.renews_at).toISOString()
-              : null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('lemon_squeezy_subscription_id', subscriptionId);
-        if (paymentSuccessError) {
-          throw new Error(`Failed to update subscription_payment_success: ${paymentSuccessError.message}`);
-        }
+      case 'subscription_payment_success': {
+        const warning = await updateSubscriptionByLsId(supabase, eventName, ids.subscriptionId, userId, {
+          status: 'active',
+          current_period_end: attrs.renews_at ? new Date(attrs.renews_at).toISOString() : null,
+          updated_at: new Date().toISOString(),
+        });
+        if (warning) warnings.push(warning);
         break;
+      }
 
       case 'subscription_payment_failed': {
         // C1 · Dunning. We deliberately do NOT change the plan/status here —
@@ -632,100 +744,45 @@ serve(async (req) => {
         // period, and any real downgrade arrives later via subscription_updated
         // (past_due/unpaid → inactive). Our only job is to warn the user so
         // they can fix their card before access is cut.
-        console.log(`[Webhook] Processing subscription_payment_failed`);
-        try {
-          // Invoice events don't carry the subscription's action URLs, so fetch
-          // the real update-payment-method link from the LS API via the
-          // invoice's subscription_id. Falls back to /perfil (inside
-          // sendPaymentFailedEmail) when unavailable.
-          const failedSubId =
-            event!.data.attributes.subscription_id?.toString() || subscriptionId;
-          let updateUrl: string | null = null;
-          const lsApiKey = Deno.env.get('LEMON_SQUEEZY_API_KEY');
-          if (lsApiKey && failedSubId) {
-            try {
-              const subRes = await fetch(
-                `https://api.lemonsqueezy.com/v1/subscriptions/${failedSubId}`,
-                { headers: { 'Authorization': `Bearer ${lsApiKey}`, 'Accept': 'application/vnd.api+json' } },
-              );
-              if (subRes.ok) {
-                const subJson = await subRes.json();
-                updateUrl = subJson?.data?.attributes?.urls?.update_payment_method || null;
-              } else {
-                console.warn(`[Webhook] Could not fetch subscription ${failedSubId} for update URL: ${subRes.status}`);
-              }
-            } catch (urlErr) {
-              console.warn('[Webhook] Error fetching update_payment_method URL:', urlErr);
-            }
-          }
-
-          const recipient = await loadRecipient(
-            supabase, userId, userEmail, event!.data.attributes.user_name || null,
-          );
-          if (recipient) {
-            await sendPaymentFailedEmail({
-              email: recipient.email,
-              name: recipient.name,
-              updatePaymentUrl: updateUrl,
-            });
-          } else {
-            console.warn('[Webhook] subscription_payment_failed: no recipient email resolved');
-          }
-        } catch (mailError) {
-          // Non-fatal: never fail the webhook over an email.
-          console.error('[Webhook] Error sending dunning email (non-fatal):', mailError);
-        }
+        defer(sendDunningEmail(supabase, userId, ids.subscriptionId, userEmail, userName));
         break;
       }
-
-      default:
-        console.log(`[Webhook] Unhandled event type: ${eventName}`);
     }
 
-    // Log structured event summary at end
-    logEventSummary('END', eventName, {
-      result: 'success',
-      processingTimeMs: Date.now() - startTime,
-    });
+    const processingTimeMs = Date.now() - startTime;
+    const errorMessage = warnings.length ? warnings.join(' | ') : null;
+    console.log(`[Webhook] END ${eventName} · ${errorMessage ? 'WARN' : 'OK'} · ${processingTimeMs}ms${errorMessage ? ` · ${errorMessage}` : ''}`);
 
-    // Log successful event to database
-    await logWebhookEvent(
-      supabase, eventName, event!, userEmail, userId, subscriptionId, customerId, orderId,
-      'success', null, Date.now() - startTime
-    );
+    defer(logWebhookEvent(supabase, {
+      eventName, eventData: event, userEmail, userId, ...ids,
+      status: errorMessage ? 'error' : 'success',
+      errorMessage,
+      processingTimeMs,
+    }));
 
-    return new Response(
-      JSON.stringify({ received: true }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ received: true }), { status: 200, headers: jsonHeaders });
 
   } catch (error) {
-    console.error('[Webhook] Error processing webhook:', error);
-    
-    logEventSummary('END', eventName, {
-      result: 'error',
-      errorMessage: `${error}`,
-      processingTimeMs: Date.now() - startTime,
-    });
-    
-    // Try to log the error if we have a supabase client
+    const processingTimeMs = Date.now() - startTime;
+    console.error(`[Webhook] Error processing ${eventName} after ${processingTimeMs}ms:`, error);
+
     try {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
-      
-      await logWebhookEvent(
-        supabase, eventName, event || {} as LemonSqueezyWebhookEvent, userEmail, userId, 
-        subscriptionId, customerId, orderId,
-        'error', `Error processing webhook: ${error}`, Date.now() - startTime
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
       );
+      defer(logWebhookEvent(supabase, {
+        eventName,
+        eventData: event || {},
+        userEmail, userId, ...ids,
+        status: 'error',
+        errorMessage: `Error processing webhook: ${error}`,
+        processingTimeMs,
+      }));
     } catch (logError) {
       console.error('[Webhook] Failed to log error event:', logError);
     }
-    
-    return new Response(
-      JSON.stringify({ error: 'Error procesando webhook' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+
+    return new Response(JSON.stringify({ error: 'Error procesando webhook' }), { status: 500, headers: jsonHeaders });
   }
 });

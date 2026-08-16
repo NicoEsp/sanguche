@@ -1,10 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { maskEmail } from '../_shared/pii.ts';
-
-// Helper function for controlled delays
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 export interface FindOrCreateUserResult {
   profileId: string;
@@ -13,210 +7,155 @@ export interface FindOrCreateUserResult {
   wasJustCreated: boolean;
 }
 
+/**
+ * Schedules background work that must not block the webhook response.
+ * The webhook passes `EdgeRuntime.waitUntil`; tests/local callers can omit it
+ * and the promise is simply awaited-and-forgotten.
+ */
+export type Defer = (promise: Promise<unknown>) => void;
+
+const noopDefer: Defer = (promise) => {
+  promise.catch((error) => console.error('[helpers] Deferred task failed:', error));
+};
+
+/**
+ * Resolves (or creates) the profile that owns `email`.
+ *
+ * Resolution is a single `resolve_user_by_email` RPC that reads both
+ * public.profiles and auth.users. It replaces the previous implementation,
+ * which paginated the GoTrue Admin API (up to 20 sequential HTTP calls) and
+ * silently gave up past 1000 users.
+ */
+interface ResolvedUser {
+  profileId: string | null;
+  authUserId: string | null;
+}
+
+/**
+ * Looks up the profile + auth user behind an email in one round trip.
+ *
+ * Falls back to a plain `profiles` lookup if the RPC isn't there yet, so
+ * deploying this function before its migration degrades to the old behaviour
+ * for existing buyers instead of failing every webhook.
+ */
+async function resolveUserByEmail(supabase: any, email: string): Promise<ResolvedUser> {
+  const { data, error } = await supabase
+    .rpc('resolve_user_by_email', { p_email: email })
+    .maybeSingle();
+
+  if (!error) {
+    return { profileId: data?.profile_id ?? null, authUserId: data?.auth_user_id ?? null };
+  }
+
+  console.error('[findOrCreateUser] resolve_user_by_email unavailable, falling back:', error);
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle();
+
+  return { profileId: profile?.id ?? null, authUserId: null };
+}
+
 export async function findOrCreateUser(
   email: string,
   name: string | null,
-  supabase: any
+  supabase: any,
+  defer: Defer = noopDefer,
 ): Promise<FindOrCreateUserResult> {
   const startTime = Date.now();
   const emailMasked = maskEmail(email);
-  console.log(`[findOrCreateUser] Starting for email: ${emailMasked}`);
   let wasJustCreated = false;
 
   try {
-    // 1. FIRST: Check if profile already exists by email (most reliable for existing users)
-    console.log('[findOrCreateUser] Step 1: Checking if profile exists by email...');
-    const { data: existingProfile, error: profileCheckError } = await supabase
-      .from('profiles')
-      .select('id, user_id')
-      .eq('email', email)
-      .maybeSingle();
-    
-    if (profileCheckError) {
-      console.error('[findOrCreateUser] Error checking profile by email:', profileCheckError);
-      // Don't throw, continue with auth check
+    // 1. Single round trip: profile id + auth user id for this email.
+    const resolved = await resolveUserByEmail(supabase, email);
+
+    if (resolved.profileId) {
+      console.log(`[findOrCreateUser] Resolved existing profile for ${emailMasked} in ${Date.now() - startTime}ms`);
+      return { profileId: resolved.profileId, wasJustCreated: false };
     }
-    
-    if (existingProfile) {
-      console.log(`[findOrCreateUser] Found existing profile by email (${emailMasked}): ${existingProfile.id} (took ${Date.now() - startTime}ms)`);
-      return { profileId: existingProfile.id, wasJustCreated: false };
-    }
-    
-    // 2. Profile not found by email, look up auth user directly
-    console.log('[findOrCreateUser] Step 2: Profile not found, looking up auth user by email...');
-    let authUser = null;
-    
-    // Use listUsers with a single page - Supabase GoTrue doesn't have getUserByEmail
-    // but we can search efficiently by checking the first match
-    const { data: authList, error: listError } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
-    });
-    
-    // Try to find user by iterating - but first try a more targeted approach
-    // Search through auth users by fetching pages until we find the email
-    let page = 1;
-    const perPage = 50;
-    const maxPages = 20; // Reduced from 100 - if user isn't found in 1000 users, create new
-    
-    while (!authUser && page <= maxPages) {
-      const { data: authPage, error: pageError } = await supabase.auth.admin.listUsers({
-        page: page,
-        perPage: perPage
-      });
-      
-      if (pageError) {
-        console.error(`[findOrCreateUser] Error listing users page ${page}:`, pageError);
-        break;
-      }
-      
-      if (!authPage?.users?.length) break;
-      
-      authUser = authPage.users.find((u: any) => u.email === email);
-      
-      if (authUser) {
-        console.log(`[findOrCreateUser] Found auth user on page ${page}: ${authUser.id}`);
-        break;
-      }
-      
-      if (authPage.users.length < perPage) break;
-      page++;
-    }
-    
-    // 3. If user doesn't exist in auth, create them
-    if (!authUser) {
-      console.log('[findOrCreateUser] Step 3: User not in auth, creating...');
-      
-      const temporaryPassword = generateSecurePassword();
+
+    // 2. No profile. Either the auth user exists without one, or the buyer is
+    //    brand new (anonymous checkout) and we create the account now.
+    let authUserId: string | null = resolved.authUserId;
+
+    if (!authUserId) {
       const { data: newAuthData, error: createError } = await supabase.auth.admin.createUser({
-        email: email,
-        password: temporaryPassword,
+        email,
+        password: generateSecurePassword(),
         email_confirm: true,
-        user_metadata: { name: name || email.split('@')[0] }
+        user_metadata: { name: name || email.split('@')[0] },
       });
-      
-      // Handle email_exists error (race condition)
+
       if (createError?.code === 'email_exists') {
-        console.log('[findOrCreateUser] Race condition detected: user was just created by another request');
-        console.log('[findOrCreateUser] Waiting 500ms for propagation before retrying...');
-        
-        // Wait for database propagation
-        await delay(500);
-        
-        // First, try to find the profile again (it might have been created)
-        const { data: retryProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', email)
-          .maybeSingle();
-        
-        if (retryProfile) {
-          console.log(`[findOrCreateUser] Found profile after delay: ${retryProfile.id} (took ${Date.now() - startTime}ms)`);
-          return { profileId: retryProfile.id, wasJustCreated: false };
+        // Two webhooks for the same buyer raced us (LS fires order_created and
+        // subscription_created ~2s apart). Re-resolve instead of paginating.
+        console.log('[findOrCreateUser] Race on createUser, re-resolving');
+        const retry = await resolveUserByEmail(supabase, email);
+
+        if (retry.profileId) {
+          return { profileId: retry.profileId, wasJustCreated: false };
         }
-        
-        // Profile not found, search auth again with limited pagination
-        console.log('[findOrCreateUser] Profile not found after delay, searching auth...');
-        let retryPage = 1;
-        const maxRetryPages = 10; // Reduced to avoid timeout
-        
-        while (!authUser && retryPage <= maxRetryPages) {
-          const { data: retryAuthPage } = await supabase.auth.admin.listUsers({
-            page: retryPage,
-            perPage: perPage
-          });
-          
-          if (!retryAuthPage?.users?.length) break;
-          
-          authUser = retryAuthPage.users.find((u: any) => u.email === email);
-          if (authUser) {
-            console.log(`[findOrCreateUser] Found auth user after retry on page ${retryPage}: ${authUser.id}`);
-            break;
-          }
-          if (retryAuthPage.users.length < perPage) break;
-          
-          retryPage++;
-        }
-        
-        if (!authUser) {
-          console.error(`[findOrCreateUser] User exists but could not be retrieved after race condition (searched ${retryPage} pages)`);
+        if (!retry.authUserId) {
           throw new Error('User exists but could not be retrieved');
         }
+        authUserId = retry.authUserId;
       } else if (createError) {
-        console.error('[findOrCreateUser] Failed to create auth user:', createError);
         throw new Error(`Failed to create user account: ${createError.message}`);
       } else {
-        authUser = newAuthData.user;
+        authUserId = newAuthData.user.id;
         wasJustCreated = true;
-        console.log(`[findOrCreateUser] Created new auth user: ${authUser.id}`);
+        console.log(`[findOrCreateUser] Created auth user ${authUserId}`);
       }
     }
-    
-    if (!authUser) {
-      console.error('[findOrCreateUser] No auth user after create/find attempts');
-      throw new Error('No auth user available');
-    }
-    
-    console.log(`[findOrCreateUser] Step 4: Auth user ready: ${authUser.id}`);
 
-    // 4. Resolve the profile id for this auth user. The on_auth_user_created
-    // trigger (handle_new_user) inserts a profiles row AFTER auth.users insert,
-    // so when wasJustCreated=true we almost always find an existing row here.
-    // We must NOT early-return on the wasJustCreated path or we'd skip the
-    // access email below.
+    // 3. Resolve the profile for this auth user. The on_auth_user_created
+    //    trigger (handle_new_user) inserts the row right after the auth.users
+    //    insert, so on the wasJustCreated path we usually find it here.
     const { data: profile, error: profileFetchError } = await supabase
       .from('profiles')
       .select('id')
-      .eq('user_id', authUser.id)
+      .eq('user_id', authUserId)
       .maybeSingle();
 
     if (profileFetchError) {
-      console.error('[findOrCreateUser] Error fetching profile:', profileFetchError);
       throw new Error(`Failed to check profile: ${profileFetchError.message}`);
     }
 
     let profileId: string;
     if (profile) {
-      console.log(`[findOrCreateUser] Profile already exists for auth user: ${profile.id} (likely created by handle_new_user trigger)`);
       profileId = profile.id;
     } else {
-      // 5. Profile doesn't exist (trigger disabled or failed), create it
-      console.log('[findOrCreateUser] Step 5: Creating profile for auth user...');
+      // Trigger disabled or failed — create the profile ourselves.
       const { data: newProfile, error: profileCreateError } = await supabase
         .from('profiles')
         .insert({
-          user_id: authUser.id,
-          email: email,
-          name: name || email.split('@')[0]
+          user_id: authUserId,
+          email,
+          name: name || email.split('@')[0],
         })
         .select('id')
         .single();
 
       if (profileCreateError) {
-        console.error('[findOrCreateUser] Error creating profile:', profileCreateError);
         throw new Error(`Failed to create profile: ${profileCreateError.message}`);
       }
-
       profileId = newProfile.id;
-      console.log(`[findOrCreateUser] Profile created successfully: ${profileId} (took ${Date.now() - startTime}ms)`);
     }
 
-    // 6. If we just created the auth user (anonymous-checkout path), send the
-    // access email with a recovery link so they can set a password and log in.
-    // Skipped when the user already existed in auth — those users already know
-    // how to log in. Non-fatal: never block webhook processing on email errors.
+    // 4. Anonymous-checkout path: send the access email so the buyer can set a
+    //    password. Deferred — generateLink + Resend cost ~400-800ms and the
+    //    buyer's plan is already active without it.
     if (wasJustCreated) {
-      try {
-        await sendAccountAccessEmail(email, name, supabase);
-      } catch (mailError) {
-        console.error('[findOrCreateUser] Error sending account access email (non-fatal):', mailError);
-      }
+      defer(sendAccountAccessEmail(email, name, supabase));
     }
 
+    console.log(`[findOrCreateUser] Profile ready for ${emailMasked} in ${Date.now() - startTime}ms (created: ${wasJustCreated})`);
     return { profileId, wasJustCreated };
 
   } catch (error) {
-    console.error(`[findOrCreateUser] Unexpected error (took ${Date.now() - startTime}ms):`, error);
+    console.error(`[findOrCreateUser] Failed for ${emailMasked} after ${Date.now() - startTime}ms:`, error);
     throw error;
   }
 }
@@ -343,10 +282,10 @@ function generateSecurePassword(): string {
   let password = '';
   const array = new Uint8Array(length);
   crypto.getRandomValues(array);
-  
+
   for (let i = 0; i < length; i++) {
     password += charset[array[i] % charset.length];
   }
-  
+
   return password;
 }
