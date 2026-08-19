@@ -19,14 +19,6 @@ const noopDefer: Defer = (promise) => {
   promise.catch((error) => console.error('[helpers] Deferred task failed:', error));
 };
 
-/**
- * Resolves (or creates) the profile that owns `email`.
- *
- * Resolution is a single `resolve_user_by_email` RPC that reads both
- * public.profiles and auth.users. It replaces the previous implementation,
- * which paginated the GoTrue Admin API (up to 20 sequential HTTP calls) and
- * silently gave up past 1000 users.
- */
 interface ResolvedUser {
   profileId: string | null;
   authUserId: string | null;
@@ -58,6 +50,14 @@ async function resolveUserByEmail(supabase: any, email: string): Promise<Resolve
   return { profileId: profile?.id ?? null, authUserId: null };
 }
 
+/**
+ * Resolves (or creates) the profile that owns `email`.
+ *
+ * Resolution is a single `resolve_user_by_email` RPC that reads both
+ * public.profiles and auth.users. It replaces the previous implementation,
+ * which paginated the GoTrue Admin API (up to 20 sequential HTTP calls) and
+ * silently gave up past 1000 users.
+ */
 export async function findOrCreateUser(
   email: string,
   name: string | null,
