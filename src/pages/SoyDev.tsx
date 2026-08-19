@@ -22,12 +22,23 @@ import {
   Home,
   ChevronRight,
   MessageCircle,
+  type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import type { AssessmentTypeKey } from "@/utils/scoring";
 import { soyDevFaqs } from "@/seo/faqs/soyDev";
 import { SoyDevHeroVideo } from "@/components/landing/SoyDevHeroVideo";
 
-const whyCards = [
+type WhyCard = {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  link: { to: string; label: string };
+  // Solo algunas tarjetas ofrecen un atajo a la evaluación de ese perfil.
+  assessmentCta?: { tipo: AssessmentTypeKey; label: string };
+};
+
+const whyCards: ReadonlyArray<WhyCard> = [
   {
     icon: Brain,
     title: "El contexto cambió",
@@ -67,8 +78,12 @@ const whyCards = [
       to: "/blog/product-builder-por-que-los-pms-deberian-construir-sus-propios-proyectos",
       label: "Por qué construir tus propios proyectos",
     },
+    assessmentCta: {
+      tipo: "builder",
+      label: "Evaluá el método de tu side-project",
+    },
   },
-] as const;
+];
 
 const benefits = [
   {
@@ -133,6 +148,33 @@ const stats = [
 const SoyDev = () => {
   const { isAuthenticated } = useAuth();
 
+  // Un dev que llega acá ya sabe desde dónde arranca: en vez del selector
+  // genérico va derecho a la evaluación de su perfil. Sin sesión pasa por
+  // /auth, que lee state.from.pathname para devolverlo a donde iba.
+  const assessmentLink = (
+    tipo: AssessmentTypeKey
+  ): { to: string; state?: { from: { pathname: string } } } => {
+    const pathname = `/autoevaluacion?tipo=${tipo}`;
+    return isAuthenticated ? { to: pathname } : { to: "/auth", state: { from: { pathname } } };
+  };
+
+  // El login por email termina en navigate('/') y descarta el state de la ruta:
+  // el hint en localStorage es el canal de respaldo para no perder el perfil
+  // que el usuario eligió acá.
+  const handleAssessmentClick = (tipo: AssessmentTypeKey) => {
+    try {
+      // Con vencimiento: el hint no tiene dueño (se escribe sin sesión), así que
+      // se acota la ventana en la que otra cuenta del mismo navegador podría
+      // heredarlo.
+      localStorage.setItem(
+        "assessment_type_hint",
+        JSON.stringify({ tipo, ts: Date.now() })
+      );
+    } catch {
+      // Best-effort: sin storage disponible queda el query param
+    }
+  };
+
   return (
     <>
       <Seo />
@@ -185,12 +227,25 @@ const SoyDev = () => {
               size="lg"
               className="w-full sm:w-auto text-base sm:text-lg px-4 sm:px-10 py-6 sm:py-7 font-semibold shadow-lg"
             >
-              <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
+              <Link
+                {...assessmentLink("sin_experiencia")}
+                onClick={() => handleAssessmentClick("sin_experiencia")}
+              >
                 Comenzar evaluación gratis
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
           </div>
+
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            <Link
+              {...assessmentLink("experimentado")}
+              onClick={() => handleAssessmentClick("experimentado")}
+              className="underline underline-offset-4 hover:text-foreground transition-colors"
+            >
+              Ya trabajo en producto
+            </Link>
+          </p>
         </section>
 
         {/* Por qué Producto importa */}
@@ -206,29 +261,43 @@ const SoyDev = () => {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 max-w-4xl mx-auto">
-            {whyCards.map((card) => (
-              <Card
-                key={card.title}
-                className="bg-gradient-to-br from-card to-muted/30 border-border/60 hover:shadow-md transition-shadow"
-              >
-                <CardContent className="p-6 flex flex-col h-full">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                    <card.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">{card.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                    {card.description}
-                  </p>
-                  <Link
-                    to={card.link.to}
-                    className="text-sm text-primary hover:text-primary/80 font-medium inline-flex items-center gap-1 mt-auto"
-                  >
-                    {card.link.label}
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
+            {whyCards.map((card) => {
+              const cta = card.assessmentCta;
+              return (
+                <Card
+                  key={card.title}
+                  className="bg-gradient-to-br from-card to-muted/30 border-border/60 hover:shadow-md transition-shadow"
+                >
+                  <CardContent className="p-6 flex flex-col h-full">
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                      <card.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">{card.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                      {card.description}
+                    </p>
+                    <Link
+                      to={card.link.to}
+                      className="text-sm text-primary hover:text-primary/80 font-medium inline-flex items-center gap-1 mt-auto"
+                    >
+                      {card.link.label}
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                    {cta && (
+                      <Button asChild variant="outline" size="sm" className="mt-4 w-full sm:w-auto sm:self-start">
+                        <Link
+                          {...assessmentLink(cta.tipo)}
+                          onClick={() => handleAssessmentClick(cta.tipo)}
+                        >
+                          {cta.label}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </section>
 
@@ -270,7 +339,11 @@ const SoyDev = () => {
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Herramientas pensadas para que un perfil técnico pueda evaluar,
               aprender y crecer en sus habilidades de Producto. Conocé los{" "}
-              <Link to="/planes" className="text-primary hover:underline">
+              <Link
+                to="/planes"
+                state={{ from: "/soy-dev" }}
+                className="text-primary hover:underline"
+              >
                 planes
               </Link>
               , los{" "}
@@ -353,13 +426,19 @@ const SoyDev = () => {
                   size="lg"
                   className="w-full sm:w-auto text-base sm:text-lg px-4 sm:px-10 py-6 sm:py-7 font-semibold shadow-lg"
                 >
-                  <Link to={isAuthenticated ? "/autoevaluacion" : "/auth"}>
+                  <Link
+                    {...assessmentLink("sin_experiencia")}
+                    onClick={() => handleAssessmentClick("sin_experiencia")}
+                  >
                     Comenzar evaluación gratis
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
                 <Button asChild variant="ghost" size="lg">
-                  <Link to="/planes">
+                  <Link
+                    to="/planes"
+                    state={{ from: "/soy-dev" }}
+                  >
                     Ver planes
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
