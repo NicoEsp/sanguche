@@ -159,7 +159,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
         '@context': 'https://schema.org',
         '@type': 'LearningResource',
         name: 'Evaluación Product Builder para developers',
-        description: 'Test gratuito de 5 minutos diseñado para developers: identifica tu nivel de seniority en Producto y tus gaps específicos como perfil técnico.',
+        description: 'Evaluación gratuita de 5 minutos diseñada para developers: identifica tu nivel de seniority en Producto y tus gaps específicos como perfil técnico.',
         url: `${SITE_URL}/autoevaluacion`,
         inLanguage: 'es',
         learningResourceType: 'Self-assessment',
@@ -197,7 +197,9 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
 
   '/empresas': {
     title: 'Capacitación de Producto para equipos y empresas | ProductPrepa for Business',
-    description: 'Programa de capacitación en Producto a medida para equipos, áreas y líderes. Temario personalizado sobre estrategia, discovery, priorización e IA. Hasta 3 sesiones grupales en vivo con NicoProducto.',
+    // Front-load del entregable concreto: Google corta la description cerca de
+    // los 160 caracteres y el gancho ("3 sesiones en vivo") quedaba afuera.
+    description: 'Capacitación en Producto a medida para tu equipo: diagnóstico, temario propio y hasta 3 sesiones grupales en vivo con NicoProducto. Estrategia, discovery, priorización e IA.',
     canonical: `${SITE_URL}/empresas`,
     keywords: 'capacitación product management empresas, formación de producto para equipos, taller product management in company, mentoría grupal producto, capacitación discovery y estrategia, ProductPrepa for Business, entrenamiento equipo de producto',
     image: `${SITE_URL}/og-empresas.png`,
@@ -224,6 +226,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
       {
         '@context': 'https://schema.org',
         '@type': 'Service',
+        '@id': `${SITE_URL}/empresas#service`,
         name: 'ProductPrepa for Business',
         serviceType: 'Capacitación de Producto in-company a medida',
         description: 'Programa one-time de capacitación en Producto para equipos: diagnóstico, temario a medida y hasta 3 sesiones grupales en vivo con NicoProducto.',
@@ -233,11 +236,34 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
           '@type': 'Organization',
           name: 'ProductPrepa',
           url: SITE_URL,
+          // Canal de contacto B2B: el mismo que la landing publica en las FAQ.
+          contactPoint: {
+            '@type': 'ContactPoint',
+            contactType: 'sales',
+            email: 'nicoproducto@hey.com',
+            availableLanguage: ['es'],
+            areaServed: 'LATAM',
+          },
         },
         areaServed: { '@type': 'Place', name: 'LATAM y remoto' },
         audience: {
           '@type': 'Audience',
           audienceType: 'Empresas y equipos de producto',
+        },
+        // Qué incluye el programa, en los mismos términos que la landing.
+        hasOfferCatalog: {
+          '@type': 'OfferCatalog',
+          name: 'Qué incluye ProductPrepa for Business',
+          itemListElement: [
+            'Diagnóstico inicial del equipo y de las áreas a fortalecer',
+            'Temario a medida, armado sobre los desafíos actuales',
+            'Hasta 3 sesiones grupales en vivo con el equipo',
+            'Acceso de todo el equipo a los cursos de ProductPrepa',
+            'Reporte de avance para el líder del área',
+          ].map((name) => ({
+            '@type': 'Offer',
+            itemOffered: { '@type': 'Service', name },
+          })),
         },
         offers: {
           '@type': 'Offer',
@@ -270,47 +296,22 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     ],
   },
 
-  '/preguntas': {
-    title: 'Preguntas de Producto para hacerte — ProductPrepa',
-    description: 'Un documento de disparadores para reflexionar sobre tu producto, tu equipo y cómo estás en tu rol actualmente.',
-    canonical: `${SITE_URL}/preguntas`,
-    keywords: 'preguntas producto, reflexión PM, preguntas product builder',
-    image: DEFAULT_IMAGE,
-    imageAlt: DEFAULT_IMAGE_ALT,
-  },
-
   '/autoevaluacion': {
     title: 'Evaluación Product Builder Gratis | Descubrí tu nivel',
-    description: 'Test gratuito de 5 minutos para conocer tu nivel como Product Builder. Identificá fortalezas, áreas de mejora y recibí un roadmap personalizado.',
+    description: 'Evaluación gratuita de 5 minutos que se adapta a tu perfil y mide las competencias core de Producto. Identificá fortalezas, áreas de mejora y recibí un roadmap personalizado.',
     canonical: `${SITE_URL}/autoevaluacion`,
-    keywords: 'test product builder gratis, autoevaluación PM, nivel seniority PM, evaluación habilidades producto',
+    keywords: 'evaluación product builder gratis, autoevaluación PM, nivel seniority PM, evaluación habilidades producto',
     image: DEFAULT_IMAGE,
     imageAlt: DEFAULT_IMAGE_ALT,
   },
 
-  '/mejoras': {
-    title: 'Resultados de tu evaluación — ProductPrepa',
-    description: 'Revisa tu desempeño completo: fortalezas y áreas de mejora identificadas.',
-    canonical: `${SITE_URL}/mejoras`,
-    keywords: 'gaps de producto, fortalezas PM, áreas de mejora, resultados evaluación, feedback producto',
-    image: DEFAULT_IMAGE,
-    imageAlt: DEFAULT_IMAGE_ALT,
-  },
-
+  // Catálogo canónico de recursos. /preguntas redirige acá, así que sus
+  // términos viven en estas keywords en vez de en una entrada propia.
   '/descargables': {
-    title: 'Recursos Descargables | ProductPrepa',
-    description: 'Descargá guías y recursos prácticos para crecer como Product Builder.',
+    title: 'Recursos Descargables para Product Builders | ProductPrepa',
+    description: 'Catálogo de recursos descargables para crecer en Producto: guías, plantillas, checklists y PDFs prácticos. Filtrá por tipo y por nivel de acceso, y descargá lo que necesites.',
     canonical: `${SITE_URL}/descargables`,
-    keywords: 'recursos product management, descargables PM, guías producto, materiales PM',
-    image: DEFAULT_IMAGE,
-    imageAlt: DEFAULT_IMAGE_ALT,
-  },
-
-  '/mentoria': {
-    title: 'Mentoría personalizada — ProductPrepa',
-    description: 'Descubrí mentoría curada para cerrar tus áreas de mejora en Producto.',
-    canonical: `${SITE_URL}/mentoria`,
-    keywords: 'mentoría PM, coaching producto, recomendaciones personalizadas, guía producto, mentor product builder',
+    keywords: 'recursos product management, descargables PM, guías producto, plantillas producto, checklists product manager, materiales PM, preguntas de producto, templates product builder',
     image: DEFAULT_IMAGE,
     imageAlt: DEFAULT_IMAGE_ALT,
   },

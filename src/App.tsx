@@ -130,7 +130,10 @@ const App = () => (
                       <Route path="/welcome" element={<Welcome />} />
                       <Route path="/gracias-review" element={<GraciasReview />} />
                       <Route path="/gracias-b2b" element={<GraciasB2B />} />
-                      <Route path="/preguntas" element={<Descargables />} />
+                      {/* /descargables es la canonica (es la que tiene SEO).
+                          /preguntas queda como redirect porque esta compartida
+                          en mails y PDFs ya distribuidos. */}
+                      <Route path="/preguntas" element={<Navigate to="/descargables" replace />} />
                       <Route path="/descargables" element={<Descargables />} />
                       <Route path="/soy-dev" element={<SoyDev />} />
                       <Route path="/evaluacion-product-manager" element={<EvaluacionProductManager />} />
