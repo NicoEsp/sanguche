@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Seo } from '@/components/Seo';
 import { Button } from '@/components/ui/button';
@@ -18,17 +18,23 @@ import {
   SignUpFormData,
   ResetFormData,
   UpdatePasswordFormData,
+  useRecoveryLink,
 } from '@/components/auth';
 
 type AuthMode = 'login' | 'signup' | 'reset' | 'email-verification' | 'update-password';
 
 export default function Auth() {
-  const [mode, setMode] = useState<AuthMode>('signup'); // Default: signup para optimizar conversión
-  const [verificationEmail, setVerificationEmail] = useState('');
-  const [isRecoveryReady, setIsRecoveryReady] = useState(false);
-  const recoveryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
   const { signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation, updatePassword, isLoading, isAuthenticated, session } = useAuth();
+
+  // Reads the URL on the very first render, so a recovery landing is known
+  // before any redirect effect can bounce an already-logged-in user home.
+  const recovery = useRecoveryLink(session);
+
+  const [mode, setMode] = useState<AuthMode>(() =>
+    // Default: signup para optimizar conversión
+    recovery.isRecovery ? 'update-password' : 'signup'
+  );
+  const [verificationEmail, setVerificationEmail] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -43,68 +49,30 @@ export default function Auth() {
     await signInWithGoogle(fromPath);
   };
 
-  // Detectar token de recovery en URL hash (viene del email de Supabase)
-  // IMPORTANTE: NO limpiar el hash aquí - Supabase necesita procesarlo primero
+  // El enlace puede confirmarse después del primer render (el cliente de
+  // Supabase procesa el hash de forma asíncrona), así que seguimos el hook.
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash) {
-      const hashParams = new URLSearchParams(hash.substring(1));
-      const type = hashParams.get('type');
-      const accessToken = hashParams.get('access_token');
-      
-      if (type === 'recovery' && accessToken) {
-        setMode('update-password');
-      }
+    if (recovery.isRecovery) {
+      setMode('update-password');
     }
-  }, []);
+  }, [recovery.isRecovery]);
 
-  // Escuchar cuando Supabase confirma que el token fue procesado
+  // Volver a "olvidé mi contraseña" cuando el enlace ya no sirve
+  const handleRequestNewLink = () => {
+    recovery.reset();
+    setMode('reset');
+    toast({
+      title: "Pedí un enlace nuevo",
+      description: "Ingresá tu email y te mandamos otro enlace de recuperación.",
+    });
+  };
+
+  // Redirigir usuarios autenticados. 'reset' queda exceptuado además de
+  // 'update-password': se llega ahí desde un enlace vencido, y si quedó una
+  // sesión vieja en el browser el redirect se los llevaba a la home en vez de
+  // dejarlos pedir el enlace nuevo.
   useEffect(() => {
-    const handleRecovery = () => {
-      setIsRecoveryReady(true);
-      window.history.replaceState(null, '', window.location.pathname);
-      if (recoveryTimeoutRef.current) {
-        clearTimeout(recoveryTimeoutRef.current);
-        recoveryTimeoutRef.current = null;
-      }
-    };
-
-    window.addEventListener('supabase:password_recovery', handleRecovery);
-    return () => window.removeEventListener('supabase:password_recovery', handleRecovery);
-  }, []);
-
-  // Verificar si ya hay sesión de recovery activa
-  useEffect(() => {
-    if (mode === 'update-password' && session && !isRecoveryReady) {
-      setIsRecoveryReady(true);
-      window.history.replaceState(null, '', window.location.pathname);
-    }
-  }, [mode, session, isRecoveryReady]);
-
-  // Timeout para tokens inválidos o expirados
-  useEffect(() => {
-    if (mode === 'update-password' && !isRecoveryReady && !session) {
-      recoveryTimeoutRef.current = setTimeout(() => {
-        toast({
-          title: "Enlace no válido",
-          description: "Este enlace ya fue usado o ha expirado. Cada enlace de recuperación solo puede usarse una vez. Solicita uno nuevo.",
-          variant: "destructive",
-        });
-        setMode('reset');
-        window.history.replaceState(null, '', window.location.pathname);
-      }, 10000);
-
-      return () => {
-        if (recoveryTimeoutRef.current) {
-          clearTimeout(recoveryTimeoutRef.current);
-        }
-      };
-    }
-  }, [mode, isRecoveryReady, session, toast]);
-
-  // Redirigir usuarios autenticados (excepto si están actualizando contraseña)
-  useEffect(() => {
-    if (isAuthenticated && mode !== 'update-password') {
+    if (isAuthenticated && mode !== 'update-password' && mode !== 'reset') {
       navigate('/', { replace: true });
     }
   }, [isAuthenticated, navigate, mode]);
@@ -183,7 +151,10 @@ export default function Auth() {
       case 'signup': return 'Crea una cuenta nueva para empezar';
       case 'reset': return 'Te enviaremos un enlace para restablecer tu contraseña';
       case 'email-verification': return 'Te enviamos un correo para validar tu cuenta';
-      case 'update-password': return 'Ingresa tu nueva contraseña';
+      case 'update-password':
+        return recovery.status === 'expired'
+          ? 'El enlace de recuperación ya no es válido'
+          : 'Ingresa tu nueva contraseña';
     }
   };
 
@@ -220,8 +191,10 @@ export default function Auth() {
               <UpdatePasswordForm
                 onSubmit={handleUpdatePassword}
                 isLoading={isLoading}
-                isRecoveryReady={isRecoveryReady}
-                session={session}
+                status={recovery.status}
+                errorMessage={recovery.errorMessage}
+                onConfirmLink={recovery.confirm}
+                onRequestNewLink={handleRequestNewLink}
               />
             )}
 

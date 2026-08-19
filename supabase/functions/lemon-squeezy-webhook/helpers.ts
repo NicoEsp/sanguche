@@ -1,4 +1,5 @@
 import { maskEmail } from '../_shared/pii.ts';
+import { generateRecoveryLink } from '../_shared/recovery.ts';
 
 export interface FindOrCreateUserResult {
   profileId: string;
@@ -163,23 +164,15 @@ export async function findOrCreateUser(
 async function sendAccountAccessEmail(email: string, name: string | null, supabase: any) {
   const emailMasked = maskEmail(email);
 
-  // generateLink({ type: 'recovery' }) returns the action_link in the response
-  // but does NOT send any email itself — Supabase Auth only emails when the
-  // type is 'signup' or 'invite'. We send via Resend to keep the template
-  // consistent with the rest of our transactional flows.
-  const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-    type: 'recovery',
-    email: email,
-  });
+  // generateLink({ type: 'recovery' }) mints the token but does NOT send any
+  // email itself — Supabase Auth only emails when the type is 'signup' or
+  // 'invite'. We send via Resend to keep the template consistent with the rest
+  // of our transactional flows, and we hand out the token_hash link on our own
+  // domain so inbox scanners can't burn it (see _shared/recovery.ts).
+  const { link: actionLink, error: linkError } = await generateRecoveryLink(supabase, email);
 
-  if (linkError) {
-    console.error(`[sendAccountAccessEmail] Failed to generate link for ${emailMasked}:`, linkError);
-    return;
-  }
-
-  const actionLink = linkData?.properties?.action_link;
   if (!actionLink) {
-    console.error(`[sendAccountAccessEmail] No action_link returned for ${emailMasked}`);
+    console.error(`[sendAccountAccessEmail] Failed to generate link for ${emailMasked}: ${linkError}`);
     return;
   }
 

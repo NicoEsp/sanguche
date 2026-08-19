@@ -86,6 +86,21 @@
 </head>
 
   <body>
+    <!--
+      Recovery links have to end up on /auth, the only page that can take a new
+      password. Some of them don't: mails already sitting in inboxes, and links
+      Supabase builds itself, fall back to the project's Site URL and drop the
+      person on the home page with the token in the URL and nowhere to use it.
+      Runs before the bundle so the tokens are still untouched when /auth loads.
+    -->
+    <script>
+      (function () {
+        if (window.location.pathname === '/auth') return;
+        var params = window.location.search + window.location.hash;
+        if (!/[#&?](type=recovery|error_code=)/.test(params)) return;
+        window.location.replace('/auth' + window.location.search + window.location.hash);
+      })();
+    </script>
     <div id="root"></div>
     <noscript>
       <h1>ProductPrepa - Plataforma para crecer en Producto</h1>
