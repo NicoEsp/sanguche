@@ -1,4 +1,5 @@
 import { ArrowRight, Compass, Hammer, Rocket, Users, type LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   ASSESSMENT_TYPES,
   AssessmentTypeKey,
@@ -64,6 +65,7 @@ function questionNote(type: AssessmentTypeKey): string {
 }
 
 export function AssessmentTypeSelector({ onSelect, isReevaluation = false }: AssessmentTypeSelectorProps) {
+
   return (
     <div className="animate-fade-in">
       <div className="mb-8">
@@ -129,7 +131,18 @@ export function AssessmentTypeSelector({ onSelect, isReevaluation = false }: Ass
         })}
       </div>
 
-      <p className="mt-6 text-xs text-muted-foreground">
+      {/* Ninguna de las cuatro evalúa a un equipo entero: la salida es /empresas. */}
+      <p className="mt-6 text-sm text-muted-foreground">
+        ¿Venís por tu equipo y no por vos?{" "}
+        <Link
+          to="/empresas"
+          className="text-primary hover:underline font-medium"
+        >
+          Mirá ProductPrepa for Business
+        </Link>
+      </p>
+
+      <p className="mt-4 text-xs text-muted-foreground">
         Se guarda una sola evaluación por cuenta. Si más adelante cambiás de perfil, podés
         volver a evaluarte y el resultado nuevo reemplaza al anterior.
       </p>
