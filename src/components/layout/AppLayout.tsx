@@ -1,4 +1,5 @@
 import { ReactNode, useState } from "react";
+import { Link } from "react-router-dom";
 import { Twitter, Linkedin } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,6 +8,16 @@ import { MobileNav } from "./MobileNav";
 import { LandingHeader } from "./LandingHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+// El footer aparece en todas las páginas: es la entrada más barata a las rutas
+// que hoy no se linkean desde ningún lado.
+const footerLinks = [
+  { to: "/planes", label: "Planes" },
+  { to: "/cursos-info", label: "Cursos" },
+  { to: "/blog", label: "Blog" },
+  { to: "/descargables", label: "Descargables" },
+  { to: "/empresas", label: "Para equipos" },
+];
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -96,8 +107,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <main className="flex-1">{children}</main>
 
         <footer className="border-t bg-background">
-          <div className="container py-6">
-            <p className="text-sm text-muted-foreground text-center">
+          <div className="container py-8">
+            <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+              {footerLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+            <p className="mt-6 text-sm text-muted-foreground text-center">
               © {new Date().getFullYear()} ProductPrepa
             </p>
           </div>

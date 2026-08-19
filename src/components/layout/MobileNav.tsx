@@ -6,7 +6,8 @@ import {
   LogOut,
   Shield,
   Twitter,
-  Linkedin
+  Linkedin,
+  CreditCard
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -125,6 +126,21 @@ export function MobileNav() {
                 <div className="border-t pt-4 space-y-1">
                   {isAuthenticated ? (
                     <>
+                      {/* Planes: mismo destaque que en el AppSidebar */}
+                      <Link
+                        to="/planes"
+                        onClick={() => setIsOpen(false)}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200",
+                          "bg-primary text-primary-foreground font-medium",
+                          "hover:bg-primary/90",
+                          isActive("/planes") && "ring-2 ring-primary/30"
+                        )}
+                      >
+                        <CreditCard className="h-5 w-5" />
+                        <span>Planes</span>
+                      </Link>
+
                       <Link
                         to="/perfil"
                         onClick={() => setIsOpen(false)}
