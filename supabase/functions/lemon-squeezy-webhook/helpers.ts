@@ -128,14 +128,18 @@ export async function findOrCreateUser(
     if (profile) {
       profileId = profile.id;
     } else {
-      // Trigger disabled or failed — create the profile ourselves.
+      // Trigger disabled or failed — create the profile ourselves. Upsert
+      // rather than insert: LemonSqueezy fires order_created and
+      // subscription_created seconds apart, so two invocations can both pass
+      // the select above and race on the UNIQUE(user_id) constraint. On
+      // conflict we adopt the row the other one wrote instead of throwing.
       const { data: newProfile, error: profileCreateError } = await supabase
         .from('profiles')
-        .insert({
+        .upsert({
           user_id: authUserId,
           email,
           name: name || email.split('@')[0],
-        })
+        }, { onConflict: 'user_id' })
         .select('id')
         .single();
 

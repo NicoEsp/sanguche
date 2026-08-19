@@ -165,10 +165,26 @@ async function verifySignature(rawBody: string, signature: string | null, secret
 
 // ── Analytics ───────────────────────────────────────────────────────────────
 
+// Mixpanel only accepts alphanumerics and hyphens in $insert_id, up to 36
+// bytes — a colon or underscore makes it drop the value and fall back to a
+// generated one, which defeats deduplication entirely.
+function mixpanelInsertId(prefix: string, id: string): string {
+  return `${prefix}-${id}`.replace(/[^A-Za-z0-9-]/g, '-').slice(0, 36);
+}
+
+// Mixpanel dedupes on event + distinct_id + time + $insert_id, so `time` has to
+// come from the event itself. Using Date.now() would make every LemonSqueezy
+// retry look like a distinct conversion no matter how stable $insert_id is.
+function eventTimeSeconds(createdAt: string | undefined): number {
+  const parsed = createdAt ? Date.parse(createdAt) : NaN;
+  return Math.floor((Number.isNaN(parsed) ? Date.now() : parsed) / 1000);
+}
+
 async function trackMixpanelServerEvent(
   eventName: string,
   distinctId: string,
   insertId: string,
+  timeSeconds: number,
   properties: Record<string, unknown>,
 ) {
   const MIXPANEL_TOKEN = '35fe7a2706398ebc90ae3f1012d0a558';
@@ -178,10 +194,9 @@ async function trackMixpanelServerEvent(
       properties: {
         token: MIXPANEL_TOKEN,
         distinct_id: distinctId,
-        time: Math.floor(Date.now() / 1000),
-        // Deterministic so a LemonSqueezy retry of the same order doesn't
-        // double-count the conversion (Mixpanel dedupes on $insert_id +
-        // event + distinct_id within 5 days).
+        // Both derived from the event, not from wall clock, so a LemonSqueezy
+        // retry of the same order dedupes instead of double-counting the sale.
+        time: timeSeconds,
         $insert_id: insertId,
         ...properties,
       },
@@ -218,7 +233,7 @@ interface WebhookLogRow {
 
 async function logWebhookEvent(supabase: any, row: WebhookLogRow) {
   try {
-    await supabase.from('payment_webhook_logs').insert({
+    const { error } = await supabase.from('payment_webhook_logs').insert({
       event_name: row.eventName,
       event_data: row.eventData,
       user_email: row.userEmail,
@@ -230,6 +245,9 @@ async function logWebhookEvent(supabase: any, row: WebhookLogRow) {
       error_message: row.errorMessage,
       processing_time_ms: row.processingTimeMs,
     });
+    // PostgREST resolves with `{ error }` rather than throwing, so without this
+    // check a rejected audit row would vanish silently.
+    if (error) console.error('[Webhook] Failed to log webhook event:', error);
   } catch (error) {
     console.error('[Webhook] Failed to log webhook event:', error);
   }
@@ -441,14 +459,18 @@ async function sendCancellationEmail(
   fallbackName: string | null,
   endsAt: string | null,
 ) {
-  const { data: activeSub } = await supabase
+  // `.eq('user_id', null)` does not mean "no user" in PostgREST, so without
+  // this guard an unresolved user would read as churned and get the email.
+  if (!userId) return;
+
+  const { data: activeSubs } = await supabase
     .from('user_subscriptions')
     .select('id')
     .eq('user_id', userId)
     .eq('status', 'active')
-    .maybeSingle();
+    .limit(1);
 
-  if (activeSub) {
+  if (activeSubs?.length) {
     console.log('[Webhook] subscription_cancelled: user still active — skipping goodbye email (upgrade swap)');
     return;
   }
@@ -621,7 +643,8 @@ serve(async (req) => {
         defer(trackMixpanelServerEvent(
           'checkout_completed_server',
           userId!,
-          `order_created:${ids.orderId ?? event.data.id}`,
+          mixpanelInsertId('oc', ids.orderId ?? event.data.id),
+          eventTimeSeconds(attrs.created_at),
           {
             plan: planConfig?.plan || 'unknown',
             purchase_type: planConfig?.purchaseType || 'unknown',
@@ -729,9 +752,15 @@ serve(async (req) => {
       }
 
       case 'subscription_payment_success': {
+        // This event delivers a subscription-INVOICE, which has no `renews_at`
+        // (verified against the stored payloads: 0/4 invoices carry it, while
+        // 100% of Subscription payloads do). Omitting the column leaves the
+        // renewal date set by subscription_created/_updated intact — writing
+        // `null` here would wipe it, which is what happened once the id fix
+        // made this update start matching real rows.
         const warning = await updateSubscriptionByLsId(supabase, eventName, ids.subscriptionId, userId, {
           status: 'active',
-          current_period_end: attrs.renews_at ? new Date(attrs.renews_at).toISOString() : null,
+          ...(attrs.renews_at ? { current_period_end: new Date(attrs.renews_at).toISOString() } : {}),
           updated_at: new Date().toISOString(),
         });
         if (warning) warnings.push(warning);
