@@ -8,7 +8,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useMemo } from "react";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
-import { MentoriaHero } from "@/components/mentoria/MentoriaHero";
+import { MentoriaHero, MENTORIA_EXERCISES_ANCHOR } from "@/components/mentoria/MentoriaHero";
 import { CareerPathBanner } from "@/components/mentoria/CareerPathBanner";
 import { ProfileAnalysis } from "@/components/mentoria/ProfileAnalysis";
 import { DedicatedResources } from "@/components/mentoria/DedicatedResources";
@@ -185,7 +185,9 @@ export default function Recommendations() {
 
         {/* Ejercicios prácticos - Solo con mentoría completada */}
         {hasAdvancedAccess && profile?.mentoria_completed && (
-          <UserExercises />
+          <div id={MENTORIA_EXERCISES_ANCHOR} className="scroll-mt-24">
+            <UserExercises />
+          </div>
         )}
 
         {/* Recursos dedicados - Información complementaria */}
