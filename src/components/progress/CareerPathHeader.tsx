@@ -2,16 +2,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { CheckCircle2, FileText, Loader2, Save } from "lucide-react";
+import { CheckCircle2, Download, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CareerPathHeaderProps {
   totalObjectives: number;
   completedCount: number;
   completionRate: number;
-  isMapLocked: boolean;
   isExportingPdf: boolean;
-  onSave: () => void;
   onExport: () => void;
 }
 
@@ -19,9 +17,7 @@ export function CareerPathHeader({
   totalObjectives,
   completedCount,
   completionRate,
-  isMapLocked,
   isExportingPdf,
-  onSave,
   onExport,
 }: CareerPathHeaderProps) {
   const hasObjectives = totalObjectives > 0;
@@ -39,28 +35,16 @@ export function CareerPathHeader({
               Tu Career Path
             </h1>
 
-            <div className="flex items-center gap-3 print:hidden">
-              {!isMapLocked && hasObjectives && (
-                <Button onClick={onSave} className="gap-2">
-                  <Save className="h-4 w-4" />
-                  Guardar Career Path
-                </Button>
-              )}
-
-              {hasObjectives && (
+            {hasObjectives && (
+              <div className="flex items-center gap-3 print:hidden">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="inline-flex">
                         <Button
-                          disabled={!isMapLocked || isExportingPdf}
-                          variant="outline"
-                          className={cn(
-                            "gap-2",
-                            !isMapLocked && "cursor-not-allowed",
-                            isExportingPdf && "pointer-events-none opacity-80"
-                          )}
-                          onClick={isMapLocked ? onExport : undefined}
+                          onClick={onExport}
+                          disabled={isExportingPdf}
+                          className={cn("gap-2", isExportingPdf && "pointer-events-none opacity-80")}
                         >
                           {isExportingPdf ? (
                             <>
@@ -69,7 +53,7 @@ export function CareerPathHeader({
                             </>
                           ) : (
                             <>
-                              <FileText className="h-4 w-4" />
+                              <Download className="h-4 w-4" />
                               Exportar PDF
                             </>
                           )}
@@ -77,15 +61,18 @@ export function CareerPathHeader({
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {isMapLocked
-                        ? "Descargá tu Career Path en PDF"
-                        : "Primero debes guardar tu Career Path para exportarlo"}
+                      Descargá tu Career Path en PDF para compartirlo o revisarlo offline
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-              )}
-            </div>
+              </div>
+            )}
           </div>
+
+          <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground print:hidden">
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+            Todos tus cambios se guardan automáticamente
+          </p>
         </div>
 
         <div className="bg-card border shadow-sm rounded-xl px-4 py-3 md:px-6 md:py-4">

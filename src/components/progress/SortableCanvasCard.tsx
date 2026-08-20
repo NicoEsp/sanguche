@@ -16,7 +16,6 @@ interface SortableCanvasCardProps {
   objective: UserProgressObjective;
   toggleStep: (obj: UserProgressObjective, stepId: string) => void;
   onDeleteCustom: (id: string) => void;
-  isMapLocked: boolean;
   isRecentlyDropped?: boolean;
   overId: string | null;
   draggingId: string | null;
@@ -36,7 +35,6 @@ export const SortableCanvasCard = memo(function SortableCanvasCard({
   objective,
   toggleStep,
   onDeleteCustom,
-  isMapLocked,
   isRecentlyDropped,
   overId,
   draggingId,
@@ -58,7 +56,7 @@ export const SortableCanvasCard = memo(function SortableCanvasCard({
     isDragging,
   } = useSortable({
     id: objective.id,
-    disabled: isMentor || isMapLocked,
+    disabled: isMentor,
     animateLayoutChanges,
     transition: {
       duration: 200,
@@ -69,24 +67,18 @@ export const SortableCanvasCard = memo(function SortableCanvasCard({
   const isTargetedByDrag = overId === objective.id && draggingId !== objective.id && draggingId !== null;
   const draggedIndex = draggingId ? allObjectives.findIndex((o) => o.id === draggingId) : -1;
   const isDragFromSameColumn = draggedIndex !== -1;
-  const showIndicator = isTargetedByDrag && isDragFromSameColumn && !isMentor && !isMapLocked;
+  const showIndicator = isTargetedByDrag && isDragFromSameColumn && !isMentor;
   const indicatorPosition = draggedIndex > objectiveIndex ? "top" : "bottom";
 
   const handleBlockedAttempt = useCallback(() => {
-    if (!isShaking && (isMentor || isMapLocked)) {
+    if (!isShaking && isMentor) {
       setIsShaking(true);
-      if (isMentor) {
-        toast.info("Este objetivo fue asignado por tu mentor y no puede moverse", {
-          duration: 2000,
-        });
-      } else if (isMapLocked) {
-        toast.info("El mapa está bloqueado. Contacta a tu mentor para editarlo", {
-          duration: 2000,
-        });
-      }
+      toast.info("Este objetivo fue asignado por tu mentor y no puede moverse", {
+        duration: 2000,
+      });
       setTimeout(() => setIsShaking(false), 400);
     }
-  }, [isShaking, isMentor, isMapLocked]);
+  }, [isShaking, isMentor]);
 
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -104,7 +96,7 @@ export const SortableCanvasCard = memo(function SortableCanvasCard({
         style={style}
         {...attributes}
         onPointerDown={(e) => {
-          if (isMentor || isMapLocked) {
+          if (isMentor) {
             handleBlockedAttempt();
             e.preventDefault();
           }
@@ -118,11 +110,11 @@ export const SortableCanvasCard = memo(function SortableCanvasCard({
           !isDragging && "transition-all duration-200 ease-out",
           isRecentlyDropped && "animate-drop-settle",
           isShaking && "animate-shake",
-          (isMentor || isMapLocked) && "cursor-not-allowed"
+          isMentor && "cursor-not-allowed"
         )}
       >
         <div className="flex flex-wrap items-center gap-2 mb-2 min-h-[28px]">
-          {!isMentor && !isMapLocked && (
+          {!isMentor && (
             <button
               ref={setActivatorNodeRef}
               {...listeners}
@@ -188,7 +180,7 @@ export const SortableCanvasCard = memo(function SortableCanvasCard({
               {formatDueDate(objective.due_date)}
             </div>
           )}
-          {!isMentor && !isMapLocked && (
+          {!isMentor && (
             <Button
               size="icon"
               variant="ghost"

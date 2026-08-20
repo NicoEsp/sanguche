@@ -5,12 +5,14 @@ import {
   Clock,
   Target,
   CheckCircle,
-  TrendingUp,
+  ListChecks,
   Sparkles,
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+
+/** id de la sección de ejercicios en /mentoria, destino del CTA de esta card */
+export const MENTORIA_EXERCISES_ANCHOR = "mis-ejercicios";
 
 interface MentoriaHeroProps {
   mentoriaCompleted: boolean;
@@ -47,8 +49,6 @@ export function MentoriaHero({
   lastMentoriaDate,
   hasActiveRePremium = false,
 }: MentoriaHeroProps) {
-  const navigate = useNavigate();
-
   const handleScheduleClick = () => {
     window.open(
       "https://calendar.notion.so/meet/nicoproducto/zf4fl4q8q",
@@ -56,8 +56,11 @@ export function MentoriaHero({
     );
   };
 
-  const handleProgressClick = () => {
-    navigate("/progreso");
+  /** El Career Path tiene su propio banner debajo: acá empujamos a los ejercicios */
+  const handleExercisesClick = () => {
+    document
+      .getElementById(MENTORIA_EXERCISES_ANCHOR)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const sessionAvailable = isNewMonth(lastMentoriaDate);
@@ -153,16 +156,16 @@ export function MentoriaHero({
       badge: "Plan en marcha",
       title: "Excelente trabajo en tu última mentoría",
       description:
-        "Ahora es momento de poner en práctica lo conversado y seguir avanzando con tu Career Path.",
+        "Ahora es momento de poner en práctica lo conversado: avanzá con los ejercicios que dejaste acordados.",
       meta: [
         { icon: Target, label: "Objetivos definidos" },
         { icon: CheckCircle, label: "Plan en marcha" },
         { icon: Calendar, label: "Próxima: inicio del próximo mes" },
       ],
       cta: {
-        label: "Ver mi Career Path",
-        icon: TrendingUp,
-        onClick: handleProgressClick,
+        label: "Ver mis ejercicios",
+        icon: ListChecks,
+        onClick: handleExercisesClick,
       },
       decorIcon: CheckCircle,
     };

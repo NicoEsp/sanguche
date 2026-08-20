@@ -16,7 +16,6 @@ interface CanvasStageColumnProps {
   overId: string | null;
   toggleStep: (obj: UserProgressObjective, stepId: string) => void;
   onDeleteCustom: (id: string) => void;
-  isMapLocked: boolean;
   showEmptyState?: boolean;
   recentlyDroppedId?: string | null;
 }
@@ -28,7 +27,6 @@ export const CanvasStageColumn = memo(function CanvasStageColumn({
   overId,
   toggleStep,
   onDeleteCustom,
-  isMapLocked,
   showEmptyState,
   recentlyDroppedId,
 }: CanvasStageColumnProps) {
@@ -104,7 +102,6 @@ export const CanvasStageColumn = memo(function CanvasStageColumn({
                 objective={objective}
                 toggleStep={toggleStep}
                 onDeleteCustom={onDeleteCustom}
-                isMapLocked={isMapLocked}
                 isRecentlyDropped={recentlyDroppedId === objective.id}
                 overId={overId}
                 draggingId={draggingId}

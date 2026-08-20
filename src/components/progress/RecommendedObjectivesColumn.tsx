@@ -12,7 +12,6 @@ interface RecommendedObjectivesColumnProps {
   draggingId: string | null;
   onQuickAdd: (objective: GeneratedObjective, timeframe?: CanvasStage) => void;
   onDismiss: (objectiveKey: string) => void;
-  isMapLocked?: boolean;
   isDismissing: boolean;
 }
 
@@ -23,7 +22,6 @@ export const RecommendedObjectivesColumn = memo(function RecommendedObjectivesCo
   draggingId,
   onQuickAdd,
   onDismiss,
-  isMapLocked,
   isDismissing,
 }: RecommendedObjectivesColumnProps) {
   return (
@@ -42,7 +40,6 @@ export const RecommendedObjectivesColumn = memo(function RecommendedObjectivesCo
                 draggingId={draggingId}
                 onQuickAdd={onQuickAdd}
                 onDismiss={onDismiss}
-                isMapLocked={isMapLocked}
                 isDismissing={isDismissing}
               />
             ))}

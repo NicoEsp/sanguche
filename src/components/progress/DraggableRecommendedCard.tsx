@@ -13,7 +13,6 @@ interface DraggableRecommendedCardProps {
   draggingId: string | null;
   onQuickAdd: (objective: GeneratedObjective, timeframe?: CanvasStage) => void;
   onDismiss: (objectiveKey: string) => void;
-  isMapLocked?: boolean;
   isDismissing: boolean;
 }
 
@@ -22,7 +21,6 @@ export const DraggableRecommendedCard = memo(function DraggableRecommendedCard({
   draggingId,
   onQuickAdd,
   onDismiss,
-  isMapLocked,
   isDismissing,
 }: DraggableRecommendedCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -102,27 +100,25 @@ export const DraggableRecommendedCard = memo(function DraggableRecommendedCard({
         </Badge>
       </div>
 
-      {!isMapLocked && (
-        <div className="md:hidden mt-3">
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full"
-            onClick={(e) => {
-              e.stopPropagation();
-              onQuickAdd(objective, objective.suggestedTimeframe);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Agregar a{" "}
-            {objective.suggestedTimeframe === "now"
-              ? "En Foco"
-              : objective.suggestedTimeframe === "soon"
-                ? "Próximos"
-                : "Visión"}
-          </Button>
-        </div>
-      )}
+      <div className="md:hidden mt-3">
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full"
+          onClick={(e) => {
+            e.stopPropagation();
+            onQuickAdd(objective, objective.suggestedTimeframe);
+          }}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Agregar a{" "}
+          {objective.suggestedTimeframe === "now"
+            ? "En Foco"
+            : objective.suggestedTimeframe === "soon"
+              ? "Próximos"
+              : "Visión"}
+        </Button>
+      </div>
     </div>
   );
 });

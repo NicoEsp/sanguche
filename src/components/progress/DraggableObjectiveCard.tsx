@@ -13,7 +13,6 @@ interface DraggableObjectiveCardProps {
   locked?: boolean;
   onDelete?: (id: string) => void;
   onQuickAdd?: (objective: AvailableObjective, timeframe?: CanvasStage) => void;
-  isMapLocked?: boolean;
 }
 
 export const DraggableObjectiveCard = memo(function DraggableObjectiveCard({
@@ -22,7 +21,6 @@ export const DraggableObjectiveCard = memo(function DraggableObjectiveCard({
   locked,
   onDelete,
   onQuickAdd,
-  isMapLocked,
 }: DraggableObjectiveCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: objective.id,
@@ -83,7 +81,7 @@ export const DraggableObjectiveCard = memo(function DraggableObjectiveCard({
         {dueDate && <Badge variant="outline">{formatDueDate(dueDate)}</Badge>}
       </div>
 
-      {onQuickAdd && !locked && !isMapLocked && (
+      {onQuickAdd && !locked && (
         <div className="md:hidden mt-3">
           <Button
             size="sm"
