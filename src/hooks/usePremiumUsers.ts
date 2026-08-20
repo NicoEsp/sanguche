@@ -7,6 +7,8 @@ export interface PremiumUser {
   email: string | null;
   user_id: string;
   mentoria_completed: boolean;
+  mentoria_sessions_count: number;
+  last_mentoria_date: string | null;
   user_subscriptions: {
     plan: 'free' | 'premium' | 'repremium';
     status: 'active' | 'inactive' | 'cancelled';
@@ -26,6 +28,8 @@ export function usePremiumUsers() {
           email,
           user_id,
           mentoria_completed,
+          mentoria_sessions_count,
+          last_mentoria_date,
           user_subscriptions!inner (
             plan,
             status,

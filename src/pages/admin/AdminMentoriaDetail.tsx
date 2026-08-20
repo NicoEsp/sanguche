@@ -4,7 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Crown, Loader2, CheckCircle } from "lucide-react";
+import { ArrowLeft, Crown, Loader2, CheckCircle, Undo2 } from "lucide-react";
+import { MENTORIA_SESSION_MINUTES } from "@/hooks/useMentoriaJourney";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import AdminMentoriaExercises from "./AdminMentoriaExercises";
@@ -21,6 +22,43 @@ export default function AdminMentoriaDetail() {
   const [updatingMentoria, setUpdatingMentoria] = useState(false);
 
   const selectedUser = premiumUsers?.find(user => user.id === userId);
+  const sessionsCount = selectedUser?.mentoria_sessions_count ?? 0;
+
+  /**
+   * Registra (delta 1) o descuenta (delta -1) una sesión 1:1. El contador alimenta
+   * los minutos acumulados que la persona ve en su recorrido de mentoría.
+   */
+  const logSession = async (delta: 1 | -1) => {
+    if (!selectedUser) return;
+
+    setUpdatingMentoria(true);
+    try {
+      const { error } = await supabase.rpc('admin_log_mentoria_session', {
+        p_target_profile_id: selectedUser.id,
+        p_delta: delta,
+      });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "No se pudo actualizar el registro de sesiones",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: delta > 0 ? "✅ Sesión registrada" : "Sesión descontada",
+        description: delta > 0
+          ? `Sumamos ${MENTORIA_SESSION_MINUTES} minutos al recorrido del usuario`
+          : "Restamos la última sesión del contador"
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['premium-users'] });
+    } finally {
+      setUpdatingMentoria(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -95,38 +133,16 @@ export default function AdminMentoriaDetail() {
             })}
           </p>
           
-          {!selectedUser.mentoria_completed && (
-            <Button 
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Sesiones 1:1: {sessionsCount} ({sessionsCount * MENTORIA_SESSION_MINUTES} min)
+          </p>
+
+          <div className="flex items-center gap-2">
+            <Button
               variant="default"
               size="sm"
               disabled={updatingMentoria}
-              onClick={async () => {
-                setUpdatingMentoria(true);
-                try {
-                  const { error } = await supabase.rpc('admin_update_mentoria_status', {
-                    p_target_profile_id: selectedUser.id,
-                    p_new_status: true
-                  });
-                  
-                  if (error) {
-                    toast({
-                      title: "Error",
-                      description: "No se pudo actualizar el estado de la mentoría",
-                      variant: "destructive"
-                    });
-                  } else {
-                    toast({
-                      title: "✅ Mentoría completada",
-                      description: "El usuario ahora puede ver ejercicios y recursos asignados"
-                    });
-                    
-                    // Invalidate queries to refresh data
-                    queryClient.invalidateQueries({ queryKey: ['premium-users'] });
-                  }
-                } finally {
-                  setUpdatingMentoria(false);
-                }
-              }}
+              onClick={() => logSession(1)}
               className="flex items-center gap-2 text-xs sm:text-sm"
             >
               {updatingMentoria ? (
@@ -134,10 +150,22 @@ export default function AdminMentoriaDetail() {
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
-              <span className="hidden sm:inline">Marcar como Completada</span>
-              <span className="sm:hidden">Completar</span>
+              Registrar sesión
             </Button>
-          )}
+
+            {sessionsCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={updatingMentoria}
+                onClick={() => logSession(-1)}
+                className="text-xs sm:text-sm text-muted-foreground"
+                title="Descontar una sesión cargada por error"
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Tabs de contenido */}
