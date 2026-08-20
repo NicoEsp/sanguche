@@ -38,7 +38,6 @@ export interface DragOverlayData {
 
 interface UseDragAndDropOptions {
   profileId: string | undefined;
-  isMapLocked: boolean;
   userObjectives: UserProgressObjective[];
   recommendedObjectives: GeneratedObjective[];
   canvasObjectives: UserProgressObjective[];
@@ -109,7 +108,6 @@ function resolveTargetTimeframe(
 
 export function useDragAndDrop({
   profileId,
-  isMapLocked,
   userObjectives,
   recommendedObjectives,
   canvasObjectives,
@@ -239,7 +237,7 @@ export function useDragAndDrop({
       const { active, over } = event;
       resetDragState();
 
-      if (!over || !profileId || isMapLocked) return;
+      if (!over || !profileId) return;
 
       const draggedId = active.id as string;
       const targetId = over.id as string;
@@ -378,7 +376,6 @@ export function useDragAndDrop({
       resetDragState,
       triggerDropAnimation,
       profileId,
-      isMapLocked,
       recommendedObjectives,
       userObjectives,
       createUserObjective,

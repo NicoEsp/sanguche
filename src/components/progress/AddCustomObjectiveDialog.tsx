@@ -34,7 +34,6 @@ interface AddCustomObjectiveDialogProps {
   state: AddCustomObjectiveState;
   onStateChange: (updater: (prev: AddCustomObjectiveState) => AddCustomObjectiveState) => void;
   onSubmit: () => void;
-  isMapLocked: boolean;
   limitReached: boolean;
   remainingSlots: number;
 }
@@ -45,7 +44,6 @@ export function AddCustomObjectiveDialog({
   state,
   onStateChange,
   onSubmit,
-  isMapLocked,
   limitReached,
   remainingSlots,
 }: AddCustomObjectiveDialogProps) {
@@ -56,7 +54,7 @@ export function AddCustomObjectiveDialog({
     [onStateChange]
   );
 
-  const disabled = limitReached || isMapLocked;
+  const disabled = limitReached;
   const isCustomType = !isPresetObjectiveType(state.type);
   const selectValue = isCustomType ? OTHER_TYPE_SENTINEL : state.type;
   const handleTypeSelectChange = useCallback(
@@ -92,9 +90,7 @@ export function AddCustomObjectiveDialog({
             </TooltipTrigger>
             {disabled && (
               <TooltipContent>
-                {isMapLocked
-                  ? "Tu Career Path está guardado. Contactanos para editarlo."
-                  : `Llegaste al límite de ${MAX_CUSTOM_OBJECTIVES} objetivos personalizados.`}
+                {`Llegaste al límite de ${MAX_CUSTOM_OBJECTIVES} objetivos personalizados.`}
               </TooltipContent>
             )}
           </Tooltip>

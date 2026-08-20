@@ -14,7 +14,6 @@ interface ObjectiveAvailableColumnProps {
   locked?: boolean;
   onDelete?: (id: string) => void;
   onQuickAdd?: (objective: AvailableObjective, timeframe?: CanvasStage) => void;
-  isMapLocked?: boolean;
 }
 
 export const ObjectiveAvailableColumn = memo(function ObjectiveAvailableColumn({
@@ -25,7 +24,6 @@ export const ObjectiveAvailableColumn = memo(function ObjectiveAvailableColumn({
   locked,
   onDelete,
   onQuickAdd,
-  isMapLocked,
 }: ObjectiveAvailableColumnProps) {
   return (
     <Card className="border-dashed h-full">
@@ -47,7 +45,6 @@ export const ObjectiveAvailableColumn = memo(function ObjectiveAvailableColumn({
                 locked={locked}
                 onDelete={onDelete}
                 onQuickAdd={onQuickAdd}
-                isMapLocked={isMapLocked}
               />
             ))}
 

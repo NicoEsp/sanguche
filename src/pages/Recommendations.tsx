@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useMemo } from "react";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { MentoriaHero } from "@/components/mentoria/MentoriaHero";
+import { CareerPathBanner } from "@/components/mentoria/CareerPathBanner";
 import { ProfileAnalysis } from "@/components/mentoria/ProfileAnalysis";
 import { DedicatedResources } from "@/components/mentoria/DedicatedResources";
 import { UserExercises } from "@/components/mentoria/UserExercises";
@@ -159,6 +160,9 @@ export default function Recommendations() {
           lastMentoriaDate={profile?.last_mentoria_date}
           hasActiveRePremium={!!hasActiveRePremium}
         />
+
+        {/* Career Path push — la funcionalidad vive en /progreso y se aprovecha desde acá */}
+        <CareerPathBanner profileId={profile?.id} />
 
         {/* Assessment Required Alert */}
         {!hasAssessment && (

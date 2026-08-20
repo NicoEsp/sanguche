@@ -1,11 +1,10 @@
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
-interface ExportTrackingPayload {
+interface ExportTrackingPayload extends Record<string, unknown> {
   objectives_count: number;
   completion_rate: number;
   completed_objectives: number;
-  is_locked: boolean;
 }
 
 interface UseCareerPathPdfExportOptions {

@@ -1,17 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { AlertTriangle, Lock, Sparkles } from "lucide-react";
+import { AlertTriangle, Sparkles } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
 import { PaywallCard } from "@/components/PaywallCard";
@@ -25,8 +14,7 @@ import {
 } from "@/hooks/useUserProgressObjectives";
 import type { UserProgressObjective } from "@/hooks/useUserProgressObjectives";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import { useCareerPathPdfExport } from "@/hooks/useCareerPathPdfExport";
@@ -80,14 +68,10 @@ export default function Progress() {
   // UI state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [customState, setCustomState] = useState<AddCustomObjectiveState>(initialCustomState);
-  const [isLockDialogOpen, setIsLockDialogOpen] = useState(false);
 
   const isLoadingData = loadingRecommended || loadingUser;
   const isFullyLoaded = !subscriptionLoading && !profileLoading && !isLoadingData;
   const hasAccess = isDemoMode || hasActivePremium;
-
-  const isMapLocked =
-    userObjectives.length > 0 && userObjectives.every((obj) => obj.is_locked);
 
   const { mentorObjectives, customObjectives } = useMemo(() => {
     const mentor = userObjectives.filter((obj) => obj.source === "mentor");
@@ -142,7 +126,6 @@ export default function Progress() {
     handleDragCancel,
   } = useDragAndDrop({
     profileId,
-    isMapLocked,
     userObjectives,
     recommendedObjectives,
     canvasObjectives,
@@ -160,9 +143,8 @@ export default function Progress() {
       objectives_count: canvasObjectives.length,
       completion_rate: completionRate,
       completed_objectives: completedObjectives.length,
-      is_locked: isMapLocked,
     }),
-    [canvasObjectives.length, completionRate, completedObjectives.length, isMapLocked]
+    [canvasObjectives.length, completionRate, completedObjectives.length]
   );
   const { exportRef, isExportingPdf, handleExportPdf } = useCareerPathPdfExport({
     trackEvent,
@@ -178,7 +160,6 @@ export default function Progress() {
         objectives_count: canvasObjectives.length,
         completed_count: completedObjectives.length,
         completion_rate: completionRate,
-        is_locked: isMapLocked,
         objectives_by_stage: {
           now: objectivesByStage.now.length,
           soon: objectivesByStage.soon.length,
@@ -193,7 +174,6 @@ export default function Progress() {
     canvasObjectives.length,
     completedObjectives.length,
     completionRate,
-    isMapLocked,
     objectivesByStage,
   ]);
 
@@ -268,67 +248,11 @@ export default function Progress() {
 
   const handleDeleteCustom = useCallback(
     (id: string) => {
-      if (!profileId || isMapLocked) return;
+      if (!profileId) return;
       deleteUserObjective.mutate({ id, userId: profileId });
     },
-    [profileId, isMapLocked, deleteUserObjective]
+    [profileId, deleteUserObjective]
   );
-
-  const lockUserObjectives = useMutation({
-    mutationFn: async (userId: string) => {
-      const { error } = await supabase
-        .from("user_progress_objectives")
-        .update({
-          is_locked: true,
-          locked_at: new Date().toISOString(),
-        })
-        .eq("user_id", userId)
-        .eq("is_locked", false);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["user-progress-objectives", profileId] });
-      toast.success("Tu Career Path ha sido guardado exitosamente");
-    },
-    onError: (error: Error) => {
-      if (import.meta.env.DEV) {
-        console.error("Error locking objectives:", error);
-      }
-      toast.error("Error al guardar tu Career Path");
-    },
-  });
-
-  const handleLockCareerPath = useCallback(() => {
-    if (!profileId) return;
-
-    trackEvent("career_path_saved", {
-      objectives_count: canvasObjectives.length,
-      completion_rate: completionRate,
-      now_count: objectivesByStage.now.length,
-      soon_count: objectivesByStage.soon.length,
-      later_count: objectivesByStage.later.length,
-      source_mentor_count: mentorObjectives.length,
-      source_custom_count: customObjectives.length,
-      objectives_by_stage: {
-        now: objectivesByStage.now.length,
-        soon: objectivesByStage.soon.length,
-        later: objectivesByStage.later.length,
-      },
-    });
-
-    lockUserObjectives.mutate(profileId);
-    setIsLockDialogOpen(false);
-  }, [
-    lockUserObjectives,
-    profileId,
-    trackEvent,
-    canvasObjectives.length,
-    completionRate,
-    objectivesByStage,
-    mentorObjectives.length,
-    customObjectives.length,
-  ]);
 
   const handleDialogChange = useCallback((open: boolean) => {
     setIsDialogOpen(open);
@@ -343,8 +267,7 @@ export default function Progress() {
       customObjectiveLimitReached ||
       !customState.title.trim() ||
       !trimmedType ||
-      !profileId ||
-      isMapLocked
+      !profileId
     ) {
       return;
     }
@@ -383,7 +306,6 @@ export default function Progress() {
     customObjectiveLimitReached,
     customState,
     profileId,
-    isMapLocked,
     createUserObjective,
     handleDialogChange,
     trackEvent,
@@ -391,7 +313,7 @@ export default function Progress() {
 
   const handleQuickAddRecommended = useCallback(
     (objective: GeneratedObjective, timeframe: CanvasStage = "now") => {
-      if (!profileId || isMapLocked) return;
+      if (!profileId) return;
 
       const alreadyAssigned = userObjectives.some((obj) => obj.title === objective.title);
       if (alreadyAssigned) {
@@ -420,7 +342,7 @@ export default function Progress() {
         method: "quick_add_mobile",
       });
     },
-    [profileId, isMapLocked, userObjectives, createUserObjective, trackEvent]
+    [profileId, userObjectives, createUserObjective, trackEvent]
   );
 
   const handleDismissRecommended = useCallback(
@@ -483,22 +405,9 @@ export default function Progress() {
             totalObjectives={canvasObjectives.length}
             completedCount={completedObjectives.length}
             completionRate={completionRate}
-            isMapLocked={isMapLocked}
             isExportingPdf={isExportingPdf}
-            onSave={() => setIsLockDialogOpen(true)}
             onExport={handleExportPdf}
           />
-
-          {isMapLocked && (
-            <Alert>
-              <Lock className="h-4 w-4" />
-              <AlertTitle>Career Path Guardado</AlertTitle>
-              <AlertDescription>
-                Tu mapa ha sido guardado. Podés seguir completando los pasos de tus objetivos.
-                Para agregar o mover objetivos, contactanos.
-              </AlertDescription>
-            </Alert>
-          )}
 
           <DndContext
             sensors={sensors}
@@ -524,7 +433,6 @@ export default function Progress() {
                         overId={overId}
                         toggleStep={toggleStep}
                         onDeleteCustom={handleDeleteCustom}
-                        isMapLocked={isMapLocked}
                         showEmptyState={canvasObjectives.length === 0 && stage.key === "now"}
                         recentlyDroppedId={recentlyDroppedId}
                       />
@@ -543,80 +451,56 @@ export default function Progress() {
               {activeOverlayData ? <DragOverlayCard data={activeOverlayData} /> : null}
             </DragOverlay>
 
-            {!isMapLocked && (
-              <section className="space-y-6 print:hidden">
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-semibold">Objetivos disponibles</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Arrastrá cualquier objetivo hacia el canvas para integrarlo a tu camino
-                      profesional.
-                    </p>
-                  </div>
-
-                  <AddCustomObjectiveDialog
-                    open={isDialogOpen}
-                    onOpenChange={handleDialogChange}
-                    state={customState}
-                    onStateChange={setCustomState}
-                    onSubmit={addCustomObjective}
-                    isMapLocked={isMapLocked}
-                    limitReached={customObjectiveLimitReached}
-                    remainingSlots={remainingCustomSlots}
-                  />
+            <section className="space-y-6 print:hidden">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-semibold">Objetivos disponibles</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Arrastrá cualquier objetivo hacia el canvas para integrarlo a tu camino
+                    profesional.
+                  </p>
                 </div>
 
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                  <RecommendedObjectivesColumn
-                    title="✨ Recomendados para ti"
-                    description="Objetivos personalizados basados en tu evaluación."
-                    objectives={recommendedObjectives}
-                    draggingId={draggingId}
-                    onQuickAdd={handleQuickAddRecommended}
-                    onDismiss={handleDismissRecommended}
-                    isMapLocked={isMapLocked}
-                    isDismissing={isDismissing}
-                  />
-                  <ObjectiveAvailableColumn
-                    title="👨‍🏫 Derivados de mentorías"
-                    description="Objetivos acordados junto a tu mentor."
-                    objectives={mentorObjectives}
-                    draggingId={draggingId}
-                    locked
-                  />
-                  <ObjectiveAvailableColumn
-                    title="✍️ Personalizados"
-                    description="Define metas propias. Puedes crear hasta tres objetivos adicionales."
-                    objectives={customObjectives}
-                    draggingId={draggingId}
-                    onDelete={handleDeleteCustom}
-                  />
-                </div>
-              </section>
-            )}
+                <AddCustomObjectiveDialog
+                  open={isDialogOpen}
+                  onOpenChange={handleDialogChange}
+                  state={customState}
+                  onStateChange={setCustomState}
+                  onSubmit={addCustomObjective}
+                  limitReached={customObjectiveLimitReached}
+                  remainingSlots={remainingCustomSlots}
+                />
+              </div>
+
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <RecommendedObjectivesColumn
+                  title="✨ Recomendados para ti"
+                  description="Objetivos personalizados basados en tu evaluación."
+                  objectives={recommendedObjectives}
+                  draggingId={draggingId}
+                  onQuickAdd={handleQuickAddRecommended}
+                  onDismiss={handleDismissRecommended}
+                  isDismissing={isDismissing}
+                />
+                <ObjectiveAvailableColumn
+                  title="👨‍🏫 Derivados de mentorías"
+                  description="Objetivos acordados junto a tu mentor."
+                  objectives={mentorObjectives}
+                  draggingId={draggingId}
+                  locked
+                />
+                <ObjectiveAvailableColumn
+                  title="✍️ Personalizados"
+                  description="Define metas propias. Puedes crear hasta tres objetivos adicionales."
+                  objectives={customObjectives}
+                  draggingId={draggingId}
+                  onDelete={handleDeleteCustom}
+                />
+              </div>
+            </section>
           </DndContext>
         </div>
       </div>
-
-      <AlertDialog open={isLockDialogOpen} onOpenChange={setIsLockDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás listo para guardar tu Career Path?</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>Una vez guardado, tu mapa quedará finalizado.</p>
-              <p className="font-medium">
-                Si deseas editarlo nuevamente, deberás contactarte con nosotros.
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleLockCareerPath}>
-              Sí, guardar mi Career Path
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
