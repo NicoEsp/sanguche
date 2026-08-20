@@ -671,6 +671,7 @@ export type Database = {
           is_founder: boolean | null
           last_mentoria_date: string | null
           mentoria_completed: boolean
+          mentoria_sessions_count: number
           name: string | null
           updated_at: string
           user_id: string | null
@@ -682,6 +683,7 @@ export type Database = {
           is_founder?: boolean | null
           last_mentoria_date?: string | null
           mentoria_completed?: boolean
+          mentoria_sessions_count?: number
           name?: string | null
           updated_at?: string
           user_id?: string | null
@@ -693,6 +695,7 @@ export type Database = {
           is_founder?: boolean | null
           last_mentoria_date?: string | null
           mentoria_completed?: boolean
+          mentoria_sessions_count?: number
           name?: string | null
           updated_at?: string
           user_id?: string | null
@@ -1404,6 +1407,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_log_mentoria_session: {
+        Args: {
+          p_delta?: number
+          p_session_date?: string
+          p_target_profile_id: string
+        }
+        Returns: Json
+      }
       admin_toggle_user_role: {
         Args: {
           p_role: Database["public"]["Enums"]["app_role"]

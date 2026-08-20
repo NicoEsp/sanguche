@@ -10,6 +10,7 @@ import { useEffect, useMemo } from "react";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { MentoriaHero, MENTORIA_EXERCISES_ANCHOR } from "@/components/mentoria/MentoriaHero";
 import { CareerPathBanner } from "@/components/mentoria/CareerPathBanner";
+import { MentoriaJourneyCard } from "@/components/mentoria/MentoriaJourneyCard";
 import { ProfileAnalysis } from "@/components/mentoria/ProfileAnalysis";
 import { DedicatedResources } from "@/components/mentoria/DedicatedResources";
 import { UserExercises } from "@/components/mentoria/UserExercises";
@@ -17,6 +18,9 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { useQueryClient } from "@tanstack/react-query";
+
+/** id del bloque de suscripción, destino del CTA "Retomar la mentoría" */
+const MENTORIA_PAYWALL_ANCHOR = "retomar-mentoria";
 
 export default function Recommendations() {
   const { hasActivePremium, hasActiveRePremium, loading: subscriptionLoading } = useSubscription();
@@ -111,6 +115,16 @@ export default function Recommendations() {
 
   const isFullyLoaded = !subscriptionLoading && !profileLoading && !assessmentLoading;
 
+  // Minutos 1:1 acumulados. Lo ven tanto quienes pagan como quienes ya no,
+  // porque el recorrido es de la persona y no de la suscripción.
+  const mentoriaSessionsCount = profile?.mentoria_sessions_count ?? 0;
+
+  const scrollToPaywall = () => {
+    document
+      .getElementById(MENTORIA_PAYWALL_ANCHOR)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   // Show loading while subscription status is being determined (hasActivePremium === undefined)
   if (subscriptionLoading || assessmentLoading || profileLoading || hasActivePremium === undefined) {
     return (
@@ -130,11 +144,24 @@ export default function Recommendations() {
     return (
       <>
         <Seo />
-        <div className="container mx-auto p-6 max-w-6xl">
-          <PaywallCard
-            title="Accede a tu Mentoría Personalizada"
-            feature="mentoría personalizada"
-          />
+        <div className="container mx-auto p-6 max-w-6xl space-y-6">
+          {/* Quien fue suscriptor pago se lleva su recorrido: lo ve antes del paywall */}
+          {mentoriaSessionsCount > 0 && (
+            <MentoriaJourneyCard
+              profileId={profile?.id}
+              sessionsCount={mentoriaSessionsCount}
+              lastMentoriaDate={profile?.last_mentoria_date}
+              isActiveSubscriber={false}
+              onResume={scrollToPaywall}
+            />
+          )}
+
+          <div id={MENTORIA_PAYWALL_ANCHOR} className="scroll-mt-24">
+            <PaywallCard
+              title="Accede a tu Mentoría Personalizada"
+              feature="mentoría personalizada"
+            />
+          </div>
         </div>
       </>
     );
@@ -159,6 +186,14 @@ export default function Recommendations() {
           mentoriaCompleted={profile?.mentoria_completed || false}
           lastMentoriaDate={profile?.last_mentoria_date}
           hasActiveRePremium={!!hasActiveRePremium}
+        />
+
+        {/* Minutos 1:1 acumulados */}
+        <MentoriaJourneyCard
+          profileId={profile?.id}
+          sessionsCount={mentoriaSessionsCount}
+          lastMentoriaDate={profile?.last_mentoria_date}
+          isActiveSubscriber
         />
 
         {/* Career Path push — la funcionalidad vive en /progreso y se aprovecha desde acá */}
