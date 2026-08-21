@@ -15,6 +15,9 @@ import {
   CoursePaywall,
 } from "@/components/courses";
 import { LessonNotes } from "@/components/courses/LessonNotes";
+import { CoursePublicView } from "@/components/courses/CoursePublicView";
+import { courseSeo, type CoursePublic } from "@/seo/contentSeo";
+import { prerenderedCourse } from "@/seo/prerenderedData";
 import { useCourse } from "@/hooks/useCourse";
 import { useCourseProgress } from "@/hooks/useCourseProgress";
 import { useCourseAccess } from "@/hooks/useCourseAccess";
@@ -25,6 +28,9 @@ export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const { data: course, isLoading: courseLoading } = useCourse(slug || "");
+  // El build ya dejó la vista pública de este curso en el HTML; si es el mismo
+  // slug la reusamos para que el primer render no muestre skeleton.
+  const prerendered = prerenderedCourse(slug);
   const { hasAccess, isLoading: accessLoading } = useCourseAccess(slug, course);
   const { lessonsWithProgress, progressStats, isLoading: progressLoading } = useCourseProgress(
     course?.id || "",
@@ -65,53 +71,12 @@ export default function CourseDetail() {
     }
   }, [progressStats.isCompleted, course]);
 
-  // Build JSON-LD schema for individual course with Breadcrumbs
-  const courseSchema = course ? [
-    // Course Schema
-    {
-      "@context": "https://schema.org",
-      "@type": "Course",
-      "name": course.title,
-      "description": course.description || "",
-      "provider": {
-        "@type": "Organization",
-        "name": "ProductPrepa",
-        "sameAs": "https://productprepa.com"
-      },
-      "hasCourseInstance": {
-        "@type": "CourseInstance",
-        "courseMode": "online",
-        "courseWorkload": `PT${course.duration_minutes || 30}M`
-      },
-      ...(course.thumbnail_url && { "image": course.thumbnail_url }),
-      "url": `https://productprepa.com/cursos/${course.slug}`
-    },
-    // BreadcrumbList Schema
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Inicio",
-          "item": "https://productprepa.com"
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": "Cursos",
-          "item": "https://productprepa.com/cursos-info"
-        },
-        {
-          "@type": "ListItem",
-          "position": 3,
-          "name": course.title,
-          "item": `https://productprepa.com/cursos/${course.slug}`
-        }
-      ]
-    }
-  ] : undefined;
+  // El SEO del curso lo arma src/seo/contentSeo.ts, el mismo módulo que usa el
+  // prerender del build, así el HTML servido y el que arma el router coinciden.
+  const publicCourse: CoursePublic | undefined = course
+    ? { ...course, lessons: course.lessons ?? [] }
+    : prerendered;
+  const seo = publicCourse ? courseSeo(publicCourse) : undefined;
 
   const activeLesson = lessonsWithProgress.find((l) => l.id === activeLessonId);
 
@@ -123,6 +88,24 @@ export default function CourseDetail() {
       setActiveLessonId(lessonsWithProgress[currentIndex + 1].id);
     }
   };
+
+  // Visitante anónimo con el curso ya prerenderizado: pintamos directo, sin
+  // esperar a la query, para que el HTML servido no parpadee a skeleton.
+  if (!user && publicCourse) {
+    return (
+      <>
+        <Seo
+          title={seo!.title}
+          description={seo!.description}
+          canonical={`/cursos/${publicCourse.slug}`}
+          ogType={seo!.ogType}
+          keywords={seo!.keywords}
+          jsonLd={seo!.jsonLd}
+        />
+        <CoursePublicView course={publicCourse} />
+      </>
+    );
+  }
 
   // Loading state
   if (isLoading) {
@@ -156,134 +139,6 @@ export default function CourseDetail() {
     );
   }
 
-  // Public landing for unauthenticated users
-  if (!user) {
-    return (
-      <>
-        <Seo
-          title={`${course.title} - ProductPrepa`}
-          description={course.description || ""}
-          canonical={`/cursos/${course.slug}`}
-          ogType="course"
-          keywords={`curso ${course.slug}, producto, formación PM, aprender producto, product builder`}
-          jsonLd={courseSchema}
-        />
-
-        <div className="container max-w-4xl py-8 space-y-6">
-          {/* Back button */}
-          <Link
-            to="/cursos-info"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver a cursos
-          </Link>
-
-          {/* Course header */}
-          <div className="space-y-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              {course.title}
-            </h1>
-            {course.description && (
-              <p className="text-lg text-muted-foreground">
-                {course.description}
-              </p>
-            )}
-            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              {course.duration_minutes && (
-                <span className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  {course.duration_minutes} min
-                </span>
-              )}
-              {course.lessons && (
-                <span className="flex items-center gap-1">
-                  <BookOpen className="h-4 w-4" />
-                  {course.lessons.length} lecciones
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Thumbnail */}
-          {course.thumbnail_url && (
-            <div className="relative aspect-video rounded-xl overflow-hidden bg-muted">
-              <img
-                src={course.thumbnail_url}
-                alt={course.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-
-          {/* Outcome */}
-          {course.outcome && (
-            <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-foreground mb-2">
-                  Al finalizar este curso podrás:
-                </h3>
-                <p className="text-muted-foreground">{course.outcome}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Lesson titles (public preview - no links, no video) */}
-          {course.lessons && course.lessons.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Contenido del curso</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="space-y-2">
-                  {course.lessons.map((lesson, index) => (
-                    <div
-                      key={lesson.id}
-                      className="flex items-center gap-3 p-2 rounded-lg text-muted-foreground"
-                    >
-                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                        {index + 1}
-                      </span>
-                      <span className="text-sm">{lesson.title}</span>
-                      {lesson.duration_minutes && (
-                        <span className="ml-auto text-xs text-muted-foreground/60">
-                          {lesson.duration_minutes} min
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* CTA to register */}
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="p-8 text-center space-y-4">
-              <h2 className="text-xl font-bold text-foreground">
-                Registrate gratis para acceder
-              </h2>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Creá tu cuenta gratuita para acceder a este curso y todas las herramientas de ProductPrepa.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Button asChild size="lg">
-                  <Link to="/auth">
-                    Registrarse gratis
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg">
-                  <Link to="/planes">Ver planes</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </>
-    );
-  }
-
   // Authenticated but no access - show paywall
   if (!hasAccess) {
     return (
@@ -294,7 +149,7 @@ export default function CourseDetail() {
           canonical={`/cursos/${course.slug}`}
           ogType="course"
           keywords={`curso ${course.slug}, producto, formación PM, aprender producto, product builder`}
-          jsonLd={courseSchema}
+          jsonLd={seo?.jsonLd}
         />
         <CoursePaywall courseTitle={course.title} />
       </>
@@ -311,7 +166,7 @@ export default function CourseDetail() {
           canonical={`/cursos/${course.slug}`}
           ogType="course"
           keywords={`curso ${course.slug}, producto, formación PM, aprender producto, product builder`}
-          jsonLd={courseSchema}
+          jsonLd={seo?.jsonLd}
         />
 
         <div className="container max-w-4xl py-8 space-y-6">
@@ -401,7 +256,7 @@ export default function CourseDetail() {
         canonical={`/cursos/${course.slug}`}
         ogType="course"
         keywords={`curso ${course.slug}, producto, formación PM, aprender producto, product builder`}
-        jsonLd={courseSchema}
+        jsonLd={seo?.jsonLd}
       />
 
       <div className="container max-w-6xl py-8 space-y-6">

@@ -1,14 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { useParams, Link, Navigate } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
+import { useParams, Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Seo } from '@/components/Seo';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, CalendarDays } from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-
-const SITE_URL = 'https://productprepa.com';
+import { BlogPostArticle } from '@/components/blog/BlogPostArticle';
+import { BLOG_POST_COLUMNS, blogPostSeo, type BlogPost as Post } from '@/seo/contentSeo';
+import { prerenderedPost } from '@/seo/prerenderedData';
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
@@ -18,53 +15,18 @@ export default function BlogPost() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('blog_posts')
-        .select('id, slug, title, description, content, thumbnail_url, published_at, meta_title, meta_description, meta_keywords')
+        .select(BLOG_POST_COLUMNS)
         .eq('slug', slug!)
         .eq('status', 'published')
         .single();
       if (error) throw error;
-      return data;
+      return data as Post;
     },
     enabled: !!slug,
+    // El build ya dejó este artículo en el HTML: si es el mismo slug, el primer
+    // render del cliente es idéntico al HTML servido, sin skeleton intermedio.
+    initialData: prerenderedPost(slug),
   });
-
-  const articleSchema = post ? [
-    {
-      '@context': 'https://schema.org',
-      '@type': 'BlogPosting',
-      headline: post.meta_title || post.title,
-      description: post.meta_description || post.description || '',
-      url: `${SITE_URL}/blog/${post.slug}`,
-      datePublished: post.published_at || undefined,
-      dateModified: post.published_at || undefined,
-      author: {
-        '@type': 'Organization',
-        name: 'ProductPrepa',
-        url: SITE_URL,
-      },
-      publisher: {
-        '@type': 'Organization',
-        name: 'ProductPrepa',
-        url: SITE_URL,
-        logo: {
-          '@type': 'ImageObject',
-          url: `${SITE_URL}/favicon.png`,
-        },
-      },
-      ...(post.thumbnail_url && { image: post.thumbnail_url }),
-      inLanguage: 'es',
-      isAccessibleForFree: true,
-    },
-    {
-      '@context': 'https://schema.org',
-      '@type': 'BreadcrumbList',
-      itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Inicio', item: SITE_URL },
-        { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
-        { '@type': 'ListItem', position: 3, name: post.title, item: `${SITE_URL}/blog/${post.slug}` },
-      ],
-    },
-  ] : undefined;
 
   if (isLoading) {
     return (
@@ -83,85 +45,24 @@ export default function BlogPost() {
     return <Navigate to="/blog" replace />;
   }
 
+  const seo = blogPostSeo(post);
+
   return (
     <>
+      {/* Los mismos valores que el build escribió en el <head>. Acá sólo
+          importan al navegar client-side entre artículos. */}
       <Seo
-        title={post.meta_title || `${post.title} | ProductPrepa`}
-        description={post.meta_description || post.description || ''}
-        canonical={`/blog/${post.slug}`}
-        keywords={post.meta_keywords || undefined}
-        ogType="article"
-        image={post.thumbnail_url || undefined}
-        jsonLd={articleSchema}
-        articlePublishedTime={post.published_at || undefined}
+        title={seo.title}
+        description={seo.description}
+        canonical={seo.canonical}
+        keywords={seo.keywords}
+        ogType={seo.ogType}
+        image={seo.image}
+        imageAlt={seo.imageAlt}
+        jsonLd={seo.jsonLd}
+        articlePublishedTime={seo.publishedTime}
       />
-
-      <div className="container max-w-3xl py-12 space-y-8">
-        <Link
-          to="/blog"
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver al blog
-        </Link>
-
-        <header className="space-y-4">
-          {post.published_at && (
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <CalendarDays className="h-3.5 w-3.5" />
-              <time dateTime={post.published_at}>
-                {format(new Date(post.published_at), "d 'de' MMMM, yyyy", { locale: es })}
-              </time>
-            </div>
-          )}
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">
-            {post.title}
-          </h1>
-          {post.description && (
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              {post.description}
-            </p>
-          )}
-        </header>
-
-        {post.thumbnail_url && (
-          <div className="aspect-video rounded-xl overflow-hidden bg-muted">
-            <img
-              src={post.thumbnail_url}
-              alt={post.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
-
-        <article
-          className="prose prose-neutral dark:prose-invert max-w-none
-            prose-headings:font-semibold prose-headings:text-foreground
-            prose-p:text-foreground/80 prose-p:leading-relaxed
-            prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-            prose-strong:text-foreground prose-strong:font-semibold
-            prose-li:text-foreground/80"
-        >
-          <ReactMarkdown>{post.content}</ReactMarkdown>
-        </article>
-
-        <div className="border-t border-border pt-8">
-          <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 space-y-3 text-center">
-            <h3 className="font-semibold text-foreground text-lg">
-              ¿Querés crecer como Product Builder?
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              Hacé la autoevaluación gratuita y descubrí qué habilidades necesitás desarrollar.
-            </p>
-            <Link
-              to="/autoevaluacion"
-              className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-6 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              Evaluar mis habilidades gratis
-            </Link>
-          </div>
-        </div>
-      </div>
+      <BlogPostArticle post={post} />
     </>
   );
 }
