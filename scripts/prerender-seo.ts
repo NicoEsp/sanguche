@@ -93,6 +93,15 @@ export const prerenderSeoPlugin = () => ({
         write(route, applySeo(template, blankSeo(route), 'noindex, nofollow'));
       }
 
+      // La landing de la evaluación no sale de Supabase, pero es un componente
+      // puro, así que también se sirve con el contenido en el HTML.
+      writeContent(
+        '/evaluacion-product-manager',
+        routeSeo(SEO_ROUTES['/evaluacion-product-manager']),
+        render.renderEvaluacionLanding(),
+        undefined
+      );
+
       // ---- Contenido de Supabase, con el HTML completo en la respuesta -----
       const listItems = posts.map(({ id, slug, title, description, published_at }) => ({
         id,

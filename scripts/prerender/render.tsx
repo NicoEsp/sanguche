@@ -5,6 +5,7 @@ import { BlogPostArticle } from '@/components/blog/BlogPostArticle';
 import { BlogPostList, type BlogListItem } from '@/components/blog/BlogPostList';
 import { CoursePublicView } from '@/components/courses/CoursePublicView';
 import type { BlogPost, CoursePublic } from '@/seo/contentSeo';
+import EvaluacionProductManager from '@/pages/EvaluacionProductManager';
 
 /**
  * Render a HTML estático, en build time, de las vistas cuyo contenido vive en
@@ -30,3 +31,10 @@ export const renderBlogList = (posts: BlogListItem[]) =>
 
 export const renderCourse = (course: CoursePublic) =>
   render(`/cursos/${course.slug}`, <CoursePublicView course={course} />);
+
+/**
+ * Landing pública de la evaluación. No sale de Supabase, pero es un componente
+ * puro igual que los otros, así que se prerenderiza con la misma maquinaria.
+ */
+export const renderEvaluacionLanding = () =>
+  render('/evaluacion-product-manager', <EvaluacionProductManager />);

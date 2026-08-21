@@ -1,6 +1,7 @@
 import { soyDevFaqs } from './faqs/soyDev';
 import { empresasFaqs } from './faqs/empresas';
 import { homeFaqs } from './faqs/home';
+import { evaluacionFaqs } from './faqs/evaluacion';
 
 export interface SeoRouteData {
   title: string;
@@ -37,6 +38,41 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
             text: faq.answer,
           },
         })),
+      },
+    ],
+  },
+
+  '/evaluacion-product-manager': {
+    title: 'Evaluación de Product Manager gratis | Descubrí tu nivel — ProductPrepa',
+    description:
+      'Evaluación gratuita de Product Manager en 5 minutos. Un radar con tus competencias de Producto, tus áreas de mejora y una recomendación a tu medida. Sin experiencia previa.',
+    canonical: `${SITE_URL}/evaluacion-product-manager`,
+    keywords:
+      'evaluacion product manager, test product manager, autoevaluacion PM, evaluar habilidades product manager, nivel de seniority PM, diagnostico product manager',
+    image: DEFAULT_IMAGE,
+    imageAlt: DEFAULT_IMAGE_ALT,
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: evaluacionFaqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+        })),
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Inicio', item: SITE_URL },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Evaluación de Product Manager',
+            item: `${SITE_URL}/evaluacion-product-manager`,
+          },
+        ],
       },
     ],
   },
