@@ -70,9 +70,25 @@ set updated_at = now()
 where id = (select id from blog_posts where status = 'published' limit 1);
 ```
 
-Después, `select status_code, url from net._http_response order by created desc
-limit 3;` tiene que mostrar un 201 contra `api.vercel.com`, y en Vercel aparece
-un deploy con source `Deploy Hook`. Cuando termina:
+pg_net es asíncrono: encola el POST y devuelve al instante, así que esperá unos
+segundos antes de mirar la respuesta.
+
+```sql
+-- Ojo: _http_response no guarda la URL en esta versión de pg_net, sólo la
+-- respuesta. La fila del hook es la que trae el job de Vercel.
+select id, status_code, timed_out, error_msg, created, left(content, 200) as respuesta
+from net._http_response
+order by created desc
+limit 5;
+```
+
+Tiene que aparecer un **201** con un cuerpo así:
+
+```json
+{"job":{"id":"8mY4QC3UDHPwuO7RoJs8","state":"PENDING","createdAt":1787413622012}}
+```
+
+y en Vercel un deploy con source `Deploy Hook`. Cuando termina:
 
 ```bash
 curl -s https://productprepa.com/blog/<slug> | grep -c "<h1"
