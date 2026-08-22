@@ -30,9 +30,6 @@ const PROTECTED_ROUTES = [
   '/admin',
 ];
 
-/** Rutas que renderizan la misma página que otra y canonicalizan ahí. */
-const CANONICAL_OVERRIDES: Record<string, string> = { '/descargables': '/preguntas' };
-
 /**
  * Prerender de las rutas públicas, después del build de Vite.
  *
@@ -114,7 +111,7 @@ export const prerenderSeoPlugin = () => ({
       // Es lo que este plugin ya hacía. La home queda en dist/index.html, que
       // además es el shell del catch-all de vercel.json.
       for (const [route, data] of Object.entries(SEO_ROUTES)) {
-        const seo = routeSeo(data, CANONICAL_OVERRIDES[route]);
+        const seo = routeSeo(data);
         const noindex = PROTECTED_ROUTES.includes(route) ? 'noindex, nofollow' : undefined;
         write(route, applySeo(template, seo, noindex));
       }
@@ -169,12 +166,12 @@ export const prerenderSeoPlugin = () => ({
 });
 
 /** Adapta una entrada de SEO_ROUTES a la forma que usa applySeo. */
-function routeSeo(data: SeoRouteData, canonicalOverride?: string): ContentSeo {
+function routeSeo(data: SeoRouteData): ContentSeo {
   const jsonLd = data.jsonLd ? (Array.isArray(data.jsonLd) ? data.jsonLd : [data.jsonLd]) : [];
   return {
     title: data.title,
     description: data.description,
-    canonical: canonicalOverride ? `${SITE_URL}${canonicalOverride}` : data.canonical,
+    canonical: data.canonical,
     image: data.image || DEFAULT_OG_IMAGE,
     imageAlt: data.imageAlt || DEFAULT_IMAGE_ALT,
     ogType: data.ogType || 'website',

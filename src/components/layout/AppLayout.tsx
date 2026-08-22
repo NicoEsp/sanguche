@@ -1,4 +1,5 @@
 import { ReactNode, useState } from "react";
+import { Link } from "react-router-dom";
 import { Twitter, Linkedin } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,6 +7,7 @@ import { AppSidebar } from "./AppSidebar";
 import { MobileNav } from "./MobileNav";
 import { LandingHeader } from "./LandingHeader";
 import { Skeleton } from "@/components/ui/skeleton";
+import { footerLinks } from "@/constants/navigation";
 import { cn } from "@/lib/utils";
 
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -96,8 +98,21 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <main className="flex-1">{children}</main>
 
         <footer className="border-t bg-background">
-          <div className="container py-6">
-            <p className="text-sm text-muted-foreground text-center">
+          <div className="container py-8">
+            {/* Presente en todas las páginas: la entrada más barata a las rutas
+                públicas que no se linkean desde ningún otro lado. */}
+            <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+              {footerLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+            <p className="mt-6 text-sm text-muted-foreground text-center">
               © {new Date().getFullYear()} ProductPrepa
             </p>
           </div>

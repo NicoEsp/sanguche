@@ -9,15 +9,16 @@ const STATIC_ROUTES = [
   { path: '/cursos-info', priority: '0.9', changefreq: 'weekly' },
   { path: '/evaluacion-product-manager', priority: '0.9', changefreq: 'monthly' },
   { path: '/empresas', priority: '0.9', changefreq: 'monthly' },
-  { path: '/preguntas', priority: '0.8', changefreq: 'monthly' },
+  { path: '/descargables', priority: '0.8', changefreq: 'monthly' },
   { path: '/soy-dev', priority: '0.8', changefreq: 'monthly' },
   { path: '/blog', priority: '0.8', changefreq: 'weekly' },
 ]
 // Fuera del sitemap a propósito:
 //   /autoevaluacion y /mejoras son ProtectedRoute: un crawler anónimo termina
 //     redirigido a /auth, así que no hay nada que indexar. Se sirven con noindex.
-//   /descargables renderiza la misma página que /preguntas, y listar las dos es
-//     pedirle a Google que elija entre contenido duplicado.
+//   /preguntas 301ea a /descargables (vercel.json), así que la que se lista es
+//     la canónica; la vieja no va al sitemap para no pedirle a Google que
+//     rastree un redirect.
 
 Deno.serve(async () => {
   const supabase = createClient(

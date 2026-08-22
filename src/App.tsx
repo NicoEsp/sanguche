@@ -130,7 +130,11 @@ const App = () => (
                       <Route path="/welcome" element={<Welcome />} />
                       <Route path="/gracias-review" element={<GraciasReview />} />
                       <Route path="/gracias-b2b" element={<GraciasB2B />} />
-                      <Route path="/preguntas" element={<Descargables />} />
+                      {/* /descargables es la canónica: describe el contenido
+                          y concentra el SEO. /preguntas queda como redirect
+                          porque está compartida en mails y PDFs ya enviados
+                          (vercel.json la 301ea antes de que llegue acá). */}
+                      <Route path="/preguntas" element={<Navigate to="/descargables" replace />} />
                       <Route path="/descargables" element={<Descargables />} />
                       <Route path="/soy-dev" element={<SoyDev />} />
                       <Route path="/evaluacion-product-manager" element={<EvaluacionProductManager />} />

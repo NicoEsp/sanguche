@@ -251,7 +251,7 @@ export default function SkillGaps() {
                       {g.prioridad === "Alta" && !hasActivePremium && (
                         <ContextualCTA
                           skillName={g.label}
-                          ctaPath={typeDef ? typeDef.plan.route : "/premium"}
+                          ctaPath={typeDef ? typeDef.plan.route : "/planes"}
                           onCtaClick={() => handleCtaClick('contextual_skill_card', g.label)}
                         />
                       )}
@@ -283,7 +283,7 @@ export default function SkillGaps() {
                 />
               ) : gaps.length > 0 ? (
                 <PremiumCTACard
-                  ctaPath="/premium"
+                  ctaPath="/planes"
                   onCtaClick={() => handleCtaClick('premium_cta_card')}
                 />
               ) : null

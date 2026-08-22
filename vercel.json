@@ -1,4 +1,8 @@
 {
+  "redirects": [
+    { "source": "/preguntas", "destination": "/descargables", "permanent": true },
+    { "source": "/premium", "destination": "/planes", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "https://lgscevufwnetegglgpnw.supabase.co/functions/v1/sitemap" },
     { "source": "/(.*)", "destination": "/index.html" }
