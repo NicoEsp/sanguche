@@ -39,6 +39,7 @@ const Descargables = lazy(() => import("./pages/Descargables"));
 
 // Soy Dev
 const SoyDev = lazy(() => import("./pages/SoyDev"));
+const EvaluacionProductManager = lazy(() => import("./pages/EvaluacionProductManager"));
 
 // Empresas (B2B)
 const Empresas = lazy(() => import("./pages/Empresas"));
@@ -132,6 +133,7 @@ const App = () => (
                       <Route path="/preguntas" element={<Descargables />} />
                       <Route path="/descargables" element={<Descargables />} />
                       <Route path="/soy-dev" element={<SoyDev />} />
+                      <Route path="/evaluacion-product-manager" element={<EvaluacionProductManager />} />
                       <Route path="/empresas" element={<Empresas />} />
                       <Route path="/sesion/:slug" element={<SessionReservation />} />
                       <Route path="/blog" element={<BlogList />} />
