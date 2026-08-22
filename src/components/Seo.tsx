@@ -1,8 +1,10 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { SEO_ROUTES, type SeoRouteData } from "@/seo/routes";
+// Misma constante que usa el prerender del build (ver src/seo/contentSeo.ts).
+import { SITE_URL } from "@/seo/contentSeo";
 
-const SITE_URL = 'https://productprepa.com';
+
 
 export type SeoProps = Partial<SeoRouteData> & {
   /** Override title completely */

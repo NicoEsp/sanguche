@@ -43,15 +43,22 @@ export function applySeo(html: string, seo: ContentSeo, robots?: string): string
     /<link\s+[^>]*?rel=["']canonical["'][^>]*?>/i,
     `<link rel="canonical" href="${escapeAttr(seo.canonical)}" />`
   );
-  html = setMeta(html, 'name', 'description', seo.description);
+  // Un tag vacío es peor que ninguno para buscadores y previews, y pasa cuando
+  // el artículo no tiene meta_description ni description cargadas. Ojo: no
+  // alcanza con no escribirlo, porque entonces quedaría el del shell, que es el
+  // de la home — peor todavía que uno vacío. Si no hay texto, se borra.
+  const withDescription = (h: string, attr: 'name' | 'property', key: string) =>
+    seo.description ? setMeta(h, attr, key, seo.description) : dropMeta(h, attr, key);
+
+  html = withDescription(html, 'name', 'description');
   html = setMeta(html, 'property', 'og:type', seo.ogType);
   html = setMeta(html, 'property', 'og:url', seo.canonical);
   html = setMeta(html, 'property', 'og:title', seo.title);
-  html = setMeta(html, 'property', 'og:description', seo.description);
+  html = withDescription(html, 'property', 'og:description');
   html = setMeta(html, 'property', 'og:image', seo.image);
   html = setMeta(html, 'property', 'og:image:alt', seo.imageAlt);
   html = setMeta(html, 'name', 'twitter:title', seo.title);
-  html = setMeta(html, 'name', 'twitter:description', seo.description);
+  html = withDescription(html, 'name', 'twitter:description');
   html = setMeta(html, 'name', 'twitter:image', seo.image);
   html = setMeta(html, 'name', 'twitter:image:alt', seo.imageAlt);
   if (robots) html = setMeta(html, 'name', 'robots', robots);
@@ -128,6 +135,12 @@ export function assertSeo(html: string, route: string, seo: ContentSeo): void {
   else if (!canonicals[0].includes(`href="${escapeAttr(seo.canonical)}"`)) {
     fail(`el canonical no apunta a ${seo.canonical}`);
   }
+
+  const description = html.match(/<meta\s+[^>]*?name=["']description["'][^>]*?content=["']([^"']*)["']/i);
+  if (seo.description && description?.[1] !== escapeAttr(seo.description)) {
+    fail('la <meta name="description"> no es la de esta ruta');
+  }
+  if (!seo.description && description) fail('quedó la <meta name="description"> del shell');
 
   // Sin comentarios HTML: no se renderizan, y uno que mencione un h1 en prosa
   // no debería hacer fallar el build.

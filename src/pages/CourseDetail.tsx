@@ -97,9 +97,11 @@ export default function CourseDetail() {
         <Seo
           title={seo!.title}
           description={seo!.description}
-          canonical={`/cursos/${publicCourse.slug}`}
+          canonical={seo!.canonical}
           ogType={seo!.ogType}
           keywords={seo!.keywords}
+          image={seo!.image}
+          imageAlt={seo!.imageAlt}
           jsonLd={seo!.jsonLd}
         />
         <CoursePublicView course={publicCourse} />
@@ -146,9 +148,11 @@ export default function CourseDetail() {
         <Seo
           title={`${course.title} - ProductPrepa`}
           description={course.description || ""}
-          canonical={`/cursos/${course.slug}`}
-          ogType="course"
-          keywords={`curso ${course.slug}, producto, formación PM, aprender producto, product builder`}
+          canonical={seo?.canonical}
+          ogType={seo?.ogType}
+          keywords={seo?.keywords}
+          image={seo?.image}
+          imageAlt={seo?.imageAlt}
           jsonLd={seo?.jsonLd}
         />
         <CoursePaywall courseTitle={course.title} />
@@ -163,9 +167,11 @@ export default function CourseDetail() {
         <Seo
           title={`${course.title} - ProductPrepa`}
           description={course.description || ""}
-          canonical={`/cursos/${course.slug}`}
-          ogType="course"
-          keywords={`curso ${course.slug}, producto, formación PM, aprender producto, product builder`}
+          canonical={seo?.canonical}
+          ogType={seo?.ogType}
+          keywords={seo?.keywords}
+          image={seo?.image}
+          imageAlt={seo?.imageAlt}
           jsonLd={seo?.jsonLd}
         />
 
@@ -251,11 +257,13 @@ export default function CourseDetail() {
   return (
     <>
       <Seo
-        title={`${course.title} - ProductPrepa`}
-        description={course.description || ""}
-        canonical={`/cursos/${course.slug}`}
-        ogType="course"
-        keywords={`curso ${course.slug}, producto, formación PM, aprender producto, product builder`}
+        title={seo?.title}
+        description={seo?.description}
+        canonical={seo?.canonical}
+        ogType={seo?.ogType}
+        keywords={seo?.keywords}
+        image={seo?.image}
+        imageAlt={seo?.imageAlt}
         jsonLd={seo?.jsonLd}
       />
 

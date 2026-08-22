@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { CalendarDays, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /** Campos que el listado necesita de cada artículo. */
 export interface BlogListItem {
@@ -17,9 +18,19 @@ export interface BlogListItem {
  * BlogPostArticle: lo renderiza el cliente y también el build con
  * renderToStaticMarkup. Ver el comentario de BlogPostArticle.tsx.
  *
+ * El encabezado vive acá y no en la página, para que el título y la bajada
+ * tengan una sola fuente: antes se repetían en el estado de carga de
+ * BlogList.tsx y una edición en un lado no llegaba al otro.
+ *
  * El <h1> "Blog de Producto" es el único h1; cada artículo del listado es h2.
  */
-export function BlogPostList({ posts }: { posts: BlogListItem[] }) {
+export function BlogPostList({
+  posts,
+  state,
+}: {
+  posts: BlogListItem[];
+  state?: 'loading' | 'error';
+}) {
   return (
     <div className="container max-w-4xl py-12 space-y-10">
       <div className="space-y-3">
@@ -31,7 +42,24 @@ export function BlogPostList({ posts }: { posts: BlogListItem[] }) {
         </p>
       </div>
 
-      {posts.length === 0 ? (
+      {state === 'loading' ? (
+        <div className="space-y-8">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="space-y-3 pb-8 border-b border-border last:border-0">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-7 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          ))}
+        </div>
+      ) : state === 'error' ? (
+        // Sin esto, una query fallida caía en "no hay artículos" y el visitante
+        // no podía distinguir un blog vacío de un error de red.
+        <p className="text-muted-foreground">
+          No pudimos cargar los artículos. Probá de nuevo en unos minutos.
+        </p>
+      ) : posts.length === 0 ? (
         <p className="text-muted-foreground">No hay artículos publicados aún.</p>
       ) : (
         <div className="space-y-8">

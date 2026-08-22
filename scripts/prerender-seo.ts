@@ -18,7 +18,17 @@ const DEFAULT_IMAGE_ALT = 'ProductPrepa - Plataforma para crecer en Producto';
  * Rutas detrás de ProtectedRoute: para un visitante anónimo redirigen a /auth,
  * o sea que no tienen contenido que indexar. Se sirven con noindex.
  */
-const PROTECTED_ROUTES = ['/autoevaluacion', '/mejoras', '/mentoria', '/progreso', '/perfil', '/cursos'];
+const PROTECTED_ROUTES = [
+  '/autoevaluacion',
+  '/mejoras',
+  '/mentoria',
+  '/progreso',
+  '/perfil',
+  '/cursos',
+  // /admin ya está bloqueada en robots.txt; el noindex es cinturón y tiradores
+  // por si alguna vez se llega a la URL desde un link.
+  '/admin',
+];
 
 /** Rutas que renderizan la misma página que otra y canonicalizan ahí. */
 const CANONICAL_OVERRIDES: Record<string, string> = { '/descargables': '/preguntas' };
@@ -57,19 +67,40 @@ export const prerenderSeoPlugin = () => ({
       return;
     }
     const template = fs.readFileSync(templatePath, 'utf-8');
+    const builtAt = Date.now();
 
     const { posts, courses } = await fetchContent();
     const loader = await createSsrLoader(root);
 
     const write = (route: string, html: string) => {
       const outDir = route === '/' ? distDir : path.join(distDir, route.replace(/^\//, ''));
+      // Los slugs salen de la base. Sólo un admin puede escribirlos y las dos
+      // tablas los declaran UNIQUE NOT NULL, sin validar la forma: un valor
+      // como ".." pisaría dist/index.html y "../../x" escribiría fuera de dist.
+      // Chequeo de contención antes de tocar el filesystem.
+      const relative = path.relative(distDir, outDir);
+      if (relative.startsWith('..') || path.isAbsolute(relative)) {
+        throw new Error(`[prerender] La ruta ${route} escaparía de dist/, no se escribe.`);
+      }
       fs.mkdirSync(outDir, { recursive: true });
       fs.writeFileSync(path.join(outDir, 'index.html'), html);
     };
 
+    /** Un slug tiene que ser un único segmento de URL, sin travesías ni barras. */
+    const safeSlug = (slug: string, kind: string) => {
+      if (!slug || slug.includes('/') || slug.includes('\\') || slug === '.' || slug === '..') {
+        throw new Error(`[prerender] Slug inválido en ${kind}: ${JSON.stringify(slug)}`);
+      }
+      return slug;
+    };
+
     /** Escribe una ruta con contenido real dentro del #root y la verifica. */
-    const writeContent = (route: string, seo: ContentSeo, body: string, seed: unknown) => {
-      const html = injectAppHtml(applySeo(template, seo, 'index, follow'), body, seed);
+    const writeContent = (route: string, seo: ContentSeo, body: string, seed?: object) => {
+      const html = injectAppHtml(
+        applySeo(template, seo, 'index, follow'),
+        body,
+        seed ? { builtAt, ...seed } : undefined
+      );
       assertSeo(html, route, seo);
       write(route, html);
     };
@@ -116,10 +147,12 @@ export const prerenderSeoPlugin = () => ({
       });
 
       for (const post of posts) {
+        safeSlug(post.slug, 'blog_posts');
         writeContent(`/blog/${post.slug}`, blogPostSeo(post), render.renderBlogPost(post), { post });
       }
 
       for (const course of courses) {
+        safeSlug(course.slug, 'courses');
         writeContent(`/cursos/${course.slug}`, courseSeo(course), render.renderCourse(course), {
           course,
         });

@@ -31,7 +31,7 @@ export function CoursePublicView({ course }: { course: CoursePublic }) {
           <p className="text-lg text-muted-foreground">{course.description}</p>
         )}
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-          {course.duration_minutes && (
+          {course.duration_minutes != null && course.duration_minutes > 0 && (
             <span className="flex items-center gap-1">
               <Clock className="h-4 w-4" />
               {course.duration_minutes} min
@@ -81,7 +81,7 @@ export function CoursePublicView({ course }: { course: CoursePublic }) {
                     {index + 1}
                   </span>
                   <span className="text-sm">{lesson.title}</span>
-                  {lesson.duration_minutes && (
+                  {lesson.duration_minutes != null && lesson.duration_minutes > 0 && (
                     <span className="ml-auto text-xs text-muted-foreground/60">
                       {lesson.duration_minutes} min
                     </span>

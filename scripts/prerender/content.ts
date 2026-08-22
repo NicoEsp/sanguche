@@ -34,9 +34,23 @@ async function select<T>(path: string): Promise<T[]> {
     );
   }
 
-  const response = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/${path}`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}` },
-  });
+  // PostgREST corta en max-rows (1000 por defecto en Supabase) sin avisar. Lo
+  // pedimos explícito para poder detectar el tope más abajo: publicar el
+  // listado a medias es justo el bug que este prerender viene a resolver.
+  const LIMIT = 1000;
+
+  let response: Response;
+  try {
+    response = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/${path}&limit=${LIMIT}`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+      // Sin timeout, un Supabase que no responde cuelga el build hasta que lo
+      // mata Vercel, sin dejar dicho por qué.
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`[prerender] No se pudo consultar ${path} en Supabase: ${reason}`);
+  }
 
   if (!response.ok) {
     const body = await response.text().catch(() => '');
@@ -46,7 +60,18 @@ async function select<T>(path: string): Promise<T[]> {
       `[prerender] Supabase respondió ${response.status} pidiendo ${path}.\n${body.slice(0, 300)}`
     );
   }
-  return response.json();
+
+  const rows = await response.json();
+  if (!Array.isArray(rows)) {
+    throw new Error(`[prerender] Respuesta inesperada de Supabase para ${path}: se esperaba un array.`);
+  }
+  if (rows.length >= LIMIT) {
+    throw new Error(
+      `[prerender] ${path} devolvió ${rows.length} filas, el tope de la consulta. ` +
+        'Habría contenido sin prerenderizar: hay que paginar antes de seguir.'
+    );
+  }
+  return rows as T[];
 }
 
 interface RawCourse extends Omit<CoursePublic, 'lessons'> {

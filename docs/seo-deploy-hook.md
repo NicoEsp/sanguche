@@ -64,7 +64,10 @@ esto viene a resolver.
 ## Probar
 
 ```sql
-update blog_posts set updated_at = now() where status = 'published' limit 1;
+-- Postgres no acepta LIMIT en UPDATE: hay que elegir la fila en un subselect.
+update blog_posts
+set updated_at = now()
+where id = (select id from blog_posts where status = 'published' limit 1);
 ```
 
 Después, `select status_code, url from net._http_response order by created desc

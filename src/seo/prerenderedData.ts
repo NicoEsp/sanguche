@@ -11,6 +11,14 @@ import type { BlogListItem } from '@/components/blog/BlogPostList';
  * reemplazo del DOM es idéntico a lo que recibió el crawler.
  */
 interface PrerenderedData {
+  /**
+   * Momento del build. Se usa como initialDataUpdatedAt: react-query considera
+   * los datos vencidos desde el deploy, así que pinta al instante con lo
+   * prerenderizado y revalida en segundo plano. Sin esto los trataría como
+   * recién traídos y, con refetchOnMount en false a nivel global, no se
+   * refrescarían nunca dentro de la sesión.
+   */
+  builtAt?: number;
   post?: BlogPost;
   posts?: BlogListItem[];
   course?: CoursePublic;
@@ -42,3 +50,5 @@ export const prerenderedCourse = (slug?: string): CoursePublic | undefined => {
 };
 
 export const prerenderedPosts = (): BlogListItem[] | undefined => read()?.posts;
+
+export const prerenderedAt = (): number | undefined => read()?.builtAt;

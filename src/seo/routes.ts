@@ -1,6 +1,9 @@
 import { soyDevFaqs } from './faqs/soyDev';
 import { empresasFaqs } from './faqs/empresas';
 import { homeFaqs } from './faqs/home';
+// SITE_URL vive en contentSeo.ts: una sola definición para build y cliente,
+// así los canonical del HTML servido y los del router no pueden divergir.
+import { SITE_URL } from './contentSeo';
 import { evaluacionFaqs } from './faqs/evaluacion';
 
 export interface SeoRouteData {
@@ -14,7 +17,7 @@ export interface SeoRouteData {
   jsonLd?: object | object[];
 }
 
-const SITE_URL = 'https://productprepa.com';
+
 const DEFAULT_IMAGE = `${SITE_URL}/og-preview-v3.png`;
 const DEFAULT_IMAGE_ALT = 'ProductPrepa - Plataforma para crecer en Producto';
 

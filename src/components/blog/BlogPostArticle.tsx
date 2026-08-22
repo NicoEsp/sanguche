@@ -17,8 +17,8 @@ import type { BlogPost } from '@/seo/contentSeo';
  * El único requisito del entorno es un Router en contexto, por los <Link>:
  * BrowserRouter en el cliente, StaticRouter en el build.
  *
- * El <h1> del título vive acá y es el único de la página. El markdown del
- * cuerpo arranca en h2 (lo verifica assertSeo en el build).
+ * El <h1> del título vive acá y es el único de la página: los h1 del markdown
+ * se remapean a h2 más abajo, y assertSeo lo verifica en el build.
  */
 export function BlogPostArticle({ post }: { post: BlogPost }) {
   return (
@@ -68,7 +68,10 @@ export function BlogPostArticle({ post }: { post: BlogPost }) {
           prose-strong:text-foreground prose-strong:font-semibold
           prose-li:text-foreground/80"
       >
-        <ReactMarkdown>{post.content}</ReactMarkdown>
+        {/* Si el markdown del artículo trae un "# Título", saldría un segundo
+            h1 y assertSeo cortaría el build. Los bajamos a h2 para que el único
+            h1 siga siendo el título del post. */}
+        <ReactMarkdown components={{ h1: 'h2' }}>{post.content}</ReactMarkdown>
       </article>
 
       <div className="border-t border-border pt-8">

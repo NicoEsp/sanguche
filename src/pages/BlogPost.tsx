@@ -5,7 +5,7 @@ import { Seo } from '@/components/Seo';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BlogPostArticle } from '@/components/blog/BlogPostArticle';
 import { BLOG_POST_COLUMNS, blogPostSeo, type BlogPost as Post } from '@/seo/contentSeo';
-import { prerenderedPost } from '@/seo/prerenderedData';
+import { prerenderedAt, prerenderedPost } from '@/seo/prerenderedData';
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();

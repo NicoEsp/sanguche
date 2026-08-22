@@ -80,7 +80,7 @@ export function blogPostSeo(post: BlogPost): ContentSeo {
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
         headline: post.title,
-        description,
+        ...(description && { description }),
         url: canonical,
         mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
         ...(post.published_at && { datePublished: post.published_at }),
@@ -144,7 +144,7 @@ export function courseSeo(course: CoursePublic): ContentSeo {
         '@context': 'https://schema.org',
         '@type': 'Course',
         name: course.title,
-        description,
+        ...(description && { description }),
         provider: { '@type': 'Organization', name: 'ProductPrepa', sameAs: SITE_URL },
         hasCourseInstance: {
           '@type': 'CourseInstance',
