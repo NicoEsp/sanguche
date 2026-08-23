@@ -1,3 +1,7 @@
+# /premium y /preguntas NO se bloquean acá a propósito: vercel.json las 301ea
+# a /planes y /descargables, y un Disallow impediría que Googlebot llegue a ver
+# el redirect y traspase la señal a la URL nueva.
+
 User-agent: Googlebot
 Allow: /
 Disallow: /admin
@@ -6,7 +10,6 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 User-agent: Bingbot
 Allow: /
@@ -16,7 +19,6 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 User-agent: Twitterbot
 Allow: /
@@ -33,7 +35,6 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 User-agent: OAI-SearchBot
 Allow: /
@@ -43,7 +44,6 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 User-agent: ChatGPT-User
 Allow: /
@@ -53,7 +53,6 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 User-agent: ClaudeBot
 Allow: /
@@ -63,7 +62,6 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 User-agent: Claude-Web
 Allow: /
@@ -73,7 +71,6 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 User-agent: anthropic-ai
 Allow: /
@@ -83,7 +80,6 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 User-agent: PerplexityBot
 Allow: /
@@ -93,7 +89,6 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 User-agent: Perplexity-User
 Allow: /
@@ -103,7 +98,6 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 User-agent: Google-Extended
 Allow: /
@@ -113,7 +107,6 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 User-agent: Applebot-Extended
 Allow: /
@@ -123,7 +116,6 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 User-agent: CCBot
 Allow: /
@@ -133,7 +125,6 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 User-agent: *
 Allow: /
@@ -143,6 +134,5 @@ Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
 Disallow: /welcome
-Disallow: /premium
 
 Sitemap: https://productprepa.com/sitemap.xml

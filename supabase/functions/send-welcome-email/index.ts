@@ -21,7 +21,7 @@ const corsHeaders = {
 const SITE_URL = "https://productprepa.com";
 const MENTORIA_URL = `${SITE_URL}/mentoria`;
 const CAREER_URL = `${SITE_URL}/progreso`;
-const DOWNLOADS_URL = `${SITE_URL}/preguntas`;
+const DOWNLOADS_URL = `${SITE_URL}/descargables`;
 const SERVICES_CONTACT_EMAIL = "nicoproducto@hey.com";
 
 const WELCOME_PLANS = [
