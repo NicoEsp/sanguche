@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Download, Eye, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Skeleton } from '@/components/ui/skeleton';
 import { resolveResourceUrl, useSkillGapsResources } from '@/hooks/useDownloadableResources';
 import { AssessmentResult } from '@/utils/scoring';
-import { DownloadableResource } from '@/types/downloads';
+import { RecommendedResource } from '@/utils/resourceRecommendations';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 
 interface ResourcesListProps {
@@ -17,7 +17,8 @@ interface ResourcesListProps {
 const RESOURCE_ERROR_MESSAGE =
   'No pudimos abrir este recurso. Intentá de nuevo o escribinos a nicoproducto@hey.com.';
 
-function ResourceCard({ resource }: { resource: DownloadableResource }) {
+function ResourceCard({ match }: { match: RecommendedResource }) {
+  const { resource } = match;
   const { trackEvent } = useMixpanelTracking();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -26,13 +27,22 @@ function ResourceCard({ resource }: { resource: DownloadableResource }) {
 
   const isPdf = resource.type === 'pdf' || resource.file_path.toLowerCase().endsWith('.pdf');
 
+  // Con qué resultado matcheó: sin esto las métricas de descarga no distinguen
+  // una recomendación acertada de una que simplemente estaba en pantalla.
+  const matchProps = {
+    resource_id: resource.id,
+    resource_title: resource.title,
+    match_domain: match.domainKey,
+    match_domain_value: match.domainValue,
+    match_tier: match.tier,
+    location: 'skill_gaps',
+  };
+
   const reportFailure = (action: 'preview' | 'download', reason: string) => {
     trackEvent('resource_open_failed', {
-      resource_id: resource.id,
-      resource_title: resource.title,
+      ...matchProps,
       action,
       reason,
-      location: 'skill_gaps',
     });
     toast.error(RESOURCE_ERROR_MESSAGE);
   };
@@ -49,11 +59,7 @@ function ResourceCard({ resource }: { resource: DownloadableResource }) {
     setPreviewUrl(resolved.url);
     setIsFrameLoading(true);
     setIsPreviewOpen(true);
-    trackEvent('resource_previewed', {
-      resource_id: resource.id,
-      resource_title: resource.title,
-      location: 'skill_gaps',
-    });
+    trackEvent('resource_previewed', matchProps);
   };
 
   const handleDownload = async () => {
@@ -75,20 +81,17 @@ function ResourceCard({ resource }: { resource: DownloadableResource }) {
       return;
     }
     win.location.href = resolved.url;
-    trackEvent('resource_downloaded', {
-      resource_id: resource.id,
-      resource_title: resource.title,
-      location: 'skill_gaps',
-    });
+    trackEvent('resource_downloaded', matchProps);
   };
 
   return (
     <>
-      <Card className="p-4">
+      <Card className="p-4 border-primary/40 bg-primary/5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <h4 className="flex-1 min-w-0 font-medium text-sm sm:text-base">
-            {resource.title}
-          </h4>
+          <div className="flex-1 min-w-0 space-y-1">
+            <h4 className="font-medium text-sm sm:text-base">{resource.title}</h4>
+            <p className="text-xs sm:text-sm text-muted-foreground">{match.reason}</p>
+          </div>
 
           <div className="flex flex-col sm:flex-row gap-2 shrink-0">
             {isPdf && (
@@ -153,7 +156,29 @@ function ResourceCard({ resource }: { resource: DownloadableResource }) {
 }
 
 export function ResourcesList({ assessmentResult }: ResourcesListProps) {
-  const { resources, loading } = useSkillGapsResources(assessmentResult);
+  const { recommendations, loading } = useSkillGapsResources(assessmentResult);
+  const { trackEvent } = useMixpanelTracking();
+
+  // Una sola card, la más afín. El ranking calcula todos los que matchean, pero
+  // listarlos es lo que hacía que la sección se leyera como un catálogo suelto
+  // en vez de una recomendación.
+  const topMatch = recommendations[0];
+
+  // Qué recomendación vio cada persona, para poder leer las descargas contra
+  // lo que efectivamente se le ofreció.
+  const trackedTopMatchId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!topMatch || trackedTopMatchId.current === topMatch.resource.id) return;
+    trackedTopMatchId.current = topMatch.resource.id;
+    trackEvent('skill_gaps_recommendation_shown', {
+      resource_id: topMatch.resource.id,
+      resource_title: topMatch.resource.title,
+      match_domain: topMatch.domainKey,
+      match_domain_value: topMatch.domainValue,
+      match_tier: topMatch.tier,
+      candidates_count: recommendations.length,
+    });
+  }, [topMatch, recommendations.length, trackEvent]);
 
   if (loading) {
     return (
@@ -164,22 +189,23 @@ export function ResourcesList({ assessmentResult }: ResourcesListProps) {
     );
   }
 
-  if (!resources.length) {
+  if (!topMatch) {
     return null;
   }
 
   return (
     <div className="mt-8 space-y-4">
-      <h3 className="text-lg font-semibold flex items-center gap-2">
-        <FileText className="w-5 h-5" />
-        📚 Recomendados según tu evaluación
-      </h3>
-
-      <div className="space-y-3">
-        {resources.map((resource) => (
-          <ResourceCard key={resource.id} resource={resource} />
-        ))}
+      <div className="space-y-1">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <FileText className="w-5 h-5" />
+          📚 Tu descargable recomendado
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Elegido según tu evaluación, no es el mismo para todos.
+        </p>
       </div>
+
+      <ResourceCard match={topMatch} />
     </div>
   );
 }

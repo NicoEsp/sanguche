@@ -42,7 +42,7 @@ import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, FileDown, Star, Loader2, Crown, Lock, Target } from 'lucide-react';
 import { SkeletonAdminTable } from '@/components/skeletons/SkeletonAdminTable';
-import { DOMAINS } from '@/utils/scoring';
+import { getAllScorableDomains } from '@/utils/scoring';
 import { normalizeStoragePath } from '@/hooks/useDownloadableResources';
 
 type AccessLevel = 'public' | 'authenticated' | 'premium';
@@ -103,6 +103,11 @@ const accessLevels: { value: AccessLevel; label: string }[] = [
   { value: 'authenticated', label: 'Solo autenticados' },
   { value: 'premium', label: 'Solo Premium' },
 ];
+
+// Todos los dominios puntuables, no solo los de la evaluación con experiencia:
+// sin esto no se puede apuntar un recurso a Growth o IA aplicada, que existen
+// en las evaluaciones de builder y de líder.
+const SCORABLE_DOMAINS = getAllScorableDomains();
 
 const resourceTypes: { value: ResourceType; label: string }[] = [
   { value: 'pdf', label: 'PDF' },
@@ -366,7 +371,8 @@ export default function AdminDescargables() {
                     {resource.condition_domain ? (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-violet-500/20 text-violet-600">
                         <Target className="h-3 w-3" />
-                        SkillGaps · {DOMAINS.find(d => d.key === resource.condition_domain)?.label || resource.condition_domain}
+                        /descargables + /mejoras ·{' '}
+                        {SCORABLE_DOMAINS.find(d => d.key === resource.condition_domain)?.label || resource.condition_domain}
                         {' '}({resource.condition_min_level ?? 1}-{resource.condition_max_level ?? 5})
                       </span>
                     ) : (
@@ -399,7 +405,6 @@ export default function AdminDescargables() {
                       onCheckedChange={(checked) =>
                         toggleMutation.mutate({ id: resource.id, field: 'is_featured', value: checked })
                       }
-                      disabled={!!resource.condition_domain}
                     />
                   </TableCell>
                   <TableCell className="text-center">
@@ -532,10 +537,12 @@ export default function AdminDescargables() {
               <div className="space-y-1">
                 <Label className="flex items-center gap-2">
                   <Target className="h-4 w-4" />
-                  Visibilidad por competencia (opcional)
+                  Dominio que trabaja (opcional)
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Si elegís un dominio, este recurso solo aparece en SkillGaps cuando el assessment del usuario matchea el rango. No aparece en /descargables.
+                  El recurso siempre aparece en /descargables. Si además le asignás un dominio,
+                  entra en el ranking de /mejoras y se lo recomendamos a quien tenga ese dominio
+                  dentro del rango de puntaje, empezando por quienes lo tienen como brecha.
                 </p>
               </div>
 
@@ -549,11 +556,11 @@ export default function AdminDescargables() {
                   }))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Sin condición (aparece en /descargables)" />
+                    <SelectValue placeholder="Sin dominio (solo /descargables)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">Sin condición — /descargables</SelectItem>
-                    {DOMAINS.map((domain) => (
+                    <SelectItem value="__none__">Sin dominio — solo /descargables</SelectItem>
+                    {SCORABLE_DOMAINS.map((domain) => (
                       <SelectItem key={domain.key} value={domain.key}>
                         {domain.label}
                       </SelectItem>
@@ -638,7 +645,6 @@ export default function AdminDescargables() {
                     id="is_featured"
                     checked={formData.is_featured}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_featured: checked }))}
-                    disabled={isConditional}
                   />
                   <Label htmlFor="is_featured" className="flex items-center gap-1">
                     <Star className="h-4 w-4" />

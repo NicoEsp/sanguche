@@ -1,5 +1,6 @@
 import { Seo } from "@/components/Seo";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Link } from "react-router-dom";
 import { ArrowRight, FileDown } from "lucide-react";
@@ -50,7 +51,16 @@ const SECTION_TITLES: Record<AssessmentTypeKey, { strengths: string; neutral: st
 
 // Mensaje cuando no hay brechas: la felicitación por seniority no aplica a
 // quien recién arranca ni al diagnóstico de un equipo.
-const NO_GAPS_COPY: Record<AssessmentTypeKey | "legacy", { title: string; text: string }> = {
+//
+// `planNote` conecta ese mensaje con el plan recomendado. Sin brechas no hay
+// tarjetas de competencia que lleven a ningún lado, y el builder se iba de
+// /mejoras sin enterarse de que Productastic Review existe: el propio texto le
+// dice que el paso siguiente es una mirada externa y ese es exactamente el
+// producto.
+const NO_GAPS_COPY: Record<
+  AssessmentTypeKey | "legacy",
+  { title: string; text: string; planNote?: string }
+> = {
   experimentado: {
     title: "🎉 ¡Excelente desempeño!",
     text: "No se detectaron áreas críticas de mejora. Tu perfil muestra competencias sólidas en todos los dominios evaluados."
@@ -61,7 +71,8 @@ const NO_GAPS_COPY: Record<AssessmentTypeKey | "legacy", { title: string; text: 
   },
   builder: {
     title: "🎉 Construís con método",
-    text: "No se detectaron áreas donde estés a pura intuición. El siguiente paso es validar el producto en sí con una mirada externa."
+    text: "No se detectaron áreas donde estés a pura intuición. El siguiente paso es validar el producto en sí con una mirada externa.",
+    planNote: "Esa mirada externa es Productastic Review: reviso tu research, tus hipótesis y tus decisiones de producto, y te devuelvo un informe accionable."
   },
   lider: {
     title: "🎉 Tu equipo tiene procesos sólidos",
@@ -75,7 +86,8 @@ const NO_GAPS_COPY: Record<AssessmentTypeKey | "legacy", { title: string; text: 
 
 export default function SkillGaps() {
   const {
-    hasActivePremium
+    hasActivePremium,
+    plan
   } = useSubscription();
   const {
     result,
@@ -102,6 +114,16 @@ export default function SkillGaps() {
   );
 
   const typeDef = assessmentType ? getAssessmentTypeDef(assessmentType) : null;
+
+  // Productastic Review (pago único) y ProductPrepa for B2B no son la
+  // suscripción: que alguien tenga Premium no los vuelve irrelevantes, y
+  // esconderlos por eso dejaba a un builder sin saber que existen. Lo único que
+  // apaga la recomendación es ya haber comprado ese plan. Para las evaluaciones
+  // cuyo plan recomendado ES Premium/RePremium, sigue valiendo lo de antes.
+  const recommendsSeparateProduct = assessmentType === "builder" || assessmentType === "lider";
+  const showPlanRecommendation = recommendsSeparateProduct
+    ? plan !== typeDef?.plan.key
+    : !hasActivePremium;
   const nivelDisplay = result ? getNivelDisplay(assessmentType, result.nivel) : null;
   const sectionTitles = SECTION_TITLES[assessmentType ?? "experimentado"];
 
@@ -248,7 +270,7 @@ export default function SkillGaps() {
                           Prioridad {g.prioridad}
                         </Badge>
                       </div>
-                      {g.prioridad === "Alta" && !hasActivePremium && (
+                      {g.prioridad === "Alta" && showPlanRecommendation && (
                         <ContextualCTA
                           skillName={g.label}
                           ctaPath={typeDef ? typeDef.plan.route : "/planes"}
@@ -262,10 +284,32 @@ export default function SkillGaps() {
             {/* Mensaje cuando no hay brechas reales */}
             {gaps.length === 0 && (() => {
               const noGaps = NO_GAPS_COPY[assessmentType ?? "legacy"];
+              // El plan del que habla la nota sale del tipo de evaluación, así
+              // que sin typeDef no hay nota que mostrar.
+              const planDef = noGaps.planNote && showPlanRecommendation ? typeDef : null;
               return (
                 <div className="text-center p-6 rounded-lg bg-green-50 border border-green-200">
                   <h3 className="font-medium text-green-800 mb-2">{noGaps.title}</h3>
                   <p className="text-sm text-green-700">{noGaps.text}</p>
+                  {planDef && (
+                    <div className="mt-4 pt-4 border-t border-green-200 space-y-3">
+                      <p className="text-sm text-green-700">{noGaps.planNote}</p>
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="border-green-300 bg-white text-green-800 hover:bg-green-100 hover:text-green-900"
+                      >
+                        <Link
+                          to={planDef.plan.route}
+                          onClick={() => handleCtaClick('no_gaps_plan_note')}
+                        >
+                          {planDef.plan.ctaLabel}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -274,20 +318,20 @@ export default function SkillGaps() {
                 también sin brechas: el copy del ctaInfo ya contempla los
                 resultados altos. Las evaluaciones legacy conservan la tarjeta
                 Premium anterior, solo con brechas como antes. */}
-            {!hasActivePremium && (
-              assessmentType && result.ctaInfo ? (
+            {assessmentType && result.ctaInfo ? (
+              showPlanRecommendation ? (
                 <PlanCTACard
                   type={assessmentType}
                   text={result.ctaInfo.text}
                   onCtaClick={() => handleCtaClick('plan_cta_card')}
                 />
-              ) : gaps.length > 0 ? (
-                <PremiumCTACard
-                  ctaPath="/planes"
-                  onCtaClick={() => handleCtaClick('premium_cta_card')}
-                />
               ) : null
-            )}
+            ) : !hasActivePremium && gaps.length > 0 ? (
+              <PremiumCTACard
+                ctaPath="/planes"
+                onCtaClick={() => handleCtaClick('premium_cta_card')}
+              />
+            ) : null}
 
             {/* Dominios opcionales explorados */}
             {Object.keys(answeredOptionalDomains).length > 0 && (

@@ -713,7 +713,9 @@ export const ASSESSMENT_TYPES: ReadonlyArray<AssessmentTypeDef> = [
     persona: "Founder o Product Builder",
     promise: "Medí cuánto método hay detrás de lo que estás creando.",
     resultTag: "Madurez de método",
-    plan: { key: "productastic_review", name: "Productastic Review", route: "/planes", ctaLabel: "Conocer Productastic Review" },
+    // El detalle de Productastic Review vive en un modal de /planes: sin el
+    // query param la persona aterriza arriba de todo y tiene que encontrarlo.
+    plan: { key: "productastic_review", name: "Productastic Review", route: "/planes?plan=productastic-review", ctaLabel: "Conocer Productastic Review" },
     accent: {
       hex: "#10b981",
       badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
@@ -754,6 +756,22 @@ export function getDomainsForType(type: AssessmentTypeKey): ReadonlyArray<Assess
     default:
       return DOMAINS;
   }
+}
+
+/**
+ * Todos los dominios puntuables de todas las evaluaciones, sin repetir. Lo usa
+ * el admin de descargables: apuntar un recurso a Growth o IA aplicada es
+ * imposible desde DOMAINS solo, porque esos dominios existen en la evaluación
+ * de builder y de líder pero no en la base.
+ */
+export function getAllScorableDomains(): Array<{ key: AnyDomainKey; label: string }> {
+  const byKey = new Map<AnyDomainKey, string>();
+  for (const list of [DOMAINS, SIN_EXPERIENCIA_DOMAINS, BUILDER_DOMAINS, LIDER_DOMAINS]) {
+    for (const domain of list) {
+      if (!byKey.has(domain.key)) byKey.set(domain.key, domain.label);
+    }
+  }
+  return [...byKey].map(([key, label]) => ({ key, label }));
 }
 
 const schemaCache: Partial<Record<AssessmentTypeKey, ReturnType<typeof z.object>>> = {};
