@@ -12,22 +12,6 @@ export interface RecommendedObjectiveTemplate {
   priority: number;                            // Lower = higher priority
 }
 
-// Map seniority levels to simpler categories for objective matching
-export function getObjectiveTargetLevel(nivel: SeniorityLevel): "junior" | "mid" | "senior" {
-  switch (nivel) {
-    case "Junior":
-      return "junior";
-    case "Mid":
-      return "mid";
-    case "Senior":
-    case "Lead":
-    case "Head":
-      return "senior";
-    default:
-      return "mid";
-  }
-}
-
 export const RECOMMENDED_OBJECTIVES: RecommendedObjectiveTemplate[] = [
   // ============= DISCOVERY =============
   {
@@ -677,19 +661,6 @@ export const RECOMMENDED_OBJECTIVES: RecommendedObjectiveTemplate[] = [
     ]
   }
 ];
-
-/**
- * Get recommended objectives for a user based on their assessment
- */
-export function getObjectivesForDomain(
-  domainKey: AnyDomainKey,
-  userLevel: SeniorityLevel
-): RecommendedObjectiveTemplate[] {
-  return RECOMMENDED_OBJECTIVES.filter(obj => 
-    obj.domainKey === domainKey && 
-    obj.targetLevels.includes(userLevel)
-  );
-}
 
 /**
  * Get domain label for display

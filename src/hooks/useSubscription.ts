@@ -1,12 +1,15 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
+import { isPaidPlan, isPremiumPlan, type SubscriptionPlan } from '@/constants/plans';
 
 interface UseSubscriptionOptions {
   skip?: boolean;
 }
 
-export type SubscriptionPlan = 'free' | 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all' | 'productprepa_business' | 'productastic_review';
+// Se re-exporta para no tocar a los consumidores que ya lo importaban de acá;
+// la definición vive en constants/plans.ts junto a las reglas de acceso.
+export type { SubscriptionPlan };
 
 // OPTIMIZED: Removed duplicate realtime subscription - AuthContext handles all realtime updates
 export function useSubscription(options?: UseSubscriptionOptions) {
@@ -131,7 +134,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
     plan,
     hasActivePremium: isStillLoading
       ? undefined
-      : (hasAccess && ['premium', 'repremium'].includes(plan || '')),
+      : (hasAccess && isPremiumPlan(plan)),
     hasActiveRePremium: isStillLoading
       ? undefined
       : (hasAccess && plan === 'repremium'),
@@ -143,7 +146,7 @@ export function useSubscription(options?: UseSubscriptionOptions) {
       : (hasAccess && plan === 'cursos_all'),
     hasAnyPaidPlan: isStillLoading
       ? undefined
-      : (hasAccess && ['premium', 'repremium', 'curso_estrategia', 'cursos_all', 'productprepa_business', 'productastic_review'].includes(plan || '')),
+      : (hasAccess && isPaidPlan(plan)),
     isTrialing: subscription?.trialEnd ? new Date() < subscription.trialEnd : false,
     isOneTimePurchase: subscription?.isOneTimePurchase ?? false,
     isError,

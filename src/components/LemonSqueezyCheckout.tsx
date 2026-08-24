@@ -7,8 +7,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { EmailCaptureDialog } from "./EmailCaptureDialog";
 import { usePricing } from "@/hooks/usePricing";
+import type { SubscriptionPlan } from "@/constants/plans";
 
-export type PlanType = 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all';
+/**
+ * Los planes que se compran por checkout. Es un subconjunto a propósito:
+ * productprepa_business y productastic_review se venden por fuera. Se define
+ * con Extract sobre SubscriptionPlan para que renombrar un plan en
+ * constants/plans.ts rompa acá en vez de dejar un literal huérfano.
+ */
+export type PlanType = Extract<
+  SubscriptionPlan,
+  'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all'
+>;
 
 interface LemonSqueezyCheckoutProps {
   plan?: PlanType;
