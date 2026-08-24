@@ -36,14 +36,18 @@ export function isPremiumFeature(feature: Feature): boolean {
   return PREMIUM_FEATURES.includes(feature);
 }
 
+/**
+ * Contenido avanzado de mentoría (recursos dedicados). Alcanza con la
+ * suscripción activa: quien todavía no tuvo su primera sesión también lo ve,
+ * porque antes entraba a /mentoria y no encontraba nada.
+ */
 export function isMentoriaAdvancedContentAvailable(
-  hasSubscription: boolean = false, 
-  mentoriaCompleted: boolean = false,
+  hasSubscription: boolean = false,
   isAdmin: boolean = false
 ): boolean {
   if (isAdmin) {
     return true;
   }
-  
-  return hasSubscription && mentoriaCompleted;
+
+  return hasSubscription;
 }
