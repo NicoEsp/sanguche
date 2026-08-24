@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Download, Eye, FileText, Loader2, Sparkles } from 'lucide-react';
+import { Download, Eye, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -15,23 +14,10 @@ interface ResourcesListProps {
   assessmentResult: AssessmentResult | null;
 }
 
-// Cuántos descargables secundarios acompañan al más afín. El foco es el
-// primero: mostrar la lista entera es lo que hacía que la sección se leyera
-// igual para todos.
-const SECONDARY_LIMIT = 2;
-
 const RESOURCE_ERROR_MESSAGE =
   'No pudimos abrir este recurso. Intentá de nuevo o escribinos a nicoproducto@hey.com.';
 
-function ResourceCard({
-  match,
-  rank,
-  isTopMatch,
-}: {
-  match: RecommendedResource;
-  rank: number;
-  isTopMatch: boolean;
-}) {
+function ResourceCard({ match }: { match: RecommendedResource }) {
   const { resource } = match;
   const { trackEvent } = useMixpanelTracking();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -49,7 +35,6 @@ function ResourceCard({
     match_domain: match.domainKey,
     match_domain_value: match.domainValue,
     match_tier: match.tier,
-    match_rank: rank,
     location: 'skill_gaps',
   };
 
@@ -101,15 +86,9 @@ function ResourceCard({
 
   return (
     <>
-      <Card className={`p-4 ${isTopMatch ? 'border-primary/40 bg-primary/5' : ''}`}>
+      <Card className="p-4 border-primary/40 bg-primary/5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex-1 min-w-0 space-y-1">
-            {isTopMatch && (
-              <Badge variant="outline" className="border-primary/40 text-primary gap-1">
-                <Sparkles className="w-3 h-3" />
-                El más afín a tu resultado
-              </Badge>
-            )}
             <h4 className="font-medium text-sm sm:text-base">{resource.title}</h4>
             <p className="text-xs sm:text-sm text-muted-foreground">{match.reason}</p>
           </div>
@@ -180,8 +159,10 @@ export function ResourcesList({ assessmentResult }: ResourcesListProps) {
   const { recommendations, loading } = useSkillGapsResources(assessmentResult);
   const { trackEvent } = useMixpanelTracking();
 
+  // Una sola card, la más afín. El ranking calcula todos los que matchean, pero
+  // listarlos es lo que hacía que la sección se leyera como un catálogo suelto
+  // en vez de una recomendación.
   const topMatch = recommendations[0];
-  const secondary = recommendations.slice(1, 1 + SECONDARY_LIMIT);
 
   // Qué recomendación vio cada persona, para poder leer las descargas contra
   // lo que efectivamente se le ofreció.
@@ -195,9 +176,9 @@ export function ResourcesList({ assessmentResult }: ResourcesListProps) {
       match_domain: topMatch.domainKey,
       match_domain_value: topMatch.domainValue,
       match_tier: topMatch.tier,
-      alternatives_count: secondary.length,
+      candidates_count: recommendations.length,
     });
-  }, [topMatch, secondary.length, trackEvent]);
+  }, [topMatch, recommendations.length, trackEvent]);
 
   if (loading) {
     return (
@@ -224,21 +205,7 @@ export function ResourcesList({ assessmentResult }: ResourcesListProps) {
         </p>
       </div>
 
-      <ResourceCard match={topMatch} rank={1} isTopMatch />
-
-      {secondary.length > 0 && (
-        <div className="space-y-3 pt-2">
-          <h4 className="text-sm font-medium text-muted-foreground">También te pueden servir</h4>
-          {secondary.map((match, i) => (
-            <ResourceCard
-              key={match.resource.id}
-              match={match}
-              rank={i + 2}
-              isTopMatch={false}
-            />
-          ))}
-        </div>
-      )}
+      <ResourceCard match={topMatch} />
     </div>
   );
 }
