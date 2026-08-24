@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
+import type { RequestOptions } from 'mixpanel-browser';
 import { Mixpanel } from '@/lib/mixpanel';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -29,12 +30,12 @@ export function useMixpanelTracking() {
     });
   }, [location, user]);
 
-  const trackEvent = useCallback((eventName: string, properties?: Record<string, any>) => {
+  const trackEvent = useCallback((eventName: string, properties?: Record<string, any>, options?: RequestOptions) => {
     Mixpanel.track(eventName, {
       ...properties,
       user_id: user?.id,
       timestamp: new Date().toISOString()
-    });
+    }, options);
   }, [user]);
 
   const setUserProperties = useCallback((properties: Record<string, any>) => {

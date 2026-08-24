@@ -7,7 +7,13 @@ interface PlanPricing {
   currency: string;
 }
 
+interface PlanCounts {
+  premium: number | null;
+  repremium: number | null;
+}
+
 interface PricingData {
+  planCounts?: PlanCounts;
   plans: {
     premium: PlanPricing;
     repremium: PlanPricing;
@@ -56,6 +62,9 @@ export function usePricing() {
   const cursos_all = data?.plans?.cursos_all ?? FALLBACK_PRICES.cursos_all;
   const productprepa_business = data?.plans?.productprepa_business ?? FALLBACK_PRICES.productprepa_business;
 
+  // Sin conteo no hay badge: preferimos no mostrar prueba social antes que mostrarla inventada.
+  const planCounts: PlanCounts = data?.planCounts ?? { premium: null, repremium: null };
+
   // Monto por slug de plan (en centavos ARS). Fuente única para checkout/analytics:
   // evita hardcodear precios y mantenerlos en sync con LemonSqueezy.
   const pricesByPlan: Record<string, number> = {
@@ -72,6 +81,7 @@ export function usePricing() {
     curso_estrategia,
     cursos_all,
     productprepa_business,
+    planCounts,
     pricesByPlan,
     loading: isLoading,
     error

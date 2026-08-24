@@ -58,7 +58,7 @@ function PlanCard({
   return (
     <Card
       className={`relative flex flex-col h-full min-w-0 ${isHighlighted ? 'border-primary bg-primary/5' : ''}`}
-      onMouseEnter={onHover}
+      onPointerEnter={onHover}
     >
       {badge && (
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -175,6 +175,7 @@ export default function Planes() {
     repremium,
     curso_estrategia,
     cursos_all,
+    planCounts,
     loading: pricingLoading
   } = usePricing();
   const location = useLocation();
@@ -318,19 +319,26 @@ export default function Planes() {
       const rawTime = Date.now() - pageLoadTime.current;
       const cappedTime = Math.min(rawTime, MAX_TIME_ON_PAGE_MS);
       trackEventRef.current('planes_page_abandoned', {
+        sensor_version: 2, // v1 perdía la mayoría de las salidas: no mezclar series
         time_on_page: cappedTime,
         time_on_page_seconds: Math.round(cappedTime / 1000),
         max_scroll_depth: maxScrollDepth.current,
         plan_hovered: lastHoveredPlan.current,
         had_assessment: hasAssessmentRef.current,
         is_authenticated: !!userRef.current,
-      });
+      }, { transport: 'sendBeacon', send_immediately: true });
     };
 
-    const handleBeforeUnload = () => fireAbandon();
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    // 'beforeunload' casi no dispara en Safari iOS y deja el evento en la cola de batch.
+    // 'pagehide' + visibilitychange cubren cierre, cambio de app y cambio de pestaña.
+    const handleHide = () => {
+      if (document.visibilityState === 'hidden') fireAbandon();
+    };
+    window.addEventListener('pagehide', fireAbandon);
+    document.addEventListener('visibilitychange', handleHide);
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', fireAbandon);
+      document.removeEventListener('visibilitychange', handleHide);
       fireAbandon(); // SPA navigation away
     };
   }, []);
@@ -566,7 +574,7 @@ export default function Planes() {
                 description="Pensado para quienes quieren crecer en serio"
                 icon={<Star className="w-6 h-6 text-primary" />}
                 isHighlighted={true}
-                badge="+17 usuarios activos"
+                badge={planCounts.premium ? `+${planCounts.premium} ya se sumaron` : undefined}
                 features={[
                   "Todo lo incluido en el plan gratuito",
                   <>Sesión mensual 1:1 con {nicoLink}</>,
@@ -590,7 +598,7 @@ export default function Planes() {
                 priceLabel="/mes"
                 description="Para quienes buscan el máximo acompañamiento"
                 icon={<Crown className="w-6 h-6 text-amber-500" />}
-                badge="+5 usuarios activos"
+                badge={planCounts.repremium ? `+${planCounts.repremium} ya se sumaron` : undefined}
                 features={[
                   "Todo lo incluido en Premium",
                   <>2 sesiones mensuales 1:1 con {nicoLink}</>,
