@@ -175,6 +175,7 @@ export default function Planes() {
     repremium,
     curso_estrategia,
     cursos_all,
+    planCounts,
     loading: pricingLoading
   } = usePricing();
   const location = useLocation();
@@ -573,7 +574,7 @@ export default function Planes() {
                 description="Pensado para quienes quieren crecer en serio"
                 icon={<Star className="w-6 h-6 text-primary" />}
                 isHighlighted={true}
-                badge="+17 usuarios activos"
+                badge={planCounts.premium ? `+${planCounts.premium} ya se sumaron` : undefined}
                 features={[
                   "Todo lo incluido en el plan gratuito",
                   <>Sesión mensual 1:1 con {nicoLink}</>,
@@ -597,7 +598,7 @@ export default function Planes() {
                 priceLabel="/mes"
                 description="Para quienes buscan el máximo acompañamiento"
                 icon={<Crown className="w-6 h-6 text-amber-500" />}
-                badge="+5 usuarios activos"
+                badge={planCounts.repremium ? `+${planCounts.repremium} ya se sumaron` : undefined}
                 features={[
                   "Todo lo incluido en Premium",
                   <>2 sesiones mensuales 1:1 con {nicoLink}</>,

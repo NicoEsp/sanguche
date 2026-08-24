@@ -1,3 +1,5 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -25,6 +27,39 @@ const FALLBACK_PRICES = {
 let cachedPricing: any = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+
+interface PlanCounts {
+  premium: number | null;
+  repremium: number | null;
+}
+
+// Cuántas personas pasaron alguna vez por cada plan (incluye bajas): es el número
+// que la card muestra como prueba social. null = no pudimos contar, la card no
+// muestra badge en vez de inventar un número.
+async function fetchPlanCounts(): Promise<PlanCounts> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseUrl || !serviceKey) {
+    console.warn('Sin credenciales de Supabase, se omiten los conteos de planes');
+    return { premium: null, repremium: null };
+  }
+
+  const admin = createClient(supabaseUrl, serviceKey);
+  const countPlan = async (plan: string): Promise<number | null> => {
+    const { count, error } = await admin
+      .from('user_subscriptions')
+      .select('user_id', { count: 'exact', head: true })
+      .eq('plan', plan);
+    if (error) {
+      console.error(`Error contando el plan ${plan}:`, error.message);
+      return null;
+    }
+    return count ?? null;
+  };
+
+  const [premium, repremium] = await Promise.all([countPlan('premium'), countPlan('repremium')]);
+  return { premium, repremium };
+}
 
 interface VariantPricing {
   amount: number;
@@ -101,12 +136,14 @@ Deno.serve(async (req) => {
     }
 
     const apiKey = Deno.env.get('LEMON_SQUEEZY_API_KEY');
-    
+    const planCountsPromise = fetchPlanCounts().catch(() => ({ premium: null, repremium: null }));
+
     if (!apiKey) {
       console.warn('LEMON_SQUEEZY_API_KEY not set, using fallback prices');
       return new Response(
         JSON.stringify({
           plans: FALLBACK_PRICES,
+          planCounts: await planCountsPromise,
           lastUpdated: new Date().toISOString(),
           source: 'fallback'
         }),
@@ -138,6 +175,7 @@ Deno.serve(async (req) => {
 
     const response = {
       plans,
+      planCounts: await planCountsPromise,
       lastUpdated: new Date().toISOString(),
       source: 'lemonsqueezy'
     };
@@ -165,6 +203,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         plans: FALLBACK_PRICES,
+        planCounts: { premium: null, repremium: null },
         lastUpdated: new Date().toISOString(),
         source: 'fallback',
         error: (error as Error).message
