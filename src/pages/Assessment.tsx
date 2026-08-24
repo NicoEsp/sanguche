@@ -489,12 +489,14 @@ export default function Assessment() {
     return activeDomains.filter((d) => typeof watchedValues[d.key] === "number").length;
   }, [watchedValues, activeDomains]);
   const progress = total ? Math.round((answered / total) * 100) : 0;
+  // `answered` sale de useWatch, así que también sube cuando el init restaura
+  // las respuestas guardadas con form.reset. Marcar la sesión como activa acá
+  // hacía que volver a /autoevaluacion y salir disparara assessment_abandoned
+  // sin que la persona tocara nada. La marca ahora vive en la interacción real
+  // (ver trackQuestionAnswer).
   useEffect(() => {
     answeredRef.current = answered;
-    if (answered > 0 && isReevaluating) {
-      sessionActiveRef.current = true;
-    }
-  }, [answered, isReevaluating]);
+  }, [answered]);
 
   const formattedUpdatedAt = useMemo(() => {
     if (!updatedAt) return null;
@@ -575,6 +577,10 @@ export default function Assessment() {
 
   // Track per-question answer
   const trackQuestionAnswer = useCallback((questionId: string, questionNumber: number, answerValue: number, isOptional: boolean) => {
+    // Sólo se llega acá desde el onValueChange de una opción, o sea que hubo
+    // interacción real: es lo que habilita el evento de abandono (fireAbandon
+    // ya exige además que sea una reevaluación).
+    sessionActiveRef.current = true;
     const timeOnQuestion = Math.round((Date.now() - questionStartTimeRef.current) / 1000);
     trackEvent('assessment_question_answered', {
       question_number: questionNumber,

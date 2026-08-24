@@ -13,6 +13,7 @@ import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { Analytics } from '@vercel/analytics/react';
 
 // Lazy load all pages for code splitting
@@ -95,6 +96,7 @@ const App = () => (
         <BrowserRouter>
           <ScrollToTop />
           <AuthProvider>
+            <AnalyticsTracker />
             <Suspense fallback={<LoadingScreen />}>
               <Routes>
                 {/* Admin Routes - Protected with server-side validation */}

@@ -29,6 +29,33 @@ interface UseRecommendedObjectivesReturn {
  * - Gaps (score < 3) get priority over neutral areas (3-4)
  * - Already incorporated or dismissed objectives are filtered out
  */
+/**
+ * Objetivos que el usuario descartó. `profileId` es profiles.id.
+ *
+ * Se exporta para que el prefetch del sidebar use esta clave: prefetcheaba
+ * ['recommended-objectives', profileId] y acá se lee ['dismissed-objectives',
+ * profileId], así que el resultado quedaba en una entrada que nadie consulta.
+ */
+export const dismissedObjectivesQuery = (profileId: string | undefined) => ({
+  queryKey: ['dismissed-objectives', profileId] as const,
+  queryFn: async () => {
+    if (!profileId) return [];
+
+    const { data, error } = await supabase
+      .from('dismissed_recommended_objectives')
+      .select('objective_key')
+      .eq('user_id', profileId);
+
+    if (error) {
+      if (import.meta.env.DEV) console.error('Error fetching dismissed objectives:', error);
+      return [];
+    }
+
+    return data.map(d => d.objective_key);
+  },
+  staleTime: 2 * 60 * 1000, // 2 minutos
+});
+
 export function useRecommendedObjectives(): UseRecommendedObjectivesReturn {
   const { profile, loading: profileLoading } = useUserProfile();
   const profileId = profile?.id;
@@ -40,24 +67,8 @@ export function useRecommendedObjectives(): UseRecommendedObjectivesReturn {
 
   // Fetch dismissed objectives
   const { data: dismissedObjectives = [], isLoading: dismissedLoading } = useQuery({
-    queryKey: ['dismissed-objectives', profileId],
-    queryFn: async () => {
-      if (!profileId) return [];
-      
-      const { data, error } = await supabase
-        .from('dismissed_recommended_objectives')
-        .select('objective_key')
-        .eq('user_id', profileId);
-      
-      if (error) {
-        if (import.meta.env.DEV) console.error('Error fetching dismissed objectives:', error);
-        return [];
-      }
-      
-      return data.map(d => d.objective_key);
-    },
+    ...dismissedObjectivesQuery(profileId),
     enabled: !!profileId,
-    staleTime: 2 * 60 * 1000, // 2 minutos
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,

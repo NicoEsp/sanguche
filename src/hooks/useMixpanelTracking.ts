@@ -1,42 +1,25 @@
-import { useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useCallback } from 'react';
 import type { RequestOptions } from 'mixpanel-browser';
 import { Mixpanel } from '@/lib/mixpanel';
 import { useAuth } from '@/contexts/AuthContext';
 
+/**
+ * Sólo emisores de eventos. identify y page_view viven en <AnalyticsTracker/>,
+ * que se monta una vez: acá se duplicaban por cada componente que llamaba al
+ * hook para poder usar trackEvent.
+ */
 export function useMixpanelTracking() {
   const { user, isAuthenticated } = useAuth();
-  const location = useLocation();
 
-  // Identificar usuario cuando hace login
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      Mixpanel.identify(user.id);
-      Mixpanel.people.set({
-        $email: user.email,
-        $name: user.user_metadata?.name || 'Usuario',
-        $created: user.created_at
-      });
-    }
-  }, [isAuthenticated, user]);
-
-  // Track page views automáticamente
-  useEffect(() => {
-    Mixpanel.track('page_view', {
-      page_path: location.pathname,
-      page_title: document.title,
-      referrer: document.referrer,
-      user_id: user?.id
-    });
-  }, [location, user]);
+  const userId = user?.id;
 
   const trackEvent = useCallback((eventName: string, properties?: Record<string, any>, options?: RequestOptions) => {
     Mixpanel.track(eventName, {
       ...properties,
-      user_id: user?.id,
+      user_id: userId,
       timestamp: new Date().toISOString()
     }, options);
-  }, [user]);
+  }, [userId]);
 
   const setUserProperties = useCallback((properties: Record<string, any>) => {
     if (isAuthenticated) {

@@ -18,29 +18,34 @@ export interface UserProgressObjective extends Omit<ProgressObjective, 'mentorNo
   position: number;
 }
 
+/** `userId` acá es profiles.id, que es a lo que apunta la FK. */
+export const userProgressObjectivesQuery = (userId: string | undefined) => ({
+  queryKey: ['user-progress-objectives', userId] as const,
+  queryFn: async () => {
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+      .from('user_progress_objectives')
+      .select('id, user_id, objective_id, title, summary, type, timeframe, steps, status, due_date, mentor_notes, assigned_by_admin, created_at, updated_at, is_locked, locked_at, source, level, position')
+      .eq('user_id', userId)
+      .order('timeframe', { ascending: true })
+      .order('position', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data as unknown as UserProgressObjective[];
+  },
+  staleTime: 2 * 60 * 1000, // 2 minutos
+  gcTime: 10 * 60 * 1000,
+});
+
 // Fetch user's progress objectives
 export function useUserProgressObjectives(userId: string | undefined) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['user-progress-objectives', userId],
-    queryFn: async () => {
-      if (!userId) return [];
-
-      const { data, error } = await supabase
-        .from('user_progress_objectives')
-        .select('id, user_id, objective_id, title, summary, type, timeframe, steps, status, due_date, mentor_notes, assigned_by_admin, created_at, updated_at, is_locked, locked_at, source, level, position')
-        .eq('user_id', userId)
-        .order('timeframe', { ascending: true })
-        .order('position', { ascending: true })
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      return data as unknown as UserProgressObjective[];
-    },
+    ...userProgressObjectivesQuery(userId),
     enabled: !!userId,
-    staleTime: 2 * 60 * 1000, // 2 minutos
-    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false, // Realtime maneja updates
   });

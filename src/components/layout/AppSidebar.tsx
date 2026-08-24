@@ -21,8 +21,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { navItems, extraItems } from "@/constants/navigation";
+import { assessmentDataQuery } from "@/hooks/useAssessmentData";
+import { userProgressObjectivesQuery } from "@/hooks/useUserProgressObjectives";
+import { dismissedObjectivesQuery } from "@/hooks/useRecommendedObjectives";
 
 interface AppSidebarProps {
   collapsed: boolean;
@@ -92,54 +94,20 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
     const userId = user.id;
     const profileId = profile?.id;
     
+    // Se reusan las definiciones de los hooks en vez de repetir la query acá:
+    // dos de estos tres prefetch armaban su propia clave y el resultado
+    // terminaba en una entrada de cache que no lee nadie.
     switch (route) {
       case '/autoevaluacion':
       case '/mejoras':
       case '/mentoria':
-        // Prefetch assessment data
-        queryClient.prefetchQuery({
-          queryKey: ['assessment', userId],
-          queryFn: async () => {
-            const { data } = await supabase
-              .from('assessments')
-              .select('*')
-              .eq('user_id', userId)
-              .order('updated_at', { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            return data;
-          },
-          staleTime: 5 * 60 * 1000,
-        });
+        queryClient.prefetchQuery(assessmentDataQuery(userId));
         break;
-        
+
       case '/progreso':
-        // Prefetch progress objectives
         if (profileId) {
-          queryClient.prefetchQuery({
-            queryKey: ['user-progress-objectives', profileId],
-            queryFn: async () => {
-              const { data } = await supabase
-                .from('user_progress_objectives')
-                .select('*')
-                .eq('user_id', profileId)
-                .order('created_at', { ascending: false });
-              return data || [];
-            },
-            staleTime: 2 * 60 * 1000,
-          });
-          
-          queryClient.prefetchQuery({
-            queryKey: ['recommended-objectives', profileId],
-            queryFn: async () => {
-              const { data } = await supabase
-                .from('dismissed_recommended_objectives')
-                .select('objective_key')
-                .eq('user_id', profileId);
-              return data?.map(d => d.objective_key) || [];
-            },
-            staleTime: 2 * 60 * 1000,
-          });
+          queryClient.prefetchQuery(userProgressObjectivesQuery(profileId));
+          queryClient.prefetchQuery(dismissedObjectivesQuery(profileId));
         }
         break;
     }
