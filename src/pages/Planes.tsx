@@ -251,6 +251,25 @@ export default function Planes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Deep link a los productos que viven en un modal. El resultado de la
+  // evaluación de builder recomienda Productastic Review: mandarla a /planes a
+  // secas la deja arriba de todo, con la tarjeta a dos scrolls de distancia.
+  useEffect(() => {
+    const requested = new URLSearchParams(location.search).get('plan');
+    if (!requested) return;
+    const normalized = requested.replace(/_/g, '-');
+    const openers: Record<string, (open: boolean) => void> = {
+      'productastic-review': setReviewModalOpen,
+      'productprepa-business': setB2bModalOpen,
+    };
+    const open = openers[normalized];
+    if (!open) return;
+    // Scrolleamos antes de abrir: con el modal montado Radix bloquea el scroll
+    // del body y la tarjeta quedaría fuera de vista al cerrarlo.
+    document.getElementById(normalized)?.scrollIntoView({ block: 'start' });
+    open(true);
+  }, [location.search]);
+
   // Track enriched data once pricing finishes loading
   useEffect(() => {
     if (pricingLoading || !isAuthenticated) return;
@@ -657,7 +676,7 @@ export default function Planes() {
         </section>
 
         {/* Product Review - One-time payment */}
-        <section className="px-4 py-16">
+        <section id="productastic-review" className="px-4 py-16">
           <div className="max-w-lg mx-auto">
             <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">¿Ya tenés tu propio producto?</h3>
             <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">Validá tus decisiones con alguien externo y con experiencia</p>
@@ -735,7 +754,7 @@ export default function Planes() {
         </section>
 
         {/* ProductPrepa for B2B - Empresas */}
-        <section className="px-4 pb-16">
+        <section id="productprepa-business" className="px-4 pb-16">
           <div className="max-w-lg mx-auto">
             <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">¿Trabajás en una empresa con equipo de Producto?</h3>
             <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">

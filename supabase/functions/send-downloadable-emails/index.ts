@@ -10,10 +10,10 @@
 // ones — the reason this is cron-windowed rather than a DB trigger like
 // send-course-published-emails (courses go out one at a time; resources don't).
 //
-// Scope: rows that are is_active, access_level = 'premium' and NOT tied to a
-// competency (condition_domain IS NULL). Conditional rows are the personalised
-// SkillGaps recommendations — they surface per user based on their own
-// assessment, so broadcasting them to everyone would be wrong.
+// Scope: rows that are is_active and access_level = 'premium'. condition_domain
+// no longer narrows this: a tagged row is a normal catalogue resource that also
+// gets recommended in /mejoras to whoever matches, so a new premium upload is
+// worth announcing either way.
 //
 // Idempotency: downloadable_email_queue has UNIQUE(user_id, resource_id) and
 // the pending set is computed per user against that table, so the lookback
@@ -137,7 +137,6 @@ Deno.serve(async (req: Request) => {
       .select("id, title, description, type")
       .eq("is_active", true)
       .eq("access_level", "premium")
-      .is("condition_domain", null)
       .gte("created_at", since.toISOString())
       .order("created_at", { ascending: true });
 

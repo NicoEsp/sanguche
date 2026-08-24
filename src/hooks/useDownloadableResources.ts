@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { DownloadableResource } from '@/types/downloads';
-import { AssessmentResult, DomainKey } from '@/utils/scoring';
+import { AssessmentResult } from '@/utils/scoring';
+import { RecommendedResource, rankResourcesByAffinity } from '@/utils/resourceRecommendations';
 
 export type ResourceAccessState = 'accessible' | 'requires_login' | 'requires_subscription';
 
@@ -40,6 +41,12 @@ export function getResourceAccessState(
   }
 }
 
+/**
+ * Catálogo completo de /descargables. `condition_domain` ya no esconde un
+ * recurso de acá: es solo la competencia que trabaja, y sirve para elegir cuál
+ * recomendarle a cada persona en /mejoras. Un material bueno tiene que estar
+ * en las dos partes.
+ */
 export function useDownloadableResources() {
   return useQuery({
     queryKey: ['downloadable-resources'],
@@ -48,7 +55,6 @@ export function useDownloadableResources() {
         .from('downloadable_resources')
         .select('*')
         .eq('is_active', true)
-        .is('condition_domain', null)
         .order('display_order', { ascending: true });
 
       if (error) throw error;
@@ -78,7 +84,13 @@ export function useDownloadableResourceBySlug(slug: string) {
   });
 }
 
-export function useSkillGapsResources(assessmentResult: AssessmentResult | null) {
+/**
+ * Descargables ordenados por afinidad con el resultado de la evaluación. El
+ * primero es el más afín; ver rankResourcesByAffinity para el criterio.
+ */
+export function useSkillGapsResources(
+  assessmentResult: AssessmentResult | null,
+): { recommendations: RecommendedResource[]; loading: boolean; error: unknown } {
   const { isAuthenticated } = useAuth();
   const {
     hasActivePremium,
@@ -103,32 +115,20 @@ export function useSkillGapsResources(assessmentResult: AssessmentResult | null)
     gcTime: 10 * 60 * 1000,
   });
 
-  const availableResources = useMemo(() => {
+  const recommendations = useMemo(() => {
     if (!resources.length || !assessmentResult) return [];
-
-    const allDomains = [
-      ...assessmentResult.strengths,
-      ...assessmentResult.gaps,
-      ...assessmentResult.neutralAreas,
-    ];
 
     const viewer = { isAuthenticated, isPremium: hasActivePremium === true };
 
-    return resources.filter(resource => {
-      // Estas recomendaciones no tienen estado bloqueado: cada card ofrece Ver y
-      // Descargar funcionando. Como la query ahora devuelve también lo que el
-      // usuario no puede abrir, filtramos acá en vez de prometer una descarga
-      // que storage va a rechazar.
-      if (getResourceAccessState(resource, viewer) !== 'accessible') return false;
+    // Estas recomendaciones no tienen estado bloqueado: cada card ofrece Ver y
+    // Descargar funcionando. Como la query devuelve también lo que el usuario
+    // no puede abrir, filtramos acá en vez de prometer una descarga que storage
+    // va a rechazar.
+    const openable = resources.filter(
+      resource => getResourceAccessState(resource, viewer) === 'accessible',
+    );
 
-      if (!resource.condition_domain) return false;
-      const domainScore = allDomains.find(d => d.key === resource.condition_domain as DomainKey);
-      if (!domainScore) return false;
-
-      const minLevel = resource.condition_min_level ?? 1;
-      const maxLevel = resource.condition_max_level ?? 5;
-      return domainScore.value >= minLevel && domainScore.value <= maxLevel;
-    });
+    return rankResourcesByAffinity(openable, assessmentResult);
   }, [resources, assessmentResult, isAuthenticated, hasActivePremium]);
 
   // Esperamos también a la suscripción: sin esto un premium ve la lista sin sus
@@ -141,7 +141,7 @@ export function useSkillGapsResources(assessmentResult: AssessmentResult | null)
   // seguimos sin ella: se pierden las recomendaciones premium, no la lista.
   const waitingForSubscription = subscriptionLoading && !subscriptionFailed;
 
-  return { resources: availableResources, loading: loading || waitingForSubscription, error };
+  return { recommendations, loading: loading || waitingForSubscription, error };
 }
 
 const PUBLIC_BUCKETS = new Set(['resources']);
