@@ -1,3 +1,5 @@
+import type { RequestOptions } from 'mixpanel-browser';
+
 const MIXPANEL_TOKEN = '35fe7a2706398ebc90ae3f1012d0a558';
 
 type MixpanelBrowser = typeof import('mixpanel-browser').default;
@@ -63,9 +65,15 @@ export const Mixpanel = {
     });
   },
 
-  track: (name: string, props?: Record<string, any>) => {
+  track: (name: string, props?: Record<string, any>, options?: RequestOptions) => {
+    // Camino síncrono: al ocultarse la pestaña no hay tiempo para resolver el
+    // import dinámico, así que los eventos de salida solo llegan si la instancia ya existe.
+    if (mixpanelInstance) {
+      mixpanelInstance.track(name, props, options);
+      return;
+    }
     withMixpanel((mixpanel) => {
-      mixpanel.track(name, props);
+      mixpanel.track(name, props, options);
     });
   },
 
