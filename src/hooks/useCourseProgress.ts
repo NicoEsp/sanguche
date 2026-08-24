@@ -1,25 +1,30 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserCourseProgress, CourseProgress, LessonWithProgress, CourseLesson } from "@/types/courses";
-import { useAuth } from "@/hooks/useAuth";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { attachProgress, summarizeCourseProgress } from "@/utils/courseProgress";
 
 export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []) {
-  const { user } = useAuth();
+  const { profile } = useUserProfile();
+  const profileId = profile?.id;
   const queryClient = useQueryClient();
 
   // OPTIMIZED: Added staleTime/gcTime for better caching
   const progressQuery = useQuery({
-    queryKey: ["course-progress", courseId, user?.id],
+    queryKey: ["course-progress", courseId, profileId],
     queryFn: async (): Promise<UserCourseProgress[]> => {
-      if (!user) return [];
+      if (!profileId) return [];
 
       const lessonIds = lessons.map((l) => l.id);
       if (lessonIds.length === 0) return [];
 
+      // El filtro por user_id va explícito y no delegado a la RLS: un admin
+      // tiene una policy que le deja ver todas las filas, así que sin esto
+      // vería el progreso de todos mezclado como si fuera propio.
       const { data, error } = await supabase
         .from("user_course_progress")
         .select("*")
+        .eq("user_id", profileId)
         .in("lesson_id", lessonIds);
 
       if (error) {
@@ -29,7 +34,7 @@ export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []
 
       return data || [];
     },
-    enabled: !!user && !!courseId && lessons.length > 0,
+    enabled: !!profileId && !!courseId && lessons.length > 0,
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -47,6 +52,8 @@ export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []
 
 export function useUpdateLessonProgress() {
   const queryClient = useQueryClient();
+  const { profile } = useUserProfile();
+  const profileId = profile?.id;
 
   return useMutation({
     mutationFn: async ({
@@ -58,9 +65,15 @@ export function useUpdateLessonProgress() {
       progressSeconds?: number;
       completed?: boolean;
     }) => {
+      if (!profileId) throw new Error("Profile not found");
+
+      // El filtro por user_id va explícito y no delegado a la RLS: un admin
+      // ve todas las filas por policy, así que sin esto maybeSingle revienta
+      // en cuanto otra persona tenga progreso en la misma lección.
       const { data: existingProgress, error: fetchError } = await supabase
         .from("user_course_progress")
         .select("*")
+        .eq("user_id", profileId)
         .eq("lesson_id", lessonId)
         .maybeSingle();
 
@@ -89,18 +102,10 @@ export function useUpdateLessonProgress() {
         if (error) throw error;
         return data;
       } else {
-        // Insert new - need to get profile id first
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("id")
-          .single();
-
-        if (!profile) throw new Error("Profile not found");
-
         const { data, error } = await supabase
           .from("user_course_progress")
           .insert({
-            user_id: profile.id,
+            user_id: profileId,
             lesson_id: lessonId,
             progress_seconds: progressSeconds || 0,
             completed_at: completed ? new Date().toISOString() : null,
