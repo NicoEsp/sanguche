@@ -6,7 +6,7 @@ import { useSubscription } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { MentoriaHero, MENTORIA_EXERCISES_ANCHOR } from "@/components/mentoria/MentoriaHero";
 import { CareerPathBanner } from "@/components/mentoria/CareerPathBanner";
@@ -98,18 +98,45 @@ export default function Recommendations() {
     return "Plan en marcha. Avanzá con tus ejercicios y consultá tus recursos cuando los necesites.";
   }, [profile?.mentoria_completed, profile?.last_mentoria_date]);
 
-  // Track recommendations page view
+  const isFullyLoaded = !subscriptionLoading && !profileLoading && !assessmentLoading;
+
+  // La vista de /mentoria se emite como dos eventos distintos porque son dos
+  // cosas distintas: quien paga usando la mentoría (`recommendations_viewed`,
+  // la métrica de retención premium) y quien choca contra el muro
+  // (`mentoria_paywall_viewed`, señal de intención de compra). Mezclados daban
+  // más únicos que suscriptores vigentes y no se podían separar después,
+  // porque `has_premium` no siempre llegaba resuelto.
+  const hasTrackedPageView = useRef<'premium' | 'paywall' | null>(null);
+
   useEffect(() => {
-    if (!subscriptionLoading && !assessmentLoading && !profileLoading) {
-      trackEvent('recommendations_viewed', {
-        has_premium: hasActivePremium,
-        has_assessment: hasAssessment,
-        mentoria_completed: profile?.mentoria_completed || false
+    // hasActivePremium === undefined significa "todavía no resuelto" (incluye
+    // el caso de query fallida): sin eso no hay evento, para que has_premium
+    // nunca se emita vacío ni asumiendo free por defecto.
+    if (!isFullyLoaded || hasActivePremium === undefined) return;
+
+    const variant = hasAccess ? 'premium' : 'paywall';
+    // Se vuelve a emitir si cambia la variante (p. ej. tras el checkout, cuando
+    // la suscripción se invalida y el paywall pasa a ser la mentoría real).
+    if (hasTrackedPageView.current === variant) return;
+    hasTrackedPageView.current = variant;
+
+    const payload = {
+      has_premium: hasActivePremium === true,
+      has_assessment: hasAssessment,
+      mentoria_completed: profile?.mentoria_completed || false
+    };
+
+    if (variant === 'premium') {
+      trackEvent('recommendations_viewed', payload);
+    } else {
+      trackEvent('mentoria_paywall_viewed', {
+        ...payload,
+        // Quien ya pagó alguna vez y volvió al muro es reactivación, no
+        // adquisición: se distingue sin cruzar con otra tabla.
+        is_lapsed_subscriber: (profile?.mentoria_sessions_count ?? 0) > 0
       });
     }
-  }, [subscriptionLoading, assessmentLoading, profileLoading, hasActivePremium, hasAssessment, profile, trackEvent]);
-
-  const isFullyLoaded = !subscriptionLoading && !profileLoading && !assessmentLoading;
+  }, [isFullyLoaded, hasAccess, hasActivePremium, hasAssessment, profile, trackEvent]);
 
   // Minutos 1:1 acumulados. Lo ven tanto quienes pagan como quienes ya no,
   // porque el recorrido es de la persona y no de la suscripción.
