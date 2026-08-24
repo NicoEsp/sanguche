@@ -15,11 +15,16 @@ const escapeHtml = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 const escapeAttr = (v: string) => escapeHtml(v).replace(/"/g, '&quot;');
 const escapeRegex = (v: string) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const intoHead = (html: string, tag: string) => html.replace('</head>', `    ${tag}\n  </head>`);
+// La forma función de replace es a propósito en todo este archivo: el
+// reemplazo sale de contenido que carga un admin, y en la forma string un
+// `$&`, `` $` `` o `$'` en un título se interpreta como patrón y corrompe el
+// HTML generado.
+const intoHead = (html: string, tag: string) =>
+  html.replace('</head>', () => `    ${tag}\n  </head>`);
 
 /** Reemplaza el tag que matchea `find`, o lo inserta en el head si no está. */
 function upsert(html: string, find: RegExp, tag: string): string {
-  return find.test(html) ? html.replace(find, tag) : intoHead(html, tag);
+  return find.test(html) ? html.replace(find, () => tag) : intoHead(html, tag);
 }
 
 const setMeta = (html: string, attr: 'name' | 'property', key: string, value: string) =>
@@ -114,7 +119,7 @@ export function injectAppHtml(html: string, appHtml: string, data?: unknown): st
         .replace(/\u2028/g, '\\u2028')
         .replace(/\u2029/g, '\\u2029')}</script>\n    `
     : '';
-  return html.replace(root, `${seed}<div id="root">${appHtml}</div>`);
+  return html.replace(root, () => `${seed}<div id="root">${appHtml}</div>`);
 }
 
 /**
@@ -136,8 +141,14 @@ export function assertSeo(html: string, route: string, seo: ContentSeo): void {
     fail(`el canonical no apunta a ${seo.canonical}`);
   }
 
-  const description = html.match(/<meta\s+[^>]*?name=["']description["'][^>]*?content=["']([^"']*)["']/i);
-  if (seo.description && description?.[1] !== escapeAttr(seo.description)) {
+  // El grupo cierra contra la misma comilla que abrió. Con `[^"']*` la captura
+  // se cortaba en el primer apóstrofo del texto, así que una descripción con
+  // un `'` —que escapeAttr no toca, y no hace falta que toque— no coincidía
+  // nunca y volteaba el build entero.
+  const description = html.match(
+    /<meta\s+[^>]*?name=["']description["'][^>]*?content=(["'])([\s\S]*?)\1/i
+  );
+  if (seo.description && description?.[2] !== escapeAttr(seo.description)) {
     fail('la <meta name="description"> no es la de esta ruta');
   }
   if (!seo.description && description) fail('quedó la <meta name="description"> del shell');
