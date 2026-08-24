@@ -15,9 +15,42 @@ bun install        # Instalar dependencias
 bun run dev        # Iniciar servidor de desarrollo (Vite)
 bun run build      # Build optimizado para producción
 bun run build:dev  # Build en modo development
+bun run typecheck  # Chequeo de tipos (tsc -b)
+bun run test       # Tests (vitest)
+bun run test:watch # Tests en watch
 bun run lint       # Linting con ESLint
 bun run preview    # Preview de la build
 ```
+
+`typecheck` y `test` son los que corre CI en cada PR
+(`.github/workflows/ci.yml`). Conviene correrlos antes de pushear: Vite
+buildea igual con los tipos rotos, así que el build en verde no alcanza como
+señal.
+
+### Tests
+
+Cubren lógica pura, sin DOM: el scoring de la evaluación
+(`src/utils/scoring.test.ts`), las reglas de plan
+(`src/constants/plans.test.ts`), el acceso a cursos
+(`src/utils/courseAccess.test.ts`) y la consistencia entre el router y el SEO
+(`src/seo/routes.test.ts`).
+
+Si una regla de negocio vive dentro de un hook, no se puede testear: el hook
+importa el cliente de Supabase, que explota al importarse sin credenciales.
+Por eso las reglas puras van en `src/utils/` y el hook queda como envoltorio
+—ver `courseAccess.ts` y `useCourseAccess.ts`.
+
+### Build sin red
+
+El prerender de SEO baja el contenido de Supabase en build time. Para buildear
+sin credenciales:
+
+```bash
+PRERENDER_FIXTURES=fixtures.json bun run build
+```
+
+donde el archivo tiene la forma `{ posts: [...], courses: [...] }` ya
+resuelta (los cursos con `lessons`, no con `course_lessons`).
 
 ### Variables de entorno
 
@@ -36,7 +69,7 @@ VITE_SUPABASE_URL=""
 ```text
 src/
 ├── pages/                  # Páginas (usuario y admin)
-│   └── admin/              # Panel de administración (14 páginas)
+│   └── admin/              # Panel de administración (13 páginas)
 ├── components/
 │   ├── admin/              # Componentes del panel admin
 │   ├── auth/               # Guards (ProtectedRoute, AdminProtectedRoute)
@@ -53,7 +86,7 @@ src/
 │   ├── skeletons/          # Skeletons de carga (Assessment, Mentoria, Progress)
 │   └── ui/                 # shadcn/ui (33 componentes)
 ├── contexts/               # AuthContext (estado global de auth)
-├── hooks/                  # 34 custom hooks
+├── hooks/                  # 32 custom hooks
 ├── integrations/
 │   ├── supabase/           # Cliente + tipos de la base de datos
 │   └── todoist/            # API de creación de tareas
@@ -61,7 +94,9 @@ src/
 ├── constants/              # navigation.ts, plans.ts
 ├── lib/                    # Wrapper de Mixpanel, version check
 ├── types/                  # Definiciones TypeScript
-└── utils/                  # scoring, features, storage, csvExport, dateHelpers, errorMessages, recommendedObjectives
+└── utils/                  # scoring, courseAccess, resourceRecommendations, features,
+                            # storage, csvExport, dateHelpers, errorMessages,
+                            # recommendedObjectives
 
 supabase/
 ├── config.toml             # Configuración del proyecto Supabase
