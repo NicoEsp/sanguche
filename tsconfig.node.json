@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023"],
+    // El prerender importa componentes del cliente (scripts/prerender/render.tsx
+    // renderiza JSX de src/), así que este programa abarca código de browser
+    // aunque corra en Node. Es sólo typecheck: noEmit está arriba.
+    "lib": ["ES2023", "DOM"],
     "module": "ESNext",
     "skipLibCheck": true,
 
