@@ -416,7 +416,7 @@ export const SIN_EXPERIENCIA_DOMAINS: ReadonlyArray<AssessmentDomainDef> = [
     key: "tecnico",
     label: "Conocimiento técnico",
     description: "Entender cómo funciona un producto por dentro, sin necesidad de programar.",
-    question: "¿Qué tan cómodo te sentís entendiendo (aunque no programes) cómo funciona algo por dentro, como APIs, bases de datos o lógica?",
+    question: "¿Qué tan cómodo te sentís entendiendo cómo funciona un producto por dentro (APIs, bases de datos, lógica), sepas programar o no?",
     statements: SIN_EXPERIENCIA_STATEMENTS,
     levelDefinitions: SIN_EXPERIENCIA_LEVELS
   },
@@ -694,7 +694,10 @@ export const ASSESSMENT_TYPES: ReadonlyArray<AssessmentTypeDef> = [
     key: "sin_experiencia",
     shortLabel: "Dando el salto",
     title: "Quiero dar el salto",
-    persona: "Sin experiencia en producto digital",
+    // Un dev construye producto digital todos los días: si la persona dice
+    // "sin experiencia en producto digital" se auto-excluye. Lo que no tuvo
+    // todavía es el rol.
+    persona: "Todavía no trabajaste con el rol de producto formalmente",
     promise: "Descubrí tu afinidad con cada área y por dónde te conviene entrar.",
     resultTag: "Mapa de afinidad",
     plan: { key: "premium", name: "Premium", route: "/planes", ctaLabel: "Conocer Premium" },

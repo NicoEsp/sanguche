@@ -1,4 +1,5 @@
 import { ArrowRight, Compass, Hammer, Rocket, Users, type LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   ASSESSMENT_TYPES,
   AssessmentTypeKey,
@@ -64,6 +65,7 @@ function questionNote(type: AssessmentTypeKey): string {
 }
 
 export function AssessmentTypeSelector({ onSelect, isReevaluation = false }: AssessmentTypeSelectorProps) {
+
   return (
     <div className="animate-fade-in">
       <div className="mb-8">
@@ -129,7 +131,21 @@ export function AssessmentTypeSelector({ onSelect, isReevaluation = false }: Ass
         })}
       </div>
 
-      <p className="mt-6 text-xs text-muted-foreground">
+      {/* El perfil "lider" también mira al equipo, pero desde la lectura de una
+          sola persona. Lo que distingue al programa para equipos es el alcance:
+          se evalúa a cada integrante. Sin esta aclaración un líder no sabe cuál
+          de las dos puertas le corresponde. */}
+      <p className="mt-6 text-sm text-muted-foreground">
+        ¿Buscás que se evalúe a cada integrante y no solo tu lectura del equipo?{" "}
+        <Link
+          to="/empresas"
+          className="text-primary hover:underline font-medium"
+        >
+          Mirá el programa para equipos
+        </Link>
+      </p>
+
+      <p className="mt-4 text-xs text-muted-foreground">
         Se guarda una sola evaluación por cuenta. Si más adelante cambiás de perfil, podés
         volver a evaluarte y el resultado nuevo reemplaza al anterior.
       </p>
