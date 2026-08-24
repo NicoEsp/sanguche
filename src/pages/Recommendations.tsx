@@ -58,12 +58,8 @@ export default function Recommendations() {
   );
 
   const hasAdvancedAccess = useMemo(
-    () => isMentoriaAdvancedContentAvailable(
-      hasActivePremium,
-      profile?.mentoria_completed || false,
-      isAdmin
-    ),
-    [hasActivePremium, profile?.mentoria_completed, isAdmin]
+    () => isMentoriaAdvancedContentAvailable(hasActivePremium, isAdmin),
+    [hasActivePremium, isAdmin]
   );
 
   // Personalized greeting
