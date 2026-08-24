@@ -8,6 +8,7 @@ import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { EmailCaptureDialog } from "./EmailCaptureDialog";
 import { usePricing } from "@/hooks/usePricing";
 import type { SubscriptionPlan } from "@/constants/plans";
+import { markCheckoutRedirect } from "@/lib/checkoutRedirect";
 
 /**
  * Los planes que se compran por checkout. Es un subconjunto a propósito:
@@ -108,6 +109,7 @@ export function LemonSqueezyCheckout({
           is_anonymous: !user,
           plan
         });
+        markCheckoutRedirect();
         window.location.href = data.checkoutUrl;
       } else {
         const err = new Error('No checkout URL received');

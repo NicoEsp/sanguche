@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { buildDirectCheckoutUrl, DirectCheckoutKey } from "@/lib/directCheckout";
+import { markCheckoutRedirect } from "@/lib/checkoutRedirect";
 
 const emailSchema = z.string().email("Por favor ingresá un email válido");
 
@@ -59,6 +60,7 @@ export function DirectCheckoutButton({
     });
 
     setRedirecting(true);
+    markCheckoutRedirect();
     window.location.href = url;
   };
 

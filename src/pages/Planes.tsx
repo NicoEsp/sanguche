@@ -19,6 +19,7 @@ import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { ProductReviewModal } from "@/components/planes/ProductReviewModal";
 import { B2BModal } from "@/components/planes/B2BModal";
 import { SocialProofBlock } from "@/components/planes/SocialProofBlock";
+import { isCheckoutRedirect } from "@/lib/checkoutRedirect";
 
 interface PlanCardProps {
   name: React.ReactNode;
@@ -333,6 +334,9 @@ export default function Planes() {
 
     const fireAbandon = () => {
       if (hasTrackedAbandonRef.current) return;
+      // Irse al checkout dispara pagehide igual que cerrar la pestaña: sin este
+      // corte, todo el que compraba entraba como abandono.
+      if (isCheckoutRedirect()) return;
       if (hasActivePremiumRef.current || hasActiveRePremiumRef.current) return;
       hasTrackedAbandonRef.current = true;
       const rawTime = Date.now() - pageLoadTime.current;
