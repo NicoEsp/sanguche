@@ -1,0 +1,33 @@
+# Typecheck y tests en cada push y cada PR.
+#
+# No corre `build`: el prerender pide credenciales de Supabase para bajar el
+# contenido, y meterlas acá no aporta — Vercel ya buildea cada PR con las
+# suyas, y si el build rompe se ve ahí. Lo que Vercel no mira es que los tipos
+# cierren y que los tests pasen, que es justo lo que falla en silencio.
+#
+# `lint` tampoco está: hoy tira 68 errores heredados (casi todos
+# no-explicit-any) y un job en rojo permanente deja de leerse a la semana.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Tests
+        run: bun run test
