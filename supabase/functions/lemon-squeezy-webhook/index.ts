@@ -23,6 +23,11 @@ const VARIANT_TO_PLAN: Record<string, { plan: string; purchaseType: 'subscriptio
   '1467096': { plan: 'productastic_review', purchaseType: 'one_time' }, // Productastic Review (hosted checkout)
 };
 
+// Planes recurrentes. user_subscriptions guarda una fila por usuario, así que
+// una compra de pago único no puede pisar uno de estos sin dejar a la persona
+// sin lo que sigue pagando.
+const SUBSCRIPTION_PLANS = ['premium', 'repremium'];
+
 // Plans whose variant IDs are not registered in VARIANT_TO_PLAN (e.g. hosted
 // `/checkout/buy/...` URLs configured directly in LemonSqueezy). For these we
 // trust `meta.custom_data.plan` because the checkout URL itself sets the value.
@@ -610,26 +615,66 @@ serve(async (req) => {
 
         if (planConfig) {
           const isOneTime = planConfig.purchaseType === 'one_time';
-          const { error: upsertError } = await supabase
-            .from('user_subscriptions')
-            .upsert({
-              user_id: userId,
-              plan: planConfig.plan,
-              status: 'active',
-              purchase_type: planConfig.purchaseType,
-              lemon_squeezy_variant_id: variantId,
-              lemon_squeezy_order_id: ids.orderId,
-              lemon_squeezy_customer_id: ids.customerId,
-              paid_amount: orderTotal,
-              // One-time purchases grant permanent access. For subscriptions we
-              // set the plan proactively so the buyer isn't locked out if
-              // subscription_created is delayed; renews_at arrives with it.
-              ...(isOneTime ? { current_period_end: null } : {}),
-              updated_at: new Date().toISOString(),
-            }, { onConflict: 'user_id', ignoreDuplicates: false });
 
-          if (upsertError) {
-            throw new Error(`Failed to upsert ${planConfig.purchaseType} order: ${upsertError.message}`);
+          // La fila es una por usuario (UNIQUE(user_id)), así que este upsert
+          // reescribe `plan` y `purchase_type` sobre lo que hubiera. Un
+          // suscriptor Premium que compra un curso o la Review —los dos están
+          // ofrecidos en /planes y /cursos-info sin ningún gate— terminaba con
+          // plan='curso_estrategia', sin Premium, sin botón de cancelar
+          // (Profile lo esconde para los pagos únicos) y con LemonSqueezy
+          // cobrándole la suscripción igual.
+          //
+          // Con una sola columna de plan no hay forma de guardar las dos cosas,
+          // así que se conserva la suscripción —perderla es el daño peor y el
+          // irreversible— y el pago único queda avisado en el log del webhook
+          // para darlo a mano. Ver arriba: esto pide una tabla de
+          // entitlements aparte para resolverse bien.
+          let keepSubscription = false;
+          if (isOneTime) {
+            const { data: existing } = await supabase
+              .from('user_subscriptions')
+              .select('plan, status, purchase_type')
+              .eq('user_id', userId)
+              .maybeSingle();
+
+            keepSubscription = existing?.purchase_type === 'subscription'
+              && existing?.status === 'active'
+              && SUBSCRIPTION_PLANS.includes(existing.plan);
+
+            if (keepSubscription) {
+              warnings.push(
+                `order_created de ${planConfig.plan} sobre una suscripción ${existing!.plan} activa: `
+                + 'se conserva la suscripción y NO se registra el pago único. Hay que darle el acceso a mano.'
+              );
+              console.error(`[Webhook] ${warnings[warnings.length - 1]}`);
+            }
+          }
+
+          // Si se conserva la suscripción no se toca la fila en absoluto:
+          // escribir aunque sea los ids del pedido dejaría la suscripción
+          // descrita con los datos de la compra suelta.
+          if (!keepSubscription) {
+            const { error: upsertError } = await supabase
+              .from('user_subscriptions')
+              .upsert({
+                user_id: userId,
+                plan: planConfig.plan,
+                status: 'active',
+                purchase_type: planConfig.purchaseType,
+                lemon_squeezy_variant_id: variantId,
+                lemon_squeezy_order_id: ids.orderId,
+                lemon_squeezy_customer_id: ids.customerId,
+                paid_amount: orderTotal,
+                // One-time purchases grant permanent access. For subscriptions we
+                // set the plan proactively so the buyer isn't locked out if
+                // subscription_created is delayed; renews_at arrives with it.
+                ...(isOneTime ? { current_period_end: null } : {}),
+                updated_at: new Date().toISOString(),
+              }, { onConflict: 'user_id', ignoreDuplicates: false });
+
+            if (upsertError) {
+              throw new Error(`Failed to upsert ${planConfig.purchaseType} order: ${upsertError.message}`);
+            }
           }
         } else {
           // Unknown variant and no safe custom_data fallback: do NOT grant any
