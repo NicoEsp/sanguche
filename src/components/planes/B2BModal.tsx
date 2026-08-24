@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Building2 } from "lucide-react";
@@ -12,10 +13,18 @@ interface B2BModalProps {
 export const B2BModal = ({ open, onOpenChange }: B2BModalProps) => {
   const { trackEvent } = useMixpanelTracking();
 
+  // El modal lo abre el padre poniendo `open`, no Radix, así que
+  // onOpenChange(true) no llega nunca: el evento de apertura se emitía en una
+  // rama inalcanzable y sólo se veían los cierres. Se mira la transición de la
+  // prop.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open && !wasOpen.current) trackEvent("productprepa_business_modal_opened");
+    wasOpen.current = open;
+  }, [open, trackEvent]);
+
   const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen) {
-      trackEvent("productprepa_business_modal_opened");
-    } else {
+    if (!isOpen) {
       trackEvent("productprepa_business_modal_closed");
     }
     onOpenChange(isOpen);

@@ -130,38 +130,58 @@ export function useSubscriptionStats() {
   return useQuery({
     queryKey: ['admin-subscription-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_subscriptions')
-        .select('plan, status, lemon_squeezy_subscription_id, is_comped');
+      // Se cuenta en la base, no en el cliente. Antes se traían todas las filas
+      // con un select sin límite y se filtraba acá, pero PostgREST corta en
+      // 1000 filas sin avisar: con 1144 suscripciones el total salía 1000, y
+      // como el select no tenía ORDER BY tampoco había garantía de que las 26
+      // pagas entraran en esa ventana. La tasa de conversión se calculaba
+      // contra un denominador recortado.
+      const count = async (build: (q: any) => any) => {
+        const { count: n, error } = await build(
+          supabase.from('user_subscriptions').select('*', { count: 'exact', head: true })
+        );
+        if (error) throw error;
+        return n ?? 0;
+      };
 
-      if (error) throw error;
+      const activePlan = (plan: string) => (q: any) => q.eq('plan', plan).eq('status', 'active');
 
-      const total = data.length;
-      
-      // Premium includes premium + repremium
-      const premiumAll = data.filter(s => 
-        (s.plan === 'premium' || s.plan === 'repremium') && s.status === 'active'
-      );
-      const premium = premiumAll.length;
-      const premiumPaid = premiumAll.filter(s => !s.is_comped).length;
-      const premiumComped = premiumAll.filter(s => s.is_comped).length;
-      
-      // Count by specific plans
-      const repremiumCount = data.filter(s => s.plan === 'repremium' && s.status === 'active').length;
-      const cursoEstrategiaCount = data.filter(s => s.plan === 'curso_estrategia' && s.status === 'active').length;
-      const cursosAllCount = data.filter(s => s.plan === 'cursos_all' && s.status === 'active').length;
-      const productprepaBusinessCount = data.filter(s => s.plan === 'productprepa_business' && s.status === 'active').length;
-      const productasticReviewCount = data.filter(s => s.plan === 'productastic_review' && s.status === 'active').length;
+      const [
+        total,
+        premiumPlain,
+        repremiumCount,
+        premiumComped,
+        repremiumComped,
+        cursoEstrategiaCount,
+        cursosAllCount,
+        productprepaBusinessCount,
+        productasticReviewCount,
+        free,
+        withLemonSqueezy,
+      ] = await Promise.all([
+        count((q) => q),
+        count(activePlan('premium')),
+        count(activePlan('repremium')),
+        count((q) => activePlan('premium')(q).eq('is_comped', true)),
+        count((q) => activePlan('repremium')(q).eq('is_comped', true)),
+        count(activePlan('curso_estrategia')),
+        count(activePlan('cursos_all')),
+        count(activePlan('productprepa_business')),
+        count(activePlan('productastic_review')),
+        count((q) => q.eq('plan', 'free')),
+        count((q) => q.not('lemon_squeezy_subscription_id', 'is', null)),
+      ]);
 
-      const free = data.filter(s => s.plan === 'free').length;
-      const withLemonSqueezy = data.filter(s => s.lemon_squeezy_subscription_id).length;
+      // "Premium" agrupa premium + repremium, igual que isPremiumPlan.
+      const premium = premiumPlain + repremiumCount;
+      const comped = premiumComped + repremiumComped;
       const conversionRate = total > 0 ? ((premium / total) * 100).toFixed(1) : '0';
 
       return {
         total,
         premium,
-        premiumPaid,
-        premiumComped,
+        premiumPaid: premium - comped,
+        premiumComped: comped,
         repremiumCount,
         cursoEstrategiaCount,
         cursosAllCount,

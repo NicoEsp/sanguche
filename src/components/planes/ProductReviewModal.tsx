@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, Search } from "lucide-react";
@@ -12,10 +13,18 @@ interface ProductReviewModalProps {
 export const ProductReviewModal = ({ open, onOpenChange }: ProductReviewModalProps) => {
   const { trackEvent } = useMixpanelTracking();
 
+  // El modal lo abre el padre poniendo `open`, no Radix, así que
+  // onOpenChange(true) no llega nunca: el evento de apertura se emitía en una
+  // rama inalcanzable y sólo se veían los cierres. Se mira la transición de la
+  // prop.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open && !wasOpen.current) trackEvent("productastic_review_modal_opened");
+    wasOpen.current = open;
+  }, [open, trackEvent]);
+
   const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen) {
-      trackEvent("productastic_review_modal_opened");
-    } else {
+    if (!isOpen) {
       trackEvent("productastic_review_modal_closed");
     }
     onOpenChange(isOpen);

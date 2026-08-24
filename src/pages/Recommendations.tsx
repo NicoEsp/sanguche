@@ -1,4 +1,5 @@
 import { Seo } from "@/components/Seo";
+import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { PaywallCard } from "@/components/PaywallCard";
 import { isFeatureAvailable, FEATURES, isMentoriaAdvancedContentAvailable } from "@/utils/features";
@@ -23,7 +24,13 @@ import { useQueryClient } from "@tanstack/react-query";
 const MENTORIA_PAYWALL_ANCHOR = "retomar-mentoria";
 
 export default function Recommendations() {
-  const { hasActivePremium, hasActiveRePremium, loading: subscriptionLoading } = useSubscription();
+  const {
+    hasActivePremium,
+    hasActiveRePremium,
+    loading: subscriptionLoading,
+    isError: subscriptionError,
+    refetch: refetchSubscription,
+  } = useSubscription();
   const { toast } = useToast();
   const { result: assessmentResult, loading: assessmentLoading, hasAssessment } = useAssessmentData();
   const { profile, loading: profileLoading } = useUserProfile();
@@ -147,6 +154,28 @@ export default function Recommendations() {
       .getElementById(MENTORIA_PAYWALL_ANCHOR)
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  // useSubscription deja isError adentro de `loading` para que nadie lea un
+  // fetch fallido como "cuenta free". El costo es que sin esta salida la
+  // pantalla se queda cargando para siempre: mismo patrón que Progress.tsx.
+  if (subscriptionError) {
+    return (
+      <>
+        <Seo />
+        <div className="min-h-[60vh] flex items-center justify-center p-4">
+          <div className="text-center space-y-3 max-w-sm">
+            <AlertTriangle className="h-6 w-6 mx-auto text-destructive" />
+            <p className="text-muted-foreground">
+              No pudimos verificar tu suscripción. Puede ser un problema temporal de conexión.
+            </p>
+            <Button onClick={() => refetchSubscription()} variant="outline" size="sm">
+              Reintentar
+            </Button>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   // Show loading while subscription status is being determined (hasActivePremium === undefined)
   if (subscriptionLoading || assessmentLoading || profileLoading || hasActivePremium === undefined) {
