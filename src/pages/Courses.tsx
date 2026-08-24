@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCourses } from "@/hooks/useCourses";
-import { useCourseAccess } from "@/hooks/useCourseAccess";
+import { useCourseAccess, useCourseAccessResolver } from "@/hooks/useCourseAccess";
 import { Mixpanel } from "@/lib/mixpanel";
 import sanguche from "@/assets/sanguche-build.png";
 
@@ -44,14 +44,14 @@ const getPlanMessage = (plan: string | null) => {
 export default function Courses() {
   const { data: courses, isLoading: coursesLoading } = useCourses();
   const { hasAccess: hasGlobalAccess, isLoading: accessLoading, plan } = useCourseAccess();
+  const { resolve: resolveAccess } = useCourseAccessResolver();
 
   const isLoading = coursesLoading || accessLoading;
 
-  // Helper to check if user has access to a specific course
-  const getCourseAccess = (course: { is_free?: boolean }) => {
-    if (course.is_free) return true;
-    return hasGlobalAccess;
-  };
+  // Curso por curso, no global: curso_estrategia abre uno solo, y con el acceso
+  // global el catálogo mostraba todos sin candado.
+  const getCourseAccess = (course: { slug?: string; is_free?: boolean }) =>
+    resolveAccess(course.slug, course.is_free).hasAccess;
 
   // Track page view only when not loading
   useEffect(() => {
