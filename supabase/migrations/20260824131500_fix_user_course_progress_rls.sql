@@ -1,0 +1,21 @@
+-- =====================================================================
+-- FIX: user_course_progress quedó bloqueada para todos
+-- =====================================================================
+--
+-- La migración 20251230154052 le puso a varias tablas una política
+-- RESTRICTIVE llamada *_deny_anonymous con USING (false). Las políticas
+-- restrictivas se combinan con AND, así que un `false` ahí anula todas las
+-- permisivas: no lee ni escribe nadie, ni el dueño de la fila ni un admin.
+--
+-- En courses, course_lessons y course_exercises esto ya se corrigió
+-- (20260119143223 y 20260119145503, "Eliminar políticas restrictivas que
+-- bloquean todo"). user_course_progress quedó afuera de esa limpieza y sigue
+-- bloqueada: por eso la tabla no tiene ni una fila, mientras que lesson_notes
+-- —que no arrastra la política— sí tiene registros de las mismas personas.
+-- O sea que el progreso de las lecciones nunca se guardó.
+--
+-- Se borra sólo deny_anonymous. require_auth se queda: auth.uid() IS NOT NULL
+-- es la forma correcta de negarle la tabla a un visitante anónimo, y las
+-- permisivas ya acotan cada fila a su dueño con get_profile_id_for_auth().
+
+DROP POLICY IF EXISTS "user_course_progress_deny_anonymous" ON public.user_course_progress;

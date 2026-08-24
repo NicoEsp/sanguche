@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserCourseProgress, CourseProgress, LessonWithProgress, CourseLesson } from "@/types/courses";
 import { useAuth } from "@/hooks/useAuth";
+import { attachProgress, summarizeCourseProgress } from "@/utils/courseProgress";
 
 export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []) {
   const { user } = useAuth();
@@ -34,26 +35,8 @@ export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []
     refetchOnWindowFocus: false,
   });
 
-  // Calculate progress stats
-  const progressStats: CourseProgress = {
-    totalLessons: lessons.length,
-    completedLessons: progressQuery.data?.filter((p) => p.completed_at !== null).length || 0,
-    progressPercentage: lessons.length > 0
-      ? Math.round(((progressQuery.data?.filter((p) => p.completed_at !== null).length || 0) / lessons.length) * 100)
-      : 0,
-    isCompleted: lessons.length > 0 && 
-      (progressQuery.data?.filter((p) => p.completed_at !== null).length || 0) === lessons.length,
-  };
-
-  // Get lessons with progress attached
-  const lessonsWithProgress: LessonWithProgress[] = lessons.map((lesson) => {
-    const progress = progressQuery.data?.find((p) => p.lesson_id === lesson.id) || null;
-    return {
-      ...lesson,
-      progress,
-      isCompleted: progress?.completed_at !== null,
-    };
-  });
+  const progressStats = summarizeCourseProgress(lessons, progressQuery.data);
+  const lessonsWithProgress = attachProgress(lessons, progressQuery.data);
 
   return {
     ...progressQuery,
