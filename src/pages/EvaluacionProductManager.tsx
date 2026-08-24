@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Seo } from '@/components/Seo';
 import { ASSESSMENT_TYPES, DOMAINS } from '@/utils/scoring';
 import { evaluacionFaqs } from '@/seo/faqs/evaluacion';
 
@@ -17,6 +18,13 @@ import { evaluacionFaqs } from '@/seo/faqs/evaluacion';
  * el build (scripts/prerender/render.tsx), que es lo que hace que el HTML
  * servido traiga el texto completo. Si necesitás estado, va en otro componente.
  *
+ * <Seo /> es la excepción y es segura en los dos caminos: en el build corre
+ * dentro del StaticRouter (así que useLocation resuelve) y renderToStaticMarkup
+ * no ejecuta efectos, o sea que nunca toca `document` ni agrega markup. En el
+ * cliente es lo que mantiene título y canonical al navegar desde otra página:
+ * sin esto quedaban los de la página anterior, y un canonical apuntando a otra
+ * URL es justo lo que desindexa esta landing.
+ *
  * Los perfiles y las competencias salen de src/utils/scoring.ts, la misma
  * fuente que usa el test, para que la página no pueda prometer algo que la
  * evaluación no mide.
@@ -24,6 +32,7 @@ import { evaluacionFaqs } from '@/seo/faqs/evaluacion';
 export default function EvaluacionProductManager() {
   return (
     <div className="container max-w-4xl py-16 space-y-16">
+      <Seo />
       <header className="space-y-6">
         <span className="font-handwritten text-xl text-primary/80 inline-block rotate-[-2deg]">
           cinco minutos, gratis

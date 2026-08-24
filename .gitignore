@@ -34,3 +34,6 @@ dist-ssr
 .claude/
 .lovable/
 impeccable/
+
+# TypeScript incremental build info
+*.tsbuildinfo
