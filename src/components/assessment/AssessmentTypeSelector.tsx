@@ -131,14 +131,17 @@ export function AssessmentTypeSelector({ onSelect, isReevaluation = false }: Ass
         })}
       </div>
 
-      {/* Ninguna de las cuatro evalúa a un equipo entero: la salida es /empresas. */}
+      {/* El perfil "lider" también mira al equipo, pero desde la lectura de una
+          sola persona. Lo que distingue al programa para equipos es el alcance:
+          se evalúa a cada integrante. Sin esta aclaración un líder no sabe cuál
+          de las dos puertas le corresponde. */}
       <p className="mt-6 text-sm text-muted-foreground">
-        ¿Venís por tu equipo y no por vos?{" "}
+        ¿Buscás que se evalúe a cada integrante y no solo tu lectura del equipo?{" "}
         <Link
           to="/empresas"
           className="text-primary hover:underline font-medium"
         >
-          Mirá ProductPrepa for Business
+          Mirá el programa para equipos
         </Link>
       </p>
 
