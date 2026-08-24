@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { isPaidPlan, isPremiumPlan, type SubscriptionPlan } from '@/constants/plans';
+import { hasEntitledAccess } from '@/utils/subscriptionAccess';
 
 interface UseSubscriptionOptions {
   skip?: boolean;
@@ -122,11 +123,15 @@ export function useSubscription(options?: UseSubscriptionOptions) {
   const isStillLoading = loading || authLoading || isError;
 
   const plan = subscription?.plan;
-  const isActive = subscription?.status === 'active';
   // is_comped is an admin override: grants access to whatever plan is recorded
   // regardless of status (e.g. when LemonSqueezy has marked the sub as cancelled
-  // but the admin wants to keep access).
-  const hasAccess = isActive || subscription?.isComped === true;
+  // but the admin wants to keep access). Una baja con el período todavía pagado
+  // también entra: ver hasEntitledAccess.
+  const hasAccess = hasEntitledAccess({
+    status: subscription?.status,
+    currentPeriodEnd: subscription?.current_period_end,
+    isComped: subscription?.isComped,
+  });
 
   return {
     subscription,
