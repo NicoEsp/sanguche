@@ -358,7 +358,7 @@ export default function Assessment() {
   const isReevaluatingRef = useRef(isReevaluating);
   const currentStepRef = useRef(currentStep);
   const answeredRef = useRef(0);
-  const totalQuestionsRef = useRef(DOMAINS.length);
+  const totalQuestionsRef = useRef<number>(DOMAINS.length);
   const selectedTypeRef = useRef<AssessmentTypeKey | null>(selectedType);
   const assessmentStartTimeRef = useRef(Date.now());
   const completedThisSessionRef = useRef(false);
