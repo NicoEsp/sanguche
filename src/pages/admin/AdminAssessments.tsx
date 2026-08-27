@@ -135,8 +135,10 @@ export default function AdminAssessments() {
     return reverseLevelMap[roundedLevel] || 'N/A';
   }
 
-  // Ya no decide quién recibe mail (lo reciben todos): marca al cohorte de
-  // nota baja, que es el que entra al tramo del 10% y el que el panel resalta.
+  // Ya no decide quién recibe mail (lo reciben todos): marca el cohorte que el
+  // panel resalta para seguimiento. Ojo que sus criterios (3+ gaps, promedio
+  // bajo, Junior con 2+ gaps altos) no son el tramo del 10%: alguien con 3 gaps
+  // y promedio 4,2 cuenta como en riesgo y le toca la oferta del 15%.
   function isAtRisk(assessment: Assessment): boolean {
     const result = assessment.assessment_result;
     
@@ -362,7 +364,7 @@ export default function AdminAssessments() {
                   {assessments.filter(isAtRisk).length}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Nota baja · entran al tramo del 10%
+                  Nota baja, muchos gaps o Junior con gaps altos
                 </p>
               </div>
             </div>

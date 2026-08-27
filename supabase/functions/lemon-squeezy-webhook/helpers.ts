@@ -7,7 +7,9 @@ export interface FindOrCreateUserResult {
   // profiles.user_id. The browser identifies to Mixpanel with the auth id
   // (useMixpanelTracking -> Mixpanel.identify(user.id)), so any server-side
   // event has to use this one or it lands on a different profile.
-  // Null only when resolve_user_by_email fell back to the profiles-only lookup.
+  // Siempre el dueño del profile de arriba (profiles.user_id), nunca un auth
+  // user resuelto por email en paralelo: ver authUserIdForProfile.
+  // Null si el profile no tiene auth user asociado o si la consulta falló.
   authUserId: string | null;
   // True only when this call actually created the auth user (anonymous checkout path).
   // Used by the webhook to decide whether to send the "set your password" email.
@@ -27,7 +29,10 @@ const noopDefer: Defer = (promise) => {
 
 interface ResolvedUser {
   profileId: string | null;
-  authUserId: string | null;
+  // Auth user que coincide con el email. SOLO se usa para el camino de
+  // recuperación de abajo ("existe el auth user pero le falta el profile"):
+  // como identidad no sirve, porque no está unido al profile de arriba.
+  authUserIdByEmail: string | null;
 }
 
 /**
@@ -43,17 +48,58 @@ async function resolveUserByEmail(supabase: any, email: string): Promise<Resolve
     .maybeSingle();
 
   if (!error) {
-    return { profileId: data?.profile_id ?? null, authUserId: data?.auth_user_id ?? null };
+    return { profileId: data?.profile_id ?? null, authUserIdByEmail: data?.auth_user_id ?? null };
   }
 
   console.error('[findOrCreateUser] resolve_user_by_email unavailable, falling back:', error);
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id')
+    .select('id, user_id')
     .eq('email', email)
     .maybeSingle();
 
-  return { profileId: profile?.id ?? null, authUserId: null };
+  // En este camino el user_id sale del mismo profile, así que ya viene atado.
+  return { profileId: profile?.id ?? null, authUserIdByEmail: profile?.user_id ?? null };
+}
+
+// Lo mínimo que este helper usa del cliente de Supabase. Tiparlo así evita
+// sumar otro `any` y deja explícito qué toca de la API.
+interface ProfileReader {
+  from(table: string): {
+    select(columns: string): {
+      eq(column: string, value: string): {
+        maybeSingle(): Promise<{ data: { user_id?: string | null } | null; error: unknown }>;
+      };
+    };
+  };
+}
+
+/**
+ * auth.users.id dueño de `profileId`.
+ *
+ * El `auth_user_id` que devuelve resolve_user_by_email NO sirve para
+ * identificar a la persona: esa RPC resuelve el profile y el auth user en dos
+ * subconsultas independientes filtradas por email, sin unirlas por
+ * profiles.user_id. Y profiles.email no es único (idx_profiles_email es un
+ * índice común, no UNIQUE) — por eso la propia RPC ordena y limita a uno. Con
+ * dos profiles que comparten email, el profile elegido puede no ser el del auth
+ * user elegido, y el distinct_id de Mixpanel terminaría apuntando a otra
+ * persona. Un PK lookup extra sale mucho más barato que una conversión mal
+ * atribuida.
+ */
+async function authUserIdForProfile(supabase: ProfileReader, profileId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('user_id')
+    .eq('id', profileId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[findOrCreateUser] No se pudo resolver el auth user del profile:', error);
+    return null;
+  }
+
+  return data?.user_id ?? null;
 }
 
 /**
@@ -79,13 +125,14 @@ export async function findOrCreateUser(
     const resolved = await resolveUserByEmail(supabase, email);
 
     if (resolved.profileId) {
+      const authUserId = await authUserIdForProfile(supabase, resolved.profileId);
       console.log(`[findOrCreateUser] Resolved existing profile for ${emailMasked} in ${Date.now() - startTime}ms`);
-      return { profileId: resolved.profileId, authUserId: resolved.authUserId, wasJustCreated: false };
+      return { profileId: resolved.profileId, authUserId, wasJustCreated: false };
     }
 
     // 2. No profile. Either the auth user exists without one, or the buyer is
     //    brand new (anonymous checkout) and we create the account now.
-    let authUserId: string | null = resolved.authUserId;
+    let authUserId: string | null = resolved.authUserIdByEmail;
 
     if (!authUserId) {
       const { data: newAuthData, error: createError } = await supabase.auth.admin.createUser({
@@ -102,12 +149,13 @@ export async function findOrCreateUser(
         const retry = await resolveUserByEmail(supabase, email);
 
         if (retry.profileId) {
-          return { profileId: retry.profileId, authUserId: retry.authUserId, wasJustCreated: false };
+          const retryAuthUserId = await authUserIdForProfile(supabase, retry.profileId);
+          return { profileId: retry.profileId, authUserId: retryAuthUserId, wasJustCreated: false };
         }
-        if (!retry.authUserId) {
+        if (!retry.authUserIdByEmail) {
           throw new Error('User exists but could not be retrieved');
         }
-        authUserId = retry.authUserId;
+        authUserId = retry.authUserIdByEmail;
       } else if (createError) {
         throw new Error(`Failed to create user account: ${createError.message}`);
       } else {
