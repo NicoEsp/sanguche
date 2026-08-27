@@ -28,11 +28,28 @@ interface Assessment {
   };
 }
 
-// El cupón del 15% es del producto RePremium: solo la evaluación con
-// experiencia (y las legacy) reciben descuento. Los demás perfiles reciben
-// el email con el pitch de su plan recomendado, sin cupón.
-function receivesDiscountCoupon(type: AssessmentTypeKey | null): boolean {
-  return type === null || type === 'experimentado';
+// Espejo de la lógica de supabase/functions/send-discount-email: ya no hay
+// filtro de "candidato", todos reciben mail a los dos días. Lo que cambia es la
+// oferta, y para las evaluaciones que pitchean suscripción la decide la nota.
+// builder y lider pitchean otro producto (Review y B2B) y nunca llevan cupón.
+type OfferLabel = 'SANGU10 · 10%' | 'Sin cupón' | 'SANGU15 · 15%' | 'Pitch de producto';
+
+function resolveOfferLabel(
+  type: AssessmentTypeKey | null,
+  promedioGlobal: number | null | undefined,
+): OfferLabel {
+  if (type === 'builder' || type === 'lider') return 'Pitch de producto';
+  if (typeof promedioGlobal !== 'number') return 'Sin cupón';
+  if (promedioGlobal < 3) return 'SANGU10 · 10%';
+  if (promedioGlobal < 3.5) return 'Sin cupón';
+  return 'SANGU15 · 15%';
+}
+
+function offerFor(assessment: Assessment): OfferLabel {
+  return resolveOfferLabel(
+    assessment.assessment_type,
+    assessment.assessment_result?.promedioGlobal,
+  );
 }
 
 export default function AdminAssessments() {
@@ -117,7 +134,9 @@ export default function AdminAssessments() {
     return reverseLevelMap[roundedLevel] || 'N/A';
   }
 
-  function isDiscountCandidate(assessment: Assessment): boolean {
+  // Ya no decide quién recibe mail (lo reciben todos): marca al cohorte de
+  // nota baja, que es el que entra al tramo del 10% y el que el panel resalta.
+  function isAtRisk(assessment: Assessment): boolean {
     const result = assessment.assessment_result;
     
     if (!result) return false;
@@ -153,7 +172,7 @@ export default function AdminAssessments() {
       assessment?.user?.email?.toLowerCase().includes(searchLower) ||
       false;
     if (!matchesSearch) return false;
-    if (showOnlyAtRisk && !isDiscountCandidate(assessment)) return false;
+    if (showOnlyAtRisk && !isAtRisk(assessment)) return false;
     if (selectedLevel !== 'all' && assessment?.assessment_result?.nivel !== selectedLevel) return false;
     if (selectedType !== 'all') {
       if (selectedType === 'legacy') return !assessment?.assessment_type;
@@ -199,10 +218,8 @@ export default function AdminAssessments() {
         },
         { 
           key: 'id',
-          header: 'Candidato Email',
-          format: (_, row) => isDiscountCandidate(row)
-            ? (receivesDiscountCoupon(row.assessment_type) ? 'SÍ (descuento)' : 'SÍ (pitch de plan)')
-            : 'NO'
+          header: 'Oferta del email',
+          format: (_, row) => offerFor(row)
         },
         { 
           key: 'assessment_result.gaps', 
@@ -341,10 +358,10 @@ export default function AdminAssessments() {
               <div>
                 <p className="text-sm font-medium">Usuarios en Riesgo</p>
                 <p className="text-2xl font-bold text-destructive">
-                  {assessments.filter(isDiscountCandidate).length}
+                  {assessments.filter(isAtRisk).length}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Candidatos para descuento
+                  Nota baja · entran al tramo del 10%
                 </p>
               </div>
             </div>
@@ -377,7 +394,7 @@ export default function AdminAssessments() {
               />
               <label htmlFor="at-risk-filter" className="text-sm flex items-center gap-2 cursor-pointer">
                 <AlertTriangle className="h-4 w-4 text-destructive" />
-                Mostrar solo usuarios en riesgo (candidatos a email)
+                Mostrar solo usuarios en riesgo (nota baja)
               </label>
             </div>
 
@@ -455,7 +472,7 @@ export default function AdminAssessments() {
                   <TableHead>Fecha</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Nivel General</TableHead>
-                  <TableHead>Riesgo</TableHead>
+                  <TableHead>Oferta del email</TableHead>
                   <TableHead>Áreas Evaluadas</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
@@ -494,32 +511,29 @@ export default function AdminAssessments() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {isDiscountCandidate(assessment) ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="destructive" className="gap-1">
-                                <AlertTriangle className="h-3 w-3" />
-                                {receivesDiscountCoupon(assessment.assessment_type) ? 'Descuento' : 'Oportunidad'}
-                              </Badge>
-                              <Info className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p className="text-sm">
-                              Usuario con <strong>{assessment.assessment_result?.gaps?.length || 0} áreas de mejora</strong>
-                              {' '}y promedio de <strong>{assessment.assessment_result?.promedioGlobal?.toFixed(1) || 'N/A'}</strong>.
-                              <br /><strong>{receivesDiscountCoupon(assessment.assessment_type)
-                                ? 'Candidato para oferta de descuento.'
-                                : 'Candidato para email con el pitch de su plan recomendado (sin cupón).'}</strong>
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">—</span>
-                    )}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant={isAtRisk(assessment) ? 'destructive' : 'secondary'}
+                              className="gap-1"
+                            >
+                              {isAtRisk(assessment) && <AlertTriangle className="h-3 w-3" />}
+                              {offerFor(assessment)}
+                            </Badge>
+                            <Info className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-sm">
+                            Usuario con <strong>{assessment.assessment_result?.gaps?.length || 0} áreas de mejora</strong>
+                            {' '}y promedio de <strong>{assessment.assessment_result?.promedioGlobal?.toFixed(1) || 'N/A'}</strong>.
+                            <br /><strong>Oferta del email a los 2 días: {offerFor(assessment)}.</strong>
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-muted-foreground">

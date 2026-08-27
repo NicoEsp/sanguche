@@ -15,81 +15,156 @@ interface AssessmentResult {
 
 type AssessmentType = "experimentado" | "sin_experiencia" | "builder" | "lider";
 
-// Copy por evaluación. El descuento y el checkout directo son del producto
-// RePremium, por eso solo aplican a la evaluación con experiencia (y a las
-// legacy, que eran esa misma evaluación). Los demás perfiles reciben el pitch
-// de su plan recomendado con CTA al sitio.
-interface EmailVariant {
-  subject: string;
-  intro: (gapCount: number, nivel: string) => string;
+// ── Checkouts y cupones ─────────────────────────────────────────────────────
+
+const CHECKOUT_URLS = {
+  premium: "https://nicoproducto.lemonsqueezy.com/checkout/buy/f5d59ed3-b542-4747-8cbd-5c6994aff5b1",
+  repremium: "https://nicoproducto.lemonsqueezy.com/checkout/buy/0e2df4bf-c8da-4a40-ae06-625beaec3986",
+} as const;
+
+// SANGU10 está aplicado a Premium en LemonSqueezy y SANGU15 a RePremium. Los
+// cupones NO son intercambiables: mandar SANGU15 a un checkout de Premium hace
+// que LemonSqueezy lo rechace en la cara del usuario. Por eso cada tramo lleva
+// el checkout de su propio plan y nunca se combinan cruzados.
+const COUPONS = {
+  premium: "SANGU10",
+  repremium: "SANGU15",
+} as const;
+
+function checkoutUrlFor(plan: keyof typeof CHECKOUT_URLS, coupon: string | null): string {
+  const base = CHECKOUT_URLS[plan];
+  return coupon ? `${base}?checkout[discount_code]=${coupon}` : base;
+}
+
+// ── Oferta según la nota de la evaluación ───────────────────────────────────
+
+type ScoreTier = "premium_10" | "premium_sin_cupon" | "repremium_15";
+
+/**
+ * Tramo de oferta según `promedioGlobal` (escala 1 a 5).
+ *
+ * Los cortes cierran el rango completo a propósito: la definición original
+ * ("menor a 3", "mayor a 3 pero menor a 3,49", "igual o mayor a 3,5") dejaba
+ * sin tramo al 3,00 exacto y a la franja 3,49–3,50, y esas notas existen
+ * porque promedioGlobal se redondea a dos decimales.
+ */
+function resolveScoreTier(promedioGlobal: number): ScoreTier {
+  if (promedioGlobal < 3) return "premium_10";
+  if (promedioGlobal < 3.5) return "premium_sin_cupon";
+  return "repremium_15";
+}
+
+interface Offer {
+  plan: keyof typeof CHECKOUT_URLS;
+  coupon: string | null;
+  /** Cómo encuadramos la nota antes de pasar a la oferta. */
+  framing: string;
   boxTitle: string;
   boxItems: string[];
-  offerHtml: (checkoutUrl: string) => string;
-  couponLine: string | null;
+  offerText: string;
+  ctaLabel: string;
 }
 
-const REPREMIUM_VARIANT: EmailVariant = {
-  subject: "Tu diagnóstico reveló oportunidades de mejora 🎯",
-  intro: (gapCount, nivel) =>
-    `Hace unos días completaste tu diagnóstico en ProductPrepa y detectamos <strong>${gapCount} áreas de mejora</strong> en tu perfil de <strong>PM ${nivel}</strong>.`,
-  boxTitle: "Con RePremium podés:",
-  boxItems: [
-    "✅ Mentoría personalizada 1:1 para atacar tus brechas",
-    "✅ Acceso a todos los cursos y recursos premium",
-    "✅ Career path con objetivos claros y seguimiento",
-    "✅ Ejercicios prácticos con feedback directo",
-  ],
-  offerHtml: (checkoutUrl) =>
-    buildCtaOffer(
+// Los beneficios espejan las cards de /planes, cupo de sesiones incluido: si el
+// mail promete algo distinto de lo que la página muestra, la venta arranca con
+// una expectativa mal puesta.
+const PREMIUM_ITEMS = [
+  "✅ 1 sesión de mentoría 1:1 por mes, no acumulable",
+  "✅ Tu Career Path con objetivos concretos",
+  "✅ Recursos curados según tus áreas de mejora",
+  "✅ Seguimiento de tu progreso mes a mes",
+];
+
+const REPREMIUM_ITEMS = [
+  "✅ 2 sesiones de mentoría 1:1 por mes, no acumulables",
+  "✅ Prioridad para agendar sesión",
+  "✅ Acceso completo a todos los cursos",
+  "✅ Feedback personalizado en tus ejercicios",
+  "✅ Canal directo de comunicación",
+];
+
+const OFFERS: Record<ScoreTier, Offer> = {
+  premium_10: {
+    plan: "premium",
+    coupon: COUPONS.premium,
+    framing:
+      "Eso no es malo, al contrario: significa que hay mucho espacio para crecer rápido si enfocás bien los esfuerzos.",
+    boxTitle: "Con Premium podés:",
+    boxItems: PREMIUM_ITEMS,
+    offerText:
+      "Preparamos un <strong>10% OFF en tu primer mes</strong> para que puedas arrancar con todo:",
+    ctaLabel: "Activá tu 10% OFF →",
+  },
+  premium_sin_cupon: {
+    plan: "premium",
+    coupon: null,
+    framing:
+      "Tenés una base razonable: lo que falta ahora es ordenar el camino y sostener el ritmo.",
+    boxTitle: "Con Premium podés:",
+    boxItems: PREMIUM_ITEMS,
+    offerText: "Mirá lo que incluye el plan Premium:",
+    ctaLabel: "Conocer Premium →",
+  },
+  repremium_15: {
+    plan: "repremium",
+    coupon: COUPONS.repremium,
+    framing:
+      "Tenés una base sólida, así que el salto ya no es de fundamentos: es de profundidad, y eso se acelera con acompañamiento fuerte.",
+    boxTitle: "Con RePremium podés:",
+    boxItems: REPREMIUM_ITEMS,
+    offerText:
       "Preparamos un <strong>15% OFF en tu primer mes</strong> para que puedas arrancar con todo:",
-      checkoutUrl,
-      "Activá tu 15% OFF →"
-    ),
-  couponLine:
-    'Usá el cupón <strong>SANGUCHITO15</strong> si preferís ir directo al checkout.',
+    ctaLabel: "Activá tu 15% OFF →",
+  },
 };
 
-function buildCtaOffer(text: string, url: string, label: string): string {
-  return `
-  <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 24px;">
-    ${text}
-  </p>
+// ── Copy de apertura según la evaluación que hizo la persona ────────────────
 
-  <!-- CTA Button -->
-  <table width="100%" cellpadding="0" cellspacing="0">
-  <tr><td align="center" style="padding:8px 0 32px;">
-    <a href="${url}" target="_blank" style="display:inline-block;background:#18181b;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">
-      ${label}
-    </a>
-  </td></tr>
-  </table>`;
+interface TypeIntro {
+  subject: string;
+  intro: (gapCount: number, nivel: string) => string;
 }
 
-const EMAIL_VARIANTS: Record<AssessmentType, EmailVariant> = {
-  experimentado: REPREMIUM_VARIANT,
+// Sólo para las evaluaciones que pitchean una suscripción. El asunto y el
+// intro siguen atados al tipo de evaluación (no es lo mismo un diagnóstico de
+// PM con experiencia que un mapa de afinidad); lo que decide la nota es la
+// oferta, no el encuadre.
+const SUBSCRIPTION_INTROS: Record<"experimentado" | "sin_experiencia", TypeIntro> = {
+  experimentado: {
+    subject: "Tu diagnóstico reveló oportunidades de mejora 🎯",
+    intro: (gapCount, nivel) =>
+      `Hace unos días completaste tu diagnóstico en ProductPrepa y detectamos <strong>${gapCount} áreas de mejora</strong> en tu perfil de <strong>PM ${nivel}</strong>.`,
+  },
   sin_experiencia: {
     subject: "Tu mapa de afinidad marcó por dónde empezar 🎯",
     intro: (gapCount) =>
       `Hace unos días completaste tu mapa de afinidad en ProductPrepa y detectamos <strong>${gapCount} áreas por explorar</strong> antes de dar el salto a producto digital.`,
-    boxTitle: "Con Premium podés:",
-    boxItems: [
-      "✅ Un plan de estudio ordenado para arrancar de cero",
-      "✅ Mentoría 1:1 para orientar tu entrada a producto",
-      "✅ Recursos y guías para cada dominio que te falta",
-      "✅ Seguimiento de tu progreso paso a paso",
-    ],
-    offerHtml: () =>
-      buildCtaOffer(
-        "El salto es más corto con acompañamiento. Mirá lo que incluye el plan Premium:",
-        "https://productprepa.com/planes",
-        "Conocer Premium →"
-      ),
-    couponLine: null,
   },
+};
+
+// ── Evaluaciones que pitchean otro producto ─────────────────────────────────
+
+interface ProductVariant {
+  subject: string;
+  intro: (gapCount: number, nivel: string) => string;
+  framing: string;
+  boxTitle: string;
+  boxItems: string[];
+  offerText: string;
+  ctaUrl: string;
+  ctaLabel: string;
+}
+
+// builder y lider no venden una suscripción sino Productastic Review y
+// ProductPrepa for B2B. La nota no cambia esa recomendación, así que estos dos
+// quedan fuera de la lógica por tramos y no llevan cupón.
+const PRODUCT_VARIANTS: Record<"builder" | "lider", ProductVariant> = {
   builder: {
     subject: "Tu diagnóstico de método reveló dónde enfocar 🎯",
     intro: (gapCount) =>
       `Hace unos días completaste tu diagnóstico de método en ProductPrepa y detectamos <strong>${gapCount} áreas donde estás construyendo a pura intuición</strong>.`,
+    framing:
+      "Eso no es malo, al contrario: significa que hay mucho espacio para crecer rápido si enfocás bien los esfuerzos.",
     boxTitle: "Con Productastic Review obtenés:",
     boxItems: [
       "✅ Una revisión a fondo de tu producto, de punta a punta",
@@ -97,18 +172,16 @@ const EMAIL_VARIANTS: Record<AssessmentType, EmailVariant> = {
       "✅ La teoría que te falta, aplicada a lo que estás construyendo",
       "✅ Una mirada externa experta, sin comprometerte a una suscripción",
     ],
-    offerHtml: () =>
-      buildCtaOffer(
-        "Tu producto merece una revisión a fondo. Mirá lo que incluye:",
-        "https://productprepa.com/planes",
-        "Conocer Productastic Review →"
-      ),
-    couponLine: null,
+    offerText: "Tu producto merece una revisión a fondo. Mirá lo que incluye:",
+    ctaUrl: "https://productprepa.com/planes",
+    ctaLabel: "Conocer Productastic Review →",
   },
   lider: {
     subject: "El diagnóstico de tu equipo reveló dónde nivelar 🎯",
     intro: (gapCount) =>
       `Hace unos días completaste el diagnóstico de tu equipo en ProductPrepa y detectamos <strong>${gapCount} dominios donde el equipo puede nivelar</strong> su forma de construir producto.`,
+    framing:
+      "Eso no es malo, al contrario: significa que hay mucho espacio para crecer rápido si enfocás bien los esfuerzos.",
     boxTitle: "Con ProductPrepa for B2B tu equipo obtiene:",
     boxItems: [
       "✅ Un programa a medida según las brechas detectadas",
@@ -116,40 +189,73 @@ const EMAIL_VARIANTS: Record<AssessmentType, EmailVariant> = {
       "✅ Actualización a la forma actual de construir producto",
       "✅ Seguimiento del progreso del equipo en el tiempo",
     ],
-    offerHtml: () =>
-      buildCtaOffer(
-        "Nivelá a tu equipo con un programa pensado para todo el grupo:",
-        "https://productprepa.com/empresas",
-        "Ver ProductPrepa for B2B →"
-      ),
-    couponLine: null,
+    offerText: "Nivelá a tu equipo con un programa pensado para todo el grupo:",
+    ctaUrl: "https://productprepa.com/empresas",
+    ctaLabel: "Ver ProductPrepa for B2B →",
   },
 };
 
-function isDiscountCandidate(result: AssessmentResult): boolean {
-  const { gaps, promedioGlobal, nivel } = result;
-  // 3+ gaps total
-  if (gaps.length >= 3) return true;
-  // Average < 3.0
-  if (promedioGlobal < 3.0) return true;
-  // Junior with 2+ high priority gaps
-  if (
-    nivel === "Junior" &&
-    gaps.filter((g) => g.prioridad === "Alta").length >= 2
-  )
-    return true;
-  return false;
+// ── Armado del mail ─────────────────────────────────────────────────────────
+
+interface EmailPlan {
+  subject: string;
+  intro: string;
+  framing: string;
+  boxTitle: string;
+  boxItems: string[];
+  offerText: string;
+  ctaUrl: string;
+  ctaLabel: string;
+  couponLine: string | null;
+  // Para la auditoría en discount_email_queue: sin esto no hay forma de medir
+  // qué tramo convierte mejor.
+  tier: ScoreTier | null;
+  coupon: string | null;
 }
 
-function buildEmailHtml(
-  name: string,
-  nivel: string,
-  gapCount: number,
-  checkoutUrl: string,
-  assessmentType: AssessmentType
-): string {
+function resolveEmailPlan(type: AssessmentType, result: AssessmentResult): EmailPlan {
+  const gapCount = result.gaps?.length ?? 0;
+
+  if (type === "builder" || type === "lider") {
+    const variant = PRODUCT_VARIANTS[type];
+    return {
+      subject: variant.subject,
+      intro: variant.intro(gapCount, result.nivel),
+      framing: variant.framing,
+      boxTitle: variant.boxTitle,
+      boxItems: variant.boxItems,
+      offerText: variant.offerText,
+      ctaUrl: variant.ctaUrl,
+      ctaLabel: variant.ctaLabel,
+      couponLine: null,
+      tier: null,
+      coupon: null,
+    };
+  }
+
+  const intro = SUBSCRIPTION_INTROS[type];
+  const tier = resolveScoreTier(result.promedioGlobal);
+  const offer = OFFERS[tier];
+
+  return {
+    subject: intro.subject,
+    intro: intro.intro(gapCount, result.nivel),
+    framing: offer.framing,
+    boxTitle: offer.boxTitle,
+    boxItems: offer.boxItems,
+    offerText: offer.offerText,
+    ctaUrl: checkoutUrlFor(offer.plan, offer.coupon),
+    ctaLabel: offer.ctaLabel,
+    couponLine: offer.coupon
+      ? `Usá el cupón <strong>${offer.coupon}</strong> si preferís ir directo al checkout.`
+      : null,
+    tier,
+    coupon: offer.coupon,
+  };
+}
+
+function buildEmailHtml(name: string, plan: EmailPlan): string {
   const firstName = name?.split(" ")[0] || "ahí";
-  const variant = EMAIL_VARIANTS[assessmentType];
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -173,25 +279,37 @@ function buildEmailHtml(
     ¡Hola ${firstName}!
   </p>
   <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 16px;">
-    ${variant.intro(gapCount, nivel)}
+    ${plan.intro}
   </p>
   <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 24px;">
-    Eso no es malo, al contrario: significa que hay mucho espacio para crecer rápido si enfocás bien los esfuerzos.
+    ${plan.framing}
   </p>
 
   <!-- Value Prop Box -->
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:8px;margin-bottom:24px;">
   <tr><td style="padding:24px;">
-    <p style="font-size:15px;font-weight:bold;color:#18181b;margin:0 0 12px;">${variant.boxTitle}</p>
+    <p style="font-size:15px;font-weight:bold;color:#18181b;margin:0 0 12px;">${plan.boxTitle}</p>
     <p style="font-size:14px;color:#52525b;line-height:1.7;margin:0;">
-      ${variant.boxItems.join("<br/>\n      ")}
+      ${plan.boxItems.join("<br/>\n      ")}
     </p>
   </td></tr>
   </table>
-${variant.offerHtml(checkoutUrl)}
-${variant.couponLine ? `
+
+  <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 24px;">
+    ${plan.offerText}
+  </p>
+
+  <!-- CTA Button -->
+  <table width="100%" cellpadding="0" cellspacing="0">
+  <tr><td align="center" style="padding:8px 0 32px;">
+    <a href="${plan.ctaUrl}" target="_blank" style="display:inline-block;background:#18181b;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:8px;">
+      ${plan.ctaLabel}
+    </a>
+  </td></tr>
+  </table>
+${plan.couponLine ? `
   <p style="font-size:14px;color:#71717a;line-height:1.5;margin:0;">
-    ${variant.couponLine}
+    ${plan.couponLine}
   </p>` : ""}
 </td></tr>
 
@@ -225,7 +343,9 @@ Deno.serve(async (req: Request) => {
     // than MAX_AGE_DAYS. Wide window + idempotent index on assessment_id =
     // self-healing if the cron ever misses a day. Worst case mail delay:
     // ~24h after the user's assessment hits MIN_AGE_HOURS (cron is daily).
-    const MIN_AGE_HOURS = 24;
+    // "A los dos días" de completar la evaluación. El cron es diario, así que
+    // en la práctica el mail cae entre las 48h y las 72h.
+    const MIN_AGE_HOURS = 48;
     const MAX_AGE_DAYS = 7;
 
     const now = new Date();
@@ -314,13 +434,10 @@ Deno.serve(async (req: Request) => {
 
     console.log(`[send-discount-email] Profiles loaded: ${profiles?.length ?? 0}, Subscriptions loaded: ${subscriptions?.length ?? 0}`);
 
-    const checkoutUrl =
-      "https://nicoproducto.lemonsqueezy.com/checkout/buy/0e2df4bf-c8da-4a40-ae06-625beaec3986?checkout[discount_code]=SANGUCHITO15";
-
     let sentCount = 0;
     let skippedNoEmail = 0;
     let skippedNotFree = 0;
-    let skippedNotCandidate = 0;
+    let skippedSinResultado = 0;
     let skippedAlreadyEmailed = 0;
     const errors: string[] = [];
 
@@ -349,11 +466,13 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
-      // Check discount candidate logic
+      // Ya no hay filtro de "candidato a descuento": todo el que completó la
+      // evaluación recibe su mail, y la nota decide qué oferta lleva. Lo único
+      // que descarta una fila es no tener resultado con el que armar el copy.
       const result = assessment.assessment_result as AssessmentResult;
-      if (!result || !isDiscountCandidate(result)) {
-        skippedNotCandidate++;
-        console.log(`[send-discount-email] SKIP user ${assessment.user_id}: not discount candidate (gaps: ${result?.gaps?.length ?? 0}, avg: ${result?.promedioGlobal ?? 'N/A'}, nivel: ${result?.nivel ?? 'N/A'})`);
+      if (!result || typeof result.promedioGlobal !== "number") {
+        skippedSinResultado++;
+        console.log(`[send-discount-email] SKIP user ${assessment.user_id}: assessment sin resultado utilizable`);
         continue;
       }
 
@@ -361,17 +480,13 @@ Deno.serve(async (req: Request) => {
       const assessmentType: AssessmentType =
         (assessment.assessment_type as AssessmentType | null) ?? "experimentado";
 
-      console.log(`[send-discount-email] SENDING to user ${assessment.user_id} (tipo: ${assessmentType}, nivel: ${result.nivel}, gaps: ${result.gaps.length}, avg: ${result.promedioGlobal})`);
+      const emailPlan = resolveEmailPlan(assessmentType, result);
+
+      console.log(`[send-discount-email] SENDING to user ${assessment.user_id} (tipo: ${assessmentType}, nivel: ${result.nivel}, gaps: ${result.gaps?.length ?? 0}, avg: ${result.promedioGlobal}, tramo: ${emailPlan.tier ?? 'n/a'}, cupón: ${emailPlan.coupon ?? 'sin cupón'})`);
 
       // Send email via Resend
       try {
-        const emailHtml = buildEmailHtml(
-          profile.name || "",
-          result.nivel,
-          result.gaps.length,
-          checkoutUrl,
-          assessmentType
-        );
+        const emailHtml = buildEmailHtml(profile.name || "", emailPlan);
 
         const resendRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -382,7 +497,7 @@ Deno.serve(async (req: Request) => {
           body: JSON.stringify({
             from: "ProductPrepa <hola@productprepa.com>",
             to: [profile.email],
-            subject: EMAIL_VARIANTS[assessmentType].subject,
+            subject: emailPlan.subject,
             html: emailHtml,
           }),
         });
@@ -399,9 +514,11 @@ Deno.serve(async (req: Request) => {
             error_message: resendBody,
             assessment_data: {
               nivel: result.nivel,
-              gaps: result.gaps.length,
+              gaps: result.gaps?.length ?? 0,
               promedio: result.promedioGlobal,
               tipo: assessmentType,
+              tramo: emailPlan.tier,
+              cupon: emailPlan.coupon,
             },
           });
           errors.push(`user ${assessment.user_id}: ${resendBody}`);
@@ -416,9 +533,11 @@ Deno.serve(async (req: Request) => {
           status: "sent",
           assessment_data: {
             nivel: result.nivel,
-            gaps: result.gaps.length,
+            gaps: result.gaps?.length ?? 0,
             promedio: result.promedioGlobal,
             tipo: assessmentType,
+            tramo: emailPlan.tier,
+            cupon: emailPlan.coupon,
           },
         });
         // Cubrir también duplicados dentro de la misma corrida: si el usuario
@@ -434,7 +553,7 @@ Deno.serve(async (req: Request) => {
 
     console.log(`[send-discount-email] === SUMMARY ===`);
     console.log(`[send-discount-email] Total in window: ${assessments.length}, Pending: ${pendingAssessments.length}`);
-    console.log(`[send-discount-email] Sent: ${sentCount}, Skipped (no email): ${skippedNoEmail}, Skipped (not free): ${skippedNotFree}, Skipped (not candidate): ${skippedNotCandidate}, Skipped (already emailed): ${skippedAlreadyEmailed}, Errors: ${errors.length}`);
+    console.log(`[send-discount-email] Sent: ${sentCount}, Skipped (no email): ${skippedNoEmail}, Skipped (not free): ${skippedNotFree}, Skipped (sin resultado): ${skippedSinResultado}, Skipped (already emailed): ${skippedAlreadyEmailed}, Errors: ${errors.length}`);
 
     return new Response(
       JSON.stringify({

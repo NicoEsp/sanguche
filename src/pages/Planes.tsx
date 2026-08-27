@@ -632,6 +632,7 @@ export default function Planes() {
                   "Todo lo incluido en Premium",
                   <>2 sesiones mensuales 1:1 con {nicoLink}</>,
                   <><strong>Acceso completo a Cursos</strong></>,
+                  "Prioridad para agendar sesión",
                   "Feedback personalizado en ejercicios",
                   "Acceso prioritario a nuevos contenidos",
                   "Canal directo de comunicación"
