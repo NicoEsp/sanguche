@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { usePricing } from '@/hooks/usePricing';
 
 interface PremiumCTACardProps {
   ctaPath: string;
@@ -8,6 +9,10 @@ interface PremiumCTACardProps {
 }
 
 export function PremiumCTACard({ ctaPath, onCtaClick }: PremiumCTACardProps) {
+  // El precio sale de LemonSqueezy (via pricing-config), no de un literal:
+  // un aumento no debería dejar esta card mintiendo hasta que alguien la edite.
+  const { premium } = usePricing();
+
   return (
     <div className="rounded-2xl bg-gradient-to-br from-[#f093fb] to-[#f5576c] p-6 sm:p-8 shadow-lg animate-fade-in">
       <div className="flex items-center gap-2 mb-3">
@@ -21,7 +26,8 @@ export function PremiumCTACard({ ctaPath, onCtaClick }: PremiumCTACardProps) {
         Probá Premium un mes. Si no te sirve, lo cancelás.
       </h3>
       <p className="text-white/85 text-sm sm:text-base mb-6">
-        Mentoría 1:1, Career Path personalizado y recursos dedicados por ARS 50.000/mes. Sin permanencia.
+        Mentoría 1:1, Career Path personalizado y recursos dedicados por {premium.formatted}/mes
+        (pesos argentinos). Sin permanencia.
       </p>
 
       <Button

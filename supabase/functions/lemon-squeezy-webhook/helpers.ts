@@ -3,6 +3,12 @@ import { generateRecoveryLink } from '../_shared/recovery.ts';
 
 export interface FindOrCreateUserResult {
   profileId: string;
+  // auth.users.id, which is NOT profiles.id — they are separate UUIDs joined by
+  // profiles.user_id. The browser identifies to Mixpanel with the auth id
+  // (useMixpanelTracking -> Mixpanel.identify(user.id)), so any server-side
+  // event has to use this one or it lands on a different profile.
+  // Null only when resolve_user_by_email fell back to the profiles-only lookup.
+  authUserId: string | null;
   // True only when this call actually created the auth user (anonymous checkout path).
   // Used by the webhook to decide whether to send the "set your password" email.
   wasJustCreated: boolean;
@@ -74,7 +80,7 @@ export async function findOrCreateUser(
 
     if (resolved.profileId) {
       console.log(`[findOrCreateUser] Resolved existing profile for ${emailMasked} in ${Date.now() - startTime}ms`);
-      return { profileId: resolved.profileId, wasJustCreated: false };
+      return { profileId: resolved.profileId, authUserId: resolved.authUserId, wasJustCreated: false };
     }
 
     // 2. No profile. Either the auth user exists without one, or the buyer is
@@ -96,7 +102,7 @@ export async function findOrCreateUser(
         const retry = await resolveUserByEmail(supabase, email);
 
         if (retry.profileId) {
-          return { profileId: retry.profileId, wasJustCreated: false };
+          return { profileId: retry.profileId, authUserId: retry.authUserId, wasJustCreated: false };
         }
         if (!retry.authUserId) {
           throw new Error('User exists but could not be retrieved');
@@ -157,7 +163,7 @@ export async function findOrCreateUser(
     }
 
     console.log(`[findOrCreateUser] Profile ready for ${emailMasked} in ${Date.now() - startTime}ms (created: ${wasJustCreated})`);
-    return { profileId, wasJustCreated };
+    return { profileId, authUserId, wasJustCreated };
 
   } catch (error) {
     console.error(`[findOrCreateUser] Failed for ${emailMasked} after ${Date.now() - startTime}ms:`, error);

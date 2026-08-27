@@ -499,6 +499,10 @@ serve(async (req) => {
   let eventName = 'unknown';
   let userEmail: string | null = null;
   let userId: string | null = null;
+  // profiles.id is what every user_subscriptions row is keyed by; auth.users.id
+  // is what the browser reports to Mixpanel. Keep both — they are not the same
+  // UUID and mixing them up is what broke checkout_completed_server attribution.
+  let authUserId: string | null = null;
   let ids: EventIds = { subscriptionId: null, orderId: null, customerId: null };
   let variantId: string | null = null;
 
@@ -589,6 +593,7 @@ serve(async (req) => {
     try {
       const result = await findOrCreateUser(userEmail, userName, supabase, defer);
       userId = result.profileId;
+      authUserId = result.authUserId;
     } catch (error) {
       console.error('[Webhook] Failed to find or create user:', error);
       defer(logWebhookEvent(supabase, {
@@ -640,9 +645,16 @@ serve(async (req) => {
         }
 
         // Server-side checkout tracking (captures 100% of conversions).
+        //
+        // distinct_id MUST be auth.users.id: the browser calls
+        // Mixpanel.identify(user.id) with the Supabase *auth* id, so sending
+        // profiles.id here created a second, orphan Mixpanel profile per buyer
+        // and the funnel never joined the client-side checkout_started to this
+        // event. Falling back to profileId only when the auth id is unavailable
+        // keeps the event flowing instead of dropping the conversion.
         defer(trackMixpanelServerEvent(
           'checkout_completed_server',
-          userId!,
+          authUserId ?? userId!,
           mixpanelInsertId('oc', ids.orderId ?? event.data.id),
           eventTimeSeconds(attrs.created_at),
           {
@@ -652,6 +664,10 @@ serve(async (req) => {
             paid_amount_cents: orderTotal ?? 0,
             email: userEmail,
             order_id: ids.orderId,
+            // Ambos ids explícitos: permite reconciliar los eventos históricos
+            // que se mandaron con profiles.id como distinct_id.
+            supabase_user_id: authUserId,
+            profile_id: userId,
             source: 'webhook',
           },
         ));

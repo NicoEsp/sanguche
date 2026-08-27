@@ -36,6 +36,9 @@ interface PlanCardProps {
   onHover?: () => void;
   enrichedCtaText?: string;
   enrichedSubtext?: string;
+  /** Cupo de mentoría del plan. Va debajo de los features, no como uno más:
+   *  es una condición del plan, no un beneficio extra. */
+  sessionsNote?: string;
 }
 
 function PlanCard({
@@ -53,7 +56,8 @@ function PlanCard({
   isCurrentPlan = false,
   onHover,
   enrichedCtaText,
-  enrichedSubtext
+  enrichedSubtext,
+  sessionsNote
 }: PlanCardProps) {
   return (
     <Card
@@ -90,6 +94,11 @@ function PlanCard({
             </li>
           ))}
         </ul>
+        {sessionsNote && (
+          <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+            {sessionsNote}
+          </p>
+        )}
         <div className="mt-6">
           {isCurrentPlan ? (
             <Button variant="secondary" className="w-full" disabled>
@@ -602,6 +611,7 @@ export default function Planes() {
                   "Nuevos contenidos cada mes"
                 ]}
                 plan="premium"
+                sessionsNote="1 sesión de mentoría por mes, no acumulable"
                 ctaText={hasActivePremium ? "Ir a tu mentoría" : "Suscribirse a Premium"}
                 ctaLink={hasActivePremium ? "/mentoria" : undefined}
                 isCurrentPlan={hasActivePremium && !hasActiveRePremium}
@@ -627,6 +637,7 @@ export default function Planes() {
                   "Canal directo de comunicación"
                 ]}
                 plan="repremium"
+                sessionsNote="2 sesiones de mentoría por mes, no acumulables"
                 ctaText={hasActiveRePremium ? "Ir a tu mentoría" : "Suscribirse a RePremium"}
                 ctaLink={hasActiveRePremium ? "/mentoria" : undefined}
                 isCurrentPlan={hasActiveRePremium}
