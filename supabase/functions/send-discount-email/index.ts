@@ -54,6 +54,18 @@ function resolveScoreTier(promedioGlobal: number): ScoreTier {
   return "repremium_15";
 }
 
+// Evaluaciones cuya oferta topa en Premium: por alta que sea la nota, no
+// escalan a RePremium. sin_experiencia mide afinidad con producto, no skill de
+// PM, así que un 4,5 ahí no significa que la persona necesite el plan más caro.
+// El tramo alto cae entonces en la misma oferta de Premium con SANGU10.
+const TOPE_EN_PREMIUM: ReadonlySet<AssessmentType> = new Set(["sin_experiencia"]);
+
+function resolveTierForType(type: AssessmentType, promedioGlobal: number): ScoreTier {
+  const tier = resolveScoreTier(promedioGlobal);
+  if (tier === "repremium_15" && TOPE_EN_PREMIUM.has(type)) return "premium_10";
+  return tier;
+}
+
 interface Offer {
   plan: keyof typeof CHECKOUT_URLS;
   coupon: string | null;
@@ -234,7 +246,7 @@ function resolveEmailPlan(type: AssessmentType, result: AssessmentResult): Email
   }
 
   const intro = SUBSCRIPTION_INTROS[type];
-  const tier = resolveScoreTier(result.promedioGlobal);
+  const tier = resolveTierForType(type, result.promedioGlobal);
   const offer = OFFERS[tier];
 
   return {

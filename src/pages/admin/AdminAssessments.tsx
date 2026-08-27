@@ -42,7 +42,8 @@ function resolveOfferLabel(
   if (typeof promedioGlobal !== 'number') return 'Sin cupón';
   if (promedioGlobal < 3) return 'SANGU10 · 10%';
   if (promedioGlobal < 3.5) return 'Sin cupón';
-  return 'SANGU15 · 15%';
+  // sin_experiencia topa en Premium: mide afinidad, no skill de PM.
+  return type === 'sin_experiencia' ? 'SANGU10 · 10%' : 'SANGU15 · 15%';
 }
 
 function offerFor(assessment: Assessment): OfferLabel {
