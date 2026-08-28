@@ -2,17 +2,28 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ASSESSMENT_TYPES, type AssessmentTypeKey } from '@/utils/scoring';
 
-// Fallback prices in case pricing-config fails (amounts in centavos ARS).
-// Si cambian los precios hay que tocar TRES lugares: acá, src/hooks/usePricing.ts
-// y supabase/functions/pricing-config/index.ts. Esta copia quedó en $50.000/$120.000
-// hasta agosto de 2026 y el MRR del dashboard se subestimaba 3x cuando pricing-config fallaba.
-const FALLBACK_PRICES = {
-  premium: { amount: 15000000 },     // $150,000 ARS
-  repremium: { amount: 28000000 },   // $280,000 ARS
-  curso_estrategia: { amount: 4900000 }, // $49,000 ARS (one-time)
-  cursos_all: { amount: 7500000 },   // $75,000 ARS (one-time)
-  productprepa_business: { amount: 0 }, // one-time, real price comes from LemonSqueezy
-  productastic_review: { amount: 0 }, // one-time, real price comes from LemonSqueezy
+// Este hook ya no usa el precio de lista para nada: el MRR sale de montos
+// efectivamente cobrados y, cuando falta el dato, de LEGACY_MONTHLY_PRICES.
+// Por eso acá no hay copia de los precios actuales — vivían en un FALLBACK_PRICES
+// que había que mantener en sync a mano y que, valuando suscripciones viejas al
+// precio nuevo, inflaba el MRR. Los precios de lista quedan en dos lugares:
+// src/hooks/usePricing.ts y supabase/functions/pricing-config/index.ts.
+
+// Precio con el que se valúa una suscripción activa que no tiene paid_amount
+// (pesos, no centavos). NO es el precio de lista: es el precio viejo.
+//
+// paid_amount lo escribe el webhook en order_created, así que una fila sin ese
+// dato es necesariamente vieja — de antes de que lo guardáramos, o de una orden
+// cuyo evento se perdió. Esos suscriptores están grandfathered: LemonSqueezy
+// clava cada suscripción a su price_id del alta y no la mueve cuando cambia el
+// precio de la variante, así que siguen pagando lo viejo aunque el checkout hoy
+// cobre $150.000 / $280.000.
+//
+// Valuarlos al precio de lista actual inflaba el MRR (en agosto de 2026, 3
+// suscripciones Premium contadas a $150.000 en vez de $50.000: $300.000 de más).
+const LEGACY_MONTHLY_PRICES = {
+  premium: 50000,
+  repremium: 120000,
 };
 
 const PAGE_SIZE = 1000;
@@ -143,12 +154,9 @@ export function useAdminAnalytics() {
       const assessmentsThisMonth = assessmentsThisMonthResponse.count ?? 0;
 
       // Extract pricing data
+      // Sólo se usa para el badge de origen de precios: el MRR se calcula con
+      // montos cobrados y, cuando faltan, con LEGACY_MONTHLY_PRICES.
       const pricingData = pricingResponse.data;
-      const prices = pricingData?.plans || FALLBACK_PRICES;
-
-      // Convert prices from centavos to pesos
-      const premiumMonthlyPrice = (prices.premium?.amount || FALLBACK_PRICES.premium.amount) / 100;
-      const repremiumMonthlyPrice = (prices.repremium?.amount || FALLBACK_PRICES.repremium.amount) / 100;
 
       // Count subscriptions by plan with detailed breakdown
       const subscriptionsByPlan = {
@@ -162,7 +170,8 @@ export function useAdminAnalytics() {
 
       let totalMrr = 0;
       let totalPaidRecurrentUsers = 0;
-      let hasRealPricing = false;
+      // Suscripciones valuadas con un precio estimado en vez del monto cobrado.
+      let estimatedSubscriptions = 0;
 
       subscriptionsData.forEach(sub => {
         if (sub?.status !== 'active' || sub?.plan === 'free') return;
@@ -176,11 +185,12 @@ export function useAdminAnalytics() {
               subscriptionsByPlan.premium.comped++;
             } else {
               subscriptionsByPlan.premium.paid++;
-              // Use paid_amount if available, otherwise fallback to plan price
+              // Monto real cobrado; sin él, el precio viejo (ver
+              // LEGACY_MONTHLY_PRICES), nunca el de lista actual.
               const monthlyPrice = sub.paid_amount
                 ? sub.paid_amount / 100
-                : premiumMonthlyPrice;
-              if (sub.paid_amount) hasRealPricing = true;
+                : LEGACY_MONTHLY_PRICES.premium;
+              if (!sub.paid_amount) estimatedSubscriptions++;
               subscriptionsByPlan.premium.mrr += monthlyPrice;
               totalMrr += monthlyPrice;
               totalPaidRecurrentUsers++;
@@ -193,8 +203,8 @@ export function useAdminAnalytics() {
               subscriptionsByPlan.repremium.paid++;
               const monthlyPrice = sub.paid_amount
                 ? sub.paid_amount / 100
-                : repremiumMonthlyPrice;
-              if (sub.paid_amount) hasRealPricing = true;
+                : LEGACY_MONTHLY_PRICES.repremium;
+              if (!sub.paid_amount) estimatedSubscriptions++;
               subscriptionsByPlan.repremium.mrr += monthlyPrice;
               totalMrr += monthlyPrice;
               totalPaidRecurrentUsers++;
@@ -325,8 +335,13 @@ export function useAdminAnalytics() {
       const averageAssessmentScore = totalScoreCount > 0 ? totalScores / totalScoreCount : 0;
 
       // Determine pricing source
+      // "real" sólo si el MRR salió entero de montos efectivamente cobrados.
+      // Con una sola suscripción estimada el número ya es una aproximación, y el
+      // badge del dashboard no debería decir lo contrario.
       const pricingSourceValue: 'lemonsqueezy' | 'fallback' | 'real' =
-        hasRealPricing ? 'real' : (pricingData?.source === 'lemonsqueezy' ? 'lemonsqueezy' : 'fallback');
+        totalPaidRecurrentUsers > 0 && estimatedSubscriptions === 0
+          ? 'real'
+          : (pricingData?.source === 'lemonsqueezy' ? 'lemonsqueezy' : 'fallback');
 
       const analyticsData: AdminAnalytics = {
         totalUsers,
