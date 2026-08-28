@@ -1,21 +1,14 @@
 // Planes que tienen acceso a funcionalidades premium (mentoría, career path, recursos premium)
 export const PREMIUM_PLANS = ['premium', 'repremium'] as const;
 
-// Planes que tienen acceso a cursos
-export const COURSE_PLANS = ['curso_estrategia', 'cursos_all', 'repremium'] as const;
-
-// Todos los planes de pago (para edge functions y verificaciones de acceso a recursos)
-export const ALL_PAID_PLANS = ['premium', 'repremium', 'curso_estrategia', 'cursos_all', 'productprepa_business', 'productastic_review'] as const;
+// Ojo: el acceso a cursos y el chequeo de "plan pago" NO viven acá. Están
+// re-escritos a mano en src/hooks/useCourseAccess.ts y src/hooks/useSubscription.ts.
+// Existían COURSE_PLANS/ALL_PAID_PLANS + sus helpers, pero nadie los importaba nunca,
+// así que se borraron. Si algún día se centraliza esa política, este es el lugar.
 
 // Helpers
-export const isPremiumPlan = (plan?: string): boolean => 
+export const isPremiumPlan = (plan?: string): boolean =>
   PREMIUM_PLANS.includes(plan as typeof PREMIUM_PLANS[number]);
-
-export const hasCoursesAccess = (plan?: string): boolean => 
-  COURSE_PLANS.includes(plan as typeof COURSE_PLANS[number]);
-
-export const isPaidPlan = (plan?: string): boolean => 
-  ALL_PAID_PLANS.includes(plan as typeof ALL_PAID_PLANS[number]);
 
 // Helper para obtener badge info por plan
 export const getPlanBadgeInfo = (plan?: string): { 

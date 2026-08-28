@@ -358,7 +358,9 @@ export default function Assessment() {
   const isReevaluatingRef = useRef(isReevaluating);
   const currentStepRef = useRef(currentStep);
   const answeredRef = useRef(0);
-  const totalQuestionsRef = useRef(DOMAINS.length);
+  // DOMAINS es `as const`, así que DOMAINS.length se infiere como el literal 11 y el
+  // efecto de abajo no podría reasignarle activeDomains.length. Anotar el tipo lo destraba.
+  const totalQuestionsRef = useRef<number>(DOMAINS.length);
   const selectedTypeRef = useRef<AssessmentTypeKey | null>(selectedType);
   const assessmentStartTimeRef = useRef(Date.now());
   const completedThisSessionRef = useRef(false);

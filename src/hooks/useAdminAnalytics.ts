@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ASSESSMENT_TYPES, type AssessmentTypeKey } from '@/utils/scoring';
 
-// Fallback prices in case pricing-config fails (amounts in centavos ARS)
+// Fallback prices in case pricing-config fails (amounts in centavos ARS).
+// Si cambian los precios hay que tocar TRES lugares: acá, src/hooks/usePricing.ts
+// y supabase/functions/pricing-config/index.ts. Esta copia quedó en $50.000/$120.000
+// hasta agosto de 2026 y el MRR del dashboard se subestimaba 3x cuando pricing-config fallaba.
 const FALLBACK_PRICES = {
-  premium: { amount: 5000000 },      // $50,000 ARS
-  repremium: { amount: 12000000 },   // $120,000 ARS
+  premium: { amount: 15000000 },     // $150,000 ARS
+  repremium: { amount: 28000000 },   // $280,000 ARS
   curso_estrategia: { amount: 4900000 }, // $49,000 ARS (one-time)
   cursos_all: { amount: 7500000 },   // $75,000 ARS (one-time)
   productprepa_business: { amount: 0 }, // one-time, real price comes from LemonSqueezy

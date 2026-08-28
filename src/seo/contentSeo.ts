@@ -92,7 +92,7 @@ export function blogPostSeo(post: BlogPost): ContentSeo {
         author: ORGANIZATION,
         publisher: {
           ...ORGANIZATION,
-          logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon.png` },
+          logo: { '@type': 'ImageObject', url: `${SITE_URL}/assets/sanguche.png` },
         },
         image,
         inLanguage: 'es',

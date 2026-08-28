@@ -7,6 +7,24 @@ type MixpanelBrowser = typeof import('mixpanel-browser').default;
 let mixpanelInstance: MixpanelBrowser | null = null;
 let mixpanelLoader: Promise<MixpanelBrowser | null> | null = null;
 
+type DisplayMode = 'browser' | 'standalone' | 'minimal-ui' | 'fullscreen';
+
+// Cómo se está viendo el sitio: pestaña normal o ventana de app instalada.
+// Sin esto no hay forma de saber cuánta gente usa la PWA — el dato no se capturaba.
+const getDisplayMode = (): DisplayMode => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return 'browser';
+  }
+
+  // iOS Safari no implementa la media query display-mode; expone navigator.standalone.
+  if ((window.navigator as Navigator & { standalone?: boolean }).standalone === true) {
+    return 'standalone';
+  }
+
+  const modes: DisplayMode[] = ['fullscreen', 'standalone', 'minimal-ui'];
+  return modes.find((mode) => window.matchMedia(`(display-mode: ${mode})`).matches) ?? 'browser';
+};
+
 const loadMixpanel = async (): Promise<MixpanelBrowser | null> => {
   if (typeof window === 'undefined') {
     return null;
@@ -28,6 +46,14 @@ const loadMixpanel = async (): Promise<MixpanelBrowser | null> => {
           debug: import.meta.env.DEV,
           track_pageview: false,
           persistence: 'localStorage'
+        });
+        // Super properties: viajan en todos los eventos sin tocar ningún call site.
+        // Se registran acá, no en main.tsx, para que ya estén puestas cuando resuelva
+        // el primer track() encolado sobre este mismo import dinámico.
+        const displayMode = getDisplayMode();
+        mixpanel.register({
+          display_mode: displayMode,
+          is_pwa: displayMode !== 'browser'
         });
         mixpanelInstance = mixpanel;
         return mixpanelInstance;

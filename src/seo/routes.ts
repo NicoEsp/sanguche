@@ -103,8 +103,12 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
     description: 'Guía para developers que quieren crecer en Producto en la era de la IA. Evaluación gratuita, mentoría 1:1 con NicoProducto y un roadmap para la transición de dev a PM o side-projects.',
     canonical: `${SITE_URL}/soy-dev`,
     keywords: 'developer aprender product management, transición dev a PM, de software engineer a product manager, carrera tech en era IA, side project producto, dev mentalidad de producto, programador product builder, autoevaluación product manager dev, mentoría producto para desarrolladores',
-    image: `${SITE_URL}/og-soy-dev.png`,
-    imageAlt: 'Sos Dev. Aprender Producto es tu superpoder — ProductPrepa',
+    // og-soy-dev.png era una copia byte a byte de og-preview-v3.png, así que /soy-dev
+    // ya venía compartiendo la imagen genérica; acá se apunta al original y se borra la copia.
+    // El diseño dedicado existe en public/og-soy-dev.svg pero todavía no se puede usar:
+    // el titular mide hasta x=1306 sobre un canvas de 1200, así que se corta.
+    image: DEFAULT_IMAGE,
+    imageAlt: 'ProductPrepa — plataforma para crecer en Producto',
     jsonLd: [
       {
         '@context': 'https://schema.org',
@@ -355,7 +359,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
         '@type': 'Organization',
         name: 'ProductPrepa',
         url: SITE_URL,
-        logo: `${SITE_URL}/favicon.png`,
+        logo: `${SITE_URL}/assets/sanguche.png`,
       },
       inLanguage: 'es',
     },

@@ -65,25 +65,6 @@ export function useDownloadableResources() {
   });
 }
 
-export function useDownloadableResourceBySlug(slug: string) {
-  return useQuery({
-    queryKey: ['downloadable-resource', slug],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('downloadable_resources')
-        .select('*')
-        .eq('slug', slug)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as DownloadableResource | null;
-    },
-    enabled: !!slug,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
 /**
  * Descargables ordenados por afinidad con el resultado de la evaluación. El
  * primero es el más afín; ver rankResourcesByAffinity para el criterio.
