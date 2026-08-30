@@ -187,10 +187,15 @@ export function useAdminAnalytics() {
               subscriptionsByPlan.premium.paid++;
               // Monto real cobrado; sin él, el precio viejo (ver
               // LEGACY_MONTHLY_PRICES), nunca el de lista actual.
-              const monthlyPrice = sub.paid_amount
+              //
+              // != null y no truthiness: un paid_amount de 0 es un dato real
+              // (cupón del 100%), no un dato faltante. Con `sub.paid_amount ?`
+              // esa fila se valuaba al precio viejo e inflaba el MRR, además de
+              // contarse como estimada cuando en realidad tiene monto.
+              const monthlyPrice = sub.paid_amount != null
                 ? sub.paid_amount / 100
                 : LEGACY_MONTHLY_PRICES.premium;
-              if (!sub.paid_amount) estimatedSubscriptions++;
+              if (sub.paid_amount == null) estimatedSubscriptions++;
               subscriptionsByPlan.premium.mrr += monthlyPrice;
               totalMrr += monthlyPrice;
               totalPaidRecurrentUsers++;
@@ -201,10 +206,10 @@ export function useAdminAnalytics() {
               subscriptionsByPlan.repremium.comped++;
             } else {
               subscriptionsByPlan.repremium.paid++;
-              const monthlyPrice = sub.paid_amount
+              const monthlyPrice = sub.paid_amount != null
                 ? sub.paid_amount / 100
                 : LEGACY_MONTHLY_PRICES.repremium;
-              if (!sub.paid_amount) estimatedSubscriptions++;
+              if (sub.paid_amount == null) estimatedSubscriptions++;
               subscriptionsByPlan.repremium.mrr += monthlyPrice;
               totalMrr += monthlyPrice;
               totalPaidRecurrentUsers++;
