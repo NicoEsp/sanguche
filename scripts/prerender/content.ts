@@ -94,7 +94,22 @@ interface RawCourse extends Omit<CoursePublic, 'lessons'> {
  * archivo mal armado y ahí sí conviene cortar.
  */
 function normalizeFixtures(raw: unknown, file: string): PrerenderContent {
-  const data = (raw ?? {}) as Record<string, unknown>;
+  // La raíz tiene que ser un objeto. Un array pasaba el resto de los chequeos
+  // y prerenderizaba el sitio entero vacío avisando sólo con un warning, que es
+  // justo el deploy silencioso que no queremos; un string o un número morían
+  // más adelante al intentar escribirles una propiedad, sin decir por qué.
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    // `typeof null` es "object", así que null se nombra aparte: decir que el
+    // archivo "contiene object" cuando contiene null es justo el mensaje
+    // confuso que este chequeo viene a evitar.
+    const encontrado = raw === null ? 'null' : Array.isArray(raw) ? 'un array' : typeof raw;
+    throw new Error(
+      `[prerender] ${file} tiene que contener un objeto con las colecciones ` +
+        `(posts, courses, downloadables) y contiene ${encontrado}.`
+    );
+  }
+
+  const data = raw as Record<string, unknown>;
   const collections = ['posts', 'courses', 'downloadables'] as const;
   const missing: string[] = [];
 
