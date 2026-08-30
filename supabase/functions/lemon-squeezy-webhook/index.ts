@@ -23,6 +23,23 @@ const VARIANT_TO_PLAN: Record<string, { plan: string; purchaseType: 'subscriptio
   '1467096': { plan: 'productastic_review', purchaseType: 'one_time' }, // Productastic Review (hosted checkout)
 };
 
+// Mapping from product ID to plan, usado cuando la variante no está en
+// VARIANT_TO_PLAN. Desde el cambio de precios de agosto 2026 cada producto de
+// suscripción tiene dos variantes — la nueva (Premium 1071322 · $150.000,
+// RePremium 1170898 · $280.000, que son las que cobra el checkout) y una
+// legacy con el precio viejo. Mapear por producto cubre las dos y cualquier
+// variante futura sin tener que tocar el código cada vez.
+//
+// A diferencia de CUSTOM_DATA_PLAN_FALLBACK, product_id viaja en el payload
+// firmado de LemonSqueezy y no en custom_data, así que es tan confiable como
+// variant_id: acá sí es seguro resolver planes de suscripción.
+const PRODUCT_TO_PLAN: Record<string, { plan: string; purchaseType: 'subscription' | 'one_time' }> = {
+  '665317': { plan: 'premium', purchaseType: 'subscription' },
+  '743816': { plan: 'repremium', purchaseType: 'subscription' },
+  '933251': { plan: 'productastic_review', purchaseType: 'one_time' },
+  '1037226': { plan: 'productprepa_business', purchaseType: 'one_time' },
+};
+
 // Plans whose variant IDs are not registered in VARIANT_TO_PLAN (e.g. hosted
 // `/checkout/buy/...` URLs configured directly in LemonSqueezy). For these we
 // trust `meta.custom_data.plan` because the checkout URL itself sets the value.
@@ -73,8 +90,10 @@ interface LemonSqueezyWebhookEvent {
       customer_id: number;
       order_id?: number;
       variant_id?: number;
+      product_id?: number;
       first_order_item?: {
         variant_id?: number;
+        product_id?: number;
       };
       renews_at?: string;
       ends_at?: string;
@@ -302,6 +321,14 @@ function extractVariantId(event: LemonSqueezyWebhookEvent): string | null {
   );
 }
 
+function extractProductId(event: LemonSqueezyWebhookEvent): string | null {
+  return (
+    event.data.attributes.product_id?.toString() ||
+    event.data.attributes.first_order_item?.product_id?.toString() ||
+    null
+  );
+}
+
 // ── Subscription row updates ────────────────────────────────────────────────
 
 /**
@@ -505,6 +532,7 @@ serve(async (req) => {
   let authUserId: string | null = null;
   let ids: EventIds = { subscriptionId: null, orderId: null, customerId: null };
   let variantId: string | null = null;
+  let productId: string | null = null;
 
   try {
     const webhookSecret = Deno.env.get('LEMON_SQUEEZY_WEBHOOK_SECRET');
@@ -558,9 +586,20 @@ serve(async (req) => {
     const status = attrs.status;
     ids = extractIds(eventName, event);
     variantId = extractVariantId(event);
+    productId = extractProductId(event);
 
     let planConfig: { plan: string; purchaseType: 'subscription' | 'one_time' } | null =
       variantId ? VARIANT_TO_PLAN[variantId] ?? null : null;
+
+    // Variante desconocida (típicamente la legacy de un producto con dos
+    // precios): resolvemos por producto, que identifica el plan igual de bien
+    // y no depende de qué variante haya comprado.
+    if (!planConfig && productId) {
+      planConfig = PRODUCT_TO_PLAN[productId] ?? null;
+      if (planConfig) {
+        console.log(`[Webhook] Resolved plan via product fallback: ${planConfig.plan} (product ${productId}, variant ${variantId ?? 'N/A'} not in VARIANT_TO_PLAN)`);
+      }
+    }
 
     // Fallback for products whose variant is not in VARIANT_TO_PLAN: trust
     // meta.custom_data.plan only if it's in the safe whitelist (one-time plans
@@ -578,6 +617,7 @@ serve(async (req) => {
 
     console.log(
       `[Webhook] START ${eventName} · email=${maskEmail(userEmail)} · variant=${variantId ?? 'N/A'} · ` +
+      `product=${productId ?? 'N/A'} · ` +
       `plan=${planConfig?.plan ?? 'N/A'} · sub=${ids.subscriptionId ?? 'N/A'} · order=${ids.orderId ?? 'N/A'}`,
     );
 
@@ -640,7 +680,7 @@ serve(async (req) => {
           // Unknown variant and no safe custom_data fallback: do NOT grant any
           // plan. Record the event for debugging but skip the upsert to avoid
           // accidentally elevating the buyer to Premium.
-          warnings.push(`order_created with unmapped variant ${variantId} and no custom_data plan match — no plan granted`);
+          warnings.push(`order_created with unmapped variant ${variantId} (product ${productId ?? 'N/A'}) and no custom_data plan match — no plan granted`);
           console.error(`[Webhook] ${warnings[warnings.length - 1]}`);
         }
 
@@ -675,7 +715,18 @@ serve(async (req) => {
       }
 
       case 'subscription_created': {
-        const subscriptionPlan = planConfig?.plan || 'premium';
+        // Sin plan resuelto no inventamos uno. El default anterior ('premium')
+        // otorgaba acceso ante cualquier variante desconocida, y encima el plan
+        // equivocado si la compra era RePremium. Cortamos antes de la baja de
+        // la suscripción anterior: cancelarla y no otorgar nada dejaría al
+        // comprador sin acceso.
+        if (!planConfig) {
+          warnings.push(`subscription_created with unresolved plan (variant ${variantId ?? 'N/A'}, product ${productId ?? 'N/A'}) — no plan granted`);
+          console.error(`[Webhook] ${warnings[warnings.length - 1]}`);
+          break;
+        }
+
+        const subscriptionPlan = planConfig.plan;
         console.log(`[Webhook] subscription_created · plan=${subscriptionPlan}`);
 
         // Auto-cancel the subscription being upgraded away from.
