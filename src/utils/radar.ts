@@ -38,6 +38,7 @@ function angleAt(index: number, total: number): number {
   return (Math.PI * 2 * index) / total - Math.PI / 2;
 }
 
+/** Coordenada del vértice `index` a `radius` del centro, en un radar de `total` ejes. */
 export function radarPoint(
   index: number,
   total: number,

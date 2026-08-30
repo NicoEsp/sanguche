@@ -18,6 +18,15 @@ const CENTER = 200;
 const MAX_RADIUS = 132;
 const LABEL_RADIUS = MAX_RADIUS + 22;
 
+/**
+ * Radar de competencias en pantalla.
+ *
+ * Pinta con clases de Tailwind para seguir el tema del usuario. La versión que
+ * se descarga se arma aparte, en utils/radarShareImage.ts, porque esas clases
+ * resuelven contra la hoja de estilos del documento y no sobreviven la
+ * rasterización de un SVG suelto. La geometría que comparten las dos vive en
+ * utils/radar.ts, así que no pueden dibujar polígonos distintos.
+ */
 export function CompetencyRadar({ scores, accentHex, className = "" }: CompetencyRadarProps) {
   const total = scores.length;
   if (total < 3) return null;

@@ -93,6 +93,13 @@ interface AssessmentMarkdownInput {
   updatedAt: string | null;
 }
 
+/**
+ * Arma el documento completo: encabezado para el modelo, resumen, contexto
+ * declarado, tabla de puntajes por dominio, fortalezas, brechas priorizadas,
+ * dominios opcionales y el pedido final. Los títulos de sección y ese pedido
+ * cambian según el tipo de evaluación, porque no es lo mismo un diagnóstico de
+ * seniority que un mapa de afinidad o la madurez de un equipo.
+ */
 export function buildAssessmentMarkdown({
   result,
   values,
