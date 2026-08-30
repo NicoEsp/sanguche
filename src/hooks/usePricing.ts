@@ -23,6 +23,11 @@ interface PricingData {
   source: string;
 }
 
+/**
+ * Precios vigentes de todos los planes, más cuánta gente pasó por cada uno.
+ * Si la API falla devuelve los valores de respaldo, así la página nunca queda
+ * sin precio; `loading` distingue "todavía no llegó" de "no se pudo".
+ */
 export function usePricing() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['pricing'],

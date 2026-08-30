@@ -23,6 +23,7 @@ export interface PrerenderContent {
 
 const env = (...names: string[]) => names.map((n) => process.env[n]).find(Boolean);
 
+/** Un SELECT contra PostgREST con la anon key, devuelto ya tipado. */
 async function select<T>(path: string): Promise<T[]> {
   const url = env('VITE_SUPABASE_URL', 'SUPABASE_URL');
   const key = env('VITE_SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_ANON_KEY');
@@ -81,6 +82,47 @@ interface RawCourse extends Omit<CoursePublic, 'lessons'> {
   course_lessons: Array<CoursePublic['lessons'][number] & { is_published: boolean; order_index: number }>;
 }
 
+/**
+ * Completa las colecciones que falten en un archivo de fixtures.
+ *
+ * Cada vez que el prerender empieza a usar una colección nueva, los archivos de
+ * fixtures que ya existían se quedan sin esa clave. Sin esto, el valor llega
+ * `undefined` hasta el componente y el build muere con un "Cannot read
+ * properties of undefined" adentro del renderer de React, que no dice ni qué
+ * falta ni dónde. Faltar entero es aceptable —se prerenderiza esa sección
+ * vacía— pero se avisa; que la clave exista con algo que no es un array es un
+ * archivo mal armado y ahí sí conviene cortar.
+ */
+function normalizeFixtures(raw: unknown, file: string): PrerenderContent {
+  const data = (raw ?? {}) as Record<string, unknown>;
+  const collections = ['posts', 'courses', 'downloadables'] as const;
+  const missing: string[] = [];
+
+  for (const key of collections) {
+    if (data[key] === undefined) {
+      missing.push(key);
+      data[key] = [];
+    } else if (!Array.isArray(data[key])) {
+      throw new Error(
+        `[prerender] En ${file}, "${key}" tiene que ser un array y es ${typeof data[key]}.`
+      );
+    }
+  }
+
+  if (missing.length > 0) {
+    console.warn(
+      `[prerender] ${file} no trae ${missing.join(', ')}: esas secciones se ` +
+        'prerenderizan vacías. Agregá la clave al archivo si querés contenido ahí.'
+    );
+  }
+
+  return data as unknown as PrerenderContent;
+}
+
+/**
+ * Todo el contenido que el prerender necesita, en una sola pasada: artículos
+ * publicados, cursos con sus lecciones y el catálogo de descargables activos.
+ */
 export async function fetchContent(): Promise<PrerenderContent> {
   // Escotilla explícita para entornos sin salida a Supabase (sandbox, CI
   // aislado). Nunca se activa sola: sin esta variable, un fetch fallido corta
@@ -88,7 +130,7 @@ export async function fetchContent(): Promise<PrerenderContent> {
   const fixtures = process.env.PRERENDER_FIXTURES;
   if (fixtures) {
     console.log(`[prerender] PRERENDER_FIXTURES → leyendo ${fixtures} (sin Supabase)`);
-    return JSON.parse(fs.readFileSync(fixtures, 'utf-8'));
+    return normalizeFixtures(JSON.parse(fs.readFileSync(fixtures, 'utf-8')), fixtures);
   }
 
   const [posts, courses, downloadables] = await Promise.all([

@@ -85,6 +85,8 @@ interface PlanCardProps {
   sessionsNote?: string;
 }
 
+/** Tarjeta de un plan de suscripción: precio, features y el CTA que corresponda
+ *  según si la persona ya lo tiene, puede comprarlo o solo navegar a él. */
 function PlanCard({
   name,
   price,
@@ -184,6 +186,11 @@ const GAP_CONTEXT_MAP: Record<string, { area: string; context: string }> = {
   ia_aplicada: { area: "IA aplicada", context: "el plan Premium te ayuda a incorporar IA a tu forma de trabajar" },
 };
 
+/**
+ * Titular y bajada según de dónde viene la persona: un dev que llega de
+ * /soy-dev y alguien que ya hizo la evaluación no necesitan la misma promesa.
+ * La variante se emite en el evento de Mixpanel para poder compararlas.
+ */
 function getHeadlineVariant(
   referrerPath: string | null,
   hasAssessment: boolean

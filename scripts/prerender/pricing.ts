@@ -19,6 +19,7 @@ import { FALLBACK_PRICES, type PlanPricing, type PricingKey } from '../../src/co
 
 const env = (...names: string[]) => names.map((n) => process.env[n]).find(Boolean);
 
+/** Los precios vigentes, o los de respaldo del repo si no se pudieron traer. */
 export async function fetchPricing(): Promise<Record<PricingKey, PlanPricing>> {
   const url = env('VITE_SUPABASE_URL', 'SUPABASE_URL');
   const key = env('VITE_SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_ANON_KEY');
