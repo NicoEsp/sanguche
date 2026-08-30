@@ -23,6 +23,8 @@ import { ContextualCTA } from "@/components/ContextualCTA";
 import { CompetencyRadar } from "@/components/assessment/CompetencyRadar";
 import { PlanCTACard } from "@/components/assessment/PlanCTACard";
 import { ReevaluationBanner } from "@/components/assessment/ReevaluationBanner";
+import { ShareRadarButton } from "@/components/assessment/ShareRadarButton";
+import { CopyForLlmButton } from "@/components/assessment/CopyForLlmButton";
 
 // Títulos de sección según la evaluación: la misma estructura de resultados
 // se lee distinto para quien recién arranca, un builder o un líder.
@@ -206,6 +208,21 @@ export default function SkillGaps() {
                 Rol de entrada sugerido: <strong>{result.suggestedRole.label}</strong>
               </p>
             )}
+
+            {/* Los resultados en Markdown, para seguir la conversación en la IA
+                que la persona ya usa. Va acá arriba y no al final porque es la
+                acción que se hace con el resultado entero, no con una sección. */}
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <CopyForLlmButton
+                result={result}
+                values={values}
+                assessmentType={assessmentType}
+                updatedAt={updatedAt}
+              />
+              <p className="text-sm text-muted-foreground">
+                Llevá tus resultados a ChatGPT, Claude o la IA que uses.
+              </p>
+            </div>
           </div>}
 
         {hasAssessment && result && !loading && <div className="space-y-8">
@@ -214,6 +231,13 @@ export default function SkillGaps() {
               <div className="rounded-lg border bg-card p-5 sm:p-6 animate-fade-in">
                 <div className="flex items-center justify-between gap-3 mb-2">
                   <h2 className="text-xl font-semibold">Tu mapa de competencias</h2>
+                  <ShareRadarButton
+                    scores={radarScores}
+                    assessmentType={assessmentType}
+                    nivel={result.nivel}
+                    promedioGlobal={result.promedioGlobal}
+                    updatedAt={updatedAt}
+                  />
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
                   {assessmentType === 'lider'
