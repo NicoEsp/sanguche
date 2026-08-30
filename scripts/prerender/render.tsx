@@ -14,6 +14,8 @@ import { WhyProductPrepa } from '@/components/sections/WhyProductPrepa';
 import { PlatformPreview } from '@/components/landing/PlatformPreview';
 import { LandingFaq } from '@/components/landing/LandingFaq';
 import type { PlanPricing, PricingKey } from '@/constants/planesContent';
+import { SoyDevContent } from '@/components/landing/SoyDevContent';
+import { EmpresasContent } from '@/components/landing/EmpresasContent';
 import {
   DescargablesSeoContent,
   type DownloadablePublic,
@@ -75,6 +77,38 @@ export const renderPlanes = (prices: Record<PricingKey, PlanPricing>) =>
 
 export const renderCursosInfo = (courses: CoursePublic[], prices: Record<PricingKey, PlanPricing>) =>
   render('/cursos-info', <CursosInfoSeoContent courses={courses} prices={prices} />);
+
+/**
+ * /soy-dev. Sin sesión, el CTA de cada evaluación pasa por /auth, que es
+ * exactamente lo que ve un visitante anónimo.
+ */
+export const renderSoyDev = () =>
+  render(
+    '/soy-dev',
+    <SoyDevContent
+      assessmentLink={(tipo) => ({
+        to: '/auth',
+        state: { from: { pathname: `/autoevaluacion?tipo=${tipo}` } },
+      })}
+      onAssessmentClick={() => {}}
+    />
+  );
+
+/**
+ * /empresas. El checkout depende de useAuth, así que en el HTML estático va en
+ * su lugar un link a la sección de planes.
+ */
+export const renderEmpresas = () =>
+  render(
+    '/empresas',
+    <EmpresasContent
+      checkoutSlot={
+        <a href="/planes?plan=productprepa-business" className="underline">
+          Reservar mi cupo B2B
+        </a>
+      }
+    />
+  );
 
 export const renderDescargables = (resources: DownloadablePublic[]) =>
   render('/descargables', <DescargablesSeoContent resources={resources} />);

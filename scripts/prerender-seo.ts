@@ -164,6 +164,10 @@ export const prerenderSeoPlugin = () => ({
         undefined
       );
 
+      writeContent('/soy-dev', routeSeo(SEO_ROUTES['/soy-dev']), render.renderSoyDev(), undefined);
+
+      writeContent('/empresas', routeSeo(SEO_ROUTES['/empresas']), render.renderEmpresas(), undefined);
+
       writeContent(
         '/descargables',
         routeSeo(SEO_ROUTES['/descargables']),
