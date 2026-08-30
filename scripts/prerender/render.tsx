@@ -4,8 +4,20 @@ import { StaticRouter } from 'react-router-dom/server';
 import { BlogPostArticle } from '@/components/blog/BlogPostArticle';
 import { BlogPostList, type BlogListItem } from '@/components/blog/BlogPostList';
 import { CoursePublicView } from '@/components/courses/CoursePublicView';
+import { CursosInfoSeoContent } from '@/components/courses/CursosInfoSeoContent';
 import type { BlogPost, CoursePublic } from '@/seo/contentSeo';
 import EvaluacionProductManager from '@/pages/EvaluacionProductManager';
+import { PlanesSeoContent } from '@/components/planes/PlanesSeoContent';
+import { HomeHero, HomeUpgradeTeaser } from '@/components/landing/HomeHero';
+import { HowItWorks } from '@/components/sections/HowItWorks';
+import { WhyProductPrepa } from '@/components/sections/WhyProductPrepa';
+import { PlatformPreview } from '@/components/landing/PlatformPreview';
+import { LandingFaq } from '@/components/landing/LandingFaq';
+import type { PlanPricing, PricingKey } from '@/constants/planesContent';
+import {
+  DescargablesSeoContent,
+  type DownloadablePublic,
+} from '@/components/downloads/DescargablesSeoContent';
 
 /**
  * Render a HTML estático, en build time, de las vistas cuyo contenido vive en
@@ -38,3 +50,31 @@ export const renderCourse = (course: CoursePublic) =>
  */
 export const renderEvaluacionLanding = () =>
   render('/evaluacion-product-manager', <EvaluacionProductManager />);
+
+/**
+ * Home. Se compone acá con las secciones que ya eran puras, en el mismo orden
+ * que Index.tsx. Quedan afuera SocialProofStrip y SocialProofBlock (dependen de
+ * una query y de mixpanel) y StickyMobileCTA (depende de la sesión): son
+ * chrome, no el contenido que hay que poder leer sin JS.
+ */
+export const renderHome = () =>
+  render(
+    '/',
+    <main>
+      <HomeHero ctaHref="/auth" />
+      <HowItWorks />
+      <WhyProductPrepa />
+      <PlatformPreview />
+      <HomeUpgradeTeaser />
+      <LandingFaq />
+    </main>
+  );
+
+export const renderPlanes = (prices: Record<PricingKey, PlanPricing>) =>
+  render('/planes', <PlanesSeoContent prices={prices} />);
+
+export const renderCursosInfo = (courses: CoursePublic[], prices: Record<PricingKey, PlanPricing>) =>
+  render('/cursos-info', <CursosInfoSeoContent courses={courses} prices={prices} />);
+
+export const renderDescargables = (resources: DownloadablePublic[]) =>
+  render('/descargables', <DescargablesSeoContent resources={resources} />);

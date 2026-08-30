@@ -11,6 +11,8 @@ import {
 import { fetchContent } from './prerender/content';
 import { createSsrLoader } from './prerender/ssrLoader';
 import { applySeo, assertSeo, injectAppHtml } from './prerender/html';
+import { fetchPricing } from './prerender/pricing';
+import { planesJsonLd } from '../src/constants/planesContent';
 
 const DEFAULT_IMAGE_ALT = 'ProductPrepa - Plataforma para crecer en Producto';
 
@@ -66,7 +68,9 @@ export const prerenderSeoPlugin = () => ({
     const template = fs.readFileSync(templatePath, 'utf-8');
     const builtAt = Date.now();
 
-    const { posts, courses } = await fetchContent();
+    const { posts, courses, downloadables } = await fetchContent();
+    const prices = await fetchPricing();
+
     const loader = await createSsrLoader(root);
 
     const write = (route: string, html: string) => {
@@ -107,9 +111,18 @@ export const prerenderSeoPlugin = () => ({
         '/scripts/prerender/render.tsx'
       );
 
+      // Shell del catch-all de vercel.json. Ese rol lo cumplía dist/index.html,
+      // pero ahora la home trae su contenido dentro del #root: sin un shell
+      // aparte, cualquier URL desconocida le serviría el HTML de la home a un
+      // crawler que no ejecuta JS. Mantiene los meta de la home, que es lo que
+      // esas rutas venían recibiendo.
+      fs.writeFileSync(
+        path.join(distDir, 'app.html'),
+        applySeo(template, routeSeo(SEO_ROUTES['/']))
+      );
+
       // ---- Rutas con meta propios pero sin contenido en la respuesta -------
-      // Es lo que este plugin ya hacía. La home queda en dist/index.html, que
-      // además es el shell del catch-all de vercel.json.
+      // Es lo que este plugin ya hacía.
       for (const [route, data] of Object.entries(SEO_ROUTES)) {
         const seo = routeSeo(data);
         const noindex = PROTECTED_ROUTES.includes(route) ? 'noindex, nofollow' : undefined;
@@ -121,12 +134,40 @@ export const prerenderSeoPlugin = () => ({
         write(route, applySeo(template, blankSeo(route), 'noindex, nofollow'));
       }
 
-      // La landing de la evaluación no sale de Supabase, pero es un componente
-      // puro, así que también se sirve con el contenido en el HTML.
+      // ---- Rutas cuyo contenido no sale de Supabase --------------------
+      // Son componentes puros, así que se sirven con el contenido dentro del
+      // #root igual que el blog. Sin esto, el HTML de /planes no tenía una sola
+      // mención de un precio ni de la palabra "Premium": todo lo pinta React en
+      // runtime, y los fetchers de los asistentes no ejecutan JS.
       writeContent(
         '/evaluacion-product-manager',
         routeSeo(SEO_ROUTES['/evaluacion-product-manager']),
         render.renderEvaluacionLanding(),
+        undefined
+      );
+
+      writeContent('/', routeSeo(SEO_ROUTES['/']), render.renderHome(), undefined);
+
+      writeContent(
+        '/planes',
+        // El JSON-LD de Offer sale del mismo helper que usa la página en
+        // runtime, con los precios que se trajeron recién.
+        { ...routeSeo(SEO_ROUTES['/planes']), jsonLd: planesJsonLd(prices) },
+        render.renderPlanes(prices),
+        undefined
+      );
+
+      writeContent(
+        '/cursos-info',
+        routeSeo(SEO_ROUTES['/cursos-info']),
+        render.renderCursosInfo(courses, prices),
+        undefined
+      );
+
+      writeContent(
+        '/descargables',
+        routeSeo(SEO_ROUTES['/descargables']),
+        render.renderDescargables(downloadables),
         undefined
       );
 

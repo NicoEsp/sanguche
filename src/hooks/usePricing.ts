@@ -1,11 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
-interface PlanPricing {
-  amount: number;
-  formatted: string;
-  currency: string;
-}
+// Los precios de respaldo viven en constants/planesContent porque el build
+// también los necesita y no puede importar este módulo (arrastra el cliente de
+// Supabase, que toca localStorage al importarse).
+import { FALLBACK_PRICES, type PlanPricing } from '@/constants/planesContent';
 
 interface PlanCounts {
   premium: number | null;
@@ -24,15 +22,6 @@ interface PricingData {
   lastUpdated: string;
   source: string;
 }
-
-// Fallback prices if API fails (all in ARS)
-const FALLBACK_PRICES = {
-  premium: { amount: 15000000, formatted: '$ 150.000', currency: 'ARS' },
-  repremium: { amount: 28000000, formatted: '$ 280.000', currency: 'ARS' },
-  curso_estrategia: { amount: 4900000, formatted: '$ 49.000', currency: 'ARS' },
-  cursos_all: { amount: 7500000, formatted: '$ 75.000', currency: 'ARS' },
-  productprepa_business: { amount: 0, formatted: '$ 0', currency: 'ARS' },
-};
 
 export function usePricing() {
   const { data, isLoading, error } = useQuery({

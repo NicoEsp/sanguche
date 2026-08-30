@@ -1,6 +1,7 @@
 import fs from 'fs';
 import type { BlogPost, CoursePublic } from '../../src/seo/contentSeo';
 import { BLOG_POST_COLUMNS } from '../../src/seo/contentSeo';
+import type { DownloadablePublic } from '../../src/components/downloads/DescargablesSeoContent';
 
 /**
  * Trae de Supabase, en build time, el contenido que se prerenderiza.
@@ -17,6 +18,7 @@ import { BLOG_POST_COLUMNS } from '../../src/seo/contentSeo';
 export interface PrerenderContent {
   posts: BlogPost[];
   courses: CoursePublic[];
+  downloadables: DownloadablePublic[];
 }
 
 const env = (...names: string[]) => names.map((n) => process.env[n]).find(Boolean);
@@ -89,7 +91,7 @@ export async function fetchContent(): Promise<PrerenderContent> {
     return JSON.parse(fs.readFileSync(fixtures, 'utf-8'));
   }
 
-  const [posts, courses] = await Promise.all([
+  const [posts, courses, downloadables] = await Promise.all([
     select<BlogPost>(
       `blog_posts?select=${encodeURIComponent(BLOG_POST_COLUMNS)}` +
         '&status=eq.published&order=published_at.desc'
@@ -101,10 +103,18 @@ export async function fetchContent(): Promise<PrerenderContent> {
         'course_lessons(id,title,duration_minutes,order_index,is_published)' +
         '&is_published=eq.true'
     ),
+    // La metadata de los recursos activos es pública (ver la migración
+    // align_downloadable_metadata_visibility), así que la anon key alcanza:
+    // vemos exactamente lo que ve un visitante anónimo.
+    select<DownloadablePublic>(
+      'downloadable_resources?select=slug,title,description,type,access_level,is_featured,display_order' +
+        '&is_active=eq.true&order=display_order.asc'
+    ),
   ]);
 
   return {
     posts,
+    downloadables,
     courses: courses.map(({ course_lessons, ...course }) => ({
       ...course,
       lessons: (course_lessons ?? [])
