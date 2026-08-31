@@ -73,7 +73,7 @@ export const SUBSCRIPTION_PLANS: readonly SubscriptionPlanDef[] = [
       { text: 'Todo lo incluido en Premium' },
       { text: `2 sesiones mensuales 1:1 con ${NICO_NAME}` },
       { text: 'Acceso completo a Cursos', strong: true },
-      { text: 'Prioridad para agendar sesión' },
+      { text: 'Prioridad para agendar sesión', strong: true },
       { text: 'Feedback personalizado en ejercicios' },
       { text: 'Acceso prioritario a nuevos contenidos' },
       { text: 'Canal directo de comunicación' },
