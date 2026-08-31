@@ -5,9 +5,11 @@ import {
   AssessmentTypeKey,
   getAssessmentTypeDef,
   getContextValueLabel,
+  getDomainStatusLabel,
   getDomainsForType,
   getNivelDisplay
 } from "@/utils/scoring";
+import { evalUrl, homeUrl } from "@/constants/shareLinks";
 
 /**
  * Serializa el resultado de la evaluación a Markdown, para que la persona se lo
@@ -18,15 +20,29 @@ import {
  * cambio, entra tal cual. La imagen sirve para compartir, esto para pensar.
  */
 
-const TITLES: Record<AssessmentTypeKey, string> = {
+/**
+ * Las evaluaciones guardadas antes de que existieran los perfiles no tienen
+ * tipo. No alcanza con caer en "experimentado" y seguir: el documento diría que
+ * la persona tomó "Ya trabajo en producto", que es una evaluación que nunca
+ * existió cuando ella respondió. Legacy es una entrada más de cada tabla.
+ */
+type MarkdownTypeKey = AssessmentTypeKey | "legacy";
+
+const TITLES: Record<MarkdownTypeKey, string> = {
   experimentado: "Mi evaluación de competencias en Producto",
   sin_experiencia: "Mi mapa de afinidad con Producto",
   builder: "Mi evaluación como Product Builder",
-  lider: "Diagnóstico de mi equipo de Producto"
+  lider: "Diagnóstico de mi equipo de Producto",
+  legacy: "Mi evaluación de competencias en Producto"
+};
+
+/** Qué evaluación se tomó, para la línea del resumen. */
+const TAKEN_LABELS: Partial<Record<MarkdownTypeKey, string>> = {
+  legacy: "Evaluación de competencias en Producto (formato anterior, sin perfil)"
 };
 
 /** Cómo leer la escala 1–5 según qué evaluación se tomó. */
-const SCALE_NOTES: Record<AssessmentTypeKey, string> = {
+const SCALE_NOTES: Record<MarkdownTypeKey, string> = {
   experimentado:
     "Escala 1 a 5 por dominio, donde 1 es que todavía no lo trabajé y 5 que lo tengo consolidado y se lo puedo enseñar a otro.",
   sin_experiencia:
@@ -34,39 +50,37 @@ const SCALE_NOTES: Record<AssessmentTypeKey, string> = {
   builder:
     "Escala 1 a 5 por dominio, donde 1 es que voy a pura intuición y 5 que tengo un método explícito y repetible.",
   lider:
-    "Escala 1 a 5 por dominio, referida a mi equipo, donde 1 es que no existe el proceso y 5 que está consolidado y es autónomo."
+    "Escala 1 a 5 por dominio, referida a mi equipo, donde 1 es que no existe el proceso y 5 que está consolidado y es autónomo.",
+  legacy:
+    "Escala 1 a 5 por dominio, donde 1 es que todavía no lo trabajé y 5 que lo tengo consolidado. Es una evaluación general de competencias de Producto, sin perfil declarado."
 };
 
-const SECTION_TITLES: Record<AssessmentTypeKey, { strengths: string; neutral: string; gaps: string }> = {
-  experimentado: {
-    strengths: "Fortalezas",
-    neutral: "Competencias sólidas",
-    gaps: "Áreas de mejora"
-  },
-  sin_experiencia: {
-    strengths: "Donde ya tengo terreno ganado",
-    neutral: "Áreas con base",
-    gaps: "Terreno por explorar"
-  },
-  builder: {
-    strengths: "Donde ya tengo método",
-    neutral: "Procesos encaminados",
-    gaps: "Donde me falta método"
-  },
-  lider: {
-    strengths: "Fortalezas del equipo",
-    neutral: "Procesos encaminados",
-    gaps: "Dónde nivelar al equipo"
-  }
+/**
+ * El único listado que sobrevive a la tabla.
+ *
+ * Las fortalezas y las áreas intermedias también se listaban abajo, pero
+ * repetían dominio y puntaje sin agregar nada que la tabla no dijera ya. Las
+ * brechas sí agregan algo —la prioridad— y son lo que se le pide resolver al
+ * modelo, así que quedan.
+ */
+const GAP_TITLES: Record<MarkdownTypeKey, string> = {
+  experimentado: "Mis brechas",
+  sin_experiencia: "Mis brechas",
+  builder: "Mis brechas",
+  // La evaluación de líder mide al equipo, no a quien la responde.
+  lider: "Las brechas del equipo",
+  legacy: "Mis brechas"
 };
 
 /** Lo que le pedimos al modelo, ajustado a lo que cada perfil necesita. */
-const ASKS: Record<AssessmentTypeKey, string[]> = {
-  experimentado: [
-    "Ayudame a entender qué me separa concretamente del siguiente nivel de seniority.",
-    "Armá un plan de 30 días para la primera área de mejora de prioridad Alta, con entregables concretos y no sólo lecturas.",
-    "Preguntame lo que te falte de mi contexto real (empresa, producto, equipo) antes de recomendarme nada."
-  ],
+const SENIORITY_ASKS = [
+  "Ayudame a entender qué me separa concretamente del siguiente nivel de seniority.",
+  "Armá un plan de 30 días para la primera brecha de prioridad Alta, con entregables concretos y no sólo lecturas.",
+  "Preguntame lo que te falte de mi contexto real (empresa, producto, equipo) antes de recomendarme nada."
+];
+
+const ASKS: Record<MarkdownTypeKey, string[]> = {
+  experimentado: SENIORITY_ASKS,
   sin_experiencia: [
     "Ayudame a elegir por dónde empezar considerando mis áreas de más afinidad, no sólo las más débiles.",
     "Armá un plan de estudio de 30 días para el rol sugerido, con un proyecto propio que pueda mostrar como portfolio.",
@@ -81,10 +95,34 @@ const ASKS: Record<AssessmentTypeKey, string[]> = {
     "Ayudame a priorizar en qué dominio nivelar primero al equipo y con qué argumento se lo presento a mi jefatura.",
     "Proponeme rituales o cambios de proceso concretos, no capacitaciones genéricas.",
     "Decime qué métricas usaría para saber en 3 meses si el equipo mejoró en esos dominios."
-  ]
+  ],
+  legacy: SENIORITY_ASKS
 };
 
-type DomainStatus = "Fortaleza" | "Sólida" | "A mejorar";
+/** Cuánto del campo libre entra en el documento. */
+const MAX_FREE_TEXT = 200;
+
+/**
+ * Deja el texto que escribió la persona en condiciones de entrar al documento.
+ *
+ * Es el único contenido del Markdown que no controlamos: sale de un input y
+ * termina pegado en un LLM. Un backtick abierto, un `#` al principio de una
+ * línea o un salto de línea suelto convierten lo que sigue en código, en título
+ * o en un ítem de lista, y el resto del documento se lee mal o directamente
+ * deja de leerse. Se aplana a una línea, se corta y se escapa lo que Markdown
+ * interpreta.
+ */
+function sanitizeFreeText(input: string): string {
+  const flat = input.replace(/\s+/g, " ").trim();
+  const clipped =
+    flat.length > MAX_FREE_TEXT ? `${flat.slice(0, MAX_FREE_TEXT).trimEnd()}…` : flat;
+  return clipped.replace(/[\\`*_[\]#>|~]/g, "\\$&");
+}
+
+/** Un `|` sin escapar parte la fila en dos columnas y desarma la tabla entera. */
+function tableCell(text: string): string {
+  return text.replace(/\s+/g, " ").trim().replace(/\|/g, "\\|");
+}
 
 interface AssessmentMarkdownInput {
   result: AssessmentResult;
@@ -95,10 +133,10 @@ interface AssessmentMarkdownInput {
 
 /**
  * Arma el documento completo: encabezado para el modelo, resumen, contexto
- * declarado, tabla de puntajes por dominio, fortalezas, brechas priorizadas,
- * dominios opcionales y el pedido final. Los títulos de sección y ese pedido
- * cambian según el tipo de evaluación, porque no es lo mismo un diagnóstico de
- * seniority que un mapa de afinidad o la madurez de un equipo.
+ * declarado, tabla de puntajes por dominio, brechas priorizadas, dominios
+ * opcionales y el pedido final. Los títulos y ese pedido cambian según el tipo
+ * de evaluación, porque no es lo mismo un diagnóstico de seniority que un mapa
+ * de afinidad o la madurez de un equipo.
  */
 export function buildAssessmentMarkdown({
   result,
@@ -106,17 +144,12 @@ export function buildAssessmentMarkdown({
   assessmentType,
   updatedAt
 }: AssessmentMarkdownInput): string {
-  const type = assessmentType ?? "experimentado";
+  const type: MarkdownTypeKey = assessmentType ?? "legacy";
+  // Las evaluaciones sin tipo se respondieron sobre los once dominios base, que
+  // son los mismos que hoy usa la de "experimentado".
+  const domainType: AssessmentTypeKey = assessmentType ?? "experimentado";
   const typeDef = getAssessmentTypeDef(assessmentType);
   const nivelDisplay = getNivelDisplay(assessmentType, result.nivel);
-  const sections = SECTION_TITLES[type];
-
-  // Estado por dominio, para que la tabla diga en una columna lo que abajo se
-  // repite en listas.
-  const status = new Map<AnyDomainKey, DomainStatus>();
-  for (const s of result.strengths) status.set(s.key, "Fortaleza");
-  for (const n of result.neutralAreas) status.set(n.key, "Sólida");
-  for (const g of result.gaps) status.set(g.key, "A mejorar");
 
   const lines: string[] = [];
   const push = (...text: string[]) => lines.push(...text);
@@ -130,7 +163,9 @@ export function buildAssessmentMarkdown({
   );
 
   push("## Resumen", "");
-  push(`- **Evaluación tomada:** ${typeDef.title} (${typeDef.shortLabel})`);
+  push(
+    `- **Evaluación tomada:** ${TAKEN_LABELS[type] ?? `${typeDef.title} (${typeDef.shortLabel})`}`
+  );
   push(`- **${nivelDisplay.title}:** ${nivelDisplay.label}`);
   push(`- **Promedio global:** ${result.promedioGlobal} / 5`);
   if (result.specialization) push(`- **Especialización:** ${result.specialization}`);
@@ -155,41 +190,36 @@ export function buildAssessmentMarkdown({
     if (context.rolInteres) {
       push(`- **Rol que me interesa:** ${getContextValueLabel("rolInteres", context.rolInteres)}`);
     }
-    if (context.detalle) push(`- **En mis palabras:** ${context.detalle}`);
+    if (context.detalle) {
+      const detalle = sanitizeFreeText(context.detalle);
+      if (detalle) push(`- **En mis palabras:** ${detalle}`);
+    }
     push("");
   }
 
   // --- Tabla completa de puntajes ---------------------------------------
   // En el orden de los dominios de la evaluación, el mismo del radar, para que
   // se pueda comparar contra una evaluación futura sin reordenar nada.
-  const domains = getDomainsForType(type).filter((d) => typeof values?.[d.key] === "number");
+  //
+  // La pregunta va en la misma fila que el puntaje: "Analítica y métricas: 3/5"
+  // no le dice al modelo qué se estaba midiendo, y ahí es donde se le va la mano
+  // adivinando. Con el enunciado al lado, el 3 significa algo.
+  const domains = getDomainsForType(domainType).filter((d) => typeof values?.[d.key] === "number");
   if (domains.length > 0) {
     push("## Puntajes por dominio", "");
-    push("| Dominio | Puntaje | Estado |", "| --- | --- | --- |");
+    push("| Dominio | Puntaje | Estado | Qué se preguntó |", "| --- | --- | --- | --- |");
     for (const domain of domains) {
-      push(`| ${domain.label} | ${values![domain.key]} / 5 | ${status.get(domain.key) ?? "—"} |`);
+      const value = values![domain.key]!;
+      push(
+        `| ${tableCell(domain.label)} | ${value} / 5 | ${getDomainStatusLabel(value)} | ${tableCell(domain.question)} |`
+      );
     }
     push("");
   }
 
-  const scoreList = (items: Array<{ label: string; value: number }>, suffix?: (i: number) => string) =>
-    items.map((item, i) => `- **${item.label}** — ${item.value} / 5${suffix ? suffix(i) : ""}`);
-
   if (result.gaps.length > 0) {
-    push(`## ${sections.gaps}`, "");
-    push(...scoreList(result.gaps, (i) => ` · prioridad ${result.gaps[i].prioridad}`));
-    push("");
-  }
-
-  if (result.strengths.length > 0) {
-    push(`## ${sections.strengths}`, "");
-    push(...scoreList(result.strengths, (i) => ` · ${result.strengths[i].nivel}`));
-    push("");
-  }
-
-  if (result.neutralAreas.length > 0) {
-    push(`## ${sections.neutral}`, "");
-    push(...scoreList(result.neutralAreas));
+    push(`## ${GAP_TITLES[type]}`, "");
+    push(...result.gaps.map((gap) => `- **${gap.label}** — ${gap.value} / 5 · prioridad ${gap.prioridad}`));
     push("");
   }
 
@@ -222,10 +252,13 @@ export function buildAssessmentMarkdown({
   push(...ASKS[type].map((ask, i) => `${i + 1}. ${ask}`));
   push("");
 
+  // Los dos links van etiquetados: el Markdown es una de las dos mitades del
+  // feature que sí se puede atribuir, y sin UTM no hay forma de saber cuál de
+  // las dos trae gente.
   push("---", "");
   push(
-    "Evaluación generada en [ProductPrepa](https://productprepa.com) · " +
-      "Podés hacer la tuya gratis en https://productprepa.com/evaluacion-product-manager"
+    `Evaluación generada en [ProductPrepa](${homeUrl("export_md")}) · ` +
+      `Podés hacer la tuya gratis en ${evalUrl("export_md")}`
   );
 
   return lines.join("\n");

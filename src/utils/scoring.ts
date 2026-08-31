@@ -256,6 +256,37 @@ export type NeutralArea = DomainScore;
 
 export type Strength = DomainScore & { nivel: "Destacada" | "Sólida" };
 
+/**
+ * En qué banda cae un dominio. Los cortes son los mismos que usa
+ * `computeSeniorityScore` para separar fortalezas, áreas neutras y brechas:
+ * viven acá para que nadie los vuelva a escribir a mano en otro archivo y se
+ * desincronicen sin que se note.
+ */
+export type DomainStatus = "fortaleza" | "intermedio" | "brecha";
+
+export function getDomainStatus(value: number): DomainStatus {
+  if (value >= 4.0) return "fortaleza";
+  if (value >= 3.0) return "intermedio";
+  return "brecha";
+}
+
+/**
+ * Cómo se nombra cada banda cuando hay que mostrarla.
+ *
+ * "En desarrollo" y no "Sólida": `Strength["nivel"]` ya usa "Sólida" para un
+ * 4/5, y que la misma palabra signifique un 3 en una tabla y un 4 dos secciones
+ * más abajo deja a quien lo lee —persona o modelo— sin saber cuál es cuál.
+ */
+const DOMAIN_STATUS_LABELS: Record<DomainStatus, string> = {
+  fortaleza: "Fortaleza",
+  intermedio: "En desarrollo",
+  brecha: "A mejorar"
+};
+
+export function getDomainStatusLabel(value: number): string {
+  return DOMAIN_STATUS_LABELS[getDomainStatus(value)];
+}
+
 // ============= OPTIONAL DOMAINS =============
 
 export const OPTIONAL_DOMAINS = [
@@ -1001,10 +1032,10 @@ export function computeSeniorityScore(
     value,
   }));
 
-  // Categorizar basado en umbrales lógicos
-  const realStrengths = all.filter(d => d.value >= 4.0);
-  const realGaps = all.filter(d => d.value < 3.0);
-  const neutralAreas = all.filter(d => d.value >= 3.0 && d.value < 4.0);
+  // Categorizar basado en umbrales lógicos, los mismos que expone getDomainStatus
+  const realStrengths = all.filter(d => getDomainStatus(d.value) === "fortaleza");
+  const realGaps = all.filter(d => getDomainStatus(d.value) === "brecha");
+  const neutralAreas = all.filter(d => getDomainStatus(d.value) === "intermedio");
 
   // Fortalezas con niveles
   const strengths: Strength[] = realStrengths

@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { AnyAssessmentValues, AssessmentResult, AssessmentTypeKey } from "@/utils/scoring";
 import { buildAssessmentMarkdown } from "@/utils/assessmentMarkdown";
+import { copyText } from "@/utils/clipboard";
 
 interface CopyForLlmButtonProps {
   result: AssessmentResult;
@@ -40,8 +41,9 @@ export function CopyForLlmButton({ result, values, assessmentType, updatedAt }: 
       return;
     }
 
-    trackEvent("assessment_markdown_copied", {
+    trackEvent("markdown_copied", {
       assessment_type: assessmentType ?? "legacy",
+      promedio_global: result.promedioGlobal,
       gaps_count: result.gaps.length,
       characters: markdown.length
     });
@@ -66,32 +68,4 @@ export function CopyForLlmButton({ result, values, assessmentType, updatedAt }: 
       {copied ? "¡Copiado!" : "Copiar para tu IA"}
     </Button>
   );
-}
-
-/**
- * `navigator.clipboard` necesita contexto seguro y permiso; el textarea oculto
- * cubre los casos donde no está disponible para que el botón nunca quede muerto.
- */
-async function copyText(text: string): Promise<void> {
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return;
-    } catch {
-      // Cae al método viejo.
-    }
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  document.body.appendChild(textarea);
-  textarea.select();
-  try {
-    if (!document.execCommand("copy")) throw new Error("execCommand copy devolvió false");
-  } finally {
-    document.body.removeChild(textarea);
-  }
 }
