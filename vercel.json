@@ -5,6 +5,6 @@
   ],
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "https://lgscevufwnetegglgpnw.supabase.co/functions/v1/sitemap" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/app.html" }
   ]
 }

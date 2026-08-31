@@ -18,6 +18,51 @@ import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { ProductReviewModal } from "@/components/planes/ProductReviewModal";
 import { B2BModal } from "@/components/planes/B2BModal";
 import { SocialProofBlock } from "@/components/planes/SocialProofBlock";
+import {
+  B2B_PROGRAM,
+  NICO_LINKEDIN_URL,
+  NICO_NAME,
+  PLANES_FAQS,
+  PRODUCTASTIC_REVIEW,
+  SUBSCRIPTION_PLANS,
+  planesJsonLd,
+  type PlanFeature,
+  type SubscriptionPlanDef
+} from "@/constants/planesContent";
+
+/** El contenido de los planes vive en constants/planesContent: es la misma
+ *  fuente que usa la versión estática que el build escribe en el HTML. */
+const planDef = (key: SubscriptionPlanDef["key"]): SubscriptionPlanDef =>
+  SUBSCRIPTION_PLANS.find((p) => p.key === key)!;
+
+/** Enlaza el nombre de Nico dentro del texto del feature, donde aparezca. */
+function renderFeature(feature: PlanFeature): React.ReactNode {
+  let content: React.ReactNode = feature.text;
+
+  if (feature.text.includes(NICO_NAME)) {
+    const [before, after] = feature.text.split(NICO_NAME);
+    content = (
+      <>
+        {before}
+        <a
+          href={NICO_LINKEDIN_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:text-primary/80 transition-colors underline"
+        >
+          {NICO_NAME}
+        </a>
+        {after}
+      </>
+    );
+  }
+
+  return feature.strong ? <strong>{content}</strong> : content;
+}
+
+/** Los features de un plan, ya listos para PlanCard. */
+const planFeatures = (key: SubscriptionPlanDef["key"]) =>
+  planDef(key).features.map(renderFeature);
 
 interface PlanCardProps {
   name: React.ReactNode;
@@ -40,6 +85,8 @@ interface PlanCardProps {
   sessionsNote?: string;
 }
 
+/** Tarjeta de un plan de suscripción: precio, features y el CTA que corresponda
+ *  según si la persona ya lo tiene, puede comprarlo o solo navegar a él. */
 function PlanCard({
   name,
   price,
@@ -139,6 +186,11 @@ const GAP_CONTEXT_MAP: Record<string, { area: string; context: string }> = {
   ia_aplicada: { area: "IA aplicada", context: "el plan Premium te ayuda a incorporar IA a tu forma de trabajar" },
 };
 
+/**
+ * Titular y bajada según de dónde viene la persona: un dev que llega de
+ * /soy-dev y alguien que ya hizo la evaluación no necesitan la misma promesa.
+ * La variante se emite en el evento de Mixpanel para poder compararlas.
+ */
 function getHeadlineVariant(
   referrerPath: string | null,
   hasAssessment: boolean
@@ -426,102 +478,8 @@ export default function Planes() {
 
   const isFreePlan = !hasActivePremium && !hasActiveRePremium && !hasCursoEstrategia && !hasCursosAll;
 
-  // FAQs data for Planes
-  const planesFaqs = [{
-    question: "¿Puedo cancelar mi suscripción cuando quiera?",
-    answer: "Sí, todos los planes de suscripción se pueden cancelar en cualquier momento desde tu perfil. No hay compromisos de permanencia."
-  }, {
-    question: "¿Qué incluye la mentoría 1:1?",
-    answer: "Cada mes tendrás una sesión de 45 minutos con NicoProducto donde revisamos tu progreso, definimos objetivos concretos y trabajamos en tus áreas de mejora específicas."
-  }, {
-    question: "¿Qué diferencia hay entre Premium y RePremium?",
-    answer: "RePremium incluye todo lo de Premium más 2 sesiones mensuales en lugar de 1, acceso completo a todos los cursos, feedback personalizado en ejercicios y un canal directo de comunicación."
-  }, {
-    question: "¿Cómo funciona el pago único de los cursos?",
-    answer: "Al comprar un curso con pago único, tienes acceso de por vida al contenido. No hay suscripción ni renovaciones automáticas."
-  }, {
-    question: "¿Puedo probar antes de pagar?",
-    answer: "Sí, el Plan Gratuito incluye la autoevaluación completa y acceso a recursos introductorios. Así puedes conocer la plataforma antes de suscribirte."
-  }, {
-    question: "¿Qué es Productastic Review y cómo funciona?",
-    answer: "Es un pago único de ARS $100.000 en el que NicoProducto revisa tu research, hipótesis y decisiones de producto. Después de pagar, le mandás los materiales por mail (link a tu producto, research, hipótesis, decisión a validar) y en 72 hs recibís un informe detallado con recomendaciones accionables. No es una auditoría técnica ni reemplaza un discovery completo."
-  }, {
-    question: "¿En qué consiste ProductPrepa for B2B?",
-    answer: "Es un programa de capacitación a medida para equipos de Producto en empresas. Después de reservar el cupo, NicoProducto coordina un kickoff con el líder del área para entender al equipo y los objetivos, arma el plan a medida y arranca con sesiones grupales en vivo. Incluye acceso de todo el equipo a los cursos de ProductPrepa y reportes de avance. Si querés agendar una llamada antes de contratar, escribinos a nicoproducto@hey.com."
-  }];
 
-  const planesSchema = [
-    {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "Planes y Precios | ProductPrepa",
-      "description": "Elige el plan que mejor se adapte a tu momento. Desde autoevaluación gratuita hasta mentoría personalizada.",
-      "offers": [{
-        "@type": "Offer",
-        "name": "Plan Premium",
-        "price": pricingLoading ? 0 : premium.amount / 100,
-        "priceCurrency": "ARS",
-        "availability": "https://schema.org/InStock",
-        "itemOffered": {
-          "@type": "Service",
-          "name": "Mentoría Premium ProductPrepa",
-          "description": "Sesión mensual 1:1, Career Path personalizado, recursos curados"
-        }
-      }, {
-        "@type": "Offer",
-        "name": "Plan RePremium",
-        "price": pricingLoading ? 0 : repremium.amount / 100,
-        "priceCurrency": "ARS",
-        "availability": "https://schema.org/InStock",
-        "itemOffered": {
-          "@type": "Service",
-          "name": "Mentoría RePremium ProductPrepa",
-          "description": "Todo Premium + 2 sesiones mensuales + acceso a todos los cursos"
-        }
-      }]
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": planesFaqs.map((faq) => ({
-        "@type": "Question",
-        "name": faq.question,
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": faq.answer
-        }
-      }))
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Inicio",
-          "item": "https://productprepa.com"
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": "Planes y Precios",
-          "item": "https://productprepa.com/planes"
-        }
-      ]
-    }
-  ];
-
-  const nicoLink = (
-    <a
-      href="https://www.linkedin.com/in/nicolas-espindola/"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-primary hover:text-primary/80 transition-colors underline"
-    >
-      NicoProducto
-    </a>
-  );
+  const planesSchema = planesJsonLd({ premium, repremium });
 
   return (
     <>
@@ -576,17 +534,12 @@ export default function Planes() {
             <div className="grid md:grid-cols-3 gap-6 mb-12">
               {/* Free Plan */}
               <PlanCard
-                name="Plan Gratuito"
+                name={planDef("gratuito").name}
                 price="$0"
                 priceLabel="/mes"
-                description="Ideal para dar el primer paso"
+                description={planDef("gratuito").description}
                 icon={<span className="text-2xl">🥪</span>}
-                features={[
-                  "Autoevaluación completa de habilidades PM",
-                  "Identificación de áreas de mejora",
-                  "Recursos introductorios",
-                  "PDFs y guías gratuitas"
-                ]}
+                features={planFeatures("gratuito")}
                 ctaText={user ? "Ir a evaluación" : "Comenzar gratis"}
                 ctaLink={user ? "/autoevaluacion" : "/auth"}
                 isCurrentPlan={isFreePlan}
@@ -595,22 +548,16 @@ export default function Planes() {
 
               {/* Premium Plan */}
               <PlanCard
-                name="Plan Premium"
+                name={planDef("premium").name}
                 price={pricingLoading ? "..." : premium.formatted}
                 priceLabel="/mes"
-                description="Pensado para quienes quieren crecer en serio"
+                description={planDef("premium").description}
                 icon={<Star className="w-6 h-6 text-primary" />}
                 isHighlighted={true}
                 badge={planCounts.premium ? `+${planCounts.premium} ya se sumaron` : undefined}
-                features={[
-                  "Todo lo incluido en el plan gratuito",
-                  <>Sesión mensual 1:1 con {nicoLink}</>,
-                  "Tu Career Path con objetivos concretos",
-                  "Recursos curados según tus áreas de mejora",
-                  "Nuevos contenidos cada mes"
-                ]}
+                features={planFeatures("premium")}
                 plan="premium"
-                sessionsNote="1 sesión de mentoría por mes, no acumulable"
+                sessionsNote={planDef("premium").sessionsNote}
                 ctaText={hasActivePremium ? "Ir a tu mentoría" : "Suscribirse a Premium"}
                 ctaLink={hasActivePremium ? "/mentoria" : undefined}
                 isCurrentPlan={hasActivePremium && !hasActiveRePremium}
@@ -621,23 +568,15 @@ export default function Planes() {
 
               {/* RePremium Plan */}
               <PlanCard
-                name="Plan RePremium"
+                name={planDef("repremium").name}
                 price={pricingLoading ? "..." : repremium.formatted}
                 priceLabel="/mes"
-                description="Para quienes buscan el máximo acompañamiento"
+                description={planDef("repremium").description}
                 icon={<Crown className="w-6 h-6 text-amber-500" />}
                 badge={planCounts.repremium ? `+${planCounts.repremium} ya se sumaron` : undefined}
-                features={[
-                  "Todo lo incluido en Premium",
-                  <>2 sesiones mensuales 1:1 con {nicoLink}</>,
-                  <><strong>Acceso completo a Cursos</strong></>,
-                  "Prioridad para agendar sesión",
-                  "Feedback personalizado en ejercicios",
-                  "Acceso prioritario a nuevos contenidos",
-                  "Canal directo de comunicación"
-                ]}
+                features={planFeatures("repremium")}
                 plan="repremium"
-                sessionsNote="2 sesiones de mentoría por mes, no acumulables"
+                sessionsNote={planDef("repremium").sessionsNote}
                 ctaText={hasActiveRePremium ? "Ir a tu mentoría" : "Suscribirse a RePremium"}
                 ctaLink={hasActiveRePremium ? "/mentoria" : undefined}
                 isCurrentPlan={hasActiveRePremium}
@@ -689,13 +628,13 @@ export default function Planes() {
         {/* Product Review - One-time payment */}
         <section id="productastic-review" className="px-4 py-16">
           <div className="max-w-lg mx-auto">
-            <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">¿Ya tenés tu propio producto?</h3>
-            <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">Validá tus decisiones con alguien externo y con experiencia</p>
+            <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">{PRODUCTASTIC_REVIEW.sectionTitle}</h3>
+            <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">{PRODUCTASTIC_REVIEW.sectionSubtitle}</p>
 
             <div className="relative group pt-4">
               <div className="absolute -top-0 left-1/2 transform -translate-x-1/2 z-10">
                 <Badge className="px-4 py-1.5 shadow-lg shadow-emerald-900/30 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-semibold tracking-wide border-0 text-xs uppercase">
-                  Pago único
+                  {PRODUCTASTIC_REVIEW.badge}
                 </Badge>
               </div>
 
@@ -711,19 +650,19 @@ export default function Planes() {
                   </div>
 
                   <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white via-emerald-100 to-teal-200 bg-clip-text text-transparent">
-                    Productastic Review
+                    {PRODUCTASTIC_REVIEW.name}
                   </CardTitle>
 
                   <CardDescription className="text-emerald-200/70 mt-2 text-sm leading-relaxed max-w-sm mx-auto shadow-none font-bold">
-                    ¿Tomaste decisiones de producto y querés validarlas con alguien externo?<br />
-                    Reviso tu research, hipótesis y decisiones hasta acá. No importa como construiste tu producto, analizo tu proceso hasta acá.
+                    {PRODUCTASTIC_REVIEW.descriptionLines[0]}<br />
+                    {PRODUCTASTIC_REVIEW.descriptionLines[1]}
                   </CardDescription>
 
                   <div className="mt-5 flex items-baseline justify-center gap-3">
-                    <span className="text-2xl font-bold text-white/90">ARS $100.000</span>
+                    <span className="text-2xl font-bold text-white/90">{PRODUCTASTIC_REVIEW.price}</span>
                   </div>
                   <Badge className="mt-2 mx-auto bg-amber-500/20 text-amber-300 border-amber-500/30 text-xs">
-                    Precio de lanzamiento
+                    {PRODUCTASTIC_REVIEW.priceNote}
                   </Badge>
                 </CardHeader>
 
@@ -731,13 +670,7 @@ export default function Planes() {
                   <div className="w-full h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent my-4" />
 
                   <ul className="space-y-3 flex-1">
-                    {[
-                      { text: "Revisión de tu research y hallazgos clave", highlight: true },
-                      { text: "Análisis de hipótesis y decisiones de producto", highlight: true },
-                      { text: "Feedback sobre flujos críticos y priorización", highlight: false },
-                      { text: "Informe detallado en 72 hs", highlight: false },
-                      { text: "Recomendaciones accionables paso a paso", highlight: false },
-                    ].map((feature, index) => (
+                    {PRODUCTASTIC_REVIEW.features.map((feature, index) => (
                       <li key={index} className="flex items-start gap-3">
                         <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${feature.highlight ? 'bg-emerald-500/20 ring-1 ring-emerald-500/30' : 'bg-white/5'}`}>
                           <Check className={`w-3 h-3 ${feature.highlight ? 'text-emerald-300' : 'text-emerald-400/60'}`} />
@@ -767,15 +700,15 @@ export default function Planes() {
         {/* ProductPrepa for B2B - Empresas */}
         <section id="productprepa-business" className="px-4 pb-16">
           <div className="max-w-lg mx-auto">
-            <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">¿Trabajás en una empresa con equipo de Producto?</h3>
+            <h3 className="text-2xl md:text-3xl font-bold text-center mb-2">{B2B_PROGRAM.sectionTitle}</h3>
             <p className="text-muted-foreground text-center mb-8 max-w-md mx-auto">
-              Capacitá a todo el equipo con un programa hecho a medida del contexto de tu compañía
+              {B2B_PROGRAM.sectionSubtitle}
             </p>
 
             <div className="relative group pt-4">
               <div className="absolute -top-0 left-1/2 transform -translate-x-1/2 z-10">
                 <Badge className="px-4 py-1.5 shadow-lg shadow-indigo-900/30 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-400 hover:to-blue-400 text-white font-semibold tracking-wide border-0 text-xs uppercase">
-                  Para equipos
+                  {B2B_PROGRAM.badge}
                 </Badge>
               </div>
 
@@ -791,12 +724,12 @@ export default function Planes() {
                   </div>
 
                   <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white via-indigo-100 to-blue-200 bg-clip-text text-transparent">
-                    ProductPrepa for B2B
+                    {B2B_PROGRAM.name}
                   </CardTitle>
 
                   <CardDescription className="text-indigo-100/70 mt-2 text-sm leading-relaxed max-w-sm mx-auto shadow-none font-bold">
-                    Programa de capacitación a medida para equipos de Producto.<br />
-                    Diagnóstico inicial, plan de trabajo y sesiones grupales en vivo, adaptado al contexto de tu empresa.
+                    {B2B_PROGRAM.descriptionLines[0]}<br />
+                    {B2B_PROGRAM.descriptionLines[1]}
                   </CardDescription>
                 </CardHeader>
 
@@ -804,13 +737,7 @@ export default function Planes() {
                   <div className="w-full h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent my-4" />
 
                   <ul className="space-y-3 flex-1">
-                    {[
-                      { text: "Diagnóstico inicial del equipo y áreas de mejora", highlight: true },
-                      { text: "Plan de capacitación a medida (estrategia, discovery, ejecución)", highlight: true },
-                      { text: "Sesiones grupales en vivo con el equipo", highlight: false },
-                      { text: "Acceso de todo el equipo a los cursos", highlight: false },
-                      { text: "Reportes de avance al líder del área", highlight: false },
-                    ].map((feature, index) => (
+                    {B2B_PROGRAM.features.map((feature, index) => (
                       <li key={index} className="flex items-start gap-3">
                         <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${feature.highlight ? 'bg-indigo-500/20 ring-1 ring-indigo-500/30' : 'bg-white/5'}`}>
                           <Check className={`w-3 h-3 ${feature.highlight ? 'text-indigo-300' : 'text-indigo-400/60'}`} />
@@ -857,7 +784,7 @@ export default function Planes() {
             </p>
 
             <Accordion type="single" collapsible className="w-full">
-              {planesFaqs.map((faq, index) => (
+              {PLANES_FAQS.map((faq, index) => (
                 <AccordionItem key={index} value={`item-${index}`}>
                   <AccordionTrigger className="text-left">
                     {faq.question}
