@@ -42,6 +42,8 @@ const BRAND = "#ef681a";
 /** El mismo isotipo que muestran el sidebar y el header público. */
 const LOGO_SRC = "/assets/sanguche.png";
 const LOGO_SIZE = 84;
+/** Cuánto se espera el logo antes de sacar la tarjeta sin él. */
+const LOGO_TIMEOUT_MS = 3000;
 
 const FONT = "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif";
 
@@ -80,23 +82,35 @@ let logoDataUrl: Promise<string | null> | null = null;
  * La promesa se cachea porque el archivo no cambia entre clicks (y para cuando
  * alguien llega a /mejoras el navegador ya lo tiene en caché: el sidebar lo
  * muestra en todas las pantallas).
+ *
+ * El pedido va acotado por timeout: fetch no tiene uno propio, y con la red
+ * colgada (móvil sin señal, captive portal) se quedaría esperando minutos con
+ * el botón girando. Antes de esto la tarjeta se armaba sin tocar la red, así
+ * que el logo no puede ser lo que impida que salga.
  */
 function loadLogoDataUrl(): Promise<string | null> {
   if (!logoDataUrl) {
     logoDataUrl = (async () => {
-      const response = await fetch(LOGO_SRC);
-      if (!response.ok) throw new Error(`El logo respondió ${response.status}`);
-      const blob = await response.blob();
-      return await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(reader.error ?? new Error("No se pudo leer el logo"));
-        reader.readAsDataURL(blob);
-      });
+      const abort = new AbortController();
+      const timer = setTimeout(() => abort.abort(), LOGO_TIMEOUT_MS);
+      try {
+        // La señal corta tanto la conexión como la lectura del cuerpo.
+        const response = await fetch(LOGO_SRC, { signal: abort.signal });
+        if (!response.ok) throw new Error(`El logo respondió ${response.status}`);
+        const blob = await response.blob();
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(reader.error ?? new Error("No se pudo leer el logo"));
+          reader.readAsDataURL(blob);
+        });
+      } finally {
+        clearTimeout(timer);
+      }
     })().catch((error) => {
       if (import.meta.env.DEV) console.warn("No se pudo embeber el logo en la imagen:", error);
-      // Un fallo puntual de red no tiene que dejar la tarjeta sin logo para
-      // siempre: se limpia la caché para que el próximo intento vuelva a probar.
+      // Un fallo puntual de red (o un timeout) no tiene que dejar la tarjeta sin
+      // logo para siempre: se limpia la caché y el próximo intento vuelve a probar.
       logoDataUrl = null;
       return null;
     });
