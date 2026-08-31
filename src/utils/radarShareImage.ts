@@ -22,6 +22,7 @@ import {
 
 const SIZE = 1200;
 const CENTER = SIZE / 2;
+const MARGIN = 88;
 const MAX_RADIUS = 285;
 const LABEL_RADIUS = MAX_RADIUS + 52;
 const RADAR_CENTER_Y = 660;
@@ -33,6 +34,16 @@ const MUTED = "#52525b";
 const FAINT = "#a1a1aa";
 const GRID = "#e4e4e7";
 const BG = "#ffffff";
+// El naranja de la marca (--primary del sitio). El acento de arriba cambia
+// según el tipo de evaluación; el wordmark no: es lo que hace que la tarjeta se
+// reconozca como de ProductPrepa aunque llegue suelta a un feed.
+const BRAND = "#ef681a";
+
+/** El mismo isotipo que muestran el sidebar y el header público. */
+const LOGO_SRC = "/assets/sanguche.png";
+const LOGO_SIZE = 84;
+/** Cuánto se espera el logo antes de sacar la tarjeta sin él. */
+const LOGO_TIMEOUT_MS = 3000;
 
 const FONT = "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif";
 
@@ -46,6 +57,67 @@ function escapeXml(input: string): string {
     .replace(/'/g, "&apos;");
 }
 
+/**
+ * El wordmark tal como está en el header del sitio: "Product" en el naranja de
+ * la marca y "Prepa" en tinta.
+ */
+function wordmark(x: number, y: number, size: number): string {
+  return (
+    `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${size}" font-weight="700" fill="${INK}">` +
+    `<tspan fill="${BRAND}">Product</tspan>Prepa</text>`
+  );
+}
+
+let logoDataUrl: Promise<string | null> | null = null;
+
+/**
+ * Trae el logo y lo devuelve en base64 para embeberlo en el SVG.
+ *
+ * No alcanza con apuntar el <image> a /assets/sanguche.png: el SVG se rasteriza
+ * cargándolo como <img>, y en ese contexto el navegador no resuelve recursos
+ * externos — el logo saldría vacío. Embebido en base64 el SVG queda
+ * autocontenido, y al ser un data: URL tampoco tiñe el canvas, así que el
+ * toBlob() posterior sigue funcionando.
+ *
+ * La promesa se cachea porque el archivo no cambia entre clicks (y para cuando
+ * alguien llega a /mejoras el navegador ya lo tiene en caché: el sidebar lo
+ * muestra en todas las pantallas).
+ *
+ * El pedido va acotado por timeout: fetch no tiene uno propio, y con la red
+ * colgada (móvil sin señal, captive portal) se quedaría esperando minutos con
+ * el botón girando. Antes de esto la tarjeta se armaba sin tocar la red, así
+ * que el logo no puede ser lo que impida que salga.
+ */
+function loadLogoDataUrl(): Promise<string | null> {
+  if (!logoDataUrl) {
+    logoDataUrl = (async () => {
+      const abort = new AbortController();
+      const timer = setTimeout(() => abort.abort(), LOGO_TIMEOUT_MS);
+      try {
+        // La señal corta tanto la conexión como la lectura del cuerpo.
+        const response = await fetch(LOGO_SRC, { signal: abort.signal });
+        if (!response.ok) throw new Error(`El logo respondió ${response.status}`);
+        const blob = await response.blob();
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(reader.error ?? new Error("No se pudo leer el logo"));
+          reader.readAsDataURL(blob);
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+    })().catch((error) => {
+      if (import.meta.env.DEV) console.warn("No se pudo embeber el logo en la imagen:", error);
+      // Un fallo puntual de red (o un timeout) no tiene que dejar la tarjeta sin
+      // logo para siempre: se limpia la caché y el próximo intento vuelve a probar.
+      logoDataUrl = null;
+      return null;
+    });
+  }
+  return logoDataUrl;
+}
+
 interface RadarShareOptions {
   scores: DomainScore[];
   assessmentType: AssessmentTypeKey | null;
@@ -53,6 +125,11 @@ interface RadarShareOptions {
   promedioGlobal: number;
   /** Fecha de la evaluación, para fechar la foto del momento. */
   updatedAt?: string | null;
+}
+
+interface RadarCardOptions extends RadarShareOptions {
+  /** Logo en base64. Si no llegó, la tarjeta se arma igual con solo el wordmark. */
+  logo?: string | null;
 }
 
 const TITLES: Record<AssessmentTypeKey, string> = {
@@ -68,8 +145,9 @@ export function buildRadarShareSvg({
   assessmentType,
   nivel,
   promedioGlobal,
-  updatedAt
-}: RadarShareOptions): string {
+  updatedAt,
+  logo
+}: RadarCardOptions): string {
   const total = scores.length;
   const typeDef = getAssessmentTypeDef(assessmentType);
   const accent = typeDef.accent.hex;
@@ -129,9 +207,10 @@ export function buildRadarShareSvg({
   <rect width="${SIZE}" height="${SIZE}" fill="${BG}"/>
   <rect width="${SIZE}" height="12" fill="${accent}"/>
 
-  <text x="88" y="112" font-family="${FONT}" font-size="22" font-weight="700" letter-spacing="5" fill="${accent}">PRODUCTPREPA</text>
-  <text x="88" y="186" font-family="${FONT}" font-size="54" font-weight="700" fill="${INK}">${escapeXml(title)}</text>
-  <text x="88" y="242" font-family="${FONT}" font-size="28" fill="${MUTED}">${escapeXml(subtitle)}</text>
+  ${logo ? `<image x="${MARGIN}" y="42" width="${LOGO_SIZE}" height="${LOGO_SIZE}" href="${logo}" preserveAspectRatio="xMidYMid meet"/>` : ""}
+  ${wordmark(logo ? MARGIN + LOGO_SIZE + 20 : MARGIN, 98, 40)}
+  <text x="${MARGIN}" y="200" font-family="${FONT}" font-size="54" font-weight="700" fill="${INK}">${escapeXml(title)}</text>
+  <text x="${MARGIN}" y="254" font-family="${FONT}" font-size="28" fill="${MUTED}">${escapeXml(subtitle)}</text>
 
   <g transform="translate(0 ${RADAR_CENTER_Y - CENTER})">
     ${rings}${axes}${scale}
@@ -140,9 +219,10 @@ export function buildRadarShareSvg({
     ${labels}
   </g>
 
-  <line x1="88" y1="1080" x2="${SIZE - 88}" y2="1080" stroke="${GRID}" stroke-width="2"/>
-  <text x="88" y="1136" font-family="${FONT}" font-size="26" fill="${MUTED}">productprepa.com/evaluacion-product-manager</text>
-  ${fecha ? `<text x="${SIZE - 88}" y="1136" text-anchor="end" font-family="${FONT}" font-size="24" fill="${FAINT}">${escapeXml(fecha)}</text>` : ""}
+  <line x1="${MARGIN}" y1="1060" x2="${SIZE - MARGIN}" y2="1060" stroke="${GRID}" stroke-width="2"/>
+  ${wordmark(MARGIN, 1112, 32)}
+  <text x="${MARGIN}" y="1152" font-family="${FONT}" font-size="24" fill="${MUTED}">productprepa.com/evaluacion-product-manager</text>
+  ${fecha ? `<text x="${SIZE - MARGIN}" y="1112" text-anchor="end" font-family="${FONT}" font-size="24" fill="${FAINT}">${escapeXml(fecha)}</text>` : ""}
 </svg>`;
 }
 
@@ -195,7 +275,8 @@ export type ShareOutcome = "shared" | "downloaded" | "cancelled";
  * descarga el PNG.
  */
 export async function shareOrDownloadRadar(options: RadarShareOptions): Promise<ShareOutcome> {
-  const blob = await svgToPngBlob(buildRadarShareSvg(options));
+  const logo = await loadLogoDataUrl();
+  const blob = await svgToPngBlob(buildRadarShareSvg({ ...options, logo }));
   const file = new File([blob], RADAR_IMAGE_FILENAME, { type: "image/png" });
 
   if (navigator.canShare?.({ files: [file] })) {
