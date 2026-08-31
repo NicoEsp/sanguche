@@ -95,7 +95,7 @@ export const PRODUCTASTIC_REVIEW = {
   // estático las une con un espacio.
   descriptionLines: [
     '¿Tomaste decisiones de producto y querés validarlas con alguien externo?',
-    'Reviso tu research, hipótesis y decisiones hasta acá. No importa como construiste tu producto, analizo tu proceso hasta acá.',
+    'Reviso tu research, hipótesis y decisiones hasta acá. No importa cómo construiste tu producto, analizo tu proceso hasta acá.',
   ],
   features: [
     { text: 'Revisión de tu research y hallazgos clave', highlight: true },
