@@ -45,6 +45,9 @@ const LOGO_SIZE = 84;
 /** Cuánto se espera el logo antes de sacar la tarjeta sin él. */
 const LOGO_TIMEOUT_MS = 3000;
 
+/** Dónde vuelve quien ve la imagen: va impresa en el pie y en el texto del share. */
+const SHARE_URL = "productprepa.com/evaluacion-product-manager";
+
 const FONT = "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif";
 
 /** El texto va dentro de un documento XML: sin esto, un & en una etiqueta lo rompe. */
@@ -221,7 +224,7 @@ export function buildRadarShareSvg({
 
   <line x1="${MARGIN}" y1="1060" x2="${SIZE - MARGIN}" y2="1060" stroke="${GRID}" stroke-width="2"/>
   ${wordmark(MARGIN, 1112, 32)}
-  <text x="${MARGIN}" y="1152" font-family="${FONT}" font-size="24" fill="${MUTED}">productprepa.com/evaluacion-product-manager</text>
+  <text x="${MARGIN}" y="1152" font-family="${FONT}" font-size="24" fill="${MUTED}">${SHARE_URL}</text>
   ${fecha ? `<text x="${SIZE - MARGIN}" y="1112" text-anchor="end" font-family="${FONT}" font-size="24" fill="${FAINT}">${escapeXml(fecha)}</text>` : ""}
 </svg>`;
 }
@@ -270,21 +273,37 @@ export const RADAR_IMAGE_FILENAME = "mi-mapa-de-competencias-productprepa.png";
 export type ShareOutcome = "shared" | "downloaded" | "cancelled";
 
 /**
+ * Si el dispositivo se maneja con el dedo.
+ *
+ * No alcanza con preguntar si el navegador sabe compartir archivos: Chrome en
+ * macOS dice que sí, pero lo que llega del otro lado es peor que un archivo
+ * bajado a mano. Compartiendo a WhatsApp desde ahí, la imagen entra duplicada
+ * (como álbum de dos, y recortada al centro, que se come el encabezado y el
+ * pie) y el mensaje arranca con la ruta del temporal de Chrome pegada al
+ * texto. En desktop el PNG descargado y adjuntado a mano sale limpio; la hoja
+ * nativa se gana su lugar en el teléfono, que es donde no hay alternativa.
+ */
+function isHandheld(): boolean {
+  return window.matchMedia?.("(pointer: coarse)").matches ?? false;
+}
+
+/**
  * En mobile abre la hoja nativa de compartir (que es donde realmente se
- * comparte); en desktop, donde el Web Share API con archivos casi no existe,
- * descarga el PNG.
+ * comparte); en desktop descarga el PNG para adjuntarlo a mano.
  */
 export async function shareOrDownloadRadar(options: RadarShareOptions): Promise<ShareOutcome> {
   const logo = await loadLogoDataUrl();
   const blob = await svgToPngBlob(buildRadarShareSvg({ ...options, logo }));
   const file = new File([blob], RADAR_IMAGE_FILENAME, { type: "image/png" });
 
-  if (navigator.canShare?.({ files: [file] })) {
+  if (isHandheld() && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({
         files: [file],
         title: "Mi mapa de competencias en Producto",
-        text: "Hice la evaluación de ProductPrepa y este es mi mapa de competencias."
+        // La URL va suelta al final para que WhatsApp la deje clickeable: en la
+        // imagen está impresa, pero desde ahí nadie la puede tocar.
+        text: `Hice la evaluación de ProductPrepa y este es mi mapa de competencias. https://${SHARE_URL}`
       });
       return "shared";
     } catch (error) {
