@@ -39,22 +39,34 @@ const UTM_MEDIUM: Record<ShareSurface, string> = {
 /** Campaña única del feature: las dos superficies se comparan dentro de ella. */
 const UTM_CAMPAIGN = "radar_share";
 
+/**
+ * Cuál de los links se clickeó, cuando una superficie tiene más de uno.
+ *
+ * El pie del Markdown lleva dos que caen en la misma campaña y la misma
+ * superficie: la firma de marca ("generado en ProductPrepa") y la invitación a
+ * hacer la propia evaluación. Sin esto son indistinguibles en el reporte, y son
+ * dos intenciones muy distintas: una es curiosidad por quién hizo esto, la otra
+ * es alguien que se quiere evaluar.
+ */
+export type ShareContent = "brand" | "cta";
+
 /** URL absoluta de `path` etiquetada con la superficie desde la que se comparte. */
-export function withShareUtm(path: string, surface: ShareSurface): string {
+export function withShareUtm(path: string, surface: ShareSurface, content?: ShareContent): string {
   const params = new URLSearchParams({
     utm_source: surface,
     utm_medium: UTM_MEDIUM[surface],
     utm_campaign: UTM_CAMPAIGN
   });
+  if (content) params.set("utm_content", content);
   return `${SITE_URL}${path}?${params.toString()}`;
 }
 
 /** La evaluación, etiquetada según desde dónde se comparte. */
-export function evalUrl(surface: ShareSurface): string {
-  return withShareUtm(EVAL_PATH, surface);
+export function evalUrl(surface: ShareSurface, content?: ShareContent): string {
+  return withShareUtm(EVAL_PATH, surface, content);
 }
 
 /** La home, etiquetada igual: es el otro link del pie del Markdown. */
-export function homeUrl(surface: ShareSurface): string {
-  return withShareUtm("/", surface);
+export function homeUrl(surface: ShareSurface, content?: ShareContent): string {
+  return withShareUtm("/", surface, content);
 }
