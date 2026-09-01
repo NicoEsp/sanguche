@@ -1,6 +1,7 @@
 import {
   AssessmentTypeKey,
   DomainScore,
+  DomainStatus,
   getAssessmentTypeDef,
   getDomainStatus,
   getNivelDisplay,
@@ -295,6 +296,21 @@ async function svgToPngBlob(svg: string, scale = 2): Promise<Blob> {
 export const RADAR_IMAGE_FILENAME = "mi-mapa-de-competencias-productprepa.png";
 
 /**
+ * Cómo se nombra el dominio más flojo en el posteo.
+ *
+ * Con la misma vara que el resto del producto: "brecha" es lo que está abajo de
+ * 3, que es lo que la tabla del Markdown marca "A mejorar" y lo que se lista en
+ * "Mis brechas". Un 3 largo no es una brecha, es algo a trabajar, y llamarlo
+ * así acá dejaría a la palabra significando dos cosas distintas dentro del
+ * mismo feature. Un dominio que ya es fortaleza no se anuncia: nadie postea que
+ * su punto más flojo es un 4.
+ */
+const WEAKEST_PHRASING: Partial<Record<DomainStatus, string>> = {
+  brecha: "la brecha más grande",
+  intermedio: "área a desarrollar"
+};
+
+/**
  * El texto sugerido para acompañar la imagen en LinkedIn.
  *
  * Existe por una limitación de la tarjeta: la URL está impresa, pero nadie
@@ -310,20 +326,18 @@ export function buildRadarShareText({
 }: Pick<RadarShareOptions, "scores" | "assessmentType" | "promedioGlobal">): string {
   const evaluacion = EVALUATION_NAMES[assessmentType ?? "experimentado"];
 
-  // El dominio más flojo, y sólo si de verdad es una brecha: anunciar como
-  // "la brecha más grande" un dominio en 4/5 haría quedar mal a la persona por
-  // algo que no está mal.
   const weakest = scores.length
     ? scores.reduce((min, s) => (s.value < min.value ? s : min))
     : null;
-  const brecha =
-    weakest && getDomainStatus(weakest.value) !== "fortaleza"
-      ? `, con ${RADAR_SHORT_LABELS[weakest.key] ?? weakest.label} como la brecha más grande`
+  const phrasing = weakest ? WEAKEST_PHRASING[getDomainStatus(weakest.value)] : undefined;
+  const masFlojo =
+    weakest && phrasing
+      ? `, con ${RADAR_SHORT_LABELS[weakest.key] ?? weakest.label} como ${phrasing}`
       : "";
 
   return (
     `Hice la evaluación de ${evaluacion} de ProductPrepa. ` +
-    `Promedio ${promedioGlobal.toFixed(1)} sobre 5${brecha}.\n\n` +
+    `Promedio ${promedioGlobal.toFixed(1)} sobre 5${masFlojo}.\n\n` +
     `La podés hacer gratis acá: ${evalUrl("radar_share")}`
   );
 }
@@ -364,12 +378,22 @@ function isHandheld(): boolean {
  * adjunta la imagen y pega el texto con el link.
  */
 export async function shareOrDownloadRadar(options: RadarShareOptions): Promise<ShareResult> {
+  const text = buildRadarShareText(options);
+  const handheld = isHandheld();
+
+  // El portapapeles se pide acá, antes del primer await: pedirlo recién después
+  // de bajar el logo y rasterizar el PNG llega con la activación del click ya
+  // vencida —el logo solo se puede tomar hasta tres segundos— y el navegador lo
+  // rechaza sin más. En mobile ni se intenta: el texto viaja dentro de la hoja
+  // nativa. Si después la imagen falla, lo peor que queda es el texto del
+  // posteo en el portapapeles, que es de la propia persona y no molesta.
+  const copying = handheld ? null : attemptCopy(text);
+
   const logo = await loadLogoDataUrl();
   const blob = await svgToPngBlob(buildRadarShareSvg({ ...options, logo }));
   const file = new File([blob], RADAR_IMAGE_FILENAME, { type: "image/png" });
-  const text = buildRadarShareText(options);
 
-  if (isHandheld() && navigator.canShare?.({ files: [file] })) {
+  if (handheld && navigator.canShare?.({ files: [file] })) {
     try {
       // El texto viaja dentro de la hoja nativa: acá no hace falta el
       // portapapeles, la app de destino ya lo recibe pegado a la imagen.
@@ -386,15 +410,26 @@ export async function shareOrDownloadRadar(options: RadarShareOptions): Promise<
 
   downloadBlob(blob, RADAR_IMAGE_FILENAME);
 
-  let textCopied = false;
-  try {
-    await copyText(text);
-    textCopied = true;
-  } catch (error) {
-    if (import.meta.env.DEV) console.warn("No se pudo copiar el texto del posteo:", error);
-  }
+  // En un táctil que no pudo abrir la hoja nativa no se intentó copiar antes;
+  // se intenta ahora, aunque a esta altura la activación probablemente venció.
+  const textCopied = await (copying ?? attemptCopy(text));
 
   return { outcome: "downloaded", textCopied };
+}
+
+/**
+ * Copia sin poder romper el flujo: el texto del posteo es un extra, la imagen
+ * es lo que la persona pidió. Devuelve si quedó copiado, para que el aviso no
+ * prometa algo que no pasó.
+ */
+function attemptCopy(text: string): Promise<boolean> {
+  return copyText(text).then(
+    () => true,
+    (error) => {
+      if (import.meta.env.DEV) console.warn("No se pudo copiar el texto del posteo:", error);
+      return false;
+    }
+  );
 }
 
 /**
