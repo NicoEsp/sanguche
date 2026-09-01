@@ -343,9 +343,29 @@ export function buildAssessmentMarkdown({
     push("");
   }
 
+  // La prioridad ya está en la tabla, dominio por dominio: repetirla acá sólo
+  // creaba dos lugares donde puede decir cosas distintas. Lo único que esta
+  // lista agrega es el orden, así que eso es lo que se explica cuando no es el
+  // orden obvio: en la evaluación de builder, una brecha en un dominio crítico
+  // para la etapa del producto sube al frente aunque haya otra más baja, y desde
+  // el documento eso se lee como un error. Se detecta mirando la lista y no
+  // replicando el criterio de scoring.ts: si el criterio cambia, la nota sigue
+  // apareciendo cuando corresponde.
   if (result.gaps.length > 0) {
     push(`## ${GAP_TITLES[type]}`, "");
-    push(...result.gaps.map((gap) => `- **${gap.label}** — ${gap.value} / 5 · prioridad ${gap.prioridad}`));
+    const porUrgencia = result.gaps.some((gap, i) => i > 0 && gap.value < result.gaps[i - 1].value);
+    if (porUrgencia) {
+      const etapa = result.context?.etapa;
+      push(
+        "Ordenadas por urgencia y no por puntaje" +
+          (etapa
+            ? `: para la etapa en la que está mi producto (${getContextValueLabel("etapa", etapa)}), ` +
+              "las de arriba me frenan más aunque no sean las más bajas."
+            : "."),
+        ""
+      );
+    }
+    push(...result.gaps.map((gap) => `- **${gap.label}** — ${gap.value} / 5`));
     push("");
   }
 
