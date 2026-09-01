@@ -27,20 +27,36 @@ export function ShareRadarButton(props: ShareRadarButtonProps) {
   const handleClick = async () => {
     setBusy(true);
     try {
-      const outcome = await shareOrDownloadRadar(props);
+      const { outcome, textCopied } = await shareOrDownloadRadar(props);
       if (outcome === "cancelled") return;
 
-      trackEvent("radar_image_shared", {
-        outcome,
+      // La descarga y la hoja nativa son eventos distintos y no comparables: de
+      // la imagen bajada no vamos a saber nunca adónde fue a parar, y ese
+      // conteo es toda la señal que tenemos de esa mitad del feature.
+      const imageEvent = {
         assessment_type: props.assessmentType ?? "legacy",
+        promedio_global: props.promedioGlobal,
         domains_count: props.scores.length
-      });
+      };
+      trackEvent(outcome === "shared" ? "radar_image_shared" : "radar_image_downloaded", imageEvent);
+      if (textCopied) {
+        trackEvent("share_text_copied", { assessment_type: props.assessmentType ?? "legacy" });
+      }
 
       if (outcome === "downloaded") {
-        toast({
-          title: "Imagen descargada",
-          description: "Tu mapa de competencias quedó listo para compartir."
-        });
+        toast(
+          textCopied
+            ? {
+                // Pasaron dos cosas de un solo click: si el aviso nombra una
+                // sola, el texto queda en el portapapeles sin que nadie lo pegue.
+                title: "Imagen descargada y texto copiado",
+                description: "Adjuntá la imagen y pegá el texto: ya lleva el link a la evaluación."
+              }
+            : {
+                title: "Imagen descargada",
+                description: "Tu mapa de competencias quedó listo para compartir."
+              }
+        );
       }
     } catch (error) {
       if (import.meta.env.DEV) console.error("Error generando la imagen del radar:", error);

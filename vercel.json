@@ -1,5 +1,6 @@
 {
   "redirects": [
+    { "source": "/eval", "destination": "/evaluacion-product-manager", "permanent": true },
     { "source": "/preguntas", "destination": "/descargables", "permanent": true },
     { "source": "/premium", "destination": "/planes", "permanent": true }
   ],

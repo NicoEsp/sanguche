@@ -1,4 +1,12 @@
-import { AssessmentTypeKey, DomainScore, getAssessmentTypeDef, getNivelDisplay, SeniorityLevel } from "@/utils/scoring";
+import {
+  AssessmentTypeKey,
+  DomainScore,
+  DomainStatus,
+  getAssessmentTypeDef,
+  getDomainStatus,
+  getNivelDisplay,
+  SeniorityLevel
+} from "@/utils/scoring";
 import {
   RADAR_MAX_VALUE,
   RADAR_RINGS,
@@ -7,6 +15,8 @@ import {
   radarPolygonPoints,
   radarTextAnchor
 } from "@/utils/radar";
+import { evalUrl, SHORT_EVAL_URL } from "@/constants/shareLinks";
+import { copyText } from "@/utils/clipboard";
 
 /**
  * Genera la imagen del mapa de competencias para compartir.
@@ -44,9 +54,6 @@ const LOGO_SRC = "/assets/sanguche.png";
 const LOGO_SIZE = 84;
 /** Cuánto se espera el logo antes de sacar la tarjeta sin él. */
 const LOGO_TIMEOUT_MS = 3000;
-
-/** Dónde vuelve quien ve la imagen: va impresa en el pie y en el texto del share. */
-const SHARE_URL = "productprepa.com/evaluacion-product-manager";
 
 const FONT = "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif";
 
@@ -142,6 +149,22 @@ const TITLES: Record<AssessmentTypeKey, string> = {
   lider: "El mapa de mi equipo"
 };
 
+/**
+ * Qué evaluación se tomó, nombrada para que la entienda alguien de afuera.
+ *
+ * "Madurez de método" o "Mi mapa de competencias" no le dicen nada a quien se
+ * cruza la imagen en un feed sin haber pasado nunca por acá: falta el nombre de
+ * la cosa. Redactadas para caber en las dos frases donde se usan: debajo del
+ * título de la tarjeta ("Evaluación de …") y en el texto del posteo ("Hice la
+ * evaluación de … de ProductPrepa").
+ */
+const EVALUATION_NAMES: Record<AssessmentTypeKey, string> = {
+  experimentado: "competencias en Producto",
+  sin_experiencia: "afinidad con Producto",
+  builder: "Product Builder",
+  lider: "madurez de equipos de Producto"
+};
+
 /** Arma el SVG completo de la tarjeta, listo para rasterizar. */
 export function buildRadarShareSvg({
   scores,
@@ -204,6 +227,7 @@ export function buildRadarShareSvg({
     return `<text x="${CENTER + 12}" y="${y.toFixed(1)}" font-family="${FONT}" font-size="18" fill="${FAINT}">${ring}</text>`;
   }).join("");
 
+  const evaluationName = `Evaluación de ${EVALUATION_NAMES[assessmentType ?? "experimentado"]}`;
   const subtitle = `${nivelDisplay.title}: ${nivelDisplay.label}  ·  Promedio ${promedioGlobal} / 5`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">
@@ -212,8 +236,9 @@ export function buildRadarShareSvg({
 
   ${logo ? `<image x="${MARGIN}" y="42" width="${LOGO_SIZE}" height="${LOGO_SIZE}" href="${logo}" preserveAspectRatio="xMidYMid meet"/>` : ""}
   ${wordmark(logo ? MARGIN + LOGO_SIZE + 20 : MARGIN, 98, 40)}
-  <text x="${MARGIN}" y="200" font-family="${FONT}" font-size="54" font-weight="700" fill="${INK}">${escapeXml(title)}</text>
-  <text x="${MARGIN}" y="254" font-family="${FONT}" font-size="28" fill="${MUTED}">${escapeXml(subtitle)}</text>
+  <text x="${MARGIN}" y="196" font-family="${FONT}" font-size="54" font-weight="700" fill="${INK}">${escapeXml(title)}</text>
+  <text x="${MARGIN}" y="242" font-family="${FONT}" font-size="28" font-weight="500" fill="${INK}">${escapeXml(evaluationName)}</text>
+  <text x="${MARGIN}" y="286" font-family="${FONT}" font-size="26" fill="${MUTED}">${escapeXml(subtitle)}</text>
 
   <g transform="translate(0 ${RADAR_CENTER_Y - CENTER})">
     ${rings}${axes}${scale}
@@ -222,10 +247,11 @@ export function buildRadarShareSvg({
     ${labels}
   </g>
 
-  <line x1="${MARGIN}" y1="1060" x2="${SIZE - MARGIN}" y2="1060" stroke="${GRID}" stroke-width="2"/>
-  ${wordmark(MARGIN, 1112, 32)}
-  <text x="${MARGIN}" y="1152" font-family="${FONT}" font-size="24" fill="${MUTED}">${SHARE_URL}</text>
-  ${fecha ? `<text x="${SIZE - MARGIN}" y="1112" text-anchor="end" font-family="${FONT}" font-size="24" fill="${FAINT}">${escapeXml(fecha)}</text>` : ""}
+  <line x1="${MARGIN}" y1="1046" x2="${SIZE - MARGIN}" y2="1046" stroke="${GRID}" stroke-width="2"/>
+  ${wordmark(MARGIN, 1084, 32)}
+  ${fecha ? `<text x="${SIZE - MARGIN}" y="1084" text-anchor="end" font-family="${FONT}" font-size="24" fill="${FAINT}">${escapeXml(fecha)}</text>` : ""}
+  <text x="${MARGIN}" y="1118" font-family="${FONT}" font-size="24" fill="${MUTED}">Hacé la tuya gratis</text>
+  <text x="${MARGIN}" y="1152" font-family="${FONT}" font-size="30" font-weight="700" fill="${BRAND}">${SHORT_EVAL_URL}</text>
 </svg>`;
 }
 
@@ -269,8 +295,66 @@ async function svgToPngBlob(svg: string, scale = 2): Promise<Blob> {
 
 export const RADAR_IMAGE_FILENAME = "mi-mapa-de-competencias-productprepa.png";
 
+/**
+ * Cómo se nombra el dominio más flojo en el posteo.
+ *
+ * Con la misma vara que el resto del producto: "brecha" es lo que está abajo de
+ * 3, que es lo que la tabla del Markdown marca "A mejorar" y lo que se lista en
+ * "Mis brechas". Un 3 largo no es una brecha, es algo a trabajar, y llamarlo
+ * así acá dejaría a la palabra significando dos cosas distintas dentro del
+ * mismo feature. Un dominio que ya es fortaleza no se anuncia: nadie postea que
+ * su punto más flojo es un 4.
+ */
+const WEAKEST_PHRASING: Partial<Record<DomainStatus, string>> = {
+  brecha: "la brecha más grande",
+  intermedio: "área a desarrollar"
+};
+
+/**
+ * El texto sugerido para acompañar la imagen en LinkedIn.
+ *
+ * Existe por una limitación de la tarjeta: la URL está impresa, pero nadie
+ * puede hacerle click desde un feed. Poniéndola en el texto que se pega junto a
+ * la imagen el link vuelve a ser un link, sin necesidad de ninguna
+ * infraestructura nueva, y encima se puede atribuir por UTM —cosa que la imagen
+ * sola nunca va a permitir—.
+ */
+export function buildRadarShareText({
+  scores,
+  assessmentType,
+  promedioGlobal
+}: Pick<RadarShareOptions, "scores" | "assessmentType" | "promedioGlobal">): string {
+  const evaluacion = EVALUATION_NAMES[assessmentType ?? "experimentado"];
+
+  const weakest = scores.length
+    ? scores.reduce((min, s) => (s.value < min.value ? s : min))
+    : null;
+  const phrasing = weakest ? WEAKEST_PHRASING[getDomainStatus(weakest.value)] : undefined;
+  const masFlojo =
+    weakest && phrasing
+      ? `, con ${RADAR_SHORT_LABELS[weakest.key] ?? weakest.label} como ${phrasing}`
+      : "";
+
+  return (
+    `Hice la evaluación de ${evaluacion} de ProductPrepa. ` +
+    `Promedio ${promedioGlobal.toFixed(1)} sobre 5${masFlojo}.\n\n` +
+    `La podés hacer gratis acá: ${evalUrl("radar_share")}`
+  );
+}
+
 /** Qué terminó pasando, para que la UI avise lo correcto. */
 export type ShareOutcome = "shared" | "downloaded" | "cancelled";
+
+export type ShareResult = {
+  outcome: ShareOutcome;
+  /**
+   * Si además quedó en el portapapeles el texto del posteo. Es best effort: el
+   * portapapeles necesita permiso y activación reciente del usuario, y para
+   * cuando el PNG está rasterizado puede haberse perdido. Que falle no tiene
+   * que arruinar la descarga, pero el aviso sí tiene que decir la verdad.
+   */
+  textCopied: boolean;
+};
 
 /**
  * Si el dispositivo se maneja con el dedo.
@@ -289,35 +373,82 @@ function isHandheld(): boolean {
 
 /**
  * En mobile abre la hoja nativa de compartir (que es donde realmente se
- * comparte); en desktop descarga el PNG para adjuntarlo a mano.
+ * comparte); en desktop descarga el PNG y deja el texto del posteo en el
+ * portapapeles, que es el equivalente de escritorio de esa hoja: la persona
+ * adjunta la imagen y pega el texto con el link.
  */
-export async function shareOrDownloadRadar(options: RadarShareOptions): Promise<ShareOutcome> {
+export async function shareOrDownloadRadar(options: RadarShareOptions): Promise<ShareResult> {
+  const text = buildRadarShareText(options);
+  const handheld = isHandheld();
+
+  // El portapapeles se pide acá, antes del primer await: pedirlo recién después
+  // de bajar el logo y rasterizar el PNG llega con la activación del click ya
+  // vencida —el logo solo se puede tomar hasta tres segundos— y el navegador lo
+  // rechaza sin más. En mobile ni se intenta: el texto viaja dentro de la hoja
+  // nativa. Si después la imagen falla, lo peor que queda es el texto del
+  // posteo en el portapapeles, que es de la propia persona y no molesta.
+  const copying = handheld ? null : attemptCopy(text);
+
   const logo = await loadLogoDataUrl();
   const blob = await svgToPngBlob(buildRadarShareSvg({ ...options, logo }));
   const file = new File([blob], RADAR_IMAGE_FILENAME, { type: "image/png" });
 
-  if (isHandheld() && navigator.canShare?.({ files: [file] })) {
+  if (handheld && navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({
-        files: [file],
-        title: "Mi mapa de competencias en Producto",
-        // La URL va suelta al final para que WhatsApp la deje clickeable: en la
-        // imagen está impresa, pero desde ahí nadie la puede tocar.
-        text: `Hice la evaluación de ProductPrepa y este es mi mapa de competencias. https://${SHARE_URL}`
-      });
-      return "shared";
+      // El texto viaja dentro de la hoja nativa: acá no hace falta el
+      // portapapeles, la app de destino ya lo recibe pegado a la imagen.
+      await navigator.share({ files: [file], title: "Mi mapa de competencias en Producto", text });
+      return { outcome: "shared", textCopied: false };
     } catch (error) {
       // Cerrar la hoja de compartir no es un error que valga la pena mostrar.
-      if (error instanceof DOMException && error.name === "AbortError") return "cancelled";
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return { outcome: "cancelled", textCopied: false };
+      }
       // Cualquier otra falla del share cae a la descarga, que siempre funciona.
     }
   }
 
+  downloadBlob(blob, RADAR_IMAGE_FILENAME);
+
+  // En un táctil que no pudo abrir la hoja nativa no se intentó copiar antes;
+  // se intenta ahora, aunque a esta altura la activación probablemente venció.
+  const textCopied = await (copying ?? attemptCopy(text));
+
+  return { outcome: "downloaded", textCopied };
+}
+
+/**
+ * Copia sin poder romper el flujo: el texto del posteo es un extra, la imagen
+ * es lo que la persona pidió. Devuelve si quedó copiado, para que el aviso no
+ * prometa algo que no pasó.
+ */
+function attemptCopy(text: string): Promise<boolean> {
+  return copyText(text).then(
+    () => true,
+    (error) => {
+      if (import.meta.env.DEV) console.warn("No se pudo copiar el texto del posteo:", error);
+      return false;
+    }
+  );
+}
+
+/**
+ * Baja un blob con el nombre que le corresponde.
+ *
+ * El ancla tiene que estar en el documento para que Firefox respete el click, y
+ * el object URL no se puede revocar en la misma vuelta: hacerlo antes de que el
+ * navegador termine de leer el blob aborta la descarga o la deja sin nombre, y
+ * el archivo aparece como "download" en el chat de quien lo recibe.
+ */
+function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = RADAR_IMAGE_FILENAME;
+  link.download = filename;
+  link.rel = "noopener";
+  link.style.display = "none";
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
-  return "downloaded";
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
