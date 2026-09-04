@@ -22,7 +22,6 @@ export interface ProfileCompositeData {
   } | null;
   assessmentsCount: number;
   lastAssessmentDate: string | null;
-  /** La evaluación más reciente es del formato anterior (sin tipo de perfil). */
   hasLegacyAssessment: boolean;
 }
 

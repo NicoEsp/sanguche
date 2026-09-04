@@ -288,11 +288,9 @@ export default function Assessment() {
       return;
     }
 
-    // Pedido explícito de re-evaluación (banner de /mejoras) o evaluación del
-    // formato anterior (sin tipo de perfil): arranca desde el selector, salvo
-    // que haya una evaluación a medias con respuestas, en cuyo caso se retoma
-    // esa (no se descarta trabajo sin confirmación). Un legacy no tiene forma
-    // de ver resultados acá: recién al completar la nueva deja de serlo.
+    // Pedido explícito de re-evaluación (banner de /mejoras): arranca desde
+    // el selector, salvo que haya una evaluación a medias con respuestas, en
+    // cuyo caso se retoma esa (no se descarta trabajo sin confirmación).
     if ((wantsReevaluation || isLegacyAssessment) && !hasStoredProgress) {
       localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
       localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
