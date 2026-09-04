@@ -9,6 +9,7 @@ const FADE_DURATION = 150;
 /**
  * Hook que maneja la redirección automática en Home según el estado del usuario (V4):
  * - No autenticado → Se queda en Landing
+ * - Cualquier plan con evaluación legacy (sin tipo de perfil) → /autoevaluacion
  * - Premium/RePremium sin evaluación → /autoevaluacion
  * - Premium/RePremium con evaluación → /progreso (Career Path; ignora returnTo)
  * - Free con returnTo → Redirige a returnTo (ej: /preguntas)
@@ -62,7 +63,11 @@ export function useHomeRedirect() {
       ? isPremiumPlan(sub.plan) && (sub.status === 'active' || sub.isComped === true)
       : false;
 
-    if (hasActivePremium) {
+    if (compositeData.hasLegacyAssessment) {
+      // Evaluación del formato anterior: se pide elegir perfil y volver a
+      // evaluarse antes de seguir, sin importar el plan ni returnTo.
+      dest = '/autoevaluacion';
+    } else if (hasActivePremium) {
       // Premium/RePremium van directo a Career Path (ignoran returnTo).
       // Si todavía no hicieron la autoevaluación, esa va primero.
       dest = hasAssessment ? '/progreso' : '/autoevaluacion';

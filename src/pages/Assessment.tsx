@@ -157,6 +157,7 @@ export default function Assessment() {
     loading: assessmentLoading,
     updatedAt,
     assessmentType: savedAssessmentType,
+    isLegacyAssessment,
   } = useAssessmentData();
 
   const { hasActivePremium } = useSubscription();
@@ -268,7 +269,7 @@ export default function Assessment() {
     // en esa evaluación, igual que si hubiera tocado la tarjeta. Nunca pisa una
     // evaluación guardada ni respuestas a medio cargar: ahí manda lo que el
     // usuario ya hizo y el selector decide.
-    if (preselectedType && !hasAssessment && !hasStoredProgress) {
+    if (preselectedType && (!hasAssessment || isLegacyAssessment) && !hasStoredProgress) {
       setIsReevaluating(true);
       setSelectedType(preselectedType);
       setCurrentStep(0);
@@ -287,10 +288,12 @@ export default function Assessment() {
       return;
     }
 
-    // Pedido explícito de re-evaluación (banner de /mejoras): arranca desde
-    // el selector, salvo que haya una evaluación a medias con respuestas, en
-    // cuyo caso se retoma esa (no se descarta trabajo sin confirmación).
-    if (wantsReevaluation && !hasStoredProgress) {
+    // Pedido explícito de re-evaluación (banner de /mejoras) o evaluación del
+    // formato anterior (sin tipo de perfil): arranca desde el selector, salvo
+    // que haya una evaluación a medias con respuestas, en cuyo caso se retoma
+    // esa (no se descarta trabajo sin confirmación). Un legacy no tiene forma
+    // de ver resultados acá: recién al completar la nueva deja de serlo.
+    if ((wantsReevaluation || isLegacyAssessment) && !hasStoredProgress) {
       localStorage.removeItem(ASSESSMENT_PARTIAL_ANSWERS_KEY);
       localStorage.removeItem(ASSESSMENT_OPTIONAL_ANSWERS_KEY);
       localStorage.removeItem(ASSESSMENT_TYPE_KEY);
@@ -352,7 +355,7 @@ export default function Assessment() {
         setCurrentStep(resumeDomains.length);
       }
     }
-  }, [assessmentLoading, authLoading, hasAssessment, form, searchParams, setSearchParams, user, trackEvent]);
+  }, [assessmentLoading, authLoading, hasAssessment, isLegacyAssessment, form, searchParams, setSearchParams, user, trackEvent]);
 
   // Refs para el evento de abandono (se inicializan después de `answered`)
   const isReevaluatingRef = useRef(isReevaluating);

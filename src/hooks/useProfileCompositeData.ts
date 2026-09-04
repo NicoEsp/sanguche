@@ -22,6 +22,8 @@ export interface ProfileCompositeData {
   } | null;
   assessmentsCount: number;
   lastAssessmentDate: string | null;
+  /** La evaluación más reciente es del formato anterior (sin tipo de perfil). */
+  hasLegacyAssessment: boolean;
 }
 
 const EMPTY_COMPOSITE_DATA: ProfileCompositeData = {
@@ -29,6 +31,7 @@ const EMPTY_COMPOSITE_DATA: ProfileCompositeData = {
   subscription: null,
   assessmentsCount: 0,
   lastAssessmentDate: null,
+  hasLegacyAssessment: false,
 };
 
 /**
@@ -59,7 +62,7 @@ export async function fetchCompositeData(userId: string): Promise<ProfileComposi
 
   const { data: assessmentsData, error: assessmentsError } = await supabase
     .from('assessments')
-    .select('id, updated_at')
+    .select('id, updated_at, assessment_type')
     .eq('user_id', profileData?.id || '')
     .order('updated_at', { ascending: false })
     .limit(100);
@@ -99,6 +102,7 @@ export async function fetchCompositeData(userId: string): Promise<ProfileComposi
     },
     assessmentsCount: assessmentsData?.length || 0,
     lastAssessmentDate: assessmentsData?.[0]?.updated_at || null,
+    hasLegacyAssessment: !!assessmentsData?.length && assessmentsData[0].assessment_type === null,
   };
 }
 
