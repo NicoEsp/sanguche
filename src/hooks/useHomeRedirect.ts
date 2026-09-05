@@ -62,7 +62,9 @@ export function useHomeRedirect() {
       ? isPremiumPlan(sub.plan) && (sub.status === 'active' || sub.isComped === true)
       : false;
 
-    if (hasActivePremium) {
+    if (compositeData.hasLegacyAssessment) {
+      dest = '/autoevaluacion';
+    } else if (hasActivePremium) {
       // Premium/RePremium van directo a Career Path (ignoran returnTo).
       // Si todavía no hicieron la autoevaluación, esa va primero.
       dest = hasAssessment ? '/progreso' : '/autoevaluacion';
