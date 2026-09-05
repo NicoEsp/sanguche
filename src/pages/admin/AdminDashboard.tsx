@@ -1,7 +1,10 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdminAnalytics } from '@/hooks/useAdminAnalytics';
-import { Loader2, Users, ClipboardList, TrendingUp, Crown, Target, Calendar, DollarSign, RefreshCw, Gift } from 'lucide-react';
+import {
+  Loader2, Users, ClipboardList, TrendingUp, Crown, Target, Calendar, DollarSign, RefreshCw,
+  ShoppingBag, type LucideIcon
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -9,411 +12,208 @@ import { getAssessmentTypeDef, getAssessmentTypeShortLabel } from '@/utils/scori
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+const currency = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 });
+const shortDate = (date: string | null) => (date ? format(new Date(date), 'dd/MM', { locale: es }) : null);
+
+const PRICING_BADGE = {
+  real: { variant: 'default', label: 'Precios reales' },
+  lemonsqueezy: { variant: 'secondary', label: 'LemonSqueezy' },
+  fallback: { variant: 'outline', label: 'Estimado' },
+} as const;
+
 export default function AdminDashboard() {
   const { analytics, loading, error, refreshing, refetch, lastUpdated } = useAdminAnalytics();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Cargando analytics...</p>
-        </div>
+      <div className="flex h-64 flex-col items-center justify-center gap-4 text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p>Cargando analytics...</p>
       </div>
     );
   }
 
   if (error || !analytics) {
-    return (
-      <div className="text-center p-8">
-        <p className="text-destructive">{error || 'Error cargando datos'}</p>
-      </div>
-    );
+    return <p className="p-8 text-center text-destructive">{error || 'Error cargando datos'}</p>;
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
+  const a = analytics;
+  const plans = a.subscriptionsByPlan;
+  const paidConversion = a.totalUsers > 0 ? (a.premiumPaidUsers / a.totalUsers) * 100 : 0;
+  const oneTimeSales = plans.productprepa_business.paid + plans.productastic_review.paid
+    + plans.curso_estrategia.paid + plans.cursos_all.paid;
+  const dailyAverage = a.daysElapsedInMonth > 0 ? Math.round(a.newUsersThisMonth / a.daysElapsedInMonth) : 0;
+  const profileRows = a.assessmentsByType.filter((item) => item.key !== 'legacy' || item.count > 0);
+  const maxByProfile = Math.max(...profileRows.map((item) => item.count), 1);
+  const pricing = PRICING_BADGE[a.pricingSource];
 
-  const { mrr, ltv, arpu } = analytics;
-  const maxAssessmentsByType = Math.max(...analytics.assessmentsByType.map((item) => item.count), 1);
+  const planRows = [
+    { label: 'Premium', paid: plans.premium.paid, comped: plans.premium.comped, recurring: true },
+    { label: 'RePremium', paid: plans.repremium.paid, comped: plans.repremium.comped, recurring: true },
+    { label: 'ProductPrepa for Business', paid: plans.productprepa_business.paid },
+    { label: 'Productastic Review', paid: plans.productastic_review.paid },
+    { label: 'Curso Estrategia', paid: plans.curso_estrategia.paid },
+    { label: 'Cursos All', paid: plans.cursos_all.paid },
+  ].filter((row) => row.recurring || row.paid > 0);
+
+  const monthRows = [
+    { label: 'Nuevos usuarios', value: a.newUsersThisMonth },
+    { label: 'Promedio diario de registros', value: dailyAverage },
+    { label: 'Evaluaciones', value: a.assessmentsThisMonth },
+    { label: 'Puntuación promedio', value: a.averageAssessmentScore > 0 ? a.averageAssessmentScore.toFixed(1) : 'N/A' },
+    { label: 'Pico de registros', value: a.peakDay.count, note: shortDate(a.peakDay.date) },
+    { label: 'Pico de evaluaciones', value: a.peakAssessmentDay.count, note: shortDate(a.peakAssessmentDay.date) },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Dashboard de Administración</h1>
-          <p className="text-sm text-muted-foreground mt-1 sm:mt-2">
-            Métricas y análisis en tiempo real
-          </p>
+          <h1 className="text-2xl font-bold sm:text-3xl">Dashboard de Administración</h1>
+          <p className="mt-1 text-sm text-muted-foreground sm:mt-2">Métricas y análisis en tiempo real</p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
           {lastUpdated && (
-            <span className="text-xs text-muted-foreground hidden sm:block">
-              Actualizado: {lastUpdated.toLocaleTimeString('es-ES', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
+            <span className="hidden text-xs text-muted-foreground sm:block">
+              Actualizado: {format(lastUpdated, 'HH:mm')}
             </span>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refetch}
-            disabled={refreshing}
-          >
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
-            <span className="hidden sm:inline ml-2">{refreshing ? 'Actualizando...' : 'Actualizar'}</span>
+          <Button variant="outline" size="sm" onClick={refetch} disabled={refreshing}>
+            <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
+            <span className="ml-2 hidden sm:inline">{refreshing ? 'Actualizando...' : 'Actualizar'}</span>
           </Button>
         </div>
       </div>
 
-      {/* KPIs Grid */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card className="h-full overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuarios Totales</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.totalUsers}</div>
-            <p className="text-xs text-muted-foreground">Usuarios registrados</p>
-          </CardContent>
-        </Card>
-
-        <Card className="h-full overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Evaluaciones</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.totalAssessments}</div>
-            <p className="text-xs text-muted-foreground">
-              +{analytics.assessmentsToday} hoy
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="h-full overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Esta Semana</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.assessmentsThisWeek}</div>
-            <p className="text-xs text-muted-foreground">Evaluaciones completadas</p>
-          </CardContent>
-        </Card>
-
-        <Card className="h-full overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversión</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.conversionRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground">Free to Premium</p>
-          </CardContent>
-        </Card>
+        <Stat icon={Users} label="Usuarios" value={a.totalUsers} note="Registrados" />
+        <Stat icon={ClipboardList} label="Evaluaciones" value={a.totalAssessments} note={`+${a.assessmentsToday} hoy`} />
+        <Stat icon={Calendar} label="Esta semana" value={a.assessmentsThisWeek} note="Evaluaciones completadas" />
+        <Stat icon={Target} label="Conversión" value={`${paidConversion.toFixed(1)}%`} note="Pagos recurrentes sobre usuarios" />
       </div>
 
-      {/* Evaluaciones por perfil */}
-      <Card className="overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Card>
+        <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium">Evaluaciones por perfil</CardTitle>
-          <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
-            {analytics.assessmentsByType
-              .filter((item) => item.key !== 'legacy' || item.count > 0)
-              .map((item) => (
-                <div key={item.key}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground truncate">{getAssessmentTypeShortLabel(item.key)}</span>
-                    <span className="text-xs font-semibold text-foreground">{item.count}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full mt-1 bg-muted">
-                    <div
-                      className={cn('h-full rounded-full', item.key === 'legacy' && 'bg-muted-foreground/40')}
-                      style={{
-                        width: `${(item.count / maxAssessmentsByType) * 100}%`,
-                        backgroundColor: item.key === 'legacy' ? undefined : getAssessmentTypeDef(item.key).accent.hex
-                      }}
-                    />
-                  </div>
+            {profileRows.map((item) => (
+              <div key={item.key}>
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="truncate text-muted-foreground">{getAssessmentTypeShortLabel(item.key)}</span>
+                  <span className="font-semibold">{item.count}</span>
                 </div>
-              ))}
+                <div className="mt-1 h-1.5 rounded-full bg-muted">
+                  <div
+                    className={cn('h-full rounded-full', item.key === 'legacy' && 'bg-muted-foreground/40')}
+                    style={{
+                      width: `${(item.count / maxByProfile) * 100}%`,
+                      backgroundColor: item.key === 'legacy' ? undefined : getAssessmentTypeDef(item.key).accent.hex,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Financial KPIs */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <Card className="h-full overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Premium Pagados</CardTitle>
-            <Crown className="h-4 w-4 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.premiumPaidUsers}</div>
-            <p className="text-xs text-muted-foreground">
-              {analytics.conversionRate.toFixed(1)}% conversión
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="h-full overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Bonificados</CardTitle>
-            <Gift className="h-4 w-4 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{analytics.premiumCompedUsers}</div>
-            <p className="text-xs text-muted-foreground">
-              Premium sin pago
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="h-full overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">MRR</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{formatCurrency(mrr)}</div>
-            <p className="text-xs text-muted-foreground">Ingresos mensuales recurrentes</p>
-          </CardContent>
-        </Card>
-
-        <Card className="h-full overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ARPU</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-base sm:text-2xl font-bold text-foreground truncate">
-              {formatCurrency(arpu)}
-            </div>
-            <p className="text-xs text-muted-foreground">Ingreso promedio por usuario</p>
-          </CardContent>
-        </Card>
-
-        <Card className="h-full overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">LTV</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-base sm:text-2xl font-bold text-foreground truncate">{formatCurrency(ltv)}</div>
-            <p className="text-xs text-muted-foreground">Ingreso promedio por cliente</p>
-          </CardContent>
-        </Card>
+        <Stat icon={Crown} label="Premium pagados" value={a.premiumPaidUsers} note={`${a.premiumCompedUsers} bonificados`} />
+        <Stat icon={ShoppingBag} label="Compras únicas" value={oneTimeSales} note="B2B, reviews y cursos" />
+        <Stat icon={DollarSign} label="MRR" value={currency.format(a.mrr)} note="Ingresos mensuales recurrentes" />
+        <Stat icon={DollarSign} label="ARPU" value={currency.format(a.arpu)} note="Por usuario pagante" />
+        <Stat icon={TrendingUp} label="LTV" value={currency.format(a.ltv)} note="Ingreso histórico por cliente" />
       </div>
 
-      {/* Financial Summary + User Growth */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2 items-start">
+      <div className="grid grid-cols-1 items-start gap-4 sm:gap-6 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Resumen Financiero
-              <Badge variant={analytics.pricingSource === 'real' ? 'default' : analytics.pricingSource === 'lemonsqueezy' ? 'secondary' : 'outline'} className="text-xs whitespace-nowrap shrink-0">
-                {analytics.pricingSource === 'real' ? 'Precios Reales' : analytics.pricingSource === 'lemonsqueezy' ? 'LemonSqueezy' : 'Fallback'}
-              </Badge>
+            <CardTitle className="flex items-center gap-2 text-base">
+              Planes
+              <Badge variant={pricing.variant} className="text-xs">{pricing.label}</Badge>
             </CardTitle>
-            <CardDescription>Métricas clave de ingresos (solo suscripciones recurrentes)</CardDescription>
+            <CardDescription>Suscripciones activas y compras únicas</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-sm">Ingresos Mensuales (MRR)</span>
-              <Badge variant="secondary" className="whitespace-nowrap shrink-0">{formatCurrency(mrr)}</Badge>
-            </div>
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-sm">Lifetime Value (LTV)</span>
-              <Badge variant="secondary" className="whitespace-nowrap shrink-0">{formatCurrency(ltv)}</Badge>
-            </div>
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-sm">ARPU (por usuario pagante)</span>
-              <Badge variant="secondary" className="whitespace-nowrap shrink-0">
-                {formatCurrency(arpu)}
-              </Badge>
-            </div>
-
-            {/* Breakdown by plan */}
-            <div className="pt-2 border-t border-border space-y-2">
-              <span className="text-xs text-muted-foreground font-medium">Desglose por plan:</span>
-              <div className="flex justify-between items-center text-sm">
-                <span>Premium</span>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{analytics.subscriptionsByPlan.premium.paid} pagados</Badge>
-                  {analytics.subscriptionsByPlan.premium.comped > 0 && (
-                    <Badge variant="comped">{analytics.subscriptionsByPlan.premium.comped} bonif.</Badge>
-                  )}
-                </div>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span>RePremium</span>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{analytics.subscriptionsByPlan.repremium.paid} pagados</Badge>
-                  {analytics.subscriptionsByPlan.repremium.comped > 0 && (
-                    <Badge variant="comped">{analytics.subscriptionsByPlan.repremium.comped} bonif.</Badge>
-                  )}
-                </div>
-              </div>
-              <span className="text-xs text-muted-foreground font-medium pt-1 block">Compras únicas (no MRR):</span>
-              <div className="flex justify-between items-center text-sm">
-                <span>ProductPrepa for Business</span>
-                <Badge variant="outline">{analytics.subscriptionsByPlan.productprepa_business.paid} vendidos</Badge>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span>Productastic Review</span>
-                <Badge variant="outline">{analytics.subscriptionsByPlan.productastic_review.paid} vendidos</Badge>
-              </div>
-              {analytics.subscriptionsByPlan.curso_estrategia.paid > 0 && (
-                <div className="flex justify-between items-center text-sm">
-                  <span>Curso Estrategia</span>
-                  <Badge variant="outline">{analytics.subscriptionsByPlan.curso_estrategia.paid} vendidos</Badge>
-                </div>
-              )}
-              {analytics.subscriptionsByPlan.cursos_all.paid > 0 && (
-                <div className="flex justify-between items-center text-sm">
-                  <span>Cursos All</span>
-                  <Badge variant="outline">{analytics.subscriptionsByPlan.cursos_all.paid} vendidos</Badge>
-                </div>
-              )}
-            </div>
+          <CardContent>
+            <Rows>
+              {planRows.map((row) => (
+                <Row key={row.label} label={row.label}>
+                  <span className="font-semibold">{row.paid}</span>
+                  {row.comped ? <span className="ml-2 text-xs text-muted-foreground">+{row.comped} bonif.</span> : null}
+                </Row>
+              ))}
+            </Rows>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Crecimiento de Usuarios ({analytics.monthName})
-            </CardTitle>
-            <CardDescription>Resumen de nuevos registros del mes</CardDescription>
+            <CardTitle className="text-base">Este mes</CardTitle>
+            <CardDescription className="capitalize">{a.monthName}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">Total nuevos usuarios</span>
-                <span className="text-2xl font-bold text-primary">
-                  {analytics.newUsersThisMonth}
-                </span>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">Promedio diario</span>
-                <span className="text-lg font-semibold">
-                  {analytics.daysElapsedInMonth > 0
-                    ? Math.round(analytics.newUsersThisMonth / analytics.daysElapsedInMonth)
-                    : 0}
-                </span>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">Día con más registros</span>
-                <div className="text-right">
-                  <span className="text-lg font-semibold block">
-                    {analytics.peakDay.count}
-                  </span>
-                  {analytics.peakDay.date && (
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(analytics.peakDay.date), 'dd/MM', { locale: es })}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">Día con más evaluaciones</span>
-                <div className="text-right">
-                  <span className="text-lg font-semibold block">
-                    {analytics.peakAssessmentDay.count}
-                  </span>
-                  {analytics.peakAssessmentDay.date && (
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(analytics.peakAssessmentDay.date), 'dd/MM', { locale: es })}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Assessments + Top Skill Gaps */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2 items-start">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ClipboardList className="h-5 w-5" />
-              Evaluaciones
-            </CardTitle>
-            <CardDescription>Volumen y puntuación promedio</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{analytics.assessmentsToday}</div>
-                  <p className="text-sm text-muted-foreground">Hoy</p>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{analytics.assessmentsThisWeek}</div>
-                  <p className="text-sm text-muted-foreground">Esta semana</p>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{analytics.assessmentsThisMonth}</div>
-                  <p className="text-sm text-muted-foreground">Este mes</p>
-                </div>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">Promedio de puntuación</span>
-                <span className="text-2xl font-bold text-primary">
-                  {analytics.averageAssessmentScore > 0 ? analytics.averageAssessmentScore.toFixed(1) : 'N/A'}
-                </span>
-              </div>
-            </div>
+            <Rows>
+              {monthRows.map((row) => (
+                <Row key={row.label} label={row.label}>
+                  <span className="font-semibold">{row.value}</span>
+                  {row.note && <span className="ml-2 text-xs text-muted-foreground">{row.note}</span>}
+                </Row>
+              ))}
+            </Rows>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Top 3 Brechas de Habilidades
-            </CardTitle>
-            <CardDescription>Áreas más problemáticas según evaluaciones</CardDescription>
+            <CardTitle className="text-base">Brechas más frecuentes</CardTitle>
+            <CardDescription>Dominios en brecha según las evaluaciones</CardDescription>
           </CardHeader>
           <CardContent>
-            {analytics.topSkillGaps.length > 0 ? (
-              <div className="space-y-3">
-                {analytics.topSkillGaps.map((skill, index) => (
-                  <div key={skill.skill} className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold text-primary">#{index + 1}</span>
-                      <span className="text-sm font-medium">{skill.skill}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-lg font-semibold block">{skill.count}</span>
-                      <span className="text-xs text-muted-foreground">{skill.percentage.toFixed(1)}% usuarios</span>
-                    </div>
-                  </div>
+            {a.topSkillGaps.length > 0 ? (
+              <Rows>
+                {a.topSkillGaps.map((gap, index) => (
+                  <Row key={gap.skill} label={`${index + 1}. ${gap.skill}`}>
+                    <span className="font-semibold">{gap.count}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{gap.percentage.toFixed(0)}%</span>
+                  </Row>
                 ))}
-              </div>
+              </Rows>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No hay datos de brechas de habilidades disponibles aún.</p>
-              </div>
+              <p className="py-6 text-center text-sm text-muted-foreground">Todavía no hay datos de brechas.</p>
             )}
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+function Stat({ icon: Icon, label, value, note }: { icon: LucideIcon; label: string; value: React.ReactNode; note: string }) {
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{label}</CardTitle>
+        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="truncate text-base font-bold sm:text-2xl">{value}</div>
+        <p className="text-xs text-muted-foreground">{note}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function Rows({ children }: { children: React.ReactNode }) {
+  return <div className="divide-y divide-border">{children}</div>;
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2.5 text-sm first:pt-0 last:pb-0">
+      <span className="truncate text-muted-foreground">{label}</span>
+      <span className="shrink-0 tabular-nums">{children}</span>
     </div>
   );
 }
