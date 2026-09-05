@@ -120,13 +120,16 @@ export default function AdminDashboard() {
             <p className="text-xs text-muted-foreground">Free to Premium</p>
           </CardContent>
         </Card>
+      </div>
 
-        <Card className="h-full overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Evaluaciones por perfil</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
-          </CardHeader>
-          <CardContent className="space-y-2">
+      {/* Evaluaciones por perfil */}
+      <Card className="overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Evaluaciones por perfil</CardTitle>
+          <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
             {analytics.assessmentsByType
               .filter((item) => item.key !== 'legacy' || item.count > 0)
               .map((item) => (
@@ -135,18 +138,20 @@ export default function AdminDashboard() {
                     <span className="text-xs text-muted-foreground truncate">{getAssessmentTypeShortLabel(item.key)}</span>
                     <span className="text-xs font-semibold text-foreground">{item.count}</span>
                   </div>
-                  <div
-                    className={cn('h-1.5 rounded-full mt-1', item.key === 'legacy' && 'bg-muted-foreground/40')}
-                    style={{
-                      width: `${(item.count / maxAssessmentsByType) * 100}%`,
-                      backgroundColor: item.key === 'legacy' ? undefined : getAssessmentTypeDef(item.key).accent.hex
-                    }}
-                  />
+                  <div className="h-1.5 rounded-full mt-1 bg-muted">
+                    <div
+                      className={cn('h-full rounded-full', item.key === 'legacy' && 'bg-muted-foreground/40')}
+                      style={{
+                        width: `${(item.count / maxAssessmentsByType) * 100}%`,
+                        backgroundColor: item.key === 'legacy' ? undefined : getAssessmentTypeDef(item.key).accent.hex
+                      }}
+                    />
+                  </div>
                 </div>
               ))}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Financial KPIs */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-5">
