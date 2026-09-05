@@ -9,11 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getAssessmentTypeDef, getAssessmentTypeShortLabel } from '@/utils/scoring';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const currency = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 });
-const shortDate = (date: string | null) => (date ? format(new Date(date), 'dd/MM', { locale: es }) : null);
+const shortDate = (date: string | null) => (date ? format(parseISO(date), 'dd/MM', { locale: es }) : null);
 
 const PRICING_BADGE = {
   real: { variant: 'default', label: 'Precios reales' },
