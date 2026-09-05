@@ -41,8 +41,13 @@ export default function Auth() {
   const { trackEvent } = useMixpanelTracking();
   const { toast } = useToast();
 
-  // Obtener ruta de origen desde el state de ProtectedRoute
-  const fromPath = location.state?.from?.pathname || null;
+  // Ruta de origen desde el state de ProtectedRoute. Se conserva el query
+  // string: /autoevaluacion?tipo=builder tiene que volver con el perfil elegido.
+  const from = location.state?.from as { pathname?: string; search?: string } | undefined;
+  const fromPath = from?.pathname ? `${from.pathname}${from.search ?? ''}` : null;
+  // Destino post-login por email. Home lee returnTo y redirige (useHomeRedirect),
+  // igual que con Google y el enlace de confirmación, que ya lo mandan por URL.
+  const postLoginPath = fromPath ? `/?returnTo=${encodeURIComponent(fromPath)}` : '/';
 
   const handleGoogleSignIn = async () => {
     trackEvent('google_signin_started');
@@ -73,9 +78,9 @@ export default function Auth() {
   // dejarlos pedir el enlace nuevo.
   useEffect(() => {
     if (isAuthenticated && mode !== 'update-password' && mode !== 'reset') {
-      navigate('/', { replace: true });
+      navigate(postLoginPath, { replace: true });
     }
-  }, [isAuthenticated, navigate, mode]);
+  }, [isAuthenticated, navigate, mode, postLoginPath]);
 
   // Verificar si viene con modo específico en URL
   useEffect(() => {
@@ -95,8 +100,8 @@ export default function Auth() {
     trackEvent('login_started', { method: 'email', email: data.email });
     const { error } = await signIn(data.email, data.password);
     if (!error) {
-      trackEvent('login_completed', { method: 'email', email: data.email });
-      navigate('/', { replace: true });
+      trackEvent('login_completed', { method: 'email', email: data.email, from_path: fromPath });
+      navigate(postLoginPath, { replace: true });
     } else {
       trackEvent('login_failed', { method: 'email', email: data.email, error: error.message });
     }

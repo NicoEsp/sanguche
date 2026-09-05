@@ -20,6 +20,10 @@ import { evaluacionFaqs } from '@/seo/faqs/evaluacion';
  * Los perfiles y las competencias salen de src/utils/scoring.ts, la misma
  * fuente que usa el test, para que la página no pueda prometer algo que la
  * evaluación no mide.
+ *
+ * Cada perfil linkea a /autoevaluacion?tipo=<perfil>. Sin sesión, ProtectedRoute
+ * manda a /auth con la ubicación completa en state.from (path y query), y
+ * después del login o registro el usuario cae en la evaluación que eligió.
  */
 export default function EvaluacionProductManager() {
   return (
@@ -64,18 +68,28 @@ export default function EvaluacionProductManager() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           {ASSESSMENT_TYPES.map((type) => (
-            <Card key={type.key} className="h-full">
-              <CardContent className="p-6 space-y-2">
-                <span
-                  className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${type.accent.badge}`}
-                >
-                  {type.resultTag}
-                </span>
-                <h3 className="text-lg font-semibold leading-snug pt-1">{type.title}</h3>
-                <p className="text-sm text-muted-foreground">{type.persona}</p>
-                <p className="text-sm leading-relaxed text-foreground/80">{type.promise}</p>
-              </CardContent>
-            </Card>
+            <Link
+              key={type.key}
+              to={`/autoevaluacion?tipo=${type.key}`}
+              className="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Card className="h-full transition-colors group-hover:border-primary/50">
+                <CardContent className="p-6 space-y-2">
+                  <span
+                    className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${type.accent.badge}`}
+                  >
+                    {type.resultTag}
+                  </span>
+                  <h3 className="text-lg font-semibold leading-snug pt-1">{type.title}</h3>
+                  <p className="text-sm text-muted-foreground">{type.persona}</p>
+                  <p className="text-sm leading-relaxed text-foreground/80">{type.promise}</p>
+                  <span className="inline-flex items-center pt-2 text-sm font-semibold text-primary">
+                    Empezar esta evaluación
+                    <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       </section>
