@@ -129,8 +129,7 @@ export default function Descargables() {
         <header className="space-y-2">
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Descargables</h1>
           <p className="max-w-2xl text-muted-foreground">
-            Guías, templates y checklists para Product Builders. Algunos son de descarga libre,
-            otros piden una cuenta gratuita y otros vienen con los planes Premium.
+            Guías, templates, checklists y otras herramientas útiles para Product Builders.
           </p>
         </header>
 
