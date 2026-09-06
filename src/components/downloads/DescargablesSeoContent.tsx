@@ -33,7 +33,9 @@ export interface DownloadablePublic {
  */
 export function DescargablesSeoContent({ resources }: { resources: DownloadablePublic[] }) {
   // Mismo orden que la página: destacados primero, después display_order.
-  const sorted = [...resources].sort((a, b) => Number(b.is_featured) - Number(a.is_featured));
+  const sorted = [...resources].sort(
+    (a, b) => Number(b.is_featured) - Number(a.is_featured) || a.display_order - b.display_order,
+  );
 
   return (
     <main className="container max-w-4xl space-y-8 py-12">

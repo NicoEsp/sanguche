@@ -62,8 +62,10 @@ export default function Descargables() {
       (resources ?? [])
         .filter((r) => accessFilter === 'all' || r.access_level === accessFilter)
         .filter((r) => !query || normalize(`${r.title} ${r.description ?? ''}`).includes(query))
-        // Destacados primero; entre iguales se conserva el display_order de la query.
-        .sort((a, b) => Number(b.is_featured) - Number(a.is_featured)),
+        // Destacados primero, después display_order.
+        .sort(
+          (a, b) => Number(b.is_featured) - Number(a.is_featured) || a.display_order - b.display_order,
+        ),
     [resources, accessFilter, query],
   );
 

@@ -14,7 +14,7 @@ let identifiedUserId: string | null = null;
 let trackedLocationKey: string | null = null;
 
 export function useMixpanelTracking() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
@@ -37,6 +37,9 @@ export function useMixpanelTracking() {
   // location.key cambia con cada entrada del historial: volver a la misma ruta
   // cuenta como otra vista, montar otro componente en la misma pantalla no.
   useEffect(() => {
+    // Con la sesión todavía resolviéndose, user es null y el evento saldría sin
+    // user_id; como la marca de abajo no deja repetirlo, mejor esperar.
+    if (authLoading) return;
     if (trackedLocationKey === location.key) return;
     trackedLocationKey = location.key;
     Mixpanel.track('page_view', {
@@ -45,7 +48,7 @@ export function useMixpanelTracking() {
       referrer: document.referrer,
       user_id: user?.id
     });
-  }, [location.key, location.pathname, user?.id]);
+  }, [authLoading, location.key, location.pathname, user?.id]);
 
   const trackEvent = useCallback((eventName: string, properties?: Record<string, unknown>, options?: RequestOptions) => {
     Mixpanel.track(eventName, {

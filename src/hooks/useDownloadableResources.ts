@@ -144,6 +144,10 @@ export async function getDownloadUrl(resource: DownloadableResource): Promise<st
   const filePath = normalizeStoragePath(resource.file_path);
 
   if (PUBLIC_BUCKETS.has(resource.bucket_name)) {
+    // Un bucket público sirve el archivo a cualquiera que tenga la URL, así que
+    // un recurso con cuenta o Premium ahí adentro está mal cargado: hay que
+    // moverlo a `downloads`, no entregarlo.
+    if (resource.access_level !== 'public') return null;
     const { data } = supabase.storage
       .from(resource.bucket_name)
       .getPublicUrl(filePath);
@@ -160,7 +164,12 @@ export async function getDownloadUrl(resource: DownloadableResource): Promise<st
   return error ? null : data?.signedUrl ?? null;
 }
 
-export type ResourceUrlError = 'no-url' | 'unreachable';
+export type ResourceUrlError = 'no-url' | 'unreachable' | 'unsupported-type';
+
+// La vista previa va en un iframe sin sandbox (los visores de PDF no
+// renderizan dentro de uno sandboxed). Cualquiera de estos tipos correría
+// scripts ahí, así que no se abre nada que el navegador ejecute como documento.
+const SCRIPTABLE_TYPES = ['text/html', 'application/xhtml+xml', 'image/svg+xml'];
 export type ResolvedResource = { url: string } | { error: ResourceUrlError };
 
 // Resolve the URL AND verify it actually serves the file. A misconfigured key
@@ -182,6 +191,9 @@ export async function resolveResourceUrl(resource: DownloadableResource): Promis
       const contentType = res.headers.get('content-type') ?? '';
       if (!res.ok || contentType.includes('application/json')) {
         return { error: 'unreachable' };
+      }
+      if (SCRIPTABLE_TYPES.some((type) => contentType.includes(type))) {
+        return { error: 'unsupported-type' };
       }
     }
   } catch {

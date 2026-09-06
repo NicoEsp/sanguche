@@ -51,7 +51,7 @@ src/
 │   ├── resources/          # Componentes de recursos educativos
 │   ├── sections/           # Secciones compartidas de la landing
 │   ├── skeletons/          # Skeletons de carga (Assessment, Mentoria, Progress)
-│   └── ui/                 # shadcn/ui (31 componentes)
+│   └── ui/                 # shadcn/ui (30 componentes)
 ├── contexts/               # AuthContext (estado global de auth)
 ├── hooks/                  # 31 custom hooks
 ├── integrations/

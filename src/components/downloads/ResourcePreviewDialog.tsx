@@ -45,7 +45,7 @@ export function ResourcePreviewDialog({
             <DialogDescription
               className={cn('whitespace-pre-line', !preview.resource.description && 'sr-only')}
             >
-              {preview.resource.description ?? 'Vista previa del recurso'}
+              {preview.resource.description || 'Vista previa del recurso'}
             </DialogDescription>
           </DialogHeader>
 
