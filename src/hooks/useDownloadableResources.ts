@@ -166,8 +166,12 @@ export async function getDownloadUrl(resource: DownloadableResource): Promise<st
 
 export type ResourceUrlError = 'no-url' | 'unreachable' | 'unsupported-type';
 
-// Tipos que el navegador ejecuta como documento; ver resolveResourceUrl.
-const SCRIPTABLE_TYPES = ['text/html', 'application/xhtml+xml', 'image/svg+xml'];
+// Tipos que el navegador ejecuta o interpreta como documento (HTML, SVG y
+// cualquier XML) y la respuesta de error de storage (JSON). Se compara sobre la
+// esencia del content-type, en minúsculas, así ni "Application/Problem+JSON"
+// ni "TEXT/HTML; charset=utf-8" se escapan. Ver resolveResourceUrl.
+const STORAGE_ERROR_TYPE = /json/;
+const DOCUMENT_TYPE = /html|xml/;
 export type ResolvedResource = { url: string } | { error: ResourceUrlError };
 
 /**
@@ -188,11 +192,9 @@ export async function resolveResourceUrl(resource: DownloadableResource): Promis
     if (!url) return { error: 'no-url' };
 
     const res = await fetch(url, { method: 'HEAD' });
-    const contentType = res.headers.get('content-type') ?? '';
-    if (!res.ok || contentType.includes('application/json')) return { error: 'unreachable' };
-    if (!contentType || SCRIPTABLE_TYPES.some((type) => contentType.includes(type))) {
-      return { error: 'unsupported-type' };
-    }
+    const essence = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+    if (!res.ok || STORAGE_ERROR_TYPE.test(essence)) return { error: 'unreachable' };
+    if (!essence || DOCUMENT_TYPE.test(essence)) return { error: 'unsupported-type' };
     return { url };
   } catch {
     // Nunca rechaza: sin red o con storage caído, quien llama recibe un error
