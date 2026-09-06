@@ -144,49 +144,92 @@ export async function getDownloadUrl(resource: DownloadableResource): Promise<st
   const filePath = normalizeStoragePath(resource.file_path);
 
   if (PUBLIC_BUCKETS.has(resource.bucket_name)) {
+    // Un bucket público sirve el archivo a cualquiera que tenga la URL, así que
+    // un recurso con cuenta o Premium ahí adentro está mal cargado: hay que
+    // moverlo a `downloads`, no entregarlo.
+    if (resource.access_level !== 'public') return null;
     const { data } = supabase.storage
       .from(resource.bucket_name)
       .getPublicUrl(filePath);
     return data?.publicUrl || null;
   }
 
+  // Sin fallback: acá antes se devolvía `/downloads/<archivo>`, un estático
+  // del sitio que se servía sin sesión ni plan. Si storage no firma la URL, el
+  // recurso está mal cargado y hay que decirlo, no regalarlo.
   const { data, error } = await supabase.storage
     .from(resource.bucket_name)
     .createSignedUrl(filePath, 3600);
 
-  if (error || !data?.signedUrl) {
-    return `/downloads/${filePath}`;
-  }
-  return data.signedUrl;
+  return error ? null : data?.signedUrl ?? null;
 }
 
-export type ResolvedResource = { url: string } | { error: 'no-url' | 'unreachable' };
+export type ResourceUrlError = 'no-url' | 'unreachable' | 'unsupported-type';
 
-// Resolve the URL AND verify it actually serves the file. A misconfigured key
-// makes Storage answer with a JSON error body that an <iframe> happily renders
-// as raw text — that's the exact "InvalidKey" screen a user hit. We probe with
-// HEAD and reject JSON/error responses before showing the preview. Network
-// failures (e.g. CORS) fall through to best-effort so we never block a
-// download that would otherwise work.
+// Tipos que el navegador ejecuta o interpreta como documento (HTML, SVG y
+// cualquier XML) y la respuesta de error de storage (JSON). Se compara sobre la
+// esencia del content-type, en minúsculas, así ni "Application/Problem+JSON"
+// ni "TEXT/HTML; charset=utf-8" se escapan. Ver resolveResourceUrl.
+const STORAGE_ERROR_TYPE = /json/;
+const DOCUMENT_TYPE = /html|xml/;
+export type ResolvedResource = { url: string } | { error: ResourceUrlError };
+
+/**
+ * Resuelve la URL y verifica con un HEAD que del otro lado haya un archivo
+ * servible antes de entregarla a la vista previa o a la descarga.
+ *
+ * Con una key mal cargada, storage responde un JSON de error que el iframe
+ * pinta como texto (la pantalla "InvalidKey" que vio un usuario). Y como el
+ * iframe va sin sandbox (los visores de PDF no renderizan dentro de uno
+ * sandboxed), tampoco se abre nada que el navegador ejecute como documento.
+ * Si el HEAD no se puede hacer, no hay forma de saber qué hay del otro lado
+ * y no se abre: storage soporta HEAD y CORS, así que fallar acá es un
+ * problema real del recurso o de la red, no un CDN raro.
+ */
 export async function resolveResourceUrl(resource: DownloadableResource): Promise<ResolvedResource> {
-  const url = await getDownloadUrl(resource);
-  if (!url) return { error: 'no-url' };
-
   try {
-    const res = await fetch(url, { method: 'HEAD' });
-    // Some CDNs/servers don't allow HEAD (405/501). That tells us nothing about
-    // the resource itself, so don't block — let the consumer's GET try.
-    const headNotSupported = res.status === 405 || res.status === 501;
-    if (!headNotSupported) {
-      const contentType = res.headers.get('content-type') ?? '';
-      if (!res.ok || contentType.includes('application/json')) {
-        return { error: 'unreachable' };
-      }
-    }
-  } catch {
-    // Probe failed (offline / CORS). Don't block — let the consumer try the url.
-    return { url };
-  }
+    const url = await getDownloadUrl(resource);
+    if (!url) return { error: 'no-url' };
 
-  return { url };
+    const res = await fetch(url, { method: 'HEAD' });
+    const essence = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+    if (!res.ok || STORAGE_ERROR_TYPE.test(essence)) return { error: 'unreachable' };
+    if (!essence || DOCUMENT_TYPE.test(essence)) return { error: 'unsupported-type' };
+    return { url };
+  } catch {
+    // Nunca rechaza: sin red o con storage caído, quien llama recibe un error
+    // tipado igual que en cualquier otro fallo y puede soltar su estado de carga.
+    return { error: 'unreachable' };
+  }
+}
+
+export type ResourceOpenError = ResourceUrlError | 'popup-blocked';
+
+/**
+ * Abre el recurso en una pestaña nueva y devuelve por qué falló, o null si se
+ * abrió. La pestaña se abre en blanco antes del primer await: si se abriera
+ * después de resolver la URL, el navegador la bloquea como popup porque ya no
+ * la asocia al click.
+ */
+export async function openResourceInNewTab(
+  resource: DownloadableResource,
+): Promise<ResourceOpenError | null> {
+  const win = window.open('about:blank', '_blank');
+  if (win) win.opener = null;
+
+  const resolved = await resolveResourceUrl(resource);
+  if ('error' in resolved) {
+    win?.close();
+    return resolved.error;
+  }
+  if (!win) return 'popup-blocked';
+
+  win.location.href = resolved.url;
+  return null;
+}
+
+export function resourceErrorMessage(reason: ResourceOpenError): string {
+  return reason === 'popup-blocked'
+    ? 'Tu navegador bloqueó la descarga. Habilitá popups para este sitio.'
+    : 'No pudimos abrir este recurso. Intentá de nuevo o escribinos a nicoproducto@hey.com.';
 }

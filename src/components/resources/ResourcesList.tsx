@@ -3,9 +3,17 @@ import { Download, Eye, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
-import { resolveResourceUrl, useSkillGapsResources } from '@/hooks/useDownloadableResources';
+import {
+  ResourcePreview,
+  ResourcePreviewDialog,
+} from '@/components/downloads/ResourcePreviewDialog';
+import {
+  ResourceOpenError,
+  openResourceInNewTab,
+  resolveResourceUrl,
+  resourceErrorMessage,
+  useSkillGapsResources,
+} from '@/hooks/useDownloadableResources';
 import { AssessmentResult } from '@/utils/scoring';
 import { RecommendedResource } from '@/utils/resourceRecommendations';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
@@ -14,15 +22,11 @@ interface ResourcesListProps {
   assessmentResult: AssessmentResult | null;
 }
 
-const RESOURCE_ERROR_MESSAGE =
-  'No pudimos abrir este recurso. Intentá de nuevo o escribinos a nicoproducto@hey.com.';
+type TrackEvent = ReturnType<typeof useMixpanelTracking>['trackEvent'];
 
-function ResourceCard({ match }: { match: RecommendedResource }) {
+function ResourceCard({ match, trackEvent }: { match: RecommendedResource; trackEvent: TrackEvent }) {
   const { resource } = match;
-  const { trackEvent } = useMixpanelTracking();
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [isFrameLoading, setIsFrameLoading] = useState(true);
+  const [preview, setPreview] = useState<ResourcePreview | null>(null);
   const [actionLoading, setActionLoading] = useState<'preview' | 'download' | null>(null);
 
   const isPdf = resource.type === 'pdf' || resource.file_path.toLowerCase().endsWith('.pdf');
@@ -38,13 +42,9 @@ function ResourceCard({ match }: { match: RecommendedResource }) {
     location: 'skill_gaps',
   };
 
-  const reportFailure = (action: 'preview' | 'download', reason: string) => {
-    trackEvent('resource_open_failed', {
-      ...matchProps,
-      action,
-      reason,
-    });
-    toast.error(RESOURCE_ERROR_MESSAGE);
+  const reportFailure = (action: 'preview' | 'download', reason: ResourceOpenError) => {
+    trackEvent('resource_open_failed', { ...matchProps, action, reason });
+    toast.error(resourceErrorMessage(reason));
   };
 
   const handlePreview = async () => {
@@ -52,35 +52,17 @@ function ResourceCard({ match }: { match: RecommendedResource }) {
     setActionLoading('preview');
     const resolved = await resolveResourceUrl(resource);
     setActionLoading(null);
-    if ('error' in resolved) {
-      reportFailure('preview', resolved.error);
-      return;
-    }
-    setPreviewUrl(resolved.url);
-    setIsFrameLoading(true);
-    setIsPreviewOpen(true);
+    if ('error' in resolved) return reportFailure('preview', resolved.error);
+    setPreview({ resource, url: resolved.url });
     trackEvent('resource_previewed', matchProps);
   };
 
   const handleDownload = async () => {
     if (actionLoading) return;
-    // Open the tab synchronously inside the click handler so browsers keep it
-    // tied to the user gesture; opening after the await gets blocked as a popup.
-    const win = window.open('about:blank', '_blank');
-    if (win) win.opener = null;
     setActionLoading('download');
-    const resolved = await resolveResourceUrl(resource);
+    const failure = await openResourceInNewTab(resource);
     setActionLoading(null);
-    if ('error' in resolved) {
-      win?.close();
-      reportFailure('download', resolved.error);
-      return;
-    }
-    if (!win) {
-      toast.error('Tu navegador bloqueó la descarga. Habilitá popups para este sitio.');
-      return;
-    }
-    win.location.href = resolved.url;
+    if (failure) return reportFailure('download', failure);
     trackEvent('resource_downloaded', matchProps);
   };
 
@@ -125,32 +107,7 @@ function ResourceCard({ match }: { match: RecommendedResource }) {
         </div>
       </Card>
 
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>{resource.title}</DialogTitle>
-          </DialogHeader>
-          <div className="relative flex-1 overflow-hidden">
-            {isFrameLoading && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                <Skeleton className="h-full w-full" />
-                <div className="absolute flex flex-col items-center gap-2">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  <span className="text-xs text-muted-foreground">Cargando vista previa…</span>
-                </div>
-              </div>
-            )}
-            {previewUrl && (
-              <iframe
-                src={`${previewUrl}#view=FitH`}
-                onLoad={() => setIsFrameLoading(false)}
-                className={`w-full h-[70vh] border-0 ${isFrameLoading ? 'opacity-0' : ''}`}
-                title={`Vista previa de ${resource.title}`}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ResourcePreviewDialog preview={preview} onClose={() => setPreview(null)} />
     </>
   );
 }
@@ -205,7 +162,7 @@ export function ResourcesList({ assessmentResult }: ResourcesListProps) {
         </p>
       </div>
 
-      <ResourceCard match={topMatch} />
+      <ResourceCard match={topMatch} trackEvent={trackEvent} />
     </div>
   );
 }
