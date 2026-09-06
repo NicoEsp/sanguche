@@ -55,7 +55,7 @@ export function useHomeRedirect() {
     setIsFading(true);
     
     let dest: string;
-    const hasAssessment = compositeData.assessmentsCount > 0;
+    const hasAssessment = compositeData.hasAssessment;
     const sub = compositeData.subscription;
     // is_comped es un override de admin: mantiene acceso aunque el status no sea 'active'.
     const hasActivePremium = sub
