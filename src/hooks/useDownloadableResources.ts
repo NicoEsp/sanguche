@@ -150,14 +150,14 @@ export async function getDownloadUrl(resource: DownloadableResource): Promise<st
     return data?.publicUrl || null;
   }
 
+  // Sin fallback: acá antes se devolvía `/downloads/<archivo>`, un estático
+  // del sitio que se servía sin sesión ni plan. Si storage no firma la URL, el
+  // recurso está mal cargado y hay que decirlo, no regalarlo.
   const { data, error } = await supabase.storage
     .from(resource.bucket_name)
     .createSignedUrl(filePath, 3600);
 
-  if (error || !data?.signedUrl) {
-    return `/downloads/${filePath}`;
-  }
-  return data.signedUrl;
+  return error ? null : data?.signedUrl ?? null;
 }
 
 export type ResourceUrlError = 'no-url' | 'unreachable';
