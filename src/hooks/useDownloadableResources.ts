@@ -160,7 +160,8 @@ export async function getDownloadUrl(resource: DownloadableResource): Promise<st
   return data.signedUrl;
 }
 
-export type ResolvedResource = { url: string } | { error: 'no-url' | 'unreachable' };
+export type ResourceUrlError = 'no-url' | 'unreachable';
+export type ResolvedResource = { url: string } | { error: ResourceUrlError };
 
 // Resolve the URL AND verify it actually serves the file. A misconfigured key
 // makes Storage answer with a JSON error body that an <iframe> happily renders
@@ -189,4 +190,35 @@ export async function resolveResourceUrl(resource: DownloadableResource): Promis
   }
 
   return { url };
+}
+
+export type ResourceOpenError = ResourceUrlError | 'popup-blocked';
+
+/**
+ * Abre el recurso en una pestaña nueva y devuelve por qué falló, o null si se
+ * abrió. La pestaña se abre en blanco antes del primer await: si se abriera
+ * después de resolver la URL, el navegador la bloquea como popup porque ya no
+ * la asocia al click.
+ */
+export async function openResourceInNewTab(
+  resource: DownloadableResource,
+): Promise<ResourceOpenError | null> {
+  const win = window.open('about:blank', '_blank');
+  if (win) win.opener = null;
+
+  const resolved = await resolveResourceUrl(resource);
+  if ('error' in resolved) {
+    win?.close();
+    return resolved.error;
+  }
+  if (!win) return 'popup-blocked';
+
+  win.location.href = resolved.url;
+  return null;
+}
+
+export function resourceErrorMessage(reason: ResourceOpenError): string {
+  return reason === 'popup-blocked'
+    ? 'Tu navegador bloqueó la descarga. Habilitá popups para este sitio.'
+    : 'No pudimos abrir este recurso. Intentá de nuevo o escribinos a nicoproducto@hey.com.';
 }

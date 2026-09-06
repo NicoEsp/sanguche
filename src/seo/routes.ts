@@ -325,7 +325,7 @@ export const SEO_ROUTES: Record<string, SeoRouteData> = {
   // viven en estas keywords en vez de en una entrada propia que compita.
   '/descargables': {
     title: 'Recursos Descargables para Product Builders | ProductPrepa',
-    description: 'Catálogo de recursos descargables para crecer en Producto: guías, plantillas, checklists y PDFs prácticos. Filtrá por tipo y por nivel de acceso, y descargá lo que necesites.',
+    description: 'Catálogo de recursos descargables para crecer en Producto: guías, plantillas, checklists y PDFs prácticos. Filtrá por nivel de acceso y descargá lo que necesites.',
     canonical: `${SITE_URL}/descargables`,
     keywords: 'recursos product management, descargables PM, guías producto, plantillas producto, checklists product manager, materiales PM, preguntas de producto, templates product builder',
     image: DEFAULT_IMAGE,
