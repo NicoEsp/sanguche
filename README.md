@@ -188,7 +188,6 @@ Checkout soporta **compra anónima** (solo email). El webhook vincula la compra 
 | `send-exercise-emails` | Email de feedback de ejercicios |
 | `send-welcome-email` | Onboarding post-registro |
 | `sitemap` | Genera `sitemap.xml` dinámico |
-| `todoist-course-inquiry` | Crea tarea en Todoist al hacer consulta de curso |
 | `upload-course-video` | Sube video de curso a storage |
 
 -----
