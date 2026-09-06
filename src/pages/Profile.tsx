@@ -54,9 +54,10 @@ export default function Profile() {
 
   const plan = subscription?.plan ?? 'free';
   const status = subscription?.status;
-  const isActive = status === 'active';
   const isFree = plan === 'free';
   const isComped = subscription?.isComped ?? false;
+  // Bonificado es un override de admin: tiene acceso aunque el status de cobro no sea active.
+  const isActive = status === 'active' || isComped;
   const isOneTime = subscription?.isOneTimePurchase ?? false;
   const externalPlanLabel = EXTERNAL_PLAN_LABELS[plan];
   const badgeInfo = getPlanBadgeInfo(plan);
@@ -236,7 +237,7 @@ export default function Profile() {
                 </Badge>
               )}
 
-              {!isFree && status === 'cancelled' && (
+              {!isFree && status === 'cancelled' && !isComped && (
                 <Badge variant="outline" className="bg-orange-500/10 text-orange-700 dark:text-orange-400">
                   <XCircle className="h-3 w-3 mr-1" />
                   Cancelado
@@ -272,7 +273,7 @@ export default function Profile() {
               </p>
             )}
 
-            {!isFree && status === 'cancelled' && periodEnd && (
+            {!isFree && status === 'cancelled' && !isComped && periodEnd && (
               <p className="text-sm text-muted-foreground">Tenés acceso hasta el {periodEnd}.</p>
             )}
 

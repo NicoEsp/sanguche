@@ -58,13 +58,15 @@ export async function fetchCompositeData(userId: string): Promise<ProfileComposi
   }
 
   // Solo hace falta la evaluación más reciente: si existe y si es legacy.
-  const { data: latestAssessment, error: assessmentsError } = await supabase
-    .from('assessments')
-    .select('assessment_type, assessment_result')
-    .eq('user_id', profileData?.id || '')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { data: latestAssessment, error: assessmentsError } = profileData
+    ? await supabase
+        .from('assessments')
+        .select('assessment_type, assessment_result')
+        .eq('user_id', profileData.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null, error: null };
 
   if (assessmentsError && import.meta.env.DEV) {
     console.error('[fetchCompositeData] Assessments query error:', assessmentsError);
