@@ -3,32 +3,6 @@
 Plataforma de crecimiento profesional para Product Builders. Permite evaluarse en dominios clave, identificar áreas de mejora, acceder a mentoría personalizada, cursos, recursos descargables y un Career Path estructurado.
 
 **URL de producción:** https://productprepa.com
-
------
-
-## 🚀 Instalación y desarrollo local
-
-El proyecto usa **Bun** como gestor de paquetes.
-
-```bash
-bun install        # Instalar dependencias
-bun run dev        # Iniciar servidor de desarrollo (Vite)
-bun run build      # Build optimizado para producción
-bun run build:dev  # Build en modo development
-bun run lint       # Linting con ESLint
-bun run preview    # Preview de la build
-```
-
-### Variables de entorno
-
-Copiá `.env.example` a `.env.local` y completá las credenciales:
-
-```bash
-VITE_SUPABASE_PROJECT_ID=""
-VITE_SUPABASE_PUBLISHABLE_KEY=""
-VITE_SUPABASE_URL=""
-```
-
 -----
 
 ## 🏗️ Estructura del proyecto
