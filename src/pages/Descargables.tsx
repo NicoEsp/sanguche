@@ -54,6 +54,9 @@ export default function Descargables() {
   const [search, setSearch] = useState('');
   const [accessFilter, setAccessFilter] = useState<AccessFilter>('all');
   const [preview, setPreview] = useState<ResourcePreview | null>(null);
+  // Una sola operación en vuelo: las demás cards se deshabilitan mientras
+  // tanto, así ninguna terminación pisa el estado de otra ni llegan dos
+  // vistas previas en desorden.
   const [busy, setBusy] = useState<{ id: string; action: CardAction } | null>(null);
 
   const query = normalize(search.trim());
@@ -198,6 +201,7 @@ export default function Descargables() {
                     resource={resource}
                     access={accessFor(resource)}
                     busy={busy?.id === resource.id ? busy.action : null}
+                    disabled={busy !== null && busy.id !== resource.id}
                     onPreview={() => void handlePreview(resource)}
                     onDownload={() => void handleDownload(resource)}
                   />

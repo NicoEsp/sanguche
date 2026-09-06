@@ -183,22 +183,22 @@ export type ResolvedResource = { url: string } | { error: ResourceUrlError };
  * problema real del recurso o de la red, no un CDN raro.
  */
 export async function resolveResourceUrl(resource: DownloadableResource): Promise<ResolvedResource> {
-  const url = await getDownloadUrl(resource);
-  if (!url) return { error: 'no-url' };
-
-  let res: Response;
   try {
-    res = await fetch(url, { method: 'HEAD' });
+    const url = await getDownloadUrl(resource);
+    if (!url) return { error: 'no-url' };
+
+    const res = await fetch(url, { method: 'HEAD' });
+    const contentType = res.headers.get('content-type') ?? '';
+    if (!res.ok || contentType.includes('application/json')) return { error: 'unreachable' };
+    if (!contentType || SCRIPTABLE_TYPES.some((type) => contentType.includes(type))) {
+      return { error: 'unsupported-type' };
+    }
+    return { url };
   } catch {
+    // Nunca rechaza: sin red o con storage caído, quien llama recibe un error
+    // tipado igual que en cualquier otro fallo y puede soltar su estado de carga.
     return { error: 'unreachable' };
   }
-
-  const contentType = res.headers.get('content-type') ?? '';
-  if (!res.ok || contentType.includes('application/json')) return { error: 'unreachable' };
-  if (!contentType || SCRIPTABLE_TYPES.some((type) => contentType.includes(type))) {
-    return { error: 'unsupported-type' };
-  }
-  return { url };
 }
 
 export type ResourceOpenError = ResourceUrlError | 'popup-blocked';

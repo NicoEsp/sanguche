@@ -14,7 +14,10 @@ export type CardAction = 'preview' | 'download';
 interface CardActionsProps {
   /** 'pending' mientras no se sabe si el usuario tiene Premium vigente. */
   access: ResourceAccessState | 'pending';
+  /** Acción en curso en esta card. */
   busy: CardAction | null;
+  /** Hay una acción en curso en otra card: una operación por vez. */
+  disabled: boolean;
   onPreview: () => void;
   onDownload: () => void;
 }
@@ -68,7 +71,8 @@ export function DownloadableCard({ resource, ...actions }: DownloadableCardProps
   );
 }
 
-function CardActions({ access, busy, onPreview, onDownload }: CardActionsProps) {
+function CardActions({ access, busy, disabled, onPreview, onDownload }: CardActionsProps) {
+  const inactive = disabled || busy !== null;
   const location = useLocation();
 
   if (access === 'pending') {
@@ -104,7 +108,7 @@ function CardActions({ access, busy, onPreview, onDownload }: CardActionsProps) 
 
   return (
     <>
-      <Button size="sm" variant="outline" onClick={onPreview} disabled={busy !== null}>
+      <Button size="sm" variant="outline" onClick={onPreview} disabled={inactive}>
         {busy === 'preview' ? (
           <Loader2 className="animate-spin" aria-hidden="true" />
         ) : (
@@ -112,7 +116,7 @@ function CardActions({ access, busy, onPreview, onDownload }: CardActionsProps) 
         )}
         Ver
       </Button>
-      <Button size="sm" onClick={onDownload} disabled={busy !== null}>
+      <Button size="sm" onClick={onDownload} disabled={inactive}>
         {busy === 'download' ? (
           <Loader2 className="animate-spin" aria-hidden="true" />
         ) : (
