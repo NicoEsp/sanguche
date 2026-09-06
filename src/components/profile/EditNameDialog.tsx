@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
 interface EditNameDialogProps {
   open: boolean;
@@ -24,6 +24,7 @@ export function EditNameDialog({
 }: EditNameDialogProps) {
   const [name, setName] = useState(currentName || '');
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     setName(currentName || '');
@@ -31,7 +32,7 @@ export function EditNameDialog({
 
   const handleSave = async () => {
     if (!name.trim()) {
-      toast.error('El nombre no puede estar vacío');
+      toast({ title: 'El nombre no puede estar vacío', variant: 'destructive' });
       return;
     }
 
@@ -44,9 +45,9 @@ export function EditNameDialog({
     setLoading(false);
 
     if (error) {
-      toast.error('Error al actualizar el nombre');
+      toast({ title: 'Error al actualizar el nombre', variant: 'destructive' });
     } else {
-      toast.success('Nombre actualizado correctamente');
+      toast({ title: 'Nombre actualizado' });
       onSuccess();
       onOpenChange(false);
     }

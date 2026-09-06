@@ -20,16 +20,14 @@ export interface ProfileCompositeData {
     isOneTimePurchase: boolean;
     isComped: boolean;
   } | null;
-  assessmentsCount: number;
-  lastAssessmentDate: string | null;
+  hasAssessment: boolean;
   hasLegacyAssessment: boolean;
 }
 
 const EMPTY_COMPOSITE_DATA: ProfileCompositeData = {
   profile: null,
   subscription: null,
-  assessmentsCount: 0,
-  lastAssessmentDate: null,
+  hasAssessment: false,
   hasLegacyAssessment: false,
 };
 
@@ -59,12 +57,14 @@ export async function fetchCompositeData(userId: string): Promise<ProfileComposi
     throw profileError;
   }
 
-  const { data: assessmentsData, error: assessmentsError } = await supabase
+  // Solo hace falta la evaluación más reciente: si existe y si es legacy.
+  const { data: latestAssessment, error: assessmentsError } = await supabase
     .from('assessments')
-    .select('id, updated_at, assessment_type, assessment_result')
+    .select('assessment_type, assessment_result')
     .eq('user_id', profileData?.id || '')
     .order('created_at', { ascending: false })
-    .limit(100);
+    .limit(1)
+    .maybeSingle();
 
   if (assessmentsError && import.meta.env.DEV) {
     console.error('[fetchCompositeData] Assessments query error:', assessmentsError);
@@ -99,12 +99,11 @@ export async function fetchCompositeData(userId: string): Promise<ProfileComposi
       isOneTimePurchase: false,
       isComped: false,
     },
-    assessmentsCount: assessmentsData?.length || 0,
-    lastAssessmentDate: assessmentsData?.[0]?.updated_at || null,
+    hasAssessment: !!latestAssessment,
     hasLegacyAssessment:
-      !!assessmentsData?.length &&
-      (assessmentsData[0].assessment_type ??
-        (assessmentsData[0].assessment_result as { assessmentType?: string } | null)?.assessmentType) == null,
+      !!latestAssessment &&
+      (latestAssessment.assessment_type ??
+        (latestAssessment.assessment_result as { assessmentType?: string } | null)?.assessmentType) == null,
   };
 }
 
