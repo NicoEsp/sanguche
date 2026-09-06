@@ -166,41 +166,38 @@ export async function getDownloadUrl(resource: DownloadableResource): Promise<st
 
 export type ResourceUrlError = 'no-url' | 'unreachable' | 'unsupported-type';
 
-// La vista previa va en un iframe sin sandbox (los visores de PDF no
-// renderizan dentro de uno sandboxed). Cualquiera de estos tipos correría
-// scripts ahí, así que no se abre nada que el navegador ejecute como documento.
+// Tipos que el navegador ejecuta como documento; ver resolveResourceUrl.
 const SCRIPTABLE_TYPES = ['text/html', 'application/xhtml+xml', 'image/svg+xml'];
 export type ResolvedResource = { url: string } | { error: ResourceUrlError };
 
-// Resolve the URL AND verify it actually serves the file. A misconfigured key
-// makes Storage answer with a JSON error body that an <iframe> happily renders
-// as raw text — that's the exact "InvalidKey" screen a user hit. We probe with
-// HEAD and reject JSON/error responses before showing the preview. Network
-// failures (e.g. CORS) fall through to best-effort so we never block a
-// download that would otherwise work.
+/**
+ * Resuelve la URL y verifica con un HEAD que del otro lado haya un archivo
+ * servible antes de entregarla a la vista previa o a la descarga.
+ *
+ * Con una key mal cargada, storage responde un JSON de error que el iframe
+ * pinta como texto (la pantalla "InvalidKey" que vio un usuario). Y como el
+ * iframe va sin sandbox (los visores de PDF no renderizan dentro de uno
+ * sandboxed), tampoco se abre nada que el navegador ejecute como documento.
+ * Si el HEAD no se puede hacer, no hay forma de saber qué hay del otro lado
+ * y no se abre: storage soporta HEAD y CORS, así que fallar acá es un
+ * problema real del recurso o de la red, no un CDN raro.
+ */
 export async function resolveResourceUrl(resource: DownloadableResource): Promise<ResolvedResource> {
   const url = await getDownloadUrl(resource);
   if (!url) return { error: 'no-url' };
 
+  let res: Response;
   try {
-    const res = await fetch(url, { method: 'HEAD' });
-    // Some CDNs/servers don't allow HEAD (405/501). That tells us nothing about
-    // the resource itself, so don't block — let the consumer's GET try.
-    const headNotSupported = res.status === 405 || res.status === 501;
-    if (!headNotSupported) {
-      const contentType = res.headers.get('content-type') ?? '';
-      if (!res.ok || contentType.includes('application/json')) {
-        return { error: 'unreachable' };
-      }
-      if (SCRIPTABLE_TYPES.some((type) => contentType.includes(type))) {
-        return { error: 'unsupported-type' };
-      }
-    }
+    res = await fetch(url, { method: 'HEAD' });
   } catch {
-    // Probe failed (offline / CORS). Don't block — let the consumer try the url.
-    return { url };
+    return { error: 'unreachable' };
   }
 
+  const contentType = res.headers.get('content-type') ?? '';
+  if (!res.ok || contentType.includes('application/json')) return { error: 'unreachable' };
+  if (!contentType || SCRIPTABLE_TYPES.some((type) => contentType.includes(type))) {
+    return { error: 'unsupported-type' };
+  }
   return { url };
 }
 
