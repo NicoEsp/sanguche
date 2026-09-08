@@ -433,16 +433,37 @@ Deno.serve(async (req: Request) => {
 
     // Re-evaluarse crea un assessment nuevo (y borra el anterior), así que la
     // deduplicación por assessment_id no alcanza: un usuario que retoma la
-    // evaluación volvería a entrar a la ventana. Un solo email por usuario.
-    const { data: priorUserSends } = await supabase
+    // evaluación volvería a entrar a la ventana. Antes era un solo email por
+    // usuario para siempre; ahora es uno cada RESEND_COOLDOWN_DAYS. Un free
+    // que se vuelve a evaluar meses después está mostrando intención, y esa
+    // evaluación puede cambiar el perfil y la oferta. El corte va sobre
+    // sent_at (default now() en el insert), sólo para filas realmente
+    // enviadas: un error previo nunca bloquea.
+    const RESEND_COOLDOWN_DAYS = 60;
+    const cooldownStart = new Date(now.getTime() - RESEND_COOLDOWN_DAYS * 24 * 60 * 60 * 1000);
+
+    const { data: priorUserSends, error: priorSendsError } = await supabase
       .from("discount_email_queue")
       .select("user_id")
       .in("user_id", userIds)
-      .eq("status", "sent");
+      .eq("status", "sent")
+      .gte("sent_at", cooldownStart.toISOString());
+
+    // Si esta consulta falla no se puede saber a quién se le escribió hace
+    // poco: mejor no mandar nada que duplicar mails a toda la ventana.
+    if (priorSendsError) {
+      console.error("[send-discount-email] Error fetching prior sends:", priorSendsError);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch prior sends" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const alreadyEmailedUsers = new Set(
       (priorUserSends || []).map((s) => s.user_id)
     );
+
+    console.log(`[send-discount-email] Cooldown: ${RESEND_COOLDOWN_DAYS} days (sent since ${cooldownStart.toISOString()}), users in cooldown: ${alreadyEmailedUsers.size}`);
 
     console.log(`[send-discount-email] Profiles loaded: ${profiles?.length ?? 0}, Subscriptions loaded: ${subscriptions?.length ?? 0}`);
 
@@ -464,10 +485,10 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
-      // Skip if this user already received a discount email (any assessment)
+      // Skip if this user already got a discount email within the cooldown (any assessment)
       if (alreadyEmailedUsers.has(assessment.user_id)) {
         skippedAlreadyEmailed++;
-        console.log(`[send-discount-email] SKIP user ${assessment.user_id}: already emailed for a previous assessment`);
+        console.log(`[send-discount-email] SKIP user ${assessment.user_id}: emailed within the last ${RESEND_COOLDOWN_DAYS} days`);
         continue;
       }
 
