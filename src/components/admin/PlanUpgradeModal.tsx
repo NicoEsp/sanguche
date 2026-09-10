@@ -62,9 +62,13 @@ const MAX_PAID_AMOUNT_LABEL = new Intl.NumberFormat('es-AR', {
   minimumFractionDigits: 0,
 }).format(Math.floor(MAX_PAID_AMOUNT_CENTS / 100));
 
-// Convierte el monto en pesos tecleado por el admin a centavos, que es la
-// unidad en la que el webhook de LemonSqueezy guarda paid_amount.
-// null = campo vacío (no se registra monto); NaN = valor inválido.
+/**
+ * Convierte el monto en pesos tecleado por el admin a centavos, que es la
+ * unidad en la que el webhook de LemonSqueezy guarda paid_amount.
+ *
+ * @returns null si el campo está vacío (no se registra monto), NaN si el
+ * valor es inválido o supera el tope de la columna.
+ */
 function parseAmountToCents(raw: string): number | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
@@ -75,6 +79,11 @@ function parseAmountToCents(raw: string): number | null {
   return cents;
 }
 
+/**
+ * Asigna un plan a mano desde el admin: pagos por fuera de LemonSqueezy (B2B,
+ * transferencia) o accesos bonificados. Una sola llamada al RPC
+ * admin_update_subscription, que valida, actualiza la fila y deja registro.
+ */
 export function PlanUpgradeModal({ isOpen, onClose, targetUser, onSuccess }: PlanUpgradeModalProps) {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<AssignablePlan>(DEFAULT_PLAN);
