@@ -1428,8 +1428,11 @@ export type Database = {
       }
       admin_update_subscription: {
         Args: {
+          p_is_comped?: boolean
           p_new_plan: Database["public"]["Enums"]["subscription_plan"]
           p_notes?: string
+          p_paid_amount?: number
+          p_purchase_type?: string
           p_target_profile_id: string
         }
         Returns: Json

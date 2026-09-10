@@ -65,6 +65,9 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// paid_amount está en centavos de ARS, igual que lo escribe el webhook.
+const currency = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 });
+
 function StatCard({ 
   title, 
   value, 
@@ -92,6 +95,11 @@ function StatCard({
   );
 }
 
+/**
+ * Listado de suscripciones con filtros por plan, estado y origen del pago.
+ * Distingue suscripción y orden de LemonSqueezy de las filas cargadas a mano
+ * desde el admin, y muestra el monto cobrado en ARS.
+ */
 function SubscriptionsTable() {
   const [filters, setFilters] = useState<SubscriptionFilters>({
     plan: 'all',
@@ -259,6 +267,7 @@ function SubscriptionsTable() {
               <TableHead>Plan</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>LemonSqueezy ID</TableHead>
+              <TableHead>Monto</TableHead>
               <TableHead>Período</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
@@ -267,14 +276,14 @@ function SubscriptionsTable() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 6 }).map((_, j) => (
+                  {Array.from({ length: 7 }).map((_, j) => (
                     <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : subscriptions?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   No se encontraron suscripciones
                 </TableCell>
               </TableRow>
@@ -294,8 +303,32 @@ function SubscriptionsTable() {
                       <code className="text-xs bg-muted px-2 py-1 rounded">
                         {sub.lemon_squeezy_subscription_id}
                       </code>
+                    ) : sub.lemon_squeezy_order_id ? (
+                      // Pago único por LemonSqueezy: hay orden pero no suscripción.
+                      <code className="text-xs bg-muted px-2 py-1 rounded" title="ID de orden">
+                        orden {sub.lemon_squeezy_order_id}
+                      </code>
                     ) : (
-                      <span className="text-muted-foreground text-sm">Manual</span>
+                      // Sin ids: cargado a mano desde el admin (B2B por
+                      // transferencia, bonificación, etc.).
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Manual</span>
+                        {sub.admin_notes && (
+                          <p
+                            className="text-xs text-muted-foreground max-w-[220px] truncate"
+                            title={sub.admin_notes}
+                          >
+                            {sub.admin_notes}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {sub.paid_amount != null ? (
+                      <span className="text-sm whitespace-nowrap">{currency.format(sub.paid_amount / 100)}</span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>

@@ -366,12 +366,17 @@ async function updateSubscriptionByLsId(
     return `${eventName}: no row for subscription ${subscriptionId} and no user to adopt it`;
   }
 
+  // Only rows order_created left behind qualify: those carry the LS customer
+  // id. A plan assigned by hand from the admin (admin_update_subscription)
+  // has no LS ids at all and must stay untouched — otherwise the expiry of a
+  // subscription the user had before would cancel their manual plan.
   const { data: adopted, error: adoptError } = await supabase
     .from('user_subscriptions')
     .update({ ...patch, lemon_squeezy_subscription_id: subscriptionId })
     .eq('user_id', userId)
     .eq('purchase_type', 'subscription')
     .is('lemon_squeezy_subscription_id', null)
+    .not('lemon_squeezy_customer_id', 'is', null)
     .select('id');
 
   if (adoptError) throw new Error(`Failed to adopt subscription on ${eventName}: ${adoptError.message}`);
@@ -805,6 +810,11 @@ serve(async (req) => {
           if (liveSub?.lemon_squeezy_subscription_id
               && liveSub.lemon_squeezy_subscription_id !== ids.subscriptionId) {
             console.log(`[Webhook] ${eventName}: subscription ${ids.subscriptionId} already superseded by ${liveSub.lemon_squeezy_subscription_id} (upgrade swap)`);
+          } else if (liveSub && !liveSub.lemon_squeezy_subscription_id) {
+            // The admin detached this user from LemonSqueezy after the
+            // cancellation (manual plan, or downgraded to free), so the
+            // expiry of the old subscription has nothing left to update.
+            console.log(`[Webhook] ${eventName}: subscription ${ids.subscriptionId} no longer linked to user ${userId} (manual plan or detached); nothing to update`);
           } else {
             warnings.push(warning);
           }
