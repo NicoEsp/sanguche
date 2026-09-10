@@ -810,6 +810,11 @@ serve(async (req) => {
           if (liveSub?.lemon_squeezy_subscription_id
               && liveSub.lemon_squeezy_subscription_id !== ids.subscriptionId) {
             console.log(`[Webhook] ${eventName}: subscription ${ids.subscriptionId} already superseded by ${liveSub.lemon_squeezy_subscription_id} (upgrade swap)`);
+          } else if (liveSub && !liveSub.lemon_squeezy_subscription_id) {
+            // The admin detached this user from LemonSqueezy after the
+            // cancellation (manual plan, or downgraded to free), so the
+            // expiry of the old subscription has nothing left to update.
+            console.log(`[Webhook] ${eventName}: subscription ${ids.subscriptionId} no longer linked to user ${userId} (manual plan or detached); nothing to update`);
           } else {
             warnings.push(warning);
           }
