@@ -132,6 +132,8 @@ Integración con **LemonSqueezy** para procesamiento de pagos. Los precios se ob
 
 Checkout soporta **compra anónima** (solo email). El webhook vincula la compra a una cuenta existente o crea una nueva.
 
+**Pagos por fuera de LemonSqueezy** (B2B por transferencia, factura directa, bonificaciones): el cliente crea su cuenta en `/auth` y desde `/admin/usuarios` → **Upgrade** se le asigna el plan, el monto cobrado (opcional, en ARS) y notas internas. El RPC `admin_update_subscription` guarda todo en `user_subscriptions` y lo registra en `admin_actions_log`. La fila queda sin IDs de LemonSqueezy, aparece como **Manual** en `/admin/suscripciones` y el webhook nunca la toca.
+
 -----
 
 ## 🧩 Funcionalidades premium

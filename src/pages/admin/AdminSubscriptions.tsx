@@ -294,8 +294,25 @@ function SubscriptionsTable() {
                       <code className="text-xs bg-muted px-2 py-1 rounded">
                         {sub.lemon_squeezy_subscription_id}
                       </code>
+                    ) : sub.lemon_squeezy_order_id ? (
+                      // Pago único por LemonSqueezy: hay orden pero no suscripción.
+                      <code className="text-xs bg-muted px-2 py-1 rounded" title="ID de orden">
+                        orden {sub.lemon_squeezy_order_id}
+                      </code>
                     ) : (
-                      <span className="text-muted-foreground text-sm">Manual</span>
+                      // Sin ids: cargado a mano desde el admin (B2B por
+                      // transferencia, bonificación, etc.).
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Manual</span>
+                        {sub.admin_notes && (
+                          <p
+                            className="text-xs text-muted-foreground max-w-[220px] truncate"
+                            title={sub.admin_notes}
+                          >
+                            {sub.admin_notes}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </TableCell>
                   <TableCell>

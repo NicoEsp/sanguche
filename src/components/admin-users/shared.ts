@@ -36,4 +36,6 @@ export const PLAN_FILTER_OPTIONS = [
   { value: 'repremium', label: 'RePremium' },
   { value: 'curso_estrategia', label: 'Curso Estrategia' },
   { value: 'cursos_all', label: 'Cursos All' },
+  { value: 'productprepa_business', label: 'ProductPrepa for B2B' },
+  { value: 'productastic_review', label: 'Productastic Review' },
 ] as const;
