@@ -95,6 +95,11 @@ function StatCard({
   );
 }
 
+/**
+ * Listado de suscripciones con filtros por plan, estado y origen del pago.
+ * Distingue suscripción y orden de LemonSqueezy de las filas cargadas a mano
+ * desde el admin, y muestra el monto cobrado en ARS.
+ */
 function SubscriptionsTable() {
   const [filters, setFilters] = useState<SubscriptionFilters>({
     plan: 'all',
