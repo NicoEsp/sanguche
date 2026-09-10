@@ -148,9 +148,12 @@ export function PlanUpgradeModal({ isOpen, onClose, targetUser, onSuccess }: Pla
       onClose();
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error assigning plan:', error);
+      // El RPC explica por qué rechazó la asignación (por ejemplo, una
+      // suscripción de LemonSqueezy todavía activa); ese texto es para el admin.
+      const message = (error as { message?: string } | null)?.message;
       toast({
-        title: 'Error',
-        description: 'No se pudo actualizar el plan del usuario',
+        title: 'No se pudo actualizar el plan',
+        description: message || 'Error inesperado al asignar el plan',
         variant: 'destructive',
       });
     } finally {
