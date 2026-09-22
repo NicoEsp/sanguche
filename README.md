@@ -16,6 +16,7 @@ src/
 │   ├── auth/               # Guards (ProtectedRoute, AdminProtectedRoute)
 │   ├── courses/            # Visor de cursos y lecciones
 │   ├── downloads/          # Componentes de recursos descargables
+│   ├── fetita/             # Chat, memo y paneles de Fetita
 │   ├── landing/            # Componentes de la landing page
 │   ├── layout/             # AppLayout, AppSidebar, LandingHeader, MobileNav
 │   ├── mentoria/           # Componentes de la sección de mentoría
@@ -33,7 +34,7 @@ src/
 │   └── todoist/            # API de creación de tareas
 ├── seo/                    # Configuración centralizada de SEO por ruta
 ├── constants/              # navigation.ts, plans.ts
-├── lib/                    # Wrapper de Mixpanel, version check
+├── lib/                    # Wrapper de Mixpanel, version check, cliente de streaming de Fetita
 ├── types/                  # Definiciones TypeScript
 └── utils/                  # scoring, features, storage, csvExport, dateHelpers, errorMessages, recommendedObjectives
 
@@ -70,6 +71,7 @@ supabase/
 | `/mejoras` | Auth | Áreas de mejora identificadas a partir de la evaluación |
 | `/mentoria` | Auth + Premium | Mentoría personalizada 1:1 |
 | `/progreso` | Auth + Premium | Career Path con canvas y checklist |
+| `/fetita` | Auth + acceso beta | Fetita, el agente que desafía una decisión de producto por conversación y deja un memo con veredicto |
 | `/cursos` | Auth | Biblioteca de cursos |
 | `/cursos/:slug` | Auth + Plan cursos | Detalle del curso (video player) |
 | `/perfil` | Auth | Perfil del usuario, estadísticas y configuración |
@@ -92,6 +94,7 @@ Validación server-side via `is_admin_jwt()` RPC. Todos los accesos se registran
 | `/admin/descargables` | Gestión de recursos descargables |
 | `/admin/blog` | CMS: creación, edición y publicación de posts |
 | `/admin/sesiones` | Gestión de eventos / sesiones |
+| `/admin/fetita` | Fetita: consumo de la API y calidad (tasa de alucinación), accesos de la beta y revisión de conversaciones y memos |
 
 -----
 
@@ -169,6 +172,16 @@ Checkout soporta **compra anónima** (solo email). El webhook vincula la compra 
 
 -----
 
+## 🤖 Fetita (beta cerrada)
+
+**Fetita es el agente de ProductPrepa.** Conversa sobre una decisión de producto por conversación, la desafía con un protocolo de 7 pasos (decisión, problema, evidencia, refutación, exclusión, test, fin) y deja un memo con veredicto: listo, falta o frenar. Corre en la edge function `fetita-chat` contra la API de Claude, con respuestas por streaming. El material que la persona pega se lee aparte y no se guarda.
+
+**Acceso y costo.** Se habilita por persona desde `/admin/fetita` (RPC `admin_set_fetita_access`, con log en `admin_actions_log`), con cupo mensual de mensajes, presupuesto mensual en USD e interruptor general (`admin_update_fetita_settings`). Cada request a la API queda en `fetita_runs` con tokens y costo.
+
+**Calidad.** Un juez automático revisa cada memo contra la conversación (`fetita_memo_checks`), el admin revisa a mano (`admin_review_fetita_memo`) y la persona deja pulgar arriba o abajo con motivo (`fetita_feedback`). La puesta en marcha está en [`docs/fetita.md`](docs/fetita.md).
+
+-----
+
 ## 🔌 Edge Functions
 
 17 funciones Deno en `supabase/functions/`:
@@ -177,6 +190,8 @@ Checkout soporta **compra anónima** (solo email). El webhook vincula la compra 
 |---|---|
 | `cancel-subscription` | Cancelar suscripción en LemonSqueezy |
 | `delete-user` | Borrado seguro de usuario (admin) |
+| `fetita-chat` | Turno de conversación con Fetita por streaming (SSE) contra la API de Claude |
+| `fetita-evaluate` | Vuelve a correr el juez de alucinaciones sobre un memo (admin) |
 | `get-admin-users` | Listado paginado de usuarios para el panel admin |
 | `get-course-video` | Firma URL de video de curso (signed URL) |
 | `get-resource-access` | Valida acceso a recursos descargables |
@@ -221,6 +236,7 @@ Sistema centralizado y route-aware:
 | Forms | React Hook Form + Zod |
 | Backend | Supabase (PostgreSQL + Realtime + Auth + Storage + Edge Functions) |
 | Edge Functions | Deno (17 funciones) |
+| IA | API de Claude con el SDK de Anthropic, desde edge functions (Fetita) |
 | Pagos | LemonSqueezy |
 | Analytics | Mixpanel + Vercel Analytics |
 | Drag & Drop | @dnd-kit |
