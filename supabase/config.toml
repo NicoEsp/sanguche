@@ -109,6 +109,15 @@ verify_jwt = false
 [functions.send-password-reset]
 verify_jwt = false
 
+# Fetita, el agente de ProductPrepa. Las dos requieren un usuario logueado:
+# fetita-chat valida adentro el acceso, el cupo y el presupuesto, y
+# fetita-evaluate sólo responde a admins (is_admin_jwt).
+[functions.fetita-chat]
+verify_jwt = true
+
+[functions.fetita-evaluate]
+verify_jwt = true
+
 [edge_runtime]
 policy = "per_worker"
 inspector_port = 8083

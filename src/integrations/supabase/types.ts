@@ -539,6 +539,464 @@ export type Database = {
         }
         Relationships: []
       }
+      fetita_access: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          granted_by: string | null
+          monthly_message_limit: number | null
+          note: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          granted_by?: string | null
+          monthly_message_limit?: number | null
+          note?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          granted_by?: string | null
+          monthly_message_limit?: number | null
+          note?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fetita_access_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fetita_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fetita_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          locked_until: string | null
+          model: string
+          perfil_snapshot: string | null
+          prompt_version: string
+          protocol_step: number
+          title: string
+          updated_at: string
+          user_id: string
+          user_message_count: number
+          verdict: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          locked_until?: string | null
+          model: string
+          perfil_snapshot?: string | null
+          prompt_version: string
+          protocol_step?: number
+          title?: string
+          updated_at?: string
+          user_id: string
+          user_message_count?: number
+          verdict?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          locked_until?: string | null
+          model?: string
+          perfil_snapshot?: string | null
+          prompt_version?: string
+          protocol_step?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+          user_message_count?: number
+          verdict?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fetita_conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fetita_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          message_id: string
+          rating: number
+          reason: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          message_id: string
+          rating: number
+          reason?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string
+          rating?: number
+          reason?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fetita_feedback_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "fetita_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fetita_feedback_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fetita_memo_checks: {
+        Row: {
+          claims_partial: number
+          claims_supported: number
+          claims_total: number
+          claims_unsupported: number
+          cost_usd: number
+          created_at: string
+          error: string | null
+          id: string
+          memo_id: string
+          model: string
+          result: Json | null
+          status: string
+        }
+        Insert: {
+          claims_partial?: number
+          claims_supported?: number
+          claims_total?: number
+          claims_unsupported?: number
+          cost_usd?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          memo_id: string
+          model: string
+          result?: Json | null
+          status: string
+        }
+        Update: {
+          claims_partial?: number
+          claims_supported?: number
+          claims_total?: number
+          claims_unsupported?: number
+          cost_usd?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          memo_id?: string
+          model?: string
+          result?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fetita_memo_checks_memo_id_fkey"
+            columns: ["memo_id"]
+            isOneToOne: false
+            referencedRelation: "fetita_memos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fetita_memo_reviews: {
+        Row: {
+          memo_id: string
+          note: string | null
+          reviewed_at: string
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          memo_id: string
+          note?: string | null
+          reviewed_at?: string
+          reviewed_by?: string | null
+          status: string
+        }
+        Update: {
+          memo_id?: string
+          note?: string | null
+          reviewed_at?: string
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fetita_memo_reviews_memo_id_fkey"
+            columns: ["memo_id"]
+            isOneToOne: true
+            referencedRelation: "fetita_memos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fetita_memo_reviews_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fetita_memos: {
+        Row: {
+          content: Json
+          conversation_id: string
+          created_at: string
+          id: string
+          prompt_version: string | null
+          user_id: string
+          verdict: string
+          version: number
+        }
+        Insert: {
+          content: Json
+          conversation_id: string
+          created_at?: string
+          id?: string
+          prompt_version?: string | null
+          user_id: string
+          verdict: string
+          version: number
+        }
+        Update: {
+          content?: Json
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          prompt_version?: string | null
+          user_id?: string
+          verdict?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fetita_memos_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "fetita_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fetita_memos_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fetita_messages: {
+        Row: {
+          api_messages: string
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          material_chars: number | null
+          material_summary: string | null
+          role: string
+          seq: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          api_messages?: string
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          material_chars?: number | null
+          material_summary?: string | null
+          role: string
+          seq?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          api_messages?: string
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          material_chars?: number | null
+          material_summary?: string | null
+          role?: string
+          seq?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fetita_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "fetita_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fetita_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fetita_runs: {
+        Row: {
+          cache_read_tokens: number
+          cache_write_tokens: number
+          conversation_id: string | null
+          cost_usd: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          fallback_used: boolean
+          id: string
+          input_tokens: number
+          kind: string
+          latency_ms: number | null
+          model_requested: string
+          model_served: string | null
+          output_tokens: number
+          price_known: boolean
+          prompt_version: string | null
+          stop_reason: string | null
+          turn_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cache_read_tokens?: number
+          cache_write_tokens?: number
+          conversation_id?: string | null
+          cost_usd?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          fallback_used?: boolean
+          id?: string
+          input_tokens?: number
+          kind: string
+          latency_ms?: number | null
+          model_requested: string
+          model_served?: string | null
+          output_tokens?: number
+          price_known?: boolean
+          prompt_version?: string | null
+          stop_reason?: string | null
+          turn_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cache_read_tokens?: number
+          cache_write_tokens?: number
+          conversation_id?: string | null
+          cost_usd?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          fallback_used?: boolean
+          id?: string
+          input_tokens?: number
+          kind?: string
+          latency_ms?: number | null
+          model_requested?: string
+          model_served?: string | null
+          output_tokens?: number
+          price_known?: boolean
+          prompt_version?: string | null
+          stop_reason?: string | null
+          turn_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fetita_runs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fetita_settings: {
+        Row: {
+          default_monthly_messages: number
+          enabled: boolean
+          id: number
+          monthly_budget_usd: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          default_monthly_messages?: number
+          enabled?: boolean
+          id?: number
+          monthly_budget_usd?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          default_monthly_messages?: number
+          enabled?: boolean
+          id?: number
+          monthly_budget_usd?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fetita_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_notes: {
         Row: {
           content: string
@@ -1407,6 +1865,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_fetita_overview: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
       admin_log_mentoria_session: {
         Args: {
           p_delta?: number
@@ -1415,10 +1877,32 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_review_fetita_memo: {
+        Args: { p_memo_id: string; p_note?: string; p_status: string }
+        Returns: Json
+      }
+      admin_set_fetita_access: {
+        Args: {
+          p_email?: string
+          p_enabled?: boolean
+          p_monthly_message_limit?: number
+          p_note?: string
+          p_target_profile_id?: string
+        }
+        Returns: Json
+      }
       admin_toggle_user_role: {
         Args: {
           p_role: Database["public"]["Enums"]["app_role"]
           p_target_profile_id: string
+        }
+        Returns: Json
+      }
+      admin_update_fetita_settings: {
+        Args: {
+          p_default_monthly_messages: number
+          p_enabled: boolean
+          p_monthly_budget_usd: number
         }
         Returns: Json
       }
@@ -1444,6 +1928,20 @@ export type Database = {
       clean_old_rate_limits: { Args: never; Returns: undefined }
       create_admin_user: { Args: { admin_user_id: string }; Returns: boolean }
       ensure_user_defaults: { Args: never; Returns: undefined }
+      fetita_begin_turn: {
+        Args: {
+          p_conversation_id: string
+          p_lock_seconds: number
+          p_model: string
+          p_perfil?: string
+          p_profile_id: string
+          p_prompt_version: string
+        }
+        Returns: Json
+      }
+      fetita_month_start: { Args: never; Returns: string }
+      fetita_status_for: { Args: { p_profile_id: string }; Returns: Json }
+      get_my_fetita_status: { Args: never; Returns: Json }
       get_profile_id_for_auth: { Args: never; Returns: string }
       get_session_spots_left: {
         Args: { p_session_id: string }
