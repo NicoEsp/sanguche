@@ -9,6 +9,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 User-agent: Bingbot
@@ -18,6 +19,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 User-agent: Twitterbot
@@ -34,6 +36,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 User-agent: OAI-SearchBot
@@ -43,6 +46,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 User-agent: ChatGPT-User
@@ -52,6 +56,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 User-agent: ClaudeBot
@@ -61,6 +66,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 User-agent: Claude-Web
@@ -70,6 +76,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 User-agent: anthropic-ai
@@ -79,6 +86,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 User-agent: PerplexityBot
@@ -88,6 +96,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 User-agent: Perplexity-User
@@ -97,6 +106,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 User-agent: Google-Extended
@@ -106,6 +116,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 User-agent: Applebot-Extended
@@ -115,6 +126,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 User-agent: CCBot
@@ -124,6 +136,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 User-agent: *
@@ -133,6 +146,7 @@ Disallow: /auth
 Disallow: /perfil
 Disallow: /progreso
 Disallow: /mentoria
+Disallow: /fetita
 Disallow: /welcome
 
 Sitemap: https://productprepa.com/sitemap.xml

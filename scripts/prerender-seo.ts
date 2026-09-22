@@ -27,6 +27,7 @@ const PROTECTED_ROUTES = [
   '/progreso',
   '/perfil',
   '/cursos',
+  '/fetita',
   // /admin ya está bloqueada en robots.txt; el noindex es cinturón y tiradores
   // por si alguna vez se llega a la URL desde un link.
   '/admin',

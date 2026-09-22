@@ -5,6 +5,7 @@ import {
   GraduationCap,
   BookOpen,
   FileDown,
+  Sparkles,
 } from "lucide-react";
 import { isPremiumFeature, FEATURES } from "@/utils/features";
 
@@ -15,6 +16,8 @@ export interface NavItemType {
   premium: boolean;
   repremium?: boolean;
   isNew?: boolean;
+  /** Feature en beta cerrada: lleva el badge "Beta" y se muestra sólo a quien tiene acceso. */
+  beta?: boolean;
 }
 
 export const navItems: NavItemType[] = [
@@ -51,6 +54,19 @@ export const navItems: NavItemType[] = [
     isNew: true,
   },
 ];
+
+/**
+ * Fetita, el agente de ProductPrepa. Queda fuera de navItems porque sólo la ve
+ * quien el admin habilitó: AppSidebar y MobileNav la agregan según
+ * useFetitaStatus().
+ */
+export const fetitaNavItem: NavItemType = {
+  href: "/fetita",
+  label: "Fetita",
+  icon: Sparkles,
+  premium: false,
+  beta: true,
+};
 
 export const extraItems: NavItemType[] = [
   {

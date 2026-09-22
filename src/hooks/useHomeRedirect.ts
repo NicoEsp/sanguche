@@ -10,6 +10,7 @@ const FADE_DURATION = 150;
  * Hook que maneja la redirección automática en Home según el estado del usuario (V4):
  * - No autenticado → Se queda en Landing
  * - Premium/RePremium sin evaluación → /autoevaluacion
+ * - returnTo a /fetita → se respeta para todos (la beta se comparte por link)
  * - Premium/RePremium con evaluación → /progreso (Career Path; ignora returnTo)
  * - Free con returnTo → Redirige a returnTo (ej: /preguntas)
  * - Free sin evaluación → /autoevaluacion
@@ -62,8 +63,14 @@ export function useHomeRedirect() {
       ? isPremiumPlan(sub.plan) && (sub.status === 'active' || sub.isComped === true)
       : false;
 
+    // Un link directo a Fetita (la beta se comparte por link) se respeta
+    // para todos, también para Premium.
+    const returnToFetita = returnTo ? decodeURIComponent(returnTo).startsWith('/fetita') : false;
+
     if (compositeData.hasLegacyAssessment) {
       dest = '/autoevaluacion';
+    } else if (returnToFetita && returnTo) {
+      dest = decodeURIComponent(returnTo);
     } else if (hasActivePremium) {
       // Premium/RePremium van directo a Career Path (ignoran returnTo).
       // Si todavía no hicieron la autoevaluación, esa va primero.

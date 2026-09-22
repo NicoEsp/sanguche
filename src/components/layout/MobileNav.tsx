@@ -15,7 +15,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { navItems, extraItems } from "@/constants/navigation";
+import { navItems, extraItems, fetitaNavItem } from "@/constants/navigation";
+import { useFetitaStatus } from "@/hooks/useFetita";
 
 export function MobileNav() {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,6 +24,7 @@ export function MobileNav() {
   const { user, isAuthenticated, isAdmin, signOut, isLoading, isSigningOut } = useAuth();
   const shouldLoadProfile = isAuthenticated && !isLoading;
   const { profile, loading: profileLoading } = useUserProfile({ skip: !shouldLoadProfile });
+  const { hasAccess: hasFetitaAccess } = useFetitaStatus({ skip: !shouldLoadProfile });
   
   const metadataName = (() => {
     const possibleName = user?.user_metadata?.name;
@@ -90,6 +92,21 @@ export function MobileNav() {
                       </Link>
                     );
                   })}
+                  {hasFetitaAccess && (
+                    <Link
+                      to={fetitaNavItem.href}
+                      onClick={() => setIsOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-3 rounded-lg transition-colors",
+                        isActive(fetitaNavItem.href) && "bg-primary/10 text-primary font-medium",
+                        !isActive(fetitaNavItem.href) && "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      <fetitaNavItem.icon className={cn("h-5 w-5", isActive(fetitaNavItem.href) && "text-primary")} />
+                      <span className="flex-1">{fetitaNavItem.label}</span>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary">Beta</Badge>
+                    </Link>
+                  )}
                   
                   {/* Extras Section */}
                   <div className="mt-4 pt-4 border-t">

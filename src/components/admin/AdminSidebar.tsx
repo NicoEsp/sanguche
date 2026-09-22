@@ -25,7 +25,8 @@ import {
   CreditCard,
   FileDown,
   PenLine,
-  Calendar
+  Calendar,
+  Sparkles
 } from 'lucide-react';
 
 import { GraduationCap } from 'lucide-react';
@@ -41,6 +42,7 @@ const adminNavItems = [
   { title: 'Downloadables', url: '/admin/descargables', icon: FileDown },
   { title: 'Blog', url: '/admin/blog', icon: PenLine },
   { title: 'Sesiones', url: '/admin/sesiones', icon: Calendar },
+  { title: 'Fetita', url: '/admin/fetita', icon: Sparkles, matchPrefix: '/admin/fetita' },
 ];
 
 const generalNavItems = [
