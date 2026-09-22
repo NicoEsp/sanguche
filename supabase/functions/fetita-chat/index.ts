@@ -394,7 +394,7 @@ async function runTurn(ctx: TurnContext): Promise<void> {
           kind: "chat",
           modelRequested: config.model,
           modelServed: partial?.model ?? null,
-          usage: partial?.usage ?? null,
+          usage: partial ? partialUsage(partial) : null,
           latencyMs: performance.now() - started,
           stopReason: null,
           errorCode: code,
@@ -529,6 +529,23 @@ async function runTurn(ctx: TurnContext): Promise<void> {
       );
     }
   }
+}
+
+/**
+ * El uso de una respuesta cortada a mitad del stream. La API informa los
+ * tokens de salida recién al final, así que se estiman por lo que ya llegó
+ * (unos 3 caracteres por token, para no quedarse corto). Es un piso: el
+ * razonamiento que se ve es un resumen del que se cobra.
+ */
+function partialUsage(message: Anthropic.Beta.BetaMessage): Anthropic.Beta.BetaUsage {
+  let chars = 0;
+  for (const block of message.content) {
+    if (block.type === "text") chars += block.text.length;
+    else if (block.type === "thinking") chars += block.thinking.length;
+    else if (block.type === "tool_use") chars += JSON.stringify(block.input ?? {}).length;
+  }
+  const estimated = Math.ceil(chars / 3);
+  return { ...message.usage, output_tokens: Math.max(message.usage.output_tokens ?? 0, estimated) };
 }
 
 /**

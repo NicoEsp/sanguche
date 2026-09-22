@@ -385,13 +385,14 @@ BEGIN
   v_used := 0;
   v_spent := 0;
   IF v_user_enabled THEN
-    -- Cuenta turnos con al menos una respuesta del modelo: un turno que falló
-    -- por la API o que Fetita declinó no le gasta un mensaje a la persona.
+    -- Cuenta turnos en los que el modelo generó algo: un turno que falló por
+    -- la API o que Fetita declinó no le gasta un mensaje a la persona. Uno
+    -- cortado por tiempo sí, porque la respuesta se generó y se mostró.
     SELECT count(DISTINCT r.turn_id) INTO v_used
     FROM public.fetita_runs r
     WHERE r.user_id = p_profile_id
       AND r.kind = 'chat'
-      AND r.error_code IS NULL
+      AND (r.error_code IS NULL OR r.error_code = 'turn_timeout')
       AND r.stop_reason IS DISTINCT FROM 'refusal'
       AND r.created_at >= v_month_start;
 
@@ -467,11 +468,15 @@ BEGIN
     RETURN jsonb_build_object('status', 'blocked', 'reason', v_status->>'reason');
   END IF;
 
-  IF p_conversation_id IS NOT NULL AND NOT EXISTS (
-    SELECT 1 FROM public.fetita_conversations
+  -- FOR UPDATE: un borrado simultáneo espera a que se tome el lock y después
+  -- la política de borrado lo rechaza.
+  IF p_conversation_id IS NOT NULL THEN
+    PERFORM 1 FROM public.fetita_conversations
     WHERE id = p_conversation_id AND user_id = p_profile_id
-  ) THEN
-    RETURN jsonb_build_object('status', 'not_found');
+    FOR UPDATE;
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('status', 'not_found');
+    END IF;
   END IF;
 
   IF EXISTS (
@@ -502,6 +507,9 @@ BEGIN
     SET locked_until = v_lock_until
     WHERE id = p_conversation_id AND user_id = p_profile_id
     RETURNING * INTO v_row;
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('status', 'not_found');
+    END IF;
   END IF;
 
   RETURN jsonb_build_object(
