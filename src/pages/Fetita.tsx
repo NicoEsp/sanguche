@@ -164,13 +164,20 @@ export default function Fetita() {
     const text = draft.trim();
     if (!text) return;
     const mat = material.trim() || null;
+    const originId = conversationId;
+    const originKey = currentDraftKey;
     setDraft("");
     setMaterial("");
     const saved = await send(text, mat);
-    // Si el mensaje no llegó a guardarse, vuelve al campo para no perderlo.
-    if (!saved) {
+    if (saved) return;
+    // El mensaje no llegó a guardarse: vuelve al campo para no perderlo. Si la
+    // persona ya está en otra conversación, queda como borrador de la de origen
+    // y el material no se pasa a la otra (nunca se guarda en el navegador).
+    if (conversationIdRef.current === originId) {
       setDraft((d) => d || text);
       if (mat) setMaterial((m) => m || mat);
+    } else {
+      writeDraft(originKey, readDraft(originKey) || text);
     }
   };
 

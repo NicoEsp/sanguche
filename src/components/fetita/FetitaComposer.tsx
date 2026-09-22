@@ -65,10 +65,13 @@ export function FetitaComposer({
   }, [autoFocus, disabled]);
 
   // El campo se deshabilita mientras Fetita responde y el navegador le saca
-  // el foco: al terminar se le devuelve para seguir escribiendo.
+  // el foco: al terminar se le devuelve para seguir escribiendo, salvo que la
+  // persona esté usando otra cosa (un popover de feedback, una selección).
   const wasStreaming = useRef(streaming);
   useEffect(() => {
-    if (wasStreaming.current && !streaming && !disabled && !isTouch()) textareaRef.current?.focus();
+    const focusLost =
+      (!document.activeElement || document.activeElement === document.body) && !!window.getSelection()?.isCollapsed;
+    if (wasStreaming.current && !streaming && !disabled && focusLost && !isTouch()) textareaRef.current?.focus();
     wasStreaming.current = streaming;
   }, [streaming, disabled]);
 
