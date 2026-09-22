@@ -10,6 +10,7 @@
  *
  * Al cambiar cualquier texto de este archivo, subí PROMPT_VERSION.
  */
+import { neutralizeTags } from "./tags.ts";
 
 export const PROMPT_VERSION = "fetita-2026-09-22";
 
@@ -107,12 +108,12 @@ export const MAX_PERFIL_CHARS = 12000;
  * El bloque de perfil va al principio del primer mensaje de la persona, como
  * dato: lo arma el cliente, así que no puede ir en el system con rango de
  * instrucción. Se congela al crear la conversación y queda en el historial
- * append-only como cualquier otro mensaje. Se sacan las etiquetas de perfil
+ * append-only como cualquier otro mensaje. Se escapan las etiquetas de perfil
  * que vengan adentro para que el texto no pueda cerrar el bloque antes.
  */
 export function buildPerfilBlock(perfil: string | null): string | null {
   if (!perfil) return null;
-  const trimmed = perfil.replace(/<\/?\s*perfil\b[^>]*>/gi, "").trim().slice(0, MAX_PERFIL_CHARS);
+  const trimmed = neutralizeTags(perfil, ["perfil"]).trim().slice(0, MAX_PERFIL_CHARS);
   if (!trimmed) return null;
   return `<perfil>\n${trimmed}\n</perfil>`;
 }

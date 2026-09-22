@@ -15,6 +15,7 @@ import type Anthropic from "npm:@anthropic-ai/sdk@0.126.0";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import { z } from "npm:zod@3.25.76";
 import { logRun } from "./runs.ts";
+import { neutralizeTags as escapeTags } from "./tags.ts";
 
 const JUDGE_SYSTEM = `Sos un verificador de hechos. Recibís la transcripción de una conversación entre una persona de producto y Fetita, un agente que desafía decisiones, y el memo que Fetita escribió al final.
 
@@ -81,11 +82,8 @@ interface MessageRow {
   material_summary: string | null;
 }
 
-// Saca las etiquetas que delimitan los bloques del pedido al juez, para que
-// un texto de la conversación no pueda cerrar la transcripción antes.
-function neutralizeTags(text: string): string {
-  return text.replace(/<\/?\s*(transcripcion|memo)\b[^>]*>/gi, "");
-}
+// Un texto de la conversación no puede cerrar la transcripción antes ni abrir un memo.
+const neutralizeTags = (text: string) => escapeTags(text, ["transcripcion", "memo"]);
 
 export function buildTranscript(rows: MessageRow[]): string {
   const parts: string[] = [];

@@ -35,8 +35,9 @@ export interface TokenUsage {
   cache_creation_input_tokens?: number | null;
   /**
    * Con fallback del lado del servidor, el uso de primer nivel cubre sólo el
-   * intento que produjo la respuesta. Cada intento (también el que declinó,
-   * que se cobra) viene en una entrada de iterations con su propio modelo.
+   * intento que produjo la respuesta. Cada intento viene en una entrada de
+   * iterations con su propio modelo. Un intento que declinó antes de generar
+   * algo no se cobra; uno que declinó a mitad sí.
    */
   iterations?: Array<IterationUsage> | null;
 }
@@ -67,7 +68,11 @@ export interface UsageTotals {
  * precio de su modelo; si no, usa el uso de primer nivel al precio de `model`.
  */
 export function usageTotals(model: string, usage: TokenUsage): UsageTotals {
-  const billed = (usage.iterations ?? []).filter((i) => BILLED_ITERATIONS.has(i.type));
+  const iterations = usage.iterations ?? [];
+  const servedByFallback = iterations.some((i) => i.type === "fallback_message");
+  const billed = iterations.filter(
+    (i) => BILLED_ITERATIONS.has(i.type) && !(servedByFallback && i.type === "message" && !i.output_tokens),
+  );
   const parts = billed.length > 0 ? billed.map((i) => ({ model: i.model || model, usage: i })) : [{ model, usage }];
   const totals: UsageTotals = {
     inputTokens: 0,

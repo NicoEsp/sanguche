@@ -7,6 +7,10 @@
  * persona puede traer material sensible sin que quede almacenado.
  */
 import type Anthropic from "npm:@anthropic-ai/sdk@0.126.0";
+import { neutralizeTags } from "./tags.ts";
+
+// Etiquetas que delimitan datos en el mensaje de la persona.
+const TURN_TAGS = ["material_analizado", "perfil"];
 
 export const MAX_MATERIAL_CHARS = 60_000;
 
@@ -51,7 +55,7 @@ export async function readMaterial(opts: {
           content:
             `Decisión en evaluación: ${opts.decisionTitle}\n\n` +
             `Mensaje de la persona: ${opts.userMessage}\n\n` +
-            `<material>\n${opts.material.slice(0, MAX_MATERIAL_CHARS)}\n</material>`,
+            `<material>\n${neutralizeTags(opts.material.slice(0, MAX_MATERIAL_CHARS), ["material"])}\n</material>`,
         },
       ],
     },
@@ -71,12 +75,14 @@ export async function readMaterial(opts: {
 
 /** El mensaje que entra a la conversación en lugar del material crudo. */
 export function composeUserTurn(message: string, reading: string | null, materialChars: number): string {
-  if (!reading) return message;
+  // La lectura cita material de terceros: no puede cerrar su bloque antes.
+  const safeMessage = neutralizeTags(message, TURN_TAGS);
+  if (!reading) return safeMessage;
   return (
     `<material_analizado>\n` +
     `La persona pegó material (${materialChars.toLocaleString("es-AR")} caracteres). No se guardó; esta es la lectura que se hizo:\n\n` +
-    `${reading}\n` +
+    `${neutralizeTags(reading, TURN_TAGS)}\n` +
     `</material_analizado>\n\n` +
-    message
+    safeMessage
   );
 }
