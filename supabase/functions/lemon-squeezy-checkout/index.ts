@@ -31,6 +31,10 @@ const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 3;
 
 const SITE_URL = 'https://productprepa.com';
+// El Origin lo manda el navegador, pero una llamada directa puede poner
+// cualquiera: sin esta lista, alguien podía armar un checkout real que después
+// del pago llevara a otro dominio.
+const ALLOWED_ORIGINS = new Set([SITE_URL, 'https://www.productprepa.com']);
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -166,7 +170,8 @@ Deno.serve(async (req) => {
 
     // Generar un checkout_intent_id único para tracking
     const checkoutIntentId = crypto.randomUUID();
-    const origin = req.headers.get('origin') || SITE_URL;
+    const requestOrigin = req.headers.get('origin');
+    const origin = requestOrigin && ALLOWED_ORIGINS.has(requestOrigin) ? requestOrigin : SITE_URL;
 
     console.log(
       `[Checkout] Plan: ${plan}, Variant: ${config.variantId}, Anonymous: ${isAnonymousCheckout}, ` +
