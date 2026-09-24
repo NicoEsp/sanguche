@@ -52,7 +52,10 @@ export function useVideoUrl(
     url: data?.url ?? null,
     type: data?.type ?? "storage",
     isLoading,
-    error: isError ? "Error al obtener el video" : null,
+    // Si falla la renovación periódica, la URL anterior sigue vigente media
+    // hora más: el error solo se muestra si no hay ninguna (si no, el
+    // reproductor cortaba el video en curso).
+    error: isError && !data ? "Error al obtener el video" : null,
     refresh: () => void refetch(),
   };
 }
