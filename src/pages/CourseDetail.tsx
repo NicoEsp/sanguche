@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Clock, CheckCircle2, PlayCircle, CalendarClock, BookOpen, ArrowRight } from "lucide-react";
 import { Seo } from "@/components/Seo";
@@ -302,17 +302,17 @@ export default function CourseDetail() {
           {/* Video player */}
           <div className="lg:col-span-2 space-y-6">
             {activeLesson ? (
-              <>
-                {/* key: el estado del reproductor (error, "ya empezó") es de cada lección */}
+              // key: el estado del reproductor (error, "ya empezó") y el de las
+              // notas es de cada lección.
+              <Fragment key={activeLesson.id}>
                 <VideoPlayer
-                  key={activeLesson.id}
                   lesson={activeLesson}
                   courseSlug={course.slug}
                   isCompleted={activeLesson.isCompleted}
                   onComplete={handleLessonComplete}
                 />
                 <LessonNotes lessonId={activeLesson.id} />
-              </>
+              </Fragment>
             ) : (
               <div className="aspect-video bg-muted rounded-xl flex items-center justify-center">
                 <div className="text-center">

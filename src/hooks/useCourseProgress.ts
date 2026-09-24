@@ -55,7 +55,10 @@ export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []
     return {
       ...lesson,
       progress,
-      isCompleted: progress?.completed_at !== null,
+      // Sin fila de progreso, progress?.completed_at es undefined y el
+      // "!== null" de antes daba true: toda lección sin empezar figuraba
+      // completada (tilde en la lista, sin botón para marcarla).
+      isCompleted: !!progress?.completed_at,
     };
   });
 
