@@ -11,7 +11,7 @@ export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
   const prerendered = prerenderedPost(slug);
 
-  const { data: post, isLoading, isError } = useQuery({
+  const { data: post, isLoading, error } = useQuery({
     queryKey: ['blog-post-public', slug],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -47,7 +47,12 @@ export default function BlogPost() {
     );
   }
 
-  if (isError || !post) {
+  // Si falla la revalidación en segundo plano, sigue el artículo que ya está en
+  // pantalla (el del HTML o el de la caché): antes cualquier error de red
+  // mandaba a /blog. Solo se va si no hay artículo o si la base confirma que ya
+  // no está publicado (.single() sin filas).
+  const unpublished = (error as { code?: string } | null)?.code === 'PGRST116';
+  if (!post || unpublished) {
     return <Navigate to="/blog" replace />;
   }
 
