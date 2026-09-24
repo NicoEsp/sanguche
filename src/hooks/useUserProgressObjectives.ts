@@ -81,28 +81,37 @@ function subscribeToObjectives(userId: string, queryClient: QueryClient): () => 
   };
 }
 
+/**
+ * Query de los objetivos del usuario (userId es el id del perfil). La usan el
+ * hook y el prefetch del sidebar: la copia que tenía el sidebar ordenaba
+ * distinto y, si fallaba, dejaba en caché una lista vacía.
+ */
+export const userProgressObjectivesQuery = (userId: string | undefined) => ({
+  queryKey: ['user-progress-objectives', userId] as const,
+  queryFn: async (): Promise<UserProgressObjective[]> => {
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+      .from('user_progress_objectives')
+      .select('id, user_id, objective_id, title, summary, type, timeframe, steps, status, due_date, mentor_notes, assigned_by_admin, created_at, updated_at, is_locked, locked_at, source, level, position')
+      .eq('user_id', userId)
+      .order('timeframe', { ascending: true })
+      .order('position', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data as unknown as UserProgressObjective[];
+  },
+  staleTime: 2 * 60 * 1000,
+});
+
 // Fetch user's progress objectives
 export function useUserProgressObjectives(userId: string | undefined) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['user-progress-objectives', userId],
-    queryFn: async () => {
-      if (!userId) return [];
-
-      const { data, error } = await supabase
-        .from('user_progress_objectives')
-        .select('id, user_id, objective_id, title, summary, type, timeframe, steps, status, due_date, mentor_notes, assigned_by_admin, created_at, updated_at, is_locked, locked_at, source, level, position')
-        .eq('user_id', userId)
-        .order('timeframe', { ascending: true })
-        .order('position', { ascending: true })
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      return data as unknown as UserProgressObjective[];
-    },
+    ...userProgressObjectivesQuery(userId),
     enabled: !!userId,
-    staleTime: 2 * 60 * 1000, // 2 minutos
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false, // Realtime maneja updates
@@ -140,8 +149,14 @@ export function useUpdateUserObjective() {
       if (error) throw error;
       return data;
     },
-    // Note: onSuccess/onError are handled at call site for optimistic updates
-    // The realtime subscription will keep the cache in sync
+    // Los updates optimistas y los errores los maneja cada llamada. Acá se deja
+    // en caché la fila que devolvió la base, sin depender de que llegue el
+    // evento de realtime (si el websocket no conecta, el cambio no se veía).
+    onSuccess: (data, { userId }) => {
+      queryClient.setQueryData<UserProgressObjective[]>(['user-progress-objectives', userId], (old) =>
+        old?.map((obj) => (obj.id === data.id ? { ...obj, ...(data as unknown as UserProgressObjective) } : obj))
+      );
+    },
   });
 }
 
