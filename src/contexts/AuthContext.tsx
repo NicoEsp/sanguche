@@ -132,7 +132,7 @@ export function AuthProvider({ children, initialSession }: AuthProviderProps) {
           .on(
             'postgres_changes',
             { event: '*', schema: 'public', table: 'assessments', filter: `user_id=eq.${profileId}` },
-            () => invalidate('assessment-data', 'assessment-data-check', 'user-composite-data')
+            () => invalidate('assessment-data', 'user-composite-data')
           );
       }
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -16,10 +15,8 @@ import {
   Users,
   ClipboardList,
   Target,
-  Settings,
   Home,
   Shield,
-  LineChart,
   
   BookOpen,
   CreditCard,

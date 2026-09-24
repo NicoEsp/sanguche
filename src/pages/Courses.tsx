@@ -115,7 +115,6 @@ export default function Courses() {
   }
 
   const planMessage = getPlanMessage(plan);
-  const hasAnyAccess = hasGlobalAccess || courses?.some(c => c.is_free);
 
   return (
     <>

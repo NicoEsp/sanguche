@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useForm, useWatch } from "react-hook-form";
 import {
   ASSESSMENT_TYPES,
@@ -129,7 +129,6 @@ function parseStoredContext(raw: string | null): AssessmentContext {
 }
 
 export default function Assessment() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedDomain, setSelectedDomain] = useState<AnyDomainKey | null>(null);

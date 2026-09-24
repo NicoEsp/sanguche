@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/accordion";
 
 export default function CursosInfo() {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { curso_estrategia, repremium, loading: pricingLoading } = usePricing();
   const {
     hasActiveRePremium,

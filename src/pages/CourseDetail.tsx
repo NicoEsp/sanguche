@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Clock, CheckCircle2, PlayCircle, CalendarClock, BookOpen, ArrowRight } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle2, PlayCircle, CalendarClock } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -32,7 +32,7 @@ export default function CourseDetail() {
   // slug la reusamos para que el primer render no muestre skeleton.
   const prerendered = prerenderedCourse(slug);
   const { hasAccess, isLoading: accessLoading } = useCourseAccess(slug, course);
-  const { lessonsWithProgress, progressStats, isLoading: progressLoading } = useCourseProgress(
+  const { lessonsWithProgress, progressStats } = useCourseProgress(
     course?.id || "",
     course?.lessons || []
   );
