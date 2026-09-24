@@ -31,15 +31,18 @@ export function lazyPage(factory: () => Promise<PageModule>): LazyPage {
     return loading;
   };
 
+  // Un solo lazy por página. Después de un rechazo React vuelve a montar la
+  // página desde cero: con un lazy por montaje cada montaje pedía el chunk otra
+  // vez y uno que falla siempre dejaba la página en el spinner, en un loop. Con
+  // uno compartido el rechazo queda guardado y llega al ErrorBoundary. Ahí
+  // "Reintentar" no alcanza porque Chrome tampoco vuelve a pedir un import()
+  // que falló; lo que recupera es "Recargar página".
+  const Lazy = lazy(() => preload().then(() => ({ default: Loaded! })));
+
   const Page = () => {
-    // Se decide una vez por montaje: cambiar de lazy a Loaded en un re-render
-    // cambiaría el tipo del elemento y remontaría la página entera. Es un lazy
-    // nuevo por montaje porque React.lazy guarda el rechazo para siempre: con
-    // uno compartido, "Reintentar" en el ErrorBoundary volvía a fallar sin
-    // pedir el chunk otra vez.
-    const [Component] = useState<ComponentType>(
-      () => Loaded ?? lazy(() => preload().then(() => ({ default: Loaded! })))
-    );
+    // Se decide una vez por montaje: cambiar de Lazy a Loaded en un re-render
+    // cambiaría el tipo del elemento y remontaría la página entera.
+    const [Component] = useState<ComponentType>(() => Loaded ?? Lazy);
     return <Component />;
   };
 

@@ -18,6 +18,10 @@ interface SignedVideo {
 // (antes se pedía otra vez en cada cambio) y se renueva media hora antes de
 // que venza, igual que el timer que había acá.
 const SIGNED_URL_FRESH_MS = (4 * 60 - 30) * 60 * 1000;
+// Piso del intervalo. Si una renovación falla, dataUpdatedAt sigue siendo el
+// de la URL anterior y el tiempo restante da negativo: el reintento queda en
+// un minuto y no en un pedido por segundo.
+const RENEW_RETRY_MS = 60 * 1000;
 
 export function useVideoUrl(
   lessonId: string,
@@ -46,7 +50,7 @@ export function useVideoUrl(
     // URL (el primer pedido falló, por ejemplo un 403) no hay intervalo.
     refetchInterval: (query) =>
       query.state.data
-        ? Math.max(SIGNED_URL_FRESH_MS - (Date.now() - query.state.dataUpdatedAt), 1000)
+        ? Math.max(SIGNED_URL_FRESH_MS - (Date.now() - query.state.dataUpdatedAt), RENEW_RETRY_MS)
         : false,
   });
 
