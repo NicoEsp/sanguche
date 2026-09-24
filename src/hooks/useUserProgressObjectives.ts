@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -15,6 +16,69 @@ export interface UserProgressObjective extends Omit<ProgressObjective, 'mentorNo
   is_locked: boolean;
   locked_at: string | null;
   position: number;
+}
+
+type ObjectivesCache = UserProgressObjective[] | undefined;
+
+/**
+ * Un canal realtime por usuario, compartido por todos los componentes que usan
+ * el hook. /progreso lo monta dos veces (la página y useRecommendedObjectives):
+ * con un canal por instancia, realtime-js devolvía el mismo canal a la segunda,
+ * que le agregaba su listener después del subscribe(), y al confirmar el join
+ * el cliente veía más listeners que el servidor y se desuscribía. /progreso se
+ * quedaba sin actualizaciones en vivo.
+ */
+const objectiveChannels = new Map<string, { channel: RealtimeChannel; users: number }>();
+
+function subscribeToObjectives(userId: string, queryClient: QueryClient): () => void {
+  const existing = objectiveChannels.get(userId);
+  if (existing) {
+    existing.users++;
+  } else {
+    const channel = supabase
+      .channel(`user-objectives-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_progress_objectives',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          queryClient.setQueryData(['user-progress-objectives', userId], (old: ObjectivesCache) => {
+            if (!old) return old;
+
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const row = payload.new as UserProgressObjective;
+              // Reemplazo por id también en el INSERT: la mutación que creó el
+              // objetivo ya invalidó la query, y si el refetch llegó antes que
+              // el evento la fila estaría dos veces.
+              const exists = old.some((obj) => obj.id === row.id);
+              if (payload.eventType === 'UPDATE' && !exists) return old;
+              return exists ? old.map((obj) => (obj.id === row.id ? row : obj)) : [...old, row];
+            }
+            if (payload.eventType === 'DELETE') {
+              const removedId = (payload.old as Partial<UserProgressObjective>).id;
+              return old.filter((obj) => obj.id !== removedId);
+            }
+            return old;
+          });
+        }
+      )
+      .subscribe();
+    objectiveChannels.set(userId, { channel, users: 1 });
+  }
+
+  return () => {
+    const entry = objectiveChannels.get(userId);
+    if (!entry) return;
+    entry.users--;
+    if (entry.users === 0) {
+      objectiveChannels.delete(userId);
+      supabase.removeChannel(entry.channel);
+    }
+  };
 }
 
 // Fetch user's progress objectives
@@ -44,52 +108,9 @@ export function useUserProgressObjectives(userId: string | undefined) {
     refetchOnMount: false, // Realtime maneja updates
   });
 
-  // Setup realtime subscription with optimistic updates
   useEffect(() => {
     if (!userId) return;
-
-    const channel = supabase
-      .channel(`user-objectives-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_progress_objectives',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          if (import.meta.env.DEV) {
-            console.log('Realtime update for user objectives:', payload);
-          }
-          
-          // Optimistic update instead of full invalidation
-          queryClient.setQueryData(
-            ['user-progress-objectives', userId],
-            (old: UserProgressObjective[] | undefined) => {
-              if (!old) return old;
-              
-              if (payload.eventType === 'INSERT') {
-                return [...old, payload.new as UserProgressObjective];
-              }
-              if (payload.eventType === 'UPDATE') {
-                return old.map(obj => 
-                  obj.id === (payload.new as any).id ? payload.new as UserProgressObjective : obj
-                );
-              }
-              if (payload.eventType === 'DELETE') {
-                return old.filter(obj => obj.id !== (payload.old as any).id);
-              }
-              return old;
-            }
-          );
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return subscribeToObjectives(userId, queryClient);
   }, [userId, queryClient]);
 
   return query;
