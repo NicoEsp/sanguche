@@ -232,15 +232,19 @@ function buildEmailHtml(name: string, plan: WelcomePlan): string {
 
 // Resend guarda cada Idempotency-Key 24 horas. Se deja una de margen.
 const RESEND_KEY_WINDOW_MS = 23 * 60 * 60 * 1000;
+// Resend responde en menos de un segundo. Colgado más que esto, el pedido se
+// corta y la fila queda "unconfirmed" en vez de "pending" para siempre.
+const RESEND_TIMEOUT_MS = 10_000;
 
 // Vuelve a reservar una fila que ya existe, si quedó reintentable. Cada UPDATE
 // es atómico: de dos pedidos en paralelo, uno solo la pasa a "pending".
-// - "error": Resend respondió con error, así que no mandó nada. Se reintenta
-//   con una idempotency key nueva (sent_at nuevo).
-// - "unconfirmed": el pedido a Resend falló sin respuesta y no se sabe si el
-//   mail salió. Se reintenta con la misma key (mismo sent_at): si ya había
-//   salido, Resend devuelve la respuesta original sin mandar otro. Pasadas las
-//   24 horas de la key no se reintenta, para no duplicar el mail.
+// - "error": Resend respondió con un error que asegura que no mandó nada. Se
+//   reintenta con una idempotency key nueva (sent_at nuevo).
+// - "unconfirmed": no se sabe si el mail salió (el pedido falló sin respuesta,
+//   o Resend respondió 5xx o un 409 de idempotencia). Se reintenta con la
+//   misma key (mismo sent_at): si ya había salido, Resend devuelve la respuesta
+//   original sin mandar otro. Pasadas las 24 horas de la key no se reintenta,
+//   para no duplicar el mail.
 // "pending" y "sent" no se tocan.
 async function reclaimRow(
   supabase: SupabaseClient,
@@ -423,6 +427,7 @@ Deno.serve(async (req: Request) => {
           subject: subjectLine(plan),
           html: emailHtml,
         }),
+        signal: AbortSignal.timeout(RESEND_TIMEOUT_MS),
       });
       resendBody = await resendRes.text();
     } catch (err) {
@@ -447,11 +452,20 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!resendRes.ok) {
+      // Un 5xx o un 409 de idempotencia (otro pedido con la misma key en curso,
+      // o la key ya usada) no dicen si el mail salió: se reintenta con la misma
+      // key. Los demás errores sí dicen que no salió nada.
+      const outcomeUnknown = resendRes.status >= 500 ||
+        (resendRes.status === 409 &&
+          /concurrent_idempotent_requests|invalid_idempotent_request/.test(resendBody));
+      const failedStatus = outcomeUnknown ? "unconfirmed" : "error";
       // El cuerpo de Resend puede traer el email: queda en error_message.
-      console.error(`[send-welcome-email] Resend error ${resendRes.status} for user=${profile.id} plan=${category}`);
+      console.error(
+        `[send-welcome-email] Resend error ${resendRes.status} for user=${profile.id} plan=${category} (${failedStatus})`,
+      );
       const { error: errorUpdateError } = await supabase
         .from("welcome_email_queue")
-        .update({ status: "error", error_message: resendBody })
+        .update({ status: failedStatus, error_message: resendBody })
         .eq("id", claim.id);
       if (errorUpdateError) {
         console.error(
