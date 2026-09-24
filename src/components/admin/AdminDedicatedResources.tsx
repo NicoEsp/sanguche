@@ -12,7 +12,9 @@ interface AdminDedicatedResourcesProps {
 }
 
 export function AdminDedicatedResources({ userId }: AdminDedicatedResourcesProps) {
-  const { resources, loading, refetch } = useUserDedicatedResources(userId);
+  // Las mutaciones invalidan esta lista; antes invalidaban una key que no
+  // existía y acá se compensaba con un refetch a mano en cada cierre de diálogo.
+  const { resources, loading } = useUserDedicatedResources(userId);
   const deleteResource = useDeleteDedicatedResource();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -35,7 +37,6 @@ export function AdminDedicatedResources({ userId }: AdminDedicatedResourcesProps
       await deleteResource.mutateAsync(resourceToDelete);
       setShowDeleteDialog(false);
       setResourceToDelete(null);
-      refetch();
     }
   };
 
@@ -43,7 +44,6 @@ export function AdminDedicatedResources({ userId }: AdminDedicatedResourcesProps
     setShowCreateDialog(false);
     setShowEditDialog(false);
     setSelectedResource(null);
-    refetch();
   };
 
   if (loading) {
