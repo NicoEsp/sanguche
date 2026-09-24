@@ -1,5 +1,6 @@
 import type { CanvasStage, ProgressObjective } from "@/types/progress";
 import type { UserProgressObjective } from "@/hooks/useUserProgressObjectives";
+import { parseDateOnly } from "@/utils/dateOnly";
 
 export interface StageConfig {
   key: CanvasStage;
@@ -82,7 +83,7 @@ const longDateFormatter = new Intl.DateTimeFormat("es-AR", {
 
 export const formatDueDate = (date?: string) => {
   if (!date) return "Sin fecha";
-  const parsed = new Date(date);
+  const parsed = parseDateOnly(date);
   if (Number.isNaN(parsed.getTime())) {
     return "Sin fecha";
   }

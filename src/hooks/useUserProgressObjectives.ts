@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 import type { ProgressObjective } from '@/types/progress';
 
-export interface UserProgressObjective extends Omit<ProgressObjective, 'mentorNotes'> {
+export interface UserProgressObjective extends Omit<ProgressObjective, 'mentorNotes' | 'dueDate'> {
   user_id: string;
   objective_id: string | null;
   assigned_by_admin: string | null;
@@ -187,6 +187,7 @@ export function useCreateUserObjective() {
       objectiveId = null,
       source = 'custom',
       status = 'not-started',
+      mentorNotes = null,
     }: {
       userId: string;
       title: string;
@@ -198,6 +199,7 @@ export function useCreateUserObjective() {
       objectiveId?: string | null;
       source?: ProgressObjective['source'];
       status?: ProgressObjective['status'];
+      mentorNotes?: string | null;
     }) => {
       const { data, error } = await supabase
         .from('user_progress_objectives')
@@ -212,7 +214,7 @@ export function useCreateUserObjective() {
           source,
           status,
           due_date: dueDate || null,
-          mentor_notes: null,
+          mentor_notes: mentorNotes,
           assigned_by_admin: null,
         })
         .select()

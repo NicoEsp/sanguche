@@ -27,6 +27,7 @@ import { DragOverlayCard } from "@/components/progress/DragOverlayCard";
 import { ObjectiveAvailableColumn } from "@/components/progress/ObjectiveAvailableColumn";
 import { RecommendedObjectivesColumn } from "@/components/progress/RecommendedObjectivesColumn";
 import { AddCustomObjectiveDialog } from "@/components/progress/AddCustomObjectiveDialog";
+import { toDateOnly } from "@/utils/dateOnly";
 import {
   type AddCustomObjectiveState,
   type StageObjectivesMap,
@@ -289,9 +290,7 @@ export default function Progress() {
       type: trimmedType,
       timeframe: customState.timeframe,
       steps,
-      dueDate: customState.dueDate
-        ? customState.dueDate.toISOString().split("T")[0]
-        : undefined,
+      dueDate: customState.dueDate ? toDateOnly(customState.dueDate) : undefined,
     });
 
     trackEvent("objective_added_to_canvas", {
