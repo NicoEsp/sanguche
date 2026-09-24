@@ -303,7 +303,9 @@ export default function CourseDetail() {
           <div className="lg:col-span-2 space-y-6">
             {activeLesson ? (
               <>
+                {/* key: el estado del reproductor (error, "ya empezó") es de cada lección */}
                 <VideoPlayer
+                  key={activeLesson.id}
                   lesson={activeLesson}
                   courseSlug={course.slug}
                   isCompleted={activeLesson.isCompleted}
