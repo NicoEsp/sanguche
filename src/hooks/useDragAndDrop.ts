@@ -22,6 +22,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { CanvasStage } from "@/types/progress";
 import type { UserProgressObjective } from "@/hooks/useUserProgressObjectives";
 import type { GeneratedObjective } from "@/hooks/useRecommendedObjectives";
+import { objectiveIdFromDragId } from "@/components/progress/shared";
 
 const STAGES: CanvasStage[] = ["now", "soon", "later"];
 
@@ -42,7 +43,6 @@ interface UseDragAndDropOptions {
   recommendedObjectives: GeneratedObjective[];
   canvasObjectives: UserProgressObjective[];
   objectivesByStage: StageObjectivesMap;
-  customObjectives: UserProgressObjective[];
   createUserObjective: {
     mutate: (params: {
       userId: string;
@@ -112,7 +112,6 @@ export function useDragAndDrop({
   recommendedObjectives,
   canvasObjectives,
   objectivesByStage,
-  customObjectives,
   createUserObjective,
   updateUserObjective,
   queryClient,
@@ -182,7 +181,7 @@ export function useDragAndDrop({
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
-      const id = event.active.id as string;
+      const id = objectiveIdFromDragId(event.active.id);
       setDraggingId(id);
 
       // 1. Check canvas objectives (sortable cards on the board)
@@ -239,7 +238,7 @@ export function useDragAndDrop({
 
       if (!over || !profileId) return;
 
-      const draggedId = active.id as string;
+      const draggedId = objectiveIdFromDragId(active.id);
       const targetId = over.id as string;
 
       // --- Scenario 1: Dropping a recommended objective onto the canvas ---
@@ -361,14 +360,19 @@ export function useDragAndDrop({
         position: idx,
       }));
 
+      // supabase-js no rechaza la promesa ante un error de la base, lo devuelve
+      // en { error }: con solo un .catch, el rollback no corría nunca.
+      const rollback = () => {
+        queryClient.setQueryData(["user-progress-objectives", profileId], previousObjectives);
+        toast.error("Error al reordenar. Intenta nuevamente.");
+      };
       Promise.all(
         updates.map(({ id, position }) =>
           supabase.from("user_progress_objectives").update({ position }).eq("id", id)
         )
-      ).catch(() => {
-        queryClient.setQueryData(["user-progress-objectives", profileId], previousObjectives);
-        toast.error("Error al reordenar. Intenta nuevamente.");
-      });
+      ).then((results) => {
+        if (results.some((result) => result.error)) rollback();
+      }, rollback);
 
       triggerDropAnimation(draggedId);
     },
@@ -379,7 +383,6 @@ export function useDragAndDrop({
       recommendedObjectives,
       userObjectives,
       createUserObjective,
-      customObjectives,
       updateUserObjective,
       trackEvent,
       queryClient,

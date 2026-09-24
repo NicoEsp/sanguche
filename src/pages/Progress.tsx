@@ -131,7 +131,6 @@ export default function Progress() {
     recommendedObjectives,
     canvasObjectives,
     objectivesByStage,
-    customObjectives,
     createUserObjective,
     updateUserObjective,
     queryClient,

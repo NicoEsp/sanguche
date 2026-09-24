@@ -76,6 +76,20 @@ export const initialCustomState: AddCustomObjectiveState = {
 
 export const MAX_CUSTOM_OBJECTIVES = 3;
 
+/**
+ * Las columnas de abajo muestran los mismos objetivos que el canvas, y dnd-kit
+ * necesita ids únicos: con el mismo id, un nodo pisaba al otro en el registro
+ * y al arrastrar se medía la tarjeta equivocada. Las de abajo llevan prefijo.
+ */
+const AVAILABLE_DRAG_PREFIX = "available:";
+
+export const availableDragId = (objectiveId: string) => `${AVAILABLE_DRAG_PREFIX}${objectiveId}`;
+
+export const objectiveIdFromDragId = (dragId: string | number) => {
+  const id = String(dragId);
+  return id.startsWith(AVAILABLE_DRAG_PREFIX) ? id.slice(AVAILABLE_DRAG_PREFIX.length) : id;
+};
+
 const longDateFormatter = new Intl.DateTimeFormat("es-AR", {
   day: "numeric",
   month: "long",
