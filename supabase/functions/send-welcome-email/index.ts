@@ -9,8 +9,9 @@
 // share the same category ('premium'); B2B and Review each have their own.
 // Idempotency: the queue row is claimed (status "pending") before sending, and
 // UNIQUE(user_id, plan) on welcome_email_queue lets only one request through.
-// The function is public, so it only sends when the user really has that plan
-// active.
+// A row left in "error" (Resend rejected the send) can be claimed again, so a
+// later call retries it. The function is public, so it only sends when the
+// user really has that plan active, and it never returns or logs the email.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -271,7 +272,10 @@ Deno.serve(async (req: Request) => {
     // el front), así que no confía en el body: solo manda la bienvenida si el
     // usuario tiene ese plan activo. Sin esto, cualquiera con el id de un perfil
     // podía hacerle llegar una bienvenida de un plan que no compró.
-    const [{ data: subscription }, { data: profile, error: profileError }] = await Promise.all([
+    const [
+      { data: subscription, error: subscriptionError },
+      { data: profile, error: profileError },
+    ] = await Promise.all([
       supabase
         .from("user_subscriptions")
         .select("plan, status")
@@ -283,6 +287,15 @@ Deno.serve(async (req: Request) => {
         .eq("id", userId)
         .maybeSingle(),
     ]);
+
+    // Un error de la base no es "no tiene el plan": se responde 500 y no 409.
+    if (subscriptionError) {
+      console.error(`[send-welcome-email] Could not read subscription for ${userId}:`, subscriptionError);
+      return new Response(
+        JSON.stringify({ error: "Subscription unavailable" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (
       subscription?.status !== "active" ||
@@ -315,7 +328,7 @@ Deno.serve(async (req: Request) => {
     // La fila de la cola se reserva antes de mandar: UNIQUE(user_id, plan) deja
     // pasar un solo pedido. Antes se consultaba, se mandaba y recién después se
     // insertaba, así que dos llamadas en paralelo mandaban dos mails.
-    const { data: claim, error: claimError } = await supabase
+    const inserted = await supabase
       .from("welcome_email_queue")
       .insert({
         user_id: profile.id,
@@ -325,15 +338,34 @@ Deno.serve(async (req: Request) => {
       })
       .select("id")
       .single();
+    let claim = inserted.data;
+    let claimError = inserted.error;
 
-    if (claimError) {
-      if (claimError.code === "23505") {
+    // Ya hay fila. Si quedó en "error" (Resend rechazó el envío) se vuelve a
+    // reservar para reintentar. El UPDATE con status = 'error' es atómico: de
+    // dos pedidos en paralelo, uno solo la pasa a "pending". "pending" y
+    // "sent" no se tocan.
+    if (claimError?.code === "23505") {
+      const reclaimed = await supabase
+        .from("welcome_email_queue")
+        .update({ status: "pending", email: profile.email, error_message: null })
+        .eq("user_id", profile.id)
+        .eq("plan", category)
+        .eq("status", "error")
+        .select("id")
+        .maybeSingle();
+      if (!reclaimed.error && !reclaimed.data) {
         console.log(`[send-welcome-email] SKIP ${userId} (${category}): already sent`);
         return new Response(
           JSON.stringify({ message: "Already sent", skipped: true }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      claim = reclaimed.data;
+      claimError = reclaimed.error;
+    }
+
+    if (claimError || !claim) {
       console.error(`[send-welcome-email] Could not claim queue row for ${userId} (${category}):`, claimError);
       return new Response(
         JSON.stringify({ error: "Queue unavailable" }),
@@ -342,7 +374,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const label = planLabel(plan);
-    console.log(`[send-welcome-email] SENDING ${label} welcome to ${profile.email}`);
+    console.log(`[send-welcome-email] SENDING ${label} welcome to user=${profile.id}`);
 
     const emailHtml = buildEmailHtml(profile.name || "", plan);
 
@@ -363,7 +395,8 @@ Deno.serve(async (req: Request) => {
     const resendBody = await resendRes.text();
 
     if (!resendRes.ok) {
-      console.error(`[send-welcome-email] Resend error for ${profile.email}:`, resendBody);
+      // El cuerpo de Resend puede traer el email: queda en error_message.
+      console.error(`[send-welcome-email] Resend error ${resendRes.status} for user=${profile.id} plan=${category}`);
       const { error: errorUpdateError } = await supabase
         .from("welcome_email_queue")
         .update({ status: "error", error_message: resendBody })
@@ -375,7 +408,7 @@ Deno.serve(async (req: Request) => {
         );
       }
       return new Response(
-        JSON.stringify({ error: "Failed to send", details: resendBody }),
+        JSON.stringify({ error: "Failed to send" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -388,15 +421,15 @@ Deno.serve(async (req: Request) => {
       .eq("id", claim.id);
     if (queueUpdateError) {
       console.error(
-        `[send-welcome-email] Email sent but queue update failed for user=${profile.id} plan=${category} email=${profile.email}:`,
+        `[send-welcome-email] Email sent but queue update failed for user=${profile.id} plan=${category}:`,
         queueUpdateError,
       );
     }
 
-    console.log(`[send-welcome-email] SENT ${label} to ${profile.email}`);
+    console.log(`[send-welcome-email] SENT ${label} to user=${profile.id}`);
 
     return new Response(
-      JSON.stringify({ message: "Sent", email: profile.email }),
+      JSON.stringify({ message: "Sent" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
