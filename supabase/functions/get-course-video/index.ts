@@ -38,8 +38,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const userId = claimsData.claims.sub;
-
     // Parse request
     const { lesson_id } = await req.json();
     if (!lesson_id || typeof lesson_id !== "string") {
