@@ -61,6 +61,7 @@ interface ChunkInfo {
   imports: string[];
   isEntry: boolean;
   facadeModuleId: string | null;
+  moduleIds: string[];
 }
 
 // Estado del build en curso: lo completan configResolved y writeBundle, y lo
@@ -108,6 +109,7 @@ export const prerenderSeoPlugin = () => ({
         imports: item.imports ?? [],
         isEntry: item.isEntry ?? false,
         facadeModuleId: item.facadeModuleId ?? null,
+        moduleIds: item.moduleIds ?? [],
       });
     }
   },
@@ -144,9 +146,13 @@ export const prerenderSeoPlugin = () => ({
     const modulePreloads = (pattern: string) => {
       const source = PAGE_SOURCES[pattern];
       if (!source) return '';
-      const page = chunks.find(
-        (c) => c.facadeModuleId && path.relative(root, c.facadeModuleId) === source
-      );
+      // Normalmente la página es la fachada de su chunk. Si el chunk además
+      // exporta algo que usa otro chunk (un import dinámico desde la página),
+      // Rollup no le asigna fachada: entonces se busca por los módulos.
+      const isSource = (id: string | null) => !!id && path.relative(root, id) === source;
+      const page =
+        chunks.find((c) => isSource(c.facadeModuleId)) ??
+        chunks.find((c) => c.moduleIds.some(isSource));
       if (!page) {
         throw new Error(`[prerender] No hay chunk para ${source} (ruta ${pattern}). ¿Se renombró la página?`);
       }

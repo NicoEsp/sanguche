@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { AssessmentTypeKey, DomainScore, SeniorityLevel } from "@/utils/scoring";
-import { shareOrDownloadRadar } from "@/utils/radarShareImage";
+
+// El generador de la imagen va en su propio chunk: se pide con la página ya en
+// pantalla (o al acercarse al botón), no antes de mostrarla.
+const loadRadarShare = () => import("@/utils/radarShareImage");
 
 interface ShareRadarButtonProps {
   scores: DomainScore[];
@@ -24,9 +27,15 @@ export function ShareRadarButton(props: ShareRadarButtonProps) {
   const { toast } = useToast();
   const { trackEvent } = useMixpanelTracking();
 
+  useEffect(() => {
+    const timer = setTimeout(() => void loadRadarShare(), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleClick = async () => {
     setBusy(true);
     try {
+      const { shareOrDownloadRadar } = await loadRadarShare();
       const { outcome, textCopied } = await shareOrDownloadRadar(props);
       if (outcome === "cancelled") return;
 
@@ -71,7 +80,15 @@ export function ShareRadarButton(props: ShareRadarButtonProps) {
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleClick} disabled={busy} className="shrink-0">
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleClick}
+      onPointerEnter={() => void loadRadarShare()}
+      onFocus={() => void loadRadarShare()}
+      disabled={busy}
+      className="shrink-0"
+    >
       {busy ? (
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
       ) : (

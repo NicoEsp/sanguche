@@ -4,8 +4,12 @@ import { Check, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { AnyAssessmentValues, AssessmentResult, AssessmentTypeKey } from "@/utils/scoring";
-import { buildAssessmentMarkdown } from "@/utils/assessmentMarkdown";
 import { copyText } from "@/utils/clipboard";
+
+// El armado del Markdown (textos de todos los dominios) va en su propio chunk:
+// se pide con la página ya en pantalla o al acercarse al botón, así al click ya
+// está cargado y la copia sigue dentro del gesto del usuario (Safari la exige).
+const loadMarkdown = () => import("@/utils/assessmentMarkdown");
 
 interface CopyForLlmButtonProps {
   result: AssessmentResult;
@@ -26,10 +30,16 @@ export function CopyForLlmButton({ result, values, assessmentType, updatedAt }: 
 
   useEffect(() => () => clearTimeout(resetTimer.current), []);
 
-  const handleClick = async () => {
-    const markdown = buildAssessmentMarkdown({ result, values, assessmentType, updatedAt });
+  useEffect(() => {
+    const timer = setTimeout(() => void loadMarkdown(), 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
+  const handleClick = async () => {
+    let markdown: string;
     try {
+      const { buildAssessmentMarkdown } = await loadMarkdown();
+      markdown = buildAssessmentMarkdown({ result, values, assessmentType, updatedAt });
       await copyText(markdown);
     } catch (error) {
       if (import.meta.env.DEV) console.error("Error copiando el markdown:", error);
@@ -59,7 +69,14 @@ export function CopyForLlmButton({ result, values, assessmentType, updatedAt }: 
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleClick} className="shrink-0">
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleClick}
+      onPointerEnter={() => void loadMarkdown()}
+      onFocus={() => void loadMarkdown()}
+      className="shrink-0"
+    >
       {copied ? (
         <Check className="h-4 w-4 mr-2 text-green-600" />
       ) : (
