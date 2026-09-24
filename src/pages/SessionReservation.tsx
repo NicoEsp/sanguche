@@ -11,6 +11,7 @@ import { Calendar, Users, CheckCircle2, ArrowRight, Sparkles, Lock, Target, Book
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { argentinaWallTime } from '@/utils/argentinaTime';
 import { Seo } from '@/components/Seo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -193,10 +194,10 @@ const SessionReservation = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">
-                        {format(new Date(session.session_date), "EEEE d 'de' MMMM", { locale: es })}
+                        {format(argentinaWallTime(session.session_date), "EEEE d 'de' MMMM", { locale: es })}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {format(new Date(session.session_date), "h:mm a")} (Argentina)
+                        {format(argentinaWallTime(session.session_date), "h:mm a")} (Argentina)
                       </p>
                     </div>
                   </div>
