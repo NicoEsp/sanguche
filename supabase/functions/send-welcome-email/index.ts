@@ -7,8 +7,10 @@
 //
 // Sends one welcome email per (user, welcome category). Premium and RePremium
 // share the same category ('premium'); B2B and Review each have their own.
-// Idempotency: UNIQUE(user_id, plan) on welcome_email_queue + the pre-check
-// below.
+// Idempotency: the queue row is claimed (status "pending") before sending, and
+// UNIQUE(user_id, plan) on welcome_email_queue lets only one request through.
+// The function is public, so it only sends when the user really has that plan
+// active.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -265,26 +267,34 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
     const category = welcomeCategory(plan);
 
-    const { data: existing } = await supabase
-      .from("welcome_email_queue")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("plan", category)
-      .maybeSingle();
+    // La función es pública (el trigger la llama con la anon key, que está en
+    // el front), así que no confía en el body: solo manda la bienvenida si el
+    // usuario tiene ese plan activo. Sin esto, cualquiera con el id de un perfil
+    // podía hacerle llegar una bienvenida de un plan que no compró.
+    const [{ data: subscription }, { data: profile, error: profileError }] = await Promise.all([
+      supabase
+        .from("user_subscriptions")
+        .select("plan, status")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("id, name, email")
+        .eq("id", userId)
+        .maybeSingle(),
+    ]);
 
-    if (existing) {
-      console.log(`[send-welcome-email] SKIP ${userId} (${category}): already sent`);
+    if (
+      subscription?.status !== "active" ||
+      !isWelcomePlan(subscription.plan) ||
+      welcomeCategory(subscription.plan) !== category
+    ) {
+      console.warn(`[send-welcome-email] SKIP ${userId} (${category}): no active ${category} plan`);
       return new Response(
-        JSON.stringify({ message: "Already sent", skipped: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "No active plan for this welcome" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("id, name, email")
-      .eq("id", userId)
-      .single();
 
     if (profileError || !profile) {
       console.error(`[send-welcome-email] Profile ${userId} not found:`, profileError);
@@ -299,6 +309,35 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ error: "Profile has no email" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // La fila de la cola se reserva antes de mandar: UNIQUE(user_id, plan) deja
+    // pasar un solo pedido. Antes se consultaba, se mandaba y recién después se
+    // insertaba, así que dos llamadas en paralelo mandaban dos mails.
+    const { data: claim, error: claimError } = await supabase
+      .from("welcome_email_queue")
+      .insert({
+        user_id: profile.id,
+        plan: category,
+        email: profile.email,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+
+    if (claimError) {
+      if (claimError.code === "23505") {
+        console.log(`[send-welcome-email] SKIP ${userId} (${category}): already sent`);
+        return new Response(
+          JSON.stringify({ message: "Already sent", skipped: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.error(`[send-welcome-email] Could not claim queue row for ${userId} (${category}):`, claimError);
+      return new Response(
+        JSON.stringify({ error: "Queue unavailable" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -325,19 +364,14 @@ Deno.serve(async (req: Request) => {
 
     if (!resendRes.ok) {
       console.error(`[send-welcome-email] Resend error for ${profile.email}:`, resendBody);
-      const { error: errorQueueInsertError } = await supabase
+      const { error: errorUpdateError } = await supabase
         .from("welcome_email_queue")
-        .insert({
-          user_id: profile.id,
-          plan: category,
-          email: profile.email,
-          status: "error",
-          error_message: resendBody,
-        });
-      if (errorQueueInsertError) {
+        .update({ status: "error", error_message: resendBody })
+        .eq("id", claim.id);
+      if (errorUpdateError) {
         console.error(
-          `[send-welcome-email] Failed to record error row for user=${profile.id} plan=${category}:`,
-          errorQueueInsertError,
+          `[send-welcome-email] Failed to record error for user=${profile.id} plan=${category}:`,
+          errorUpdateError,
         );
       }
       return new Response(
@@ -346,21 +380,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // The email was sent successfully — make a noisy log if we fail to record
-    // it. Without the queue row, the trigger could re-fire (e.g. on a quick
-    // follow-up update) and lead to a duplicate send.
-    const { error: queueInsertError } = await supabase
+    // The email was sent: if this update fails the row stays as "pending",
+    // which still blocks a second send.
+    const { error: queueUpdateError } = await supabase
       .from("welcome_email_queue")
-      .insert({
-        user_id: profile.id,
-        plan: category,
-        email: profile.email,
-        status: "sent",
-      });
-    if (queueInsertError) {
+      .update({ status: "sent", sent_at: new Date().toISOString() })
+      .eq("id", claim.id);
+    if (queueUpdateError) {
       console.error(
-        `[send-welcome-email] Email sent but queue insert failed for user=${profile.id} plan=${category} email=${profile.email}:`,
-        queueInsertError,
+        `[send-welcome-email] Email sent but queue update failed for user=${profile.id} plan=${category} email=${profile.email}:`,
+        queueUpdateError,
       );
     }
 
