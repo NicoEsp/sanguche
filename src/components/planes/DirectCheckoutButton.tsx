@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { buildDirectCheckoutUrl, DirectCheckoutKey } from "@/lib/directCheckout";
 import { isValidEmail } from "@/utils/email";
+import { preconnectCheckout } from "@/lib/checkoutPrefetch";
 
 interface DirectCheckoutButtonProps {
   plan: DirectCheckoutKey;
@@ -87,6 +88,10 @@ export function DirectCheckoutButton({
       <Button
         type="button"
         onClick={handleClick}
+        // La URL se arma al instante: lo único que se puede adelantar es la
+        // conexión con LemonSqueezy.
+        onPointerEnter={preconnectCheckout}
+        onFocus={preconnectCheckout}
         disabled={redirecting}
         className={className}
       >
