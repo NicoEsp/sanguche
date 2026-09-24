@@ -22,34 +22,21 @@ export function useAllExercises() {
   return useQuery({
     queryKey: ['all-exercises'],
     queryFn: async (): Promise<ExerciseWithUser[]> => {
-      // First get all exercises
-      const { data: exercises, error: exercisesError } = await supabase
+      // Ejercicios con su usuario en un solo request. Antes eran dos en fila
+      // y el segundo mandaba todos los ids en la URL (.in): con un par de
+      // cientos de usuarios con ejercicios, la URL pasaba el límite y la
+      // pantalla fallaba. La tabla tiene dos FKs a profiles, de ahí el nombre.
+      const { data, error } = await supabase
         .from('user_exercises')
-        .select('*')
+        .select('*, owner:profiles!exercise_requests_user_id_fkey(name, email)')
         .order('created_at', { ascending: false });
 
-      if (exercisesError) throw exercisesError;
-      if (!exercises || exercises.length === 0) return [];
+      if (error) throw error;
 
-      // Get unique user IDs
-      const userIds = [...new Set(exercises.map(e => e.user_id))];
-
-      // Fetch profiles for those users
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, name, email')
-        .in('id', userIds);
-
-      if (profilesError) throw profilesError;
-
-      // Create a map for quick lookup
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-
-      // Combine exercises with user info
-      return exercises.map(exercise => ({
+      return (data ?? []).map(({ owner, ...exercise }) => ({
         ...exercise,
-        user_name: profileMap.get(exercise.user_id)?.name || null,
-        user_email: profileMap.get(exercise.user_id)?.email || null,
+        user_name: owner?.name || null,
+        user_email: owner?.email || null,
       }));
     },
   });
