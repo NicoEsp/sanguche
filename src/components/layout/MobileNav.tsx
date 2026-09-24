@@ -41,9 +41,11 @@ export function MobileNav() {
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur md:hidden">
         <div className="container flex h-14 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img 
-              src="/assets/sanguche.png" 
-              alt="ProductPrepa Logo" 
+            <img
+              src="/assets/sanguche-96.png"
+              width={96}
+              height={96}
+              alt="ProductPrepa Logo"
               className="h-6 w-6 object-contain"
             />
             <span className="font-semibold">

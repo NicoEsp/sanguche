@@ -21,7 +21,9 @@ export function LandingHeader() {
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2 shrink-0">
             <img
-              src="/assets/sanguche.png"
+              src="/assets/sanguche-96.png"
+              width={96}
+              height={96}
               alt="ProductPrepa Logo"
               className="h-7 w-7"
             />

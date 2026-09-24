@@ -246,9 +246,11 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
             collapsed ? "justify-center" : "justify-between"
           )}>
             <Link to="/" className="flex items-center gap-2">
-              <img 
-                src="/assets/sanguche.png" 
-                alt="ProductPrepa Logo" 
+              <img
+                src="/assets/sanguche-96.png"
+                width={96}
+                height={96}
+                alt="ProductPrepa Logo"
                 className="h-7 w-7 object-contain"
               />
               {!collapsed && (

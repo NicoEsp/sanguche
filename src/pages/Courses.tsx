@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCourses } from "@/hooks/useCourses";
 import { useCourseAccess } from "@/hooks/useCourseAccess";
 import { Mixpanel } from "@/lib/mixpanel";
-import sanguche from "@/assets/sanguche-build.png";
+import sanguche from "@/assets/sanguche-build.webp";
 
 const getPlanMessage = (plan: string | null) => {
   switch (plan) {
