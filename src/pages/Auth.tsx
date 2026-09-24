@@ -168,7 +168,7 @@ export default function Auth() {
       <Seo
         title={`${getTitle()} — ProductPrepa`}
         description="Accede a tu cuenta de ProductPrepa para continuar con tu evaluación y recomendaciones personalizadas."
-        canonical="/login"
+        canonical="/auth"
         keywords="login productprepa, registro PM, acceso cuenta"
       />
       

@@ -1,6 +1,5 @@
-import { FileText, ExternalLink } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import type { CourseExercise as CourseExerciseType } from "@/types/courses";
 
 interface CourseExerciseProps {
@@ -34,11 +33,6 @@ export function CourseExercise({ exercise }: CourseExerciseProps) {
             </div>
           </div>
         )}
-
-        <Button variant="outline" className="w-full">
-          <ExternalLink className="h-4 w-4 mr-2" />
-          Abrir ejercicio
-        </Button>
       </CardContent>
     </Card>
   );
