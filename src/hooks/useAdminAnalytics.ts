@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ASSESSMENT_TYPES, type AssessmentTypeKey } from '@/utils/scoring';
+import { fetchAllRows } from '@/utils/fetchAllRows';
 
 // Este hook ya no usa el precio de lista para nada: el MRR sale de montos
 // efectivamente cobrados y, cuando falta el dato, de LEGACY_MONTHLY_PRICES.
@@ -25,24 +26,6 @@ const LEGACY_MONTHLY_PRICES = {
   premium: 50000,
   repremium: 120000,
 };
-
-const PAGE_SIZE = 1000;
-
-// Supabase caps queries at 1000 rows; fetch in pages so results are never truncated
-async function fetchAllRows<T>(
-  makeQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>
-): Promise<T[]> {
-  const rows: T[] = [];
-  let from = 0;
-  while (true) {
-    const { data, error } = await makeQuery(from, from + PAGE_SIZE - 1);
-    if (error) throw error;
-    rows.push(...(data ?? []));
-    if (!data || data.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
-  }
-  return rows;
-}
 
 interface PlanBreakdown {
   paid: number;

@@ -71,9 +71,6 @@ verify_jwt = false
 [functions.cancel-subscription]
 verify_jwt = true
 
-[functions.get-admin-users]
-verify_jwt = true
-
 [functions.delete-user]
 verify_jwt = true
 

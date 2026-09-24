@@ -84,12 +84,31 @@ Deno.serve(async (req) => {
 
     console.log(`[delete-user] Attempting to delete profile: ${profileId}`);
 
-    // Get target user information before deletion for logging
-    const { data: targetProfile, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('id, user_id, name')
-      .eq('id', profileId)
-      .single();
+    // Datos para el log de auditoría, en paralelo. El email sale de profiles
+    // (lo sincroniza un trigger desde auth.users): antes se pedía a la función
+    // get-admin-users, que listaba solo los primeros 50 usuarios, así que el
+    // resto quedaba auditado sin email.
+    const [
+      { data: targetProfile, error: profileError },
+      { data: subscription },
+      { data: adminProfile },
+    ] = await Promise.all([
+      supabaseClient
+        .from('profiles')
+        .select('id, user_id, name, email')
+        .eq('id', profileId)
+        .single(),
+      supabaseClient
+        .from('user_subscriptions')
+        .select('plan, status')
+        .eq('user_id', profileId)
+        .maybeSingle(),
+      supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single(),
+    ]);
 
     if (profileError || !targetProfile) {
       console.error('[delete-user] Target profile not found:', profileError);
@@ -108,25 +127,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get subscription info for logging
-    const { data: subscription } = await supabaseClient
-      .from('user_subscriptions')
-      .select('plan, status')
-      .eq('user_id', profileId)
-      .single();
-
-    // Get email for logging
-    const { data: emailData } = await supabaseClient.functions.invoke('get-admin-users');
-    const userEmail = emailData?.users?.find((u: any) => u.user_id === targetProfile.user_id)?.email;
+    const userEmail = targetProfile.email;
 
     console.log(`[delete-user] Target user info - Name: ${maskName(targetProfile.name)}, Email: ${maskEmail(userEmail)}`);
-
-    // Get current admin's profile ID for logging
-    const { data: adminProfile } = await supabaseClient
-      .from('profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
 
     // AUDIT: Log deletion action before performing it
     if (adminProfile) {
@@ -141,8 +144,6 @@ Deno.serve(async (req) => {
         },
         timestamp: new Date().toISOString(),
       };
-
-      console.log('[delete-user] Logging audit action:', auditDetails);
 
       await supabaseClient.rpc('log_admin_action', {
         p_admin_user_id: adminProfile.id,
