@@ -9,6 +9,7 @@ import { prerenderedAt, prerenderedPost } from '@/seo/prerenderedData';
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
+  const prerendered = prerenderedPost(slug);
 
   const { data: post, isLoading, isError } = useQuery({
     queryKey: ['blog-post-public', slug],
@@ -25,7 +26,12 @@ export default function BlogPost() {
     enabled: !!slug,
     // El build ya dejó este artículo en el HTML: si es el mismo slug, el primer
     // render del cliente es idéntico al HTML servido, sin skeleton intermedio.
-    initialData: prerenderedPost(slug),
+    initialData: prerendered,
+    // Fechado en el build, no ahora, y revalidado al montar, igual que en
+    // BlogList: sin esto, una edición posterior al deploy no se vería en toda
+    // la sesión (refetchOnMount es false a nivel global).
+    initialDataUpdatedAt: prerendered ? prerenderedAt() : undefined,
+    refetchOnMount: prerendered ? true : undefined,
   });
 
   if (isLoading) {

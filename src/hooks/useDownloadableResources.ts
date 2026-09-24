@@ -47,23 +47,30 @@ export function getResourceAccessState(
  * recomendarle a cada persona en /mejoras. Un material bueno tiene que estar
  * en las dos partes.
  */
-export function useDownloadableResources() {
-  return useQuery({
-    queryKey: ['downloadable-resources'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('downloadable_resources')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
+const downloadableResourcesQuery = {
+  queryKey: ['downloadable-resources'],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from('downloadable_resources')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
 
-      if (error) throw error;
-      return data as DownloadableResource[];
-    },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-  });
+    if (error) throw error;
+    return data as DownloadableResource[];
+  },
+  staleTime: 5 * 60 * 1000,
+  gcTime: 10 * 60 * 1000,
+};
+
+export function useDownloadableResources() {
+  return useQuery(downloadableResourcesQuery);
 }
+
+// Las recomendaciones de /mejoras salen del mismo catálogo: comparten la query
+// y filtran en el cliente, en vez de pedir la tabla otra vez con otra clave.
+const withConditionDomain = (resources: DownloadableResource[]) =>
+  resources.filter((resource) => resource.condition_domain !== null);
 
 /**
  * Descargables ordenados por afinidad con el resultado de la evaluación. El
@@ -80,20 +87,8 @@ export function useSkillGapsResources(
   } = useSubscription();
 
   const { data: resources = [], isLoading: loading, error } = useQuery({
-    queryKey: ['skill-gaps-resources'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('downloadable_resources')
-        .select('*')
-        .eq('is_active', true)
-        .not('condition_domain', 'is', null)
-        .order('display_order', { ascending: true });
-
-      if (error) throw error;
-      return data as DownloadableResource[];
-    },
-    staleTime: 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    ...downloadableResourcesQuery,
+    select: withConditionDomain,
   });
 
   const recommendations = useMemo(() => {
@@ -210,14 +205,20 @@ export type ResourceOpenError = ResourceUrlError | 'popup-blocked';
  * abrió. La pestaña se abre en blanco antes del primer await: si se abriera
  * después de resolver la URL, el navegador la bloquea como popup porque ya no
  * la asocia al click.
+ *
+ * `verifiedUrl` es una URL que resolveResourceUrl ya firmó y verificó (la de la
+ * vista previa): con ella no se vuelve a firmar ni a hacer el HEAD.
  */
 export async function openResourceInNewTab(
   resource: DownloadableResource,
+  verifiedUrl?: string,
 ): Promise<ResourceOpenError | null> {
   const win = window.open('about:blank', '_blank');
   if (win) win.opener = null;
 
-  const resolved = await resolveResourceUrl(resource);
+  const resolved: ResolvedResource = verifiedUrl
+    ? { url: verifiedUrl }
+    : await resolveResourceUrl(resource);
   if ('error' in resolved) {
     win?.close();
     return resolved.error;

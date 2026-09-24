@@ -12,7 +12,7 @@ import {
   ResourcePreviewDialog,
 } from '@/components/downloads/ResourcePreviewDialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAssessmentData } from '@/hooks/useAssessmentData';
+import { useProfileCompositeData } from '@/hooks/useProfileCompositeData';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 import {
@@ -48,7 +48,12 @@ export default function Descargables() {
   const { data: resources, isLoading, error } = useDownloadableResources();
   const { isAuthenticated } = useAuth();
   const { hasActivePremium, isError: subscriptionFailed } = useSubscription();
-  const { hasAssessment, loading: assessmentLoading } = useAssessmentData();
+  // Solo hace falta saber si ya hizo la evaluación, y eso ya viene en los
+  // datos compuestos que se precargan al iniciar sesión.
+  const {
+    data: { hasAssessment },
+    loading: assessmentLoading,
+  } = useProfileCompositeData();
   const { trackEvent } = useMixpanelTracking();
 
   const [search, setSearch] = useState('');
@@ -108,9 +113,9 @@ export default function Descargables() {
     trackEvent('resource_previewed', eventProps(resource));
   };
 
-  const handleDownload = async (resource: DownloadableResource) => {
+  const handleDownload = async (resource: DownloadableResource, verifiedUrl?: string) => {
     setBusy({ id: resource.id, action: 'download' });
-    const failure = await openResourceInNewTab(resource);
+    const failure = await openResourceInNewTab(resource, verifiedUrl);
     setBusy(null);
     if (failure) return reportFailure(resource, 'download', failure);
     trackEvent('resource_downloaded', eventProps(resource));
@@ -214,7 +219,7 @@ export default function Descargables() {
       <ResourcePreviewDialog
         preview={preview}
         onClose={() => setPreview(null)}
-        onDownload={() => preview && void handleDownload(preview.resource)}
+        onDownload={() => preview && void handleDownload(preview.resource, preview.url)}
         downloading={busy?.action === 'download'}
       />
     </>
