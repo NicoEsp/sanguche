@@ -9,11 +9,11 @@
 // share the same category ('premium'); B2B and Review each have their own.
 // Idempotency: the queue row is claimed (status "pending") before sending, and
 // UNIQUE(user_id, plan) on welcome_email_queue lets only one request through.
-// A row left in "error" (Resend rejected the send) can be claimed again, so a
-// later call retries it. The function is public, so it only sends when the
-// user really has that plan active, and it never returns or logs the email.
+// A failed send leaves the row retryable (see reclaimRow). The function is
+// public, so it only sends when the user really has that plan active, and it
+// never returns or logs the email.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -230,6 +230,45 @@ function buildEmailHtml(name: string, plan: WelcomePlan): string {
   return buildPremiumHtml(name, plan);
 }
 
+// Resend guarda cada Idempotency-Key 24 horas. Se deja una de margen.
+const RESEND_KEY_WINDOW_MS = 23 * 60 * 60 * 1000;
+
+// Vuelve a reservar una fila que ya existe, si quedó reintentable. Cada UPDATE
+// es atómico: de dos pedidos en paralelo, uno solo la pasa a "pending".
+// - "error": Resend respondió con error, así que no mandó nada. Se reintenta
+//   con una idempotency key nueva (sent_at nuevo).
+// - "unconfirmed": el pedido a Resend falló sin respuesta y no se sabe si el
+//   mail salió. Se reintenta con la misma key (mismo sent_at): si ya había
+//   salido, Resend devuelve la respuesta original sin mandar otro. Pasadas las
+//   24 horas de la key no se reintenta, para no duplicar el mail.
+// "pending" y "sent" no se tocan.
+async function reclaimRow(
+  supabase: SupabaseClient,
+  userId: string,
+  category: string,
+  email: string,
+) {
+  const failed = await supabase
+    .from("welcome_email_queue")
+    .update({ status: "pending", email, error_message: null, sent_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .eq("plan", category)
+    .eq("status", "error")
+    .select("id, sent_at")
+    .maybeSingle();
+  if (failed.error || failed.data) return failed;
+
+  return await supabase
+    .from("welcome_email_queue")
+    .update({ status: "pending" })
+    .eq("user_id", userId)
+    .eq("plan", category)
+    .eq("status", "unconfirmed")
+    .gt("sent_at", new Date(Date.now() - RESEND_KEY_WINDOW_MS).toISOString())
+    .select("id, sent_at")
+    .maybeSingle();
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -336,24 +375,13 @@ Deno.serve(async (req: Request) => {
         email: profile.email,
         status: "pending",
       })
-      .select("id")
+      .select("id, sent_at")
       .single();
     let claim = inserted.data;
     let claimError = inserted.error;
 
-    // Ya hay fila. Si quedó en "error" (Resend rechazó el envío) se vuelve a
-    // reservar para reintentar. El UPDATE con status = 'error' es atómico: de
-    // dos pedidos en paralelo, uno solo la pasa a "pending". "pending" y
-    // "sent" no se tocan.
     if (claimError?.code === "23505") {
-      const reclaimed = await supabase
-        .from("welcome_email_queue")
-        .update({ status: "pending", email: profile.email, error_message: null })
-        .eq("user_id", profile.id)
-        .eq("plan", category)
-        .eq("status", "error")
-        .select("id")
-        .maybeSingle();
+      const reclaimed = await reclaimRow(supabase, profile.id, category, profile.email);
       if (!reclaimed.error && !reclaimed.data) {
         console.log(`[send-welcome-email] SKIP ${userId} (${category}): already sent`);
         return new Response(
@@ -378,21 +406,45 @@ Deno.serve(async (req: Request) => {
 
     const emailHtml = buildEmailHtml(profile.name || "", plan);
 
-    const resendRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "ProductPrepa <hola@productprepa.com>",
-        to: [profile.email],
-        subject: subjectLine(plan),
-        html: emailHtml,
-      }),
-    });
-
-    const resendBody = await resendRes.text();
+    let resendRes: Response;
+    let resendBody: string;
+    try {
+      resendRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+          // Estable mientras la fila no cambie de sent_at: ver reclaimRow.
+          "Idempotency-Key": `welcome-email/${claim.id}/${claim.sent_at}`,
+        },
+        body: JSON.stringify({
+          from: "ProductPrepa <hola@productprepa.com>",
+          to: [profile.email],
+          subject: subjectLine(plan),
+          html: emailHtml,
+        }),
+      });
+      resendBody = await resendRes.text();
+    } catch (err) {
+      // Sin respuesta no se sabe si el mail salió: "unconfirmed" se reintenta
+      // con la misma key. Si la fila quedara en "pending", bloquearía la
+      // bienvenida para siempre.
+      console.error(`[send-welcome-email] Resend request failed for user=${profile.id} plan=${category}:`, err);
+      const { error: markError } = await supabase
+        .from("welcome_email_queue")
+        .update({ status: "unconfirmed", error_message: String(err) })
+        .eq("id", claim.id);
+      if (markError) {
+        console.error(
+          `[send-welcome-email] Failed to record unconfirmed send for user=${profile.id} plan=${category}:`,
+          markError,
+        );
+      }
+      return new Response(
+        JSON.stringify({ error: "Failed to send" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!resendRes.ok) {
       // El cuerpo de Resend puede traer el email: queda en error_message.
