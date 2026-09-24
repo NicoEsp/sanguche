@@ -1,14 +1,18 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, Suspense, lazy, useState } from "react";
 import { Link } from "react-router-dom";
 import { Twitter, Linkedin } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
-import { AppSidebar } from "./AppSidebar";
-import { MobileNav } from "./MobileNav";
 import { LandingHeader } from "./LandingHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { footerLinks } from "@/constants/navigation";
 import { cn } from "@/lib/utils";
+
+// La navegación de usuarios logueados (sidebar, menú móvil, sus tooltips y
+// floating-ui) no viaja en el bundle inicial: la mayoría de las visitas son
+// anónimas y solo usan LandingHeader. Se carga en paralelo con la página.
+const AppSidebar = lazy(() => import("./AppSidebar").then((m) => ({ default: m.AppSidebar })));
+const MobileNav = lazy(() => import("./MobileNav").then((m) => ({ default: m.MobileNav })));
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
@@ -41,14 +45,24 @@ export function AppLayout({ children }: { children: ReactNode }) {
       {isAuthenticated ? (
         <>
           {/* Mobile Navigation */}
-          {isMobile && <MobileNav />}
-          
-          {/* Desktop Sidebar */}
+          {isMobile && (
+            <Suspense fallback={<header className="sticky top-0 z-40 h-14 border-b bg-background/95 md:hidden" />}>
+              <MobileNav />
+            </Suspense>
+          )}
+
+          {/* Desktop Sidebar. El fallback ocupa el mismo ancho para que el contenido no salte. */}
           {!isMobile && (
-            <AppSidebar 
-              collapsed={sidebarCollapsed} 
-              onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
-            />
+            <Suspense
+              fallback={
+                <aside className={cn("fixed left-0 top-0 z-40 h-screen border-r bg-card", sidebarCollapsed ? "w-16" : "w-64")} />
+              }
+            >
+              <AppSidebar
+                collapsed={sidebarCollapsed}
+                onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+              />
+            </Suspense>
           )}
         </>
       ) : (

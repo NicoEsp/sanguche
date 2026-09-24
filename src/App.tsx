@@ -1,6 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
@@ -8,7 +7,6 @@ import { Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminProtectedRoute } from "@/components/admin/AdminProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -54,7 +52,11 @@ import SkeletonProgress from "./components/skeletons/SkeletonProgress";
 import SkeletonAssessment from "./components/skeletons/SkeletonAssessment";
 import SkeletonMentoria from "./components/skeletons/SkeletonMentoria";
 
-// Admin pages
+// Admin pages. El layout también es lazy: arrastra el sidebar de shadcn, que
+// ningún visitante necesita.
+const AdminLayout = lazy(() =>
+  import("@/components/admin/AdminLayout").then((m) => ({ default: m.AdminLayout }))
+);
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminSubscriptions = lazy(() => import("./pages/admin/AdminSubscriptions"));
@@ -90,107 +92,105 @@ const queryClient = new QueryClient({
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <ScrollToTop />
-          <VersionReloader />
-          <AuthProvider>
-            <Suspense fallback={<LoadingScreen />}>
-              <Routes>
-                {/* Admin Routes - Protected with server-side validation */}
-                <Route
-                  path="/admin"
-                  element={
-                    <AdminProtectedRoute>
-                      <AdminLayout />
-                    </AdminProtectedRoute>
-                  }
-                >
-                  <Route index element={<AdminDashboard />} />
-                  <Route path="usuarios" element={<AdminUsers />} />
-                  <Route path="suscripciones" element={<AdminSubscriptions />} />
-                  <Route path="evaluaciones" element={<AdminAssessments />} />
-                  <Route path="mentoria" element={<AdminRecommendations />} />
-                  <Route path="mentoria/:userId" element={<AdminMentoriaDetail />} />
-                  <Route path="ejercicios" element={<AdminExercises />} />
-                  <Route path="cursos" element={<AdminCourses />} />
-                  <Route path="cursos/:courseId" element={<AdminCourseDetail />} />
-                  <Route path="descargables" element={<AdminDescargables />} />
-                  <Route path="blog" element={<AdminBlog />} />
-                  <Route path="sesiones" element={<AdminSessions />} />
-                </Route>
-                <Route path="/*" element={
-                  <AppLayout>
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/auth" element={<Auth />} />
-                      <Route path="/planes" element={<Planes />} />
-                      <Route path="/cursos-info" element={<CursosInfo />} />
-                      <Route path="/premium" element={<Navigate to="/planes" replace />} />
-                      <Route path="/welcome" element={<Welcome />} />
-                      <Route path="/gracias-review" element={<GraciasReview />} />
-                      <Route path="/gracias-b2b" element={<GraciasB2B />} />
-                      {/* /descargables es la canónica: describe el contenido
-                          y concentra el SEO. /preguntas queda como redirect
-                          porque está compartida en mails y PDFs ya enviados
-                          (vercel.json la 301ea antes de que llegue acá). */}
-                      <Route path="/preguntas" element={<Navigate to="/descargables" replace />} />
-                      <Route path="/descargables" element={<Descargables />} />
-                      <Route path="/soy-dev" element={<SoyDev />} />
-                      <Route path="/evaluacion-product-manager" element={<EvaluacionProductManager />} />
-                      <Route path="/empresas" element={<Empresas />} />
-                      <Route path="/sesion/:slug" element={<SessionReservation />} />
-                      <Route path="/blog" element={<BlogList />} />
-                      <Route path="/blog/:slug" element={<BlogPost />} />
-                      <Route path="/cursos" element={
-                        <ProtectedRoute fallbackPath="/cursos-info">
-                          <Courses />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/cursos/:slug" element={<CourseDetail />} />
-                      <Route path="/perfil" element={
-                        <ProtectedRoute>
-                          <Profile />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/autoevaluacion" element={
-                        <ProtectedRoute>
-                          <Suspense fallback={<SkeletonAssessment />}>
-                            <Assessment />
-                          </Suspense>
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/mejoras" element={
-                        <ProtectedRoute>
-                          <SkillGaps />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/mentoria" element={
-                        <ProtectedRoute>
-                          <Suspense fallback={<SkeletonMentoria />}>
-                            <Recommendations />
-                          </Suspense>
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/progreso" element={
-                        <ProtectedRoute>
-                          <Suspense fallback={<SkeletonProgress />}>
-                            <Progress />
-                          </Suspense>
-                        </ProtectedRoute>
-                      } />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </AppLayout>
-                } />
-              </Routes>
-            </Suspense>
-          </AuthProvider>
-        </BrowserRouter>
-        <Analytics />
-      </TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <ScrollToTop />
+        <VersionReloader />
+        <AuthProvider>
+          <Suspense fallback={<LoadingScreen />}>
+            <Routes>
+              {/* Admin Routes - Protected with server-side validation */}
+              <Route
+                path="/admin"
+                element={
+                  <AdminProtectedRoute>
+                    <AdminLayout />
+                  </AdminProtectedRoute>
+                }
+              >
+                <Route index element={<AdminDashboard />} />
+                <Route path="usuarios" element={<AdminUsers />} />
+                <Route path="suscripciones" element={<AdminSubscriptions />} />
+                <Route path="evaluaciones" element={<AdminAssessments />} />
+                <Route path="mentoria" element={<AdminRecommendations />} />
+                <Route path="mentoria/:userId" element={<AdminMentoriaDetail />} />
+                <Route path="ejercicios" element={<AdminExercises />} />
+                <Route path="cursos" element={<AdminCourses />} />
+                <Route path="cursos/:courseId" element={<AdminCourseDetail />} />
+                <Route path="descargables" element={<AdminDescargables />} />
+                <Route path="blog" element={<AdminBlog />} />
+                <Route path="sesiones" element={<AdminSessions />} />
+              </Route>
+              <Route path="/*" element={
+                <AppLayout>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/planes" element={<Planes />} />
+                    <Route path="/cursos-info" element={<CursosInfo />} />
+                    <Route path="/premium" element={<Navigate to="/planes" replace />} />
+                    <Route path="/welcome" element={<Welcome />} />
+                    <Route path="/gracias-review" element={<GraciasReview />} />
+                    <Route path="/gracias-b2b" element={<GraciasB2B />} />
+                    {/* /descargables es la canónica: describe el contenido
+                        y concentra el SEO. /preguntas queda como redirect
+                        porque está compartida en mails y PDFs ya enviados
+                        (vercel.json la 301ea antes de que llegue acá). */}
+                    <Route path="/preguntas" element={<Navigate to="/descargables" replace />} />
+                    <Route path="/descargables" element={<Descargables />} />
+                    <Route path="/soy-dev" element={<SoyDev />} />
+                    <Route path="/evaluacion-product-manager" element={<EvaluacionProductManager />} />
+                    <Route path="/empresas" element={<Empresas />} />
+                    <Route path="/sesion/:slug" element={<SessionReservation />} />
+                    <Route path="/blog" element={<BlogList />} />
+                    <Route path="/blog/:slug" element={<BlogPost />} />
+                    <Route path="/cursos" element={
+                      <ProtectedRoute fallbackPath="/cursos-info">
+                        <Courses />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/cursos/:slug" element={<CourseDetail />} />
+                    <Route path="/perfil" element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/autoevaluacion" element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<SkeletonAssessment />}>
+                          <Assessment />
+                        </Suspense>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/mejoras" element={
+                      <ProtectedRoute>
+                        <SkillGaps />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/mentoria" element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<SkeletonMentoria />}>
+                          <Recommendations />
+                        </Suspense>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/progreso" element={
+                      <ProtectedRoute>
+                        <Suspense fallback={<SkeletonProgress />}>
+                          <Progress />
+                        </Suspense>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </AppLayout>
+              } />
+            </Routes>
+          </Suspense>
+        </AuthProvider>
+      </BrowserRouter>
+      <Analytics />
     </QueryClientProvider>
   </ErrorBoundary>
 );
