@@ -106,6 +106,17 @@ verify_jwt = false
 [functions.send-password-reset]
 verify_jwt = false
 
+# Igual que en producción. Sin entrada, un deploy con la CLI las pasaba a
+# verify_jwt = true. get-course-video valida el token por su cuenta.
+[functions.get-course-video]
+verify_jwt = false
+
+[functions.upload-course-video]
+verify_jwt = false
+
+[functions.send-welcome-email]
+verify_jwt = false
+
 [edge_runtime]
 policy = "per_worker"
 inspector_port = 8083
