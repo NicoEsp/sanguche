@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfileCompositeData } from './useProfileCompositeData';
 import { isPremiumPlan } from '@/constants/plans';
+import { preloadRoute } from '@/routes';
 
 const FADE_DURATION = 150;
 
@@ -62,7 +63,14 @@ export function useHomeRedirect() {
       ? isPremiumPlan(sub.plan) && (sub.status === 'active' || sub.isComped === true)
       : false;
 
-    if (compositeData.hasLegacyAssessment) {
+    // Reservar una sesión es una acción explícita que la persona dejó a medias
+    // para loguearse: se respeta para todos, también para premium, que si no
+    // terminaba en /progreso sin su lugar.
+    const returnsToSession = returnTo ? decodeURIComponent(returnTo).startsWith('/sesion/') : false;
+
+    if (returnsToSession) {
+      dest = decodeURIComponent(returnTo!);
+    } else if (compositeData.hasLegacyAssessment) {
       dest = '/autoevaluacion';
     } else if (hasActivePremium) {
       // Premium/RePremium van directo a Career Path (ignoran returnTo).
@@ -77,7 +85,10 @@ export function useHomeRedirect() {
     }
     
     setDestination(dest);
-    
+
+    // El chunk del destino baja durante el fade en vez de después.
+    void preloadRoute(dest.split('?')[0]);
+
     setTimeout(() => {
       navigate(dest, { replace: true });
     }, FADE_DURATION);

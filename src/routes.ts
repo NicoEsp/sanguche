@@ -54,8 +54,12 @@ const ROUTE_PAGES: ReadonlyArray<readonly [string, { preload: () => Promise<void
   ["/progreso", Progress],
 ];
 
-/** Descarga el chunk de la página que corresponde a la URL. */
+/**
+ * Descarga el chunk de la página que corresponde a la URL. Nunca rechaza: es
+ * una ayuda. Si el chunk falla, el render de la página lo vuelve a pedir y ahí
+ * el error sigue su camino normal (vite:preloadError o el ErrorBoundary).
+ */
 export function preloadRoute(pathname: string): Promise<void> {
   const match = ROUTE_PAGES.find(([path]) => matchPath(path, pathname));
-  return match ? match[1].preload() : Promise.resolve();
+  return match ? match[1].preload().catch(() => undefined) : Promise.resolve();
 }
