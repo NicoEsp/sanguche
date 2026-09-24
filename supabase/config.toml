@@ -114,6 +114,8 @@ verify_jwt = false
 [functions.upload-course-video]
 verify_jwt = false
 
+# La llama el trigger notify_welcome_email, que no tiene un JWT de servicio:
+# la función valida el header x-welcome-secret contra Vault.
 [functions.send-welcome-email]
 verify_jwt = false
 

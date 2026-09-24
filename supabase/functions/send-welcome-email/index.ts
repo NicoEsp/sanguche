@@ -9,9 +9,13 @@
 // share the same category ('premium'); B2B and Review each have their own.
 // Idempotency: the queue row is claimed (status "pending") before sending, and
 // UNIQUE(user_id, plan) on welcome_email_queue lets only one request through.
-// A failed send leaves the row retryable (see reclaimRow). The function is
-// public, so it only sends when the user really has that plan active, and it
-// never returns or logs the email.
+// A failed send leaves the row retryable (see reclaimRow).
+//
+// Caller auth: verify_jwt is off (the trigger has no service JWT to send), so
+// the function only accepts calls that carry the x-welcome-secret header the
+// trigger reads from Vault (migration welcome_email_caller_secret). It still
+// sends only when the user really has that plan active, and it never returns
+// or logs the email.
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -286,6 +290,32 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Solo el trigger conoce el secreto. Lo compara la base, así no hace falta
+    // copiarlo a los secrets de la función.
+    const { data: callerOk, error: callerError } = await supabase.rpc("welcome_email_secret_matches", {
+      p_secret: req.headers.get("x-welcome-secret") ?? "",
+    });
+    if (callerError) {
+      console.error("[send-welcome-email] Could not verify caller:", callerError);
+      return new Response(
+        JSON.stringify({ error: "Internal server error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (callerOk !== true) {
+      console.warn("[send-welcome-email] Rejected call without a valid x-welcome-secret");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const body = await req.json().catch(() => ({}));
     const userId = body?.user_id;
     const plan = body?.plan;
@@ -304,17 +334,11 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
-
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
     const category = welcomeCategory(plan);
 
-    // La función es pública (el trigger la llama con la anon key, que está en
-    // el front), así que no confía en el body: solo manda la bienvenida si el
-    // usuario tiene ese plan activo. Sin esto, cualquiera con el id de un perfil
-    // podía hacerle llegar una bienvenida de un plan que no compró.
+    // No confía en el body: solo manda la bienvenida si el usuario tiene ese
+    // plan activo. Así ni un pedido mal armado le hace llegar a alguien la
+    // bienvenida de un plan que no compró.
     const [
       { data: subscription, error: subscriptionError },
       { data: profile, error: profileError },
