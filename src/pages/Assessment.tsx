@@ -12,18 +12,18 @@ import {
   type AssessmentTypeKey,
   type OptionalAssessmentValues,
   computeSeniorityScore,
-  getAssessmentSchema,
   getAssessmentTypeDef,
   getDomainsForType,
   getNivelDisplay,
   type AnyDomainKey,
   type AssessmentResult,
 } from "@/utils/scoring";
+import { getAssessmentSchema } from "@/utils/assessmentSchema";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { saveAssessment } from "@/utils/storage";
 import { DomainInfoPopup } from "@/components/DomainInfoPopup";
 import { OptionalQuestionTooltip } from "@/components/OptionalQuestionTooltip";

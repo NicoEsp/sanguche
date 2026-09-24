@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 export type SeniorityLevel = "Junior" | "Mid" | "Senior" | "Lead" | "Head";
 
 export type AssessmentTypeKey = "experimentado" | "sin_experiencia" | "builder" | "lider";
@@ -229,21 +227,6 @@ export const DOMAINS = [
 
 export type DomainKey = (typeof DOMAINS)[number]["key"];
 
-const domainScoreSchema = () =>
-  z.number({
-    required_error: "Obligatorio para avanzar",
-    invalid_type_error: "Debe seleccionar una opción válida"
-  }).int().min(1, "Debe seleccionar al menos 1").max(5, "El valor máximo es 5");
-
-const shape: Record<DomainKey, z.ZodNumber> = DOMAINS.reduce((acc, d) => {
-  (acc as Record<string, z.ZodNumber>)[d.key] = domainScoreSchema();
-  return acc;
-}, {} as Record<DomainKey, z.ZodNumber>);
-
-export const assessmentSchema = z.object(shape);
-
-export type AssessmentValues = z.infer<typeof assessmentSchema>;
-
 export type DomainScore = {
   key: AnyDomainKey;
   label: string;
@@ -268,23 +251,6 @@ export function getDomainStatus(value: number): DomainStatus {
   if (value >= 4.0) return "fortaleza";
   if (value >= 3.0) return "intermedio";
   return "brecha";
-}
-
-/**
- * Cómo se nombra cada banda cuando hay que mostrarla.
- *
- * "En desarrollo" y no "Sólida": `Strength["nivel"]` ya usa "Sólida" para un
- * 4/5, y que la misma palabra signifique un 3 en una tabla y un 4 dos secciones
- * más abajo deja a quien lo lee —persona o modelo— sin saber cuál es cuál.
- */
-const DOMAIN_STATUS_LABELS: Record<DomainStatus, string> = {
-  fortaleza: "Fortaleza",
-  intermedio: "En desarrollo",
-  brecha: "A mejorar"
-};
-
-export function getDomainStatusLabel(value: number): string {
-  return DOMAIN_STATUS_LABELS[getDomainStatus(value)];
 }
 
 // ============= OPTIONAL DOMAINS =============
@@ -803,21 +769,6 @@ export function getAllScorableDomains(): Array<{ key: AnyDomainKey; label: strin
     }
   }
   return [...byKey].map(([key, label]) => ({ key, label }));
-}
-
-const schemaCache: Partial<Record<AssessmentTypeKey, ReturnType<typeof z.object>>> = {};
-
-export function getAssessmentSchema(type: AssessmentTypeKey) {
-  if (type === "experimentado") return assessmentSchema;
-  const cached = schemaCache[type];
-  if (cached) return cached;
-  const typeShape: Record<string, z.ZodNumber> = {};
-  for (const d of getDomainsForType(type)) {
-    typeShape[d.key] = domainScoreSchema();
-  }
-  const schema = z.object(typeShape);
-  schemaCache[type] = schema;
-  return schema;
 }
 
 // --- Pregunta de contexto (no puntuada) al final de cada evaluación nueva ---

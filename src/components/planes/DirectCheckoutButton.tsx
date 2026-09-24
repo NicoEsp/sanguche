@@ -3,12 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
-import { z } from "zod";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { buildDirectCheckoutUrl, DirectCheckoutKey } from "@/lib/directCheckout";
-
-const emailSchema = z.string().email("Por favor ingresá un email válido");
+import { isValidEmail } from "@/utils/email";
 
 interface DirectCheckoutButtonProps {
   plan: DirectCheckoutKey;
@@ -33,12 +31,11 @@ export function DirectCheckoutButton({
   const handleClick = () => {
     let resolvedEmail = user?.email ?? "";
     if (!user) {
-      const result = emailSchema.safeParse(email.trim());
-      if (!result.success) {
-        setError(result.error.errors[0].message);
+      resolvedEmail = email.trim();
+      if (!isValidEmail(resolvedEmail)) {
+        setError("Por favor ingresá un email válido");
         return;
       }
-      resolvedEmail = result.data;
     }
 
     const url = buildDirectCheckoutUrl(plan, {
