@@ -20,6 +20,8 @@ import {
   DescargablesSeoContent,
   type DownloadablePublic,
 } from '@/components/downloads/DescargablesSeoContent';
+import { LayoutFrame } from '@/components/layout/LayoutFrame';
+import { LandingHeader } from '@/components/layout/LandingHeader';
 
 /**
  * Render a HTML estático, en build time, de las vistas cuyo contenido vive en
@@ -33,9 +35,18 @@ import {
  *
  * renderToStaticMarkup y no renderToString porque no hidratamos: el HTML es
  * para crawlers y para clientes sin JS, y no necesita los marcadores de React.
+ *
+ * Cada vista va dentro del mismo marco que arma AppLayout para un visitante
+ * anónimo (LandingHeader, <main> y footer). Cuando React monta y reemplaza este
+ * HTML, el header y el footer ya estaban: sin esto aparecían de golpe y
+ * empujaban todo el contenido hacia abajo.
  */
 const render = (location: string, children: ReactNode) =>
-  renderToStaticMarkup(<StaticRouter location={location}>{children}</StaticRouter>);
+  renderToStaticMarkup(
+    <StaticRouter location={location}>
+      <LayoutFrame nav={<LandingHeader />}>{children}</LayoutFrame>
+    </StaticRouter>
+  );
 
 export const renderBlogPost = (post: BlogPost) =>
   render(`/blog/${post.slug}`, <BlogPostArticle post={post} />);
@@ -62,7 +73,7 @@ export const renderEvaluacionLanding = () =>
 export const renderHome = () =>
   render(
     '/',
-    <main>
+    <main className="min-h-screen bg-background">
       <HomeHero ctaHref="/auth" />
       <HowItWorks />
       <WhyProductPrepa />

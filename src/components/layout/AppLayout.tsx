@@ -1,11 +1,10 @@
 import { ReactNode, Suspense, lazy, useState } from "react";
-import { Link } from "react-router-dom";
 import { Twitter, Linkedin } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { LandingHeader } from "./LandingHeader";
 import { Skeleton } from "@/components/ui/skeleton";
-import { footerLinks } from "@/constants/navigation";
+import { LayoutFrame } from "./LayoutFrame";
 import { cn } from "@/lib/utils";
 
 // La navegación de usuarios logueados (sidebar, menú móvil, sus tooltips y
@@ -40,43 +39,40 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      {/* Navigation based on authentication */}
-      {isAuthenticated ? (
-        <>
-          {/* Mobile Navigation */}
-          {isMobile && (
-            <Suspense fallback={<header className="sticky top-0 z-40 h-14 border-b bg-background/95 md:hidden" />}>
-              <MobileNav />
-            </Suspense>
-          )}
+    <LayoutFrame
+      nav={
+        isAuthenticated ? (
+          <>
+            {/* Mobile Navigation */}
+            {isMobile && (
+              <Suspense fallback={<header className="sticky top-0 z-40 h-14 border-b bg-background/95 md:hidden" />}>
+                <MobileNav />
+              </Suspense>
+            )}
 
-          {/* Desktop Sidebar. El fallback ocupa el mismo ancho para que el contenido no salte. */}
-          {!isMobile && (
-            <Suspense
-              fallback={
-                <aside className={cn("fixed left-0 top-0 z-40 h-screen border-r bg-card", sidebarCollapsed ? "w-16" : "w-64")} />
-              }
-            >
-              <AppSidebar
-                collapsed={sidebarCollapsed}
-                onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-              />
-            </Suspense>
-          )}
-        </>
-      ) : (
-        /* Public Landing Header */
-        <LandingHeader />
-      )}
-
-      {/* Main content wrapper */}
-      <div className={cn(
-        "flex-1 flex flex-col transition-all duration-300",
-        isAuthenticated && !isMobile && (sidebarCollapsed ? "ml-16" : "ml-64")
-      )}>
-        {/* Desktop Header for authenticated users - Simple branding only */}
-        {isAuthenticated && !isMobile && (
+            {/* Desktop Sidebar. El fallback ocupa el mismo ancho para que el contenido no salte. */}
+            {!isMobile && (
+              <Suspense
+                fallback={
+                  <aside className={cn("fixed left-0 top-0 z-40 h-screen border-r bg-card", sidebarCollapsed ? "w-16" : "w-64")} />
+                }
+              >
+                <AppSidebar
+                  collapsed={sidebarCollapsed}
+                  onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+                />
+              </Suspense>
+            )}
+          </>
+        ) : (
+          /* Public Landing Header */
+          <LandingHeader />
+        )
+      }
+      contentClassName={cn(isAuthenticated && !isMobile && (sidebarCollapsed ? "ml-16" : "ml-64"))}
+      topBar={
+        /* Desktop Header for authenticated users - Simple branding only */
+        isAuthenticated && !isMobile && (
           <header className="sticky top-0 z-30 h-14 border-b bg-background/95 backdrop-blur">
             <div className="container flex h-full items-center">
               <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-3 py-2 shadow-sm">
@@ -107,31 +103,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </div>
             </div>
           </header>
-        )}
-
-        <main className="flex-1">{children}</main>
-
-        <footer className="border-t bg-background">
-          <div className="container py-8">
-            {/* Presente en todas las páginas: la entrada más barata a las rutas
-                públicas que no se linkean desde ningún otro lado. */}
-            <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
-              {footerLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-            <p className="mt-6 text-sm text-muted-foreground text-center">
-              © {new Date().getFullYear()} ProductPrepa
-            </p>
-          </div>
-        </footer>
-      </div>
-    </div>
+        )
+      }
+    >
+      {children}
+    </LayoutFrame>
   );
 }

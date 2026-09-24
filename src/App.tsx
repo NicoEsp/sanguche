@@ -1,8 +1,8 @@
 import { Toaster } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
-import { Navigate } from "react-router-dom";
+import type { Session } from "@supabase/supabase-js";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -12,38 +12,30 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { VersionReloader } from "@/components/VersionReloader";
 import { Analytics } from '@vercel/analytics/react';
-
-// Lazy load all pages for code splitting
-const Index = lazy(() => import("./pages/Index"));
-const Assessment = lazy(() => import("./pages/Assessment"));
-const SkillGaps = lazy(() => import("./pages/SkillGaps"));
-const Recommendations = lazy(() => import("./pages/Recommendations"));
-const Progress = lazy(() => import("./pages/Progress"));
-const Planes = lazy(() => import("./pages/Planes"));
-const CursosInfo = lazy(() => import("./pages/CursosInfo"));
-const Profile = lazy(() => import("./pages/Profile"));
-const Auth = lazy(() => import("./pages/Auth"));
-const Welcome = lazy(() => import("./pages/Welcome"));
-const GraciasReview = lazy(() => import("./pages/GraciasReview"));
-const GraciasB2B = lazy(() => import("./pages/GraciasB2B"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-
-// Courses pages
-const Courses = lazy(() => import("./pages/Courses"));
-const CourseDetail = lazy(() => import("./pages/CourseDetail"));
-
-// Descargables
-const Descargables = lazy(() => import("./pages/Descargables"));
-
-// Soy Dev
-const SoyDev = lazy(() => import("./pages/SoyDev"));
-const EvaluacionProductManager = lazy(() => import("./pages/EvaluacionProductManager"));
-
-// Empresas (B2B)
-const Empresas = lazy(() => import("./pages/Empresas"));
-
-// Session Reservation
-const SessionReservation = lazy(() => import("./pages/SessionReservation"));
+import {
+  Index,
+  Assessment,
+  SkillGaps,
+  Recommendations,
+  Progress,
+  Planes,
+  CursosInfo,
+  Profile,
+  Auth,
+  Welcome,
+  GraciasReview,
+  GraciasB2B,
+  NotFound,
+  Courses,
+  CourseDetail,
+  Descargables,
+  SoyDev,
+  EvaluacionProductManager,
+  Empresas,
+  SessionReservation,
+  BlogList,
+  BlogPost,
+} from "./routes";
 
 // Skeleton components for better perceived performance
 // Skeletons cargados directamente (son críticos para UX y pequeños)
@@ -71,10 +63,6 @@ const AdminCourseDetail = lazy(() => import("./pages/admin/AdminCourseDetail"));
 const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
 const AdminSessions = lazy(() => import("./pages/admin/AdminSessions"));
 
-// Blog pages
-const BlogList = lazy(() => import("./pages/BlogList"));
-const BlogPost = lazy(() => import("./pages/BlogPost"));
-
 // QueryClient optimizado para velocidad con cache inteligente
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -88,14 +76,19 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
+interface AppProps {
+  /** Sesión ya resuelta por main.tsx cuando esperó antes del primer render. */
+  initialSession?: Session | null;
+}
+
+const App = ({ initialSession }: AppProps) => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <Toaster />
       <BrowserRouter>
         <ScrollToTop />
         <VersionReloader />
-        <AuthProvider>
+        <AuthProvider initialSession={initialSession}>
           <Suspense fallback={<LoadingScreen />}>
             <Routes>
               {/* Admin Routes - Protected with server-side validation */}

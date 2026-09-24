@@ -60,11 +60,23 @@ function hasAuthTokenInStorage(): boolean {
  */
 const ensuredDefaultsFor = new Set<string>();
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+interface AuthProviderProps {
+  children: ReactNode;
+  /**
+   * Sesión ya resuelta antes del primer render (main.tsx la espera cuando hay
+   * HTML prerenderizado). Con ella no hace falta el spinner de carga: el primer
+   * render ya sabe si hay usuario.
+   */
+  initialSession?: Session | null;
+}
+
+export function AuthProvider({ children, initialSession }: AuthProviderProps) {
+  const [user, setUser] = useState<User | null>(() => initialSession?.user ?? null);
+  const [session, setSession] = useState<Session | null>(() => initialSession ?? null);
   // Fast path: if no token in localStorage, skip loading state entirely
-  const [isLoading, setIsLoading] = useState(() => hasAuthTokenInStorage());
+  const [isLoading, setIsLoading] = useState(() =>
+    initialSession === undefined ? hasAuthTokenInStorage() : false
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const queryClient = useQueryClient();

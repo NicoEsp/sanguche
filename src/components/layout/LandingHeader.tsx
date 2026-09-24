@@ -15,7 +15,7 @@ export function LandingHeader() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur animate-fade-in">
+    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
       <div className="container flex h-14 items-center justify-between gap-4">
         {/* Left: Logo + navegación pública */}
         <div className="flex items-center gap-6">
