@@ -10,7 +10,10 @@ const FORMULA_START = /^[=+\-@\t\r]/;
 
 function toCell(value: unknown): string {
   let text = value === null || value === undefined ? '' : String(value);
-  if (typeof value === 'string' && FORMULA_START.test(text) && Number.isNaN(Number(text))) {
+  // Solo strings: los números de verdad (typeof number) se exportan tal cual.
+  // Un string como "+5491123456789" también va prefijado, si no Excel lo toma
+  // como número y le saca el "+".
+  if (typeof value === 'string' && FORMULA_START.test(text)) {
     text = `'${text}`;
   }
   // Comas, comillas o saltos de línea sin comillas corrían las columnas

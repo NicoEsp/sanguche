@@ -41,7 +41,13 @@ export function useVideoUrl(
     gcTime: SIGNED_URL_FRESH_MS,
     // Con una URL vencida en caché, volver a la lección la renueva.
     refetchOnMount: true,
-    refetchInterval: SIGNED_URL_FRESH_MS,
+    // Medido desde que se firmó la URL y no desde el montaje: con una URL
+    // reusada de la caché, un intervalo fijo dejaba pasar el vencimiento. Sin
+    // URL (el primer pedido falló, por ejemplo un 403) no hay intervalo.
+    refetchInterval: (query) =>
+      query.state.data
+        ? Math.max(SIGNED_URL_FRESH_MS - (Date.now() - query.state.dataUpdatedAt), 1000)
+        : false,
   });
 
   if (isExternal) {

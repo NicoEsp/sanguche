@@ -102,9 +102,13 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
       .filter(Boolean)
       .map((title, idx) => {
         const previous = previousSteps.get(title);
-        return previous
-          ? { ...previous, title }
-          : { id: `step-${Date.now()}-${idx}`, title, completed: false };
+        if (previous) {
+          // Una sola vez por paso: dos líneas con el mismo texto compartían id,
+          // y marcar una marcaba las dos.
+          previousSteps.delete(title);
+          return { ...previous, title };
+        }
+        return { id: `step-${Date.now()}-${idx}`, title, completed: false };
       });
     const dueDate = formState.dueDate ? toDateOnly(formState.dueDate) : null;
 

@@ -51,13 +51,17 @@ export const assessmentDataQuery = (userId: string | undefined) => ({
     // filtra por el user_id del perfil embebido en vez de buscar primero el
     // perfil (eran dos round trips en fila). La tabla tiene dos FKs a
     // profiles, por eso el embed lleva el nombre de una.
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('assessments')
       .select('assessment_result, assessment_values, assessment_type, created_at, profiles!assessments_user_id_fkey!inner(user_id)')
       .eq('profiles.user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
+
+    // Sin esto, un error quedaba en caché como "no tiene evaluación" por 5
+    // minutos, sin reintento.
+    if (error) throw error;
 
     if (data && data.assessment_result) {
       const result = data.assessment_result as unknown as AssessmentResult;

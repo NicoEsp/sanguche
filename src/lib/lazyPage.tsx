@@ -31,12 +31,15 @@ export function lazyPage(factory: () => Promise<PageModule>): LazyPage {
     return loading;
   };
 
-  const Lazy = lazy(() => preload().then(() => ({ default: Loaded! })));
-
   const Page = () => {
-    // Se decide una vez por montaje: cambiar de Lazy a Loaded en un re-render
-    // cambiaría el tipo del elemento y remontaría la página entera.
-    const [Component] = useState<ComponentType>(() => Loaded ?? Lazy);
+    // Se decide una vez por montaje: cambiar de lazy a Loaded en un re-render
+    // cambiaría el tipo del elemento y remontaría la página entera. Es un lazy
+    // nuevo por montaje porque React.lazy guarda el rechazo para siempre: con
+    // uno compartido, "Reintentar" en el ErrorBoundary volvía a fallar sin
+    // pedir el chunk otra vez.
+    const [Component] = useState<ComponentType>(
+      () => Loaded ?? lazy(() => preload().then(() => ({ default: Loaded! })))
+    );
     return <Component />;
   };
 

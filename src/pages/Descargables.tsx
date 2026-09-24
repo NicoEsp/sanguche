@@ -44,6 +44,9 @@ const normalize = (text: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
 
+// getDownloadUrl firma por 3600 s; se reusa con margen.
+const PREVIEW_URL_REUSE_MS = 50 * 60 * 1000;
+
 export default function Descargables() {
   const { data: resources, isLoading, error } = useDownloadableResources();
   const { isAuthenticated } = useAuth();
@@ -109,7 +112,7 @@ export default function Descargables() {
     const resolved = await resolveResourceUrl(resource);
     setBusy(null);
     if ('error' in resolved) return reportFailure(resource, 'preview', resolved.error);
-    setPreview({ resource, url: resolved.url });
+    setPreview({ resource, url: resolved.url, verifiedAt: Date.now() });
     trackEvent('resource_previewed', eventProps(resource));
   };
 
@@ -219,7 +222,15 @@ export default function Descargables() {
       <ResourcePreviewDialog
         preview={preview}
         onClose={() => setPreview(null)}
-        onDownload={() => preview && void handleDownload(preview.resource, preview.url)}
+        onDownload={() =>
+          preview &&
+          void handleDownload(
+            preview.resource,
+            // La URL firmada dura una hora: con la vista previa abierta más que
+            // eso, se vuelve a firmar en vez de abrir un link vencido.
+            Date.now() - preview.verifiedAt < PREVIEW_URL_REUSE_MS ? preview.url : undefined
+          )
+        }
         downloading={busy?.action === 'download'}
       />
     </>

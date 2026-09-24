@@ -5,9 +5,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { AssessmentTypeKey, DomainScore, SeniorityLevel } from "@/utils/scoring";
 
-// El generador de la imagen va en su propio chunk: se pide con la página ya en
-// pantalla (o al acercarse al botón), no antes de mostrarla.
-const loadRadarShare = () => import("@/utils/radarShareImage");
+// El generador de la imagen va en su propio chunk y se pide con la página ya en
+// pantalla. El botón se habilita cuando llegó, para que el click no tenga que
+// esperar la descarga antes de compartir (la hoja nativa pide el gesto del
+// usuario).
+type RadarShareModule = typeof import("@/utils/radarShareImage");
+let radarShareModule: RadarShareModule | undefined;
+const loadRadarShare = () =>
+  import("@/utils/radarShareImage").then((module) => (radarShareModule = module));
 
 interface ShareRadarButtonProps {
   scores: DomainScore[];
@@ -27,15 +32,23 @@ export function ShareRadarButton(props: ShareRadarButtonProps) {
   const { toast } = useToast();
   const { trackEvent } = useMixpanelTracking();
 
+  const [ready, setReady] = useState(() => radarShareModule !== undefined);
   useEffect(() => {
-    const timer = setTimeout(() => void loadRadarShare(), 1500);
-    return () => clearTimeout(timer);
-  }, []);
+    if (ready) return;
+    let alive = true;
+    // Si el chunk no baja, el botón se habilita igual: el click lo vuelve a
+    // pedir y, si tampoco llega, avisa con el toast de error.
+    const settle = () => alive && setReady(true);
+    loadRadarShare().then(settle, settle);
+    return () => {
+      alive = false;
+    };
+  }, [ready]);
 
   const handleClick = async () => {
     setBusy(true);
     try {
-      const { shareOrDownloadRadar } = await loadRadarShare();
+      const { shareOrDownloadRadar } = radarShareModule ?? (await loadRadarShare());
       const { outcome, textCopied } = await shareOrDownloadRadar(props);
       if (outcome === "cancelled") return;
 
@@ -84,9 +97,7 @@ export function ShareRadarButton(props: ShareRadarButtonProps) {
       variant="outline"
       size="sm"
       onClick={handleClick}
-      onPointerEnter={() => void loadRadarShare()}
-      onFocus={() => void loadRadarShare()}
-      disabled={busy}
+      disabled={busy || !ready}
       className="shrink-0"
     >
       {busy ? (
