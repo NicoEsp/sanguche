@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Crown, Download, Eye, FileText, Loader2, Lock, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,18 +31,7 @@ export function DownloadableCard({ resource, ...actions }: DownloadableCardProps
   return (
     <Card className="flex h-full flex-col gap-3 p-5">
       <div className="flex items-start gap-3">
-        {resource.thumbnail_url ? (
-          <img
-            src={resource.thumbnail_url}
-            alt=""
-            loading="lazy"
-            className="h-12 w-12 shrink-0 rounded-md object-cover"
-          />
-        ) : (
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-            <FileText className="h-5 w-5" aria-hidden="true" />
-          </div>
-        )}
+        <ResourceThumbnail src={resource.thumbnail_url} />
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold leading-snug">{resource.title}</h3>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -68,6 +58,35 @@ export function DownloadableCard({ resource, ...actions }: DownloadableCardProps
         <CardActions {...actions} />
       </div>
     </Card>
+  );
+}
+
+/**
+ * El thumbnail es una URL libre que se carga a mano en el admin: si no es una
+ * imagen (un link a Notion, un archivo borrado), cae al ícono genérico en vez
+ * de mostrar la imagen rota del navegador.
+ */
+function ResourceThumbnail({ src }: { src: string | null }) {
+  // Se guarda la URL que falló y no un booleano: si la corrigen en el admin y
+  // la query trae otra, se vuelve a intentar sin remontar la card.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+
+  if (src && src !== failedSrc) {
+    return (
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        onError={() => setFailedSrc(src)}
+        className="h-12 w-12 shrink-0 rounded-md object-cover"
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+      <FileText className="h-5 w-5" aria-hidden="true" />
+    </div>
   );
 }
 
