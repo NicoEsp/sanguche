@@ -6,31 +6,34 @@ import { AnyAssessmentValues, AssessmentResult, AssessmentTypeKey } from "./scor
  * para que la UI pueda avisar al usuario y permitir el reintento
  * (el resultado solo vive en el servidor).
  *
- * Cada usuario tiene una sola evaluación vigente: antes de insertar la nueva
- * se borra la anterior, sin importar de qué tipo era.
+ * Cada usuario tiene una sola evaluación vigente: después de insertar la
+ * nueva se borran las anteriores, sin importar de qué tipo eran.
+ *
+ * Lo único que se espera es el insert. Antes la función pedía el usuario al
+ * servidor de auth (getUser), buscaba el perfil, insertaba y borraba en fila:
+ * cuatro round trips con el spinner de "guardando" encima. El usuario ya lo
+ * conoce la sesión, el perfil casi siempre está en caché, y la RLS de
+ * assessments sigue validando que el perfil sea de quien inserta.
  */
 export async function saveAssessment(
+  userId: string,
   values: AnyAssessmentValues,
   result: AssessmentResult,
-  assessmentType: AssessmentTypeKey
-) {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  assessmentType: AssessmentTypeKey,
+  knownProfileId?: string
+): Promise<{ createdAt: string }> {
+  let profileId = knownProfileId;
+  if (!profileId) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
 
-  if (userError || !user) {
-    throw userError ?? new Error("No hay usuario autenticado");
-  }
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (profileError || !profile) {
-    throw profileError ?? new Error("No se encontró el perfil del usuario");
+    if (profileError || !profile) {
+      throw profileError ?? new Error("No se encontró el perfil del usuario");
+    }
+    profileId = profile.id;
   }
 
   // Insertar primero y recién después borrar las anteriores: si el insert
@@ -39,25 +42,30 @@ export async function saveAssessment(
   const { data: inserted, error: insertError } = await supabase
     .from("assessments")
     .insert({
-      user_id: profile.id,
+      user_id: profileId,
       assessment_values: values,
       assessment_result: result,
       assessment_type: assessmentType,
     })
-    .select("id")
+    .select("id, created_at")
     .single();
 
   if (insertError || !inserted) {
     throw insertError ?? new Error("No se pudo guardar la evaluación");
   }
 
-  const { error: deleteError } = await supabase
+  // Sin esperar: nadie depende de este borrado para mostrar el resultado. El
+  // then() hace falta igual, sin él el builder de supabase-js no envía nada.
+  supabase
     .from("assessments")
     .delete()
-    .eq("user_id", profile.id)
-    .neq("id", inserted.id);
+    .eq("user_id", profileId)
+    .neq("id", inserted.id)
+    .then(({ error }) => {
+      if (error && import.meta.env.DEV) {
+        console.error("No se pudieron borrar evaluaciones anteriores:", error);
+      }
+    });
 
-  if (deleteError && import.meta.env.DEV) {
-    console.error("No se pudieron borrar evaluaciones anteriores:", deleteError);
-  }
+  return { createdAt: inserted.created_at };
 }

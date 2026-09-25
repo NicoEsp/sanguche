@@ -3,8 +3,20 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfileCompositeData } from './useProfileCompositeData';
 import { isPremiumPlan } from '@/constants/plans';
+import { preloadRoute } from '@/routes';
 
 const FADE_DURATION = 150;
+
+// searchParams ya devuelve returnTo decodificado y acá se decodifica otra vez,
+// como hacía el código anterior. Con un "%" suelto eso tira URIError: en ese
+// caso se usa el valor tal cual en vez de caer al ErrorBoundary.
+const safeDecode = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
 
 /**
  * Hook que maneja la redirección automática en Home según el estado del usuario (V4):
@@ -62,14 +74,22 @@ export function useHomeRedirect() {
       ? isPremiumPlan(sub.plan) && (sub.status === 'active' || sub.isComped === true)
       : false;
 
-    if (compositeData.hasLegacyAssessment) {
+    // Reservar una sesión es una acción explícita que la persona dejó a medias
+    // para loguearse: se respeta para todos, también para premium, que si no
+    // terminaba en /progreso sin su lugar.
+    const decodedReturnTo = returnTo ? safeDecode(returnTo) : null;
+    const returnsToSession = decodedReturnTo?.startsWith('/sesion/') ?? false;
+
+    if (returnsToSession) {
+      dest = decodedReturnTo!;
+    } else if (compositeData.hasLegacyAssessment) {
       dest = '/autoevaluacion';
     } else if (hasActivePremium) {
       // Premium/RePremium van directo a Career Path (ignoran returnTo).
       // Si todavía no hicieron la autoevaluación, esa va primero.
       dest = hasAssessment ? '/progreso' : '/autoevaluacion';
-    } else if (returnTo) {
-      dest = decodeURIComponent(returnTo);
+    } else if (decodedReturnTo) {
+      dest = decodedReturnTo;
     } else if (!hasAssessment) {
       dest = '/autoevaluacion';
     } else {
@@ -77,7 +97,10 @@ export function useHomeRedirect() {
     }
     
     setDestination(dest);
-    
+
+    // El chunk del destino baja durante el fade en vez de después.
+    void preloadRoute(dest.split('?')[0]);
+
     setTimeout(() => {
       navigate(dest, { replace: true });
     }, FADE_DURATION);

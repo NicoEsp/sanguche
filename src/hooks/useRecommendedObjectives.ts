@@ -5,7 +5,7 @@ import { useAssessmentData } from "./useAssessmentData";
 import { useUserProgressObjectives } from "./useUserProgressObjectives";
 import { useUserProfile } from "./useUserProfile";
 import { RECOMMENDED_OBJECTIVES, RecommendedObjectiveTemplate, getDomainLabel } from "@/utils/recommendedObjectives";
-import { AnyDomainKey, Gap, NeutralArea, SeniorityLevel } from "@/utils/scoring";
+import { AnyDomainKey, SeniorityLevel } from "@/utils/scoring";
 import { toast } from "sonner";
 
 export interface GeneratedObjective extends RecommendedObjectiveTemplate {

@@ -7,10 +7,17 @@
 //
 // Sends one welcome email per (user, welcome category). Premium and RePremium
 // share the same category ('premium'); B2B and Review each have their own.
-// Idempotency: UNIQUE(user_id, plan) on welcome_email_queue + the pre-check
-// below.
+// Idempotency: the queue row is claimed (status "pending") before sending, and
+// UNIQUE(user_id, plan) on welcome_email_queue lets only one request through.
+// A failed send leaves the row retryable (see reclaimRow).
+//
+// Caller auth: verify_jwt is off (the trigger has no service JWT to send), so
+// the function only accepts calls that carry the x-welcome-secret header the
+// trigger reads from Vault (migration welcome_email_caller_secret). It still
+// sends only when the user really has that plan active, and it never returns
+// or logs the email.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -227,6 +234,49 @@ function buildEmailHtml(name: string, plan: WelcomePlan): string {
   return buildPremiumHtml(name, plan);
 }
 
+// Resend guarda cada Idempotency-Key 24 horas. Se deja una de margen.
+const RESEND_KEY_WINDOW_MS = 23 * 60 * 60 * 1000;
+// Resend responde en menos de un segundo. Colgado más que esto, el pedido se
+// corta y la fila queda "unconfirmed" en vez de "pending" para siempre.
+const RESEND_TIMEOUT_MS = 10_000;
+
+// Vuelve a reservar una fila que ya existe, si quedó reintentable. Cada UPDATE
+// es atómico: de dos pedidos en paralelo, uno solo la pasa a "pending".
+// - "error": Resend respondió con un error que asegura que no mandó nada. Se
+//   reintenta con una idempotency key nueva (sent_at nuevo).
+// - "unconfirmed": no se sabe si el mail salió (el pedido falló sin respuesta,
+//   o Resend respondió 5xx o un 409 de idempotencia). Se reintenta con la
+//   misma key (mismo sent_at): si ya había salido, Resend devuelve la respuesta
+//   original sin mandar otro. Pasadas las 24 horas de la key no se reintenta,
+//   para no duplicar el mail.
+// "pending" y "sent" no se tocan.
+async function reclaimRow(
+  supabase: SupabaseClient,
+  userId: string,
+  category: string,
+  email: string,
+) {
+  const failed = await supabase
+    .from("welcome_email_queue")
+    .update({ status: "pending", email, error_message: null, sent_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .eq("plan", category)
+    .eq("status", "error")
+    .select("id, sent_at")
+    .maybeSingle();
+  if (failed.error || failed.data) return failed;
+
+  return await supabase
+    .from("welcome_email_queue")
+    .update({ status: "pending" })
+    .eq("user_id", userId)
+    .eq("plan", category)
+    .eq("status", "unconfirmed")
+    .gt("sent_at", new Date(Date.now() - RESEND_KEY_WINDOW_MS).toISOString())
+    .select("id, sent_at")
+    .maybeSingle();
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -240,6 +290,32 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Solo el trigger conoce el secreto. Lo compara la base, así no hace falta
+    // copiarlo a los secrets de la función.
+    const { data: callerOk, error: callerError } = await supabase.rpc("welcome_email_secret_matches", {
+      p_secret: req.headers.get("x-welcome-secret") ?? "",
+    });
+    if (callerError) {
+      console.error("[send-welcome-email] Could not verify caller:", callerError);
+      return new Response(
+        JSON.stringify({ error: "Internal server error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (callerOk !== true) {
+      console.warn("[send-welcome-email] Rejected call without a valid x-welcome-secret");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const body = await req.json().catch(() => ({}));
     const userId = body?.user_id;
     const plan = body?.plan;
@@ -258,33 +334,47 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
-
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
     const category = welcomeCategory(plan);
 
-    const { data: existing } = await supabase
-      .from("welcome_email_queue")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("plan", category)
-      .maybeSingle();
+    // No confía en el body: solo manda la bienvenida si el usuario tiene ese
+    // plan activo. Así ni un pedido mal armado le hace llegar a alguien la
+    // bienvenida de un plan que no compró.
+    const [
+      { data: subscription, error: subscriptionError },
+      { data: profile, error: profileError },
+    ] = await Promise.all([
+      supabase
+        .from("user_subscriptions")
+        .select("plan, status")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("id, name, email")
+        .eq("id", userId)
+        .maybeSingle(),
+    ]);
 
-    if (existing) {
-      console.log(`[send-welcome-email] SKIP ${userId} (${category}): already sent`);
+    // Un error de la base no es "no tiene el plan": se responde 500 y no 409.
+    if (subscriptionError) {
+      console.error(`[send-welcome-email] Could not read subscription for ${userId}:`, subscriptionError);
       return new Response(
-        JSON.stringify({ message: "Already sent", skipped: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Subscription unavailable" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("id, name, email")
-      .eq("id", userId)
-      .single();
+    if (
+      subscription?.status !== "active" ||
+      !isWelcomePlan(subscription.plan) ||
+      welcomeCategory(subscription.plan) !== category
+    ) {
+      console.warn(`[send-welcome-email] SKIP ${userId} (${category}): no active ${category} plan`);
+      return new Response(
+        JSON.stringify({ error: "No active plan for this welcome" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (profileError || !profile) {
       console.error(`[send-welcome-email] Profile ${userId} not found:`, profileError);
@@ -302,72 +392,134 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const label = planLabel(plan);
-    console.log(`[send-welcome-email] SENDING ${label} welcome to ${profile.email}`);
-
-    const emailHtml = buildEmailHtml(profile.name || "", plan);
-
-    const resendRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "ProductPrepa <hola@productprepa.com>",
-        to: [profile.email],
-        subject: subjectLine(plan),
-        html: emailHtml,
-      }),
-    });
-
-    const resendBody = await resendRes.text();
-
-    if (!resendRes.ok) {
-      console.error(`[send-welcome-email] Resend error for ${profile.email}:`, resendBody);
-      const { error: errorQueueInsertError } = await supabase
-        .from("welcome_email_queue")
-        .insert({
-          user_id: profile.id,
-          plan: category,
-          email: profile.email,
-          status: "error",
-          error_message: resendBody,
-        });
-      if (errorQueueInsertError) {
-        console.error(
-          `[send-welcome-email] Failed to record error row for user=${profile.id} plan=${category}:`,
-          errorQueueInsertError,
-        );
-      }
-      return new Response(
-        JSON.stringify({ error: "Failed to send", details: resendBody }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // The email was sent successfully — make a noisy log if we fail to record
-    // it. Without the queue row, the trigger could re-fire (e.g. on a quick
-    // follow-up update) and lead to a duplicate send.
-    const { error: queueInsertError } = await supabase
+    // La fila de la cola se reserva antes de mandar: UNIQUE(user_id, plan) deja
+    // pasar un solo pedido. Antes se consultaba, se mandaba y recién después se
+    // insertaba, así que dos llamadas en paralelo mandaban dos mails.
+    const inserted = await supabase
       .from("welcome_email_queue")
       .insert({
         user_id: profile.id,
         plan: category,
         email: profile.email,
-        status: "sent",
-      });
-    if (queueInsertError) {
-      console.error(
-        `[send-welcome-email] Email sent but queue insert failed for user=${profile.id} plan=${category} email=${profile.email}:`,
-        queueInsertError,
+        status: "pending",
+      })
+      .select("id, sent_at")
+      .single();
+    let claim = inserted.data;
+    let claimError = inserted.error;
+
+    if (claimError?.code === "23505") {
+      const reclaimed = await reclaimRow(supabase, profile.id, category, profile.email);
+      if (!reclaimed.error && !reclaimed.data) {
+        console.log(`[send-welcome-email] SKIP ${userId} (${category}): already sent`);
+        return new Response(
+          JSON.stringify({ message: "Already sent", skipped: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      claim = reclaimed.data;
+      claimError = reclaimed.error;
+    }
+
+    if (claimError || !claim) {
+      console.error(`[send-welcome-email] Could not claim queue row for ${userId} (${category}):`, claimError);
+      return new Response(
+        JSON.stringify({ error: "Queue unavailable" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`[send-welcome-email] SENT ${label} to ${profile.email}`);
+    const label = planLabel(plan);
+    console.log(`[send-welcome-email] SENDING ${label} welcome to user=${profile.id}`);
+
+    const emailHtml = buildEmailHtml(profile.name || "", plan);
+
+    let resendRes: Response;
+    let resendBody: string;
+    try {
+      resendRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+          // Estable mientras la fila no cambie de sent_at: ver reclaimRow.
+          "Idempotency-Key": `welcome-email/${claim.id}/${claim.sent_at}`,
+        },
+        body: JSON.stringify({
+          from: "ProductPrepa <hola@productprepa.com>",
+          to: [profile.email],
+          subject: subjectLine(plan),
+          html: emailHtml,
+        }),
+        signal: AbortSignal.timeout(RESEND_TIMEOUT_MS),
+      });
+      resendBody = await resendRes.text();
+    } catch (err) {
+      // Sin respuesta no se sabe si el mail salió: "unconfirmed" se reintenta
+      // con la misma key. Si la fila quedara en "pending", bloquearía la
+      // bienvenida para siempre.
+      console.error(`[send-welcome-email] Resend request failed for user=${profile.id} plan=${category}:`, err);
+      const { error: markError } = await supabase
+        .from("welcome_email_queue")
+        .update({ status: "unconfirmed", error_message: String(err) })
+        .eq("id", claim.id);
+      if (markError) {
+        console.error(
+          `[send-welcome-email] Failed to record unconfirmed send for user=${profile.id} plan=${category}:`,
+          markError,
+        );
+      }
+      return new Response(
+        JSON.stringify({ error: "Failed to send" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!resendRes.ok) {
+      // Un 5xx o un 409 de idempotencia (otro pedido con la misma key en curso,
+      // o la key ya usada) no dicen si el mail salió: se reintenta con la misma
+      // key. Los demás errores sí dicen que no salió nada.
+      const outcomeUnknown = resendRes.status >= 500 ||
+        (resendRes.status === 409 &&
+          /concurrent_idempotent_requests|invalid_idempotent_request/.test(resendBody));
+      const failedStatus = outcomeUnknown ? "unconfirmed" : "error";
+      // El cuerpo de Resend puede traer el email: queda en error_message.
+      console.error(
+        `[send-welcome-email] Resend error ${resendRes.status} for user=${profile.id} plan=${category} (${failedStatus})`,
+      );
+      const { error: errorUpdateError } = await supabase
+        .from("welcome_email_queue")
+        .update({ status: failedStatus, error_message: resendBody })
+        .eq("id", claim.id);
+      if (errorUpdateError) {
+        console.error(
+          `[send-welcome-email] Failed to record error for user=${profile.id} plan=${category}:`,
+          errorUpdateError,
+        );
+      }
+      return new Response(
+        JSON.stringify({ error: "Failed to send" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // The email was sent: if this update fails the row stays as "pending",
+    // which still blocks a second send.
+    const { error: queueUpdateError } = await supabase
+      .from("welcome_email_queue")
+      .update({ status: "sent", sent_at: new Date().toISOString() })
+      .eq("id", claim.id);
+    if (queueUpdateError) {
+      console.error(
+        `[send-welcome-email] Email sent but queue update failed for user=${profile.id} plan=${category}:`,
+        queueUpdateError,
+      );
+    }
+
+    console.log(`[send-welcome-email] SENT ${label} to user=${profile.id}`);
 
     return new Response(
-      JSON.stringify({ message: "Sent", email: profile.email }),
+      JSON.stringify({ message: "Sent" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

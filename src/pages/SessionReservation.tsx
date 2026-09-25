@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -10,6 +11,7 @@ import { Calendar, Users, CheckCircle2, ArrowRight, Sparkles, Lock, Target, Book
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { argentinaWallTime } from '@/utils/argentinaTime';
 import { Seo } from '@/components/Seo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -34,6 +36,8 @@ const SessionReservation = () => {
   const [searchParams] = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const { hasActivePremium, loading: subLoading } = useSubscription();
+  const { profile } = useUserProfile();
+  const profileId = profile?.id;
 
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,68 +63,55 @@ const SessionReservation = () => {
         return;
       }
 
+      // La página se muestra con la sesión; los cupos llegan después y no
+      // tienen por qué frenarla.
       setSession(data as Session);
+      setSpotsLeft(data.max_spots);
+      setLoading(false);
 
       const { data: spots } = await supabase
         .rpc('get_session_spots_left', { p_session_id: data.id });
-
-      setSpotsLeft(spots ?? data.max_spots);
-      setLoading(false);
+      if (spots !== null) setSpotsLeft(spots);
     };
     fetchSession();
   }, [slug]);
 
-  // Check if user already reserved
+  // Check if user already reserved. El id del perfil sale de useUserProfile,
+  // que casi siempre ya está en caché, en vez de una query propia.
   useEffect(() => {
-    if (!user || !session) return;
+    if (!profileId || !session) return;
     const checkReservation = async () => {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) return;
-
       const { data } = await supabase
         .from('session_reservations')
         .select('id')
         .eq('session_id', session.id)
-        .eq('user_id', profile.id)
+        .eq('user_id', profileId)
         .maybeSingle();
 
       setAlreadyReserved(!!data);
     };
     checkReservation();
-  }, [user, session]);
+  }, [profileId, session]);
 
   // Auto-reserve if returning from auth/planes with intent
   useEffect(() => {
     const intent = searchParams.get('intent');
-    if (intent === 'reserve' && user && hasActivePremium && session && !alreadyReserved) {
+    if (intent === 'reserve' && user && profileId && hasActivePremium && session && !alreadyReserved) {
       handleReserve();
     }
-  }, [user, hasActivePremium, session, alreadyReserved, searchParams]);
+  }, [user, profileId, hasActivePremium, session, alreadyReserved, searchParams]);
 
   const handleReserve = async () => {
     if (!session || !user) return;
-    setReserving(true);
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!profile) {
+    if (!profileId) {
       toast.error('Error al obtener tu perfil');
-      setReserving(false);
       return;
     }
+    setReserving(true);
 
     const { error } = await supabase
       .from('session_reservations')
-      .insert({ session_id: session.id, user_id: profile.id });
+      .insert({ session_id: session.id, user_id: profileId });
 
     if (error) {
       if (error.code === '23505') {
@@ -137,12 +128,19 @@ const SessionReservation = () => {
     setReserving(false);
   };
 
+  // /auth toma el destino de location.state (como ProtectedRoute), no de un
+  // query param: con ?redirect= la persona terminaba en la home después del
+  // login y perdía la reserva.
   const handleGoToAuth = () => {
-    navigate(`/auth?redirect=/sesion/${slug}?intent=reserve`);
+    navigate('/auth', {
+      state: { from: { pathname: `/sesion/${slug}`, search: '?intent=reserve' } },
+    });
   };
 
+  // El checkout vuelve a /welcome: la intención de reservar no sobrevive al
+  // pago, así que después hay que volver a abrir el link de la sesión.
   const handleGoToPlanes = () => {
-    navigate(`/planes?redirect=/sesion/${slug}?intent=reserve`);
+    navigate('/planes');
   };
 
   if (loading || authLoading) return <LoadingScreen />;
@@ -196,10 +194,10 @@ const SessionReservation = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">
-                        {format(new Date(session.session_date), "EEEE d 'de' MMMM", { locale: es })}
+                        {format(argentinaWallTime(session.session_date), "EEEE d 'de' MMMM", { locale: es })}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {format(new Date(session.session_date), "h:mm a")} (Argentina)
+                        {format(argentinaWallTime(session.session_date), "h:mm a")} (Argentina)
                       </p>
                     </div>
                   </div>

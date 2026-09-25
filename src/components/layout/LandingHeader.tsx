@@ -15,13 +15,15 @@ export function LandingHeader() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur animate-fade-in">
+    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
       <div className="container flex h-14 items-center justify-between gap-4">
         {/* Left: Logo + navegación pública */}
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2 shrink-0">
             <img
-              src="/assets/sanguche.png"
+              src="/assets/sanguche-96.png"
+              width={96}
+              height={96}
               alt="ProductPrepa Logo"
               className="h-7 w-7"
             />

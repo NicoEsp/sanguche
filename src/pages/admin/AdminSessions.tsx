@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { Calendar, ChevronDown, ChevronUp, Plus, Trash2, Users, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { argentinaWallTime, fromArgentinaInput, toArgentinaInput } from '@/utils/argentinaTime';
 
 interface Session {
   id: string;
@@ -275,7 +276,7 @@ const AdminSessions = () => {
         title: createForm.title,
         slug: createForm.slug,
         description: createForm.description || null,
-        session_date: createForm.session_date || null,
+        session_date: createForm.session_date ? fromArgentinaInput(createForm.session_date) : null,
         max_spots: createForm.max_spots,
         speaker_name: createForm.speaker_name || null,
         speaker_bio: createForm.speaker_bio || null,
@@ -302,7 +303,7 @@ const AdminSessions = () => {
         title: editForm.title,
         slug: editForm.slug,
         description: editForm.description || null,
-        session_date: editForm.session_date || null,
+        session_date: editForm.session_date ? fromArgentinaInput(editForm.session_date) : null,
         max_spots: editForm.max_spots,
         speaker_name: editForm.speaker_name || null,
         speaker_bio: editForm.speaker_bio || null,
@@ -338,7 +339,7 @@ const AdminSessions = () => {
       title: s.title,
       slug: s.slug,
       description: s.description || '',
-      session_date: s.session_date ? s.session_date.slice(0, 16) : '',
+      session_date: s.session_date ? toArgentinaInput(s.session_date) : '',
       max_spots: s.max_spots ?? 10,
       speaker_name: s.speaker_name || '',
       speaker_bio: s.speaker_bio || '',
@@ -453,7 +454,7 @@ const AdminSessions = () => {
                 <div className="flex items-center gap-6 text-sm">
                   {session.session_date && (
                     <span className="text-muted-foreground">
-                      📅 {format(new Date(session.session_date), "d 'de' MMMM yyyy, HH:mm", { locale: es })}
+                      📅 {format(argentinaWallTime(session.session_date), "d 'de' MMMM yyyy, HH:mm", { locale: es })}
                     </span>
                   )}
                   <div className="flex items-center gap-2">

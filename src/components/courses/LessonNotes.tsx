@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { StickyNote, Check, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -9,67 +9,70 @@ interface LessonNotesProps {
   lessonId: string;
 }
 
+const SAVE_DELAY_MS = 1000;
+
+/** Va montado con key por lección: cada lección arranca con su propio estado. */
 export function LessonNotes({ lessonId }: LessonNotesProps) {
   const { data: note, isLoading } = useLessonNote(lessonId);
-  const updateNote = useUpdateLessonNote();
-  
-  const [content, setContent] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
+  const { mutateAsync: saveNote } = useUpdateLessonNote();
+
+  // Lo escrito manda sobre la nota guardada. Antes cada guardado volvía a
+  // copiar la nota al textarea: se perdía lo tipeado mientras viajaba el
+  // request, y borrar todo el texto cerraba el editor.
+  const [draft, setDraft] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const content = draft ?? note?.content ?? '';
+  const isExpanded = expanded || draft !== null || !!note?.content;
 
-  // Sync content when note loads or lesson changes
-  useEffect(() => {
-    if (note?.content) {
-      setContent(note.content);
-      setIsExpanded(true);
-    } else {
-      setContent('');
-      setIsExpanded(false);
-    }
-    setSaveStatus('idle');
-  }, [note, lessonId]);
+  const pendingRef = useRef<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  // Los guardados van en fila: dos upserts en vuelo podían llegar al revés
+  // y dejar guardada la versión vieja.
+  const queueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const saveNoteRef = useRef(saveNote);
+  saveNoteRef.current = saveNote;
 
-  // Auto-save with debounce
-  const saveNote = useCallback(async (newContent: string) => {
-    if (!lessonId) return;
-    
+  const flush = useCallback(() => {
+    clearTimeout(timerRef.current);
+    const pending = pendingRef.current;
+    if (pending === null) return;
+    pendingRef.current = null;
+
     setSaveStatus('saving');
-    try {
-      await updateNote.mutateAsync({ lessonId, content: newContent });
-      setSaveStatus('saved');
-      // Reset to idle after 2 seconds
-      setTimeout(() => setSaveStatus('idle'), 2000);
-    } catch (error) {
-      if (import.meta.env.DEV) console.error('Error saving note:', error);
-      setSaveStatus('idle');
-    }
-  }, [lessonId, updateNote]);
+    clearTimeout(idleTimerRef.current);
+    queueRef.current = queueRef.current
+      .then(() => saveNoteRef.current({ lessonId, content: pending }))
+      .then(
+        () => {
+          if (pendingRef.current !== null) return;
+          setSaveStatus('saved');
+          idleTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
+        },
+        (error) => {
+          if (import.meta.env.DEV) console.error('Error saving note:', error);
+          setSaveStatus('idle');
+        }
+      );
+  }, [lessonId]);
 
   const handleContentChange = (newContent: string) => {
-    setContent(newContent);
-    
-    // Clear existing timer
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
-    
-    // Set new timer for auto-save (1 second debounce)
-    const timer = setTimeout(() => {
-      saveNote(newContent);
-    }, 1000);
-    
-    setDebounceTimer(timer);
+    setDraft(newContent);
+    pendingRef.current = newContent;
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(flush, SAVE_DELAY_MS);
   };
 
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-      }
-    };
-  }, [debounceTimer]);
+  // Al cambiar de lección o salir de la página, lo pendiente se guarda en el
+  // momento: antes el cleanup cancelaba el timer y se perdía el último segundo.
+  useEffect(
+    () => () => {
+      flush();
+      clearTimeout(idleTimerRef.current);
+    },
+    [flush]
+  );
 
   if (isLoading) {
     return (
@@ -85,7 +88,7 @@ export function LessonNotes({ lessonId }: LessonNotesProps) {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => setIsExpanded(true)}
+        onClick={() => setExpanded(true)}
         className="text-muted-foreground hover:text-foreground"
       >
         <StickyNote className="h-4 w-4 mr-2" />

@@ -60,7 +60,10 @@ const loadMixpanel = async (): Promise<MixpanelBrowser | null> => {
   }
 
   if (!mixpanelLoader) {
-    mixpanelLoader = import('mixpanel-browser')
+    // Build core, sin el grabador de sesiones: el paquete por defecto trae rrweb
+    // incluido (325 kB minificado contra ~90 kB) y acá no se graban sesiones.
+    // Misma API y mismos tipos que 'mixpanel-browser'.
+    mixpanelLoader = import('mixpanel-browser/dist/mixpanel-core.cjs.js')
       .then((mixpanelModule) => {
         const mixpanel = mixpanelModule.default;
         mixpanel.init(MIXPANEL_TOKEN, {
@@ -107,7 +110,7 @@ export const Mixpanel = {
     });
   },
 
-  track: (name: string, props?: Record<string, any>, options?: RequestOptions) => {
+  track: (name: string, props?: Record<string, unknown>, options?: RequestOptions) => {
     // Camino síncrono: al ocultarse la pestaña no hay tiempo para resolver el
     // import dinámico, así que los eventos de salida solo llegan si la instancia ya existe.
     if (mixpanelInstance) {
@@ -120,7 +123,7 @@ export const Mixpanel = {
   },
 
   people: {
-    set: (props: Record<string, any>) => {
+    set: (props: Record<string, unknown>) => {
       withMixpanel((mixpanel) => {
         mixpanel.people.set(props);
       });

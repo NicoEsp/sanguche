@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Seo } from '@/components/Seo';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ import {
 type AuthMode = 'login' | 'signup' | 'reset' | 'email-verification' | 'update-password';
 
 export default function Auth() {
-  const { signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation, updatePassword, isLoading, isAuthenticated, session } = useAuth();
+  const { signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation, updatePassword, isSubmitting, isAuthenticated, session } = useAuth();
 
   // Reads the URL on the very first render, so a recovery landing is known
   // before any redirect effect can bounce an already-logged-in user home.
@@ -168,7 +168,7 @@ export default function Auth() {
       <Seo
         title={`${getTitle()} — ProductPrepa`}
         description="Accede a tu cuenta de ProductPrepa para continuar con tu evaluación y recomendaciones personalizadas."
-        canonical="/login"
+        canonical="/auth"
         keywords="login productprepa, registro PM, acceso cuenta"
       />
       
@@ -181,21 +181,21 @@ export default function Auth() {
           
           <CardContent className="space-y-4">
             {mode === 'login' && (
-              <LoginForm onSubmit={handleLogin} onGoogleSignIn={handleGoogleSignIn} isLoading={isLoading} />
+              <LoginForm onSubmit={handleLogin} onGoogleSignIn={handleGoogleSignIn} isLoading={isSubmitting} />
             )}
 
             {mode === 'signup' && (
-              <SignUpForm onSubmit={handleSignUp} onGoogleSignIn={handleGoogleSignIn} isLoading={isLoading} />
+              <SignUpForm onSubmit={handleSignUp} onGoogleSignIn={handleGoogleSignIn} isLoading={isSubmitting} />
             )}
 
             {mode === 'reset' && (
-              <ResetPasswordForm onSubmit={handleResetPassword} isLoading={isLoading} />
+              <ResetPasswordForm onSubmit={handleResetPassword} isLoading={isSubmitting} />
             )}
 
             {mode === 'update-password' && (
               <UpdatePasswordForm
                 onSubmit={handleUpdatePassword}
-                isLoading={isLoading}
+                isLoading={isSubmitting}
                 status={recovery.status}
                 errorMessage={recovery.errorMessage}
                 onConfirmLink={recovery.confirm}
@@ -208,7 +208,7 @@ export default function Auth() {
                 email={verificationEmail}
                 onBack={() => setMode('login')}
                 onResend={handleResendConfirmation}
-                isLoading={isLoading}
+                isLoading={isSubmitting}
               />
             )}
 

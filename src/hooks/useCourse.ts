@@ -6,55 +6,35 @@ export function useCourse(slug: string) {
   return useQuery({
     queryKey: ["course", slug],
     queryFn: async (): Promise<CourseWithLessons | null> => {
-      // Fetch course
-      const { data: course, error: courseError } = await supabase
+      // Curso, lecciones y ejercicios en un solo request: antes eran tres en
+      // fila (las lecciones y los ejercicios esperaban el id del curso). Los
+      // filtros sobre los embeds recortan esas listas, no el curso.
+      const { data, error } = await supabase
         .from("courses")
-        .select("*")
+        .select("*, course_lessons(*), course_exercises(*)")
         .eq("slug", slug)
         .eq("is_published", true)
-        .single();
+        .eq("course_lessons.is_published", true)
+        .eq("course_exercises.is_published", true)
+        .order("order_index", { referencedTable: "course_lessons", ascending: true })
+        .order("order_index", { referencedTable: "course_exercises", ascending: true })
+        .maybeSingle();
 
-      if (courseError) {
-        if (courseError.code === "PGRST116") {
-          return null; // Not found
-        }
-        if (import.meta.env.DEV) console.error("Error fetching course:", courseError);
-        throw courseError;
+      if (error) {
+        if (import.meta.env.DEV) console.error("Error fetching course:", error);
+        throw error;
       }
 
-      // Fetch lessons
-      const { data: lessons, error: lessonsError } = await supabase
-        .from("course_lessons")
-        .select("*")
-        .eq("course_id", course.id)
-        .eq("is_published", true)
-        .order("order_index", { ascending: true });
+      if (!data) return null; // Not found
 
-      if (lessonsError) {
-        if (import.meta.env.DEV) console.error("Error fetching lessons:", lessonsError);
-        throw lessonsError;
-      }
-
-      // Fetch exercises
-      const { data: exercises, error: exercisesError } = await supabase
-        .from("course_exercises")
-        .select("*")
-        .eq("course_id", course.id)
-        .eq("is_published", true)
-        .order("order_index", { ascending: true });
-
-      if (exercisesError) {
-        if (import.meta.env.DEV) console.error("Error fetching exercises:", exercisesError);
-        throw exercisesError;
-      }
-
+      const { course_lessons, course_exercises, ...course } = data;
       return {
         ...course,
-        lessons: (lessons || []).map((l) => ({
+        lessons: (course_lessons ?? []).map((l) => ({
           ...l,
           video_type: l.video_type as 'external' | 'storage',
         })),
-        exercises: exercises || [],
+        exercises: course_exercises ?? [],
       };
     },
     enabled: !!slug,

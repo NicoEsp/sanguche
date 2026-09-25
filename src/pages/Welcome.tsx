@@ -12,10 +12,7 @@ export default function Welcome() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const plan = searchParams.get('plan');
-  const {
-    isAuthenticated,
-    user
-  } = useAuth();
+  const { isAuthenticated } = useAuth();
   const {
     trackEvent
   } = useMixpanelTracking();

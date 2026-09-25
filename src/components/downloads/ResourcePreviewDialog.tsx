@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils';
 export interface ResourcePreview {
   resource: DownloadableResource;
   url: string;
+  /** Cuándo se firmó y verificó url (Date.now()). */
+  verifiedAt: number;
 }
 
 interface ResourcePreviewDialogProps {

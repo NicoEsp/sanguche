@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
 import { EmailCaptureDialog } from "./EmailCaptureDialog";
 import { usePricing } from "@/hooks/usePricing";
+import { preconnectCheckout, warmUpCheckout } from "@/lib/checkoutPrefetch";
 
 export type PlanType = 'premium' | 'repremium' | 'curso_estrategia' | 'cursos_all';
 
@@ -17,51 +19,65 @@ interface LemonSqueezyCheckoutProps {
   variant?: "default" | "outline" | "ghost" | "secondary" | "destructive" | "link";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
-  onSuccess?: () => void;
-  onError?: (error: string) => void;
-  onCheckoutStart?: () => void;
 }
 
-export function LemonSqueezyCheckout({ 
+/** Error del checkout con lo que hace falta para medirlo. */
+class CheckoutError extends Error {
+  constructor(message: string, readonly status?: number, readonly responseData?: unknown) {
+    super(message);
+  }
+}
+
+export function LemonSqueezyCheckout({
   plan = 'premium',
   buttonText,
   children,
   variant = 'default',
   size = 'lg',
   className,
-  onSuccess, 
-  onError, 
-  onCheckoutStart 
 }: LemonSqueezyCheckoutProps) {
   const [loading, setLoading] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
-  const { toast } = useToast();
+  const loadingToastRef = useRef<string | number | null>(null);
   const { user } = useAuth();
   const { trackEvent } = useMixpanelTracking();
   const { premium, pricesByPlan } = usePricing();
 
+  // Tras el redirect el botón queda en "Redirigiendo...". Si la persona vuelve
+  // con el botón atrás y el navegador restaura la página desde el bfcache, hay
+  // que devolverlo a su estado normal.
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      setLoading(false);
+      if (loadingToastRef.current !== null) toast.dismiss(loadingToastRef.current);
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, []);
+
   const handleCheckout = async (email?: string) => {
-    onCheckoutStart?.();
+    // Con el email tipeado pudieron pasar más de 10 s desde el hover.
+    preconnectCheckout();
 
     setLoading(true);
-    
-    // Feedback inmediato al usuario
-    toast({
-      title: "Preparando checkout...",
+
+    // Feedback inmediato; si falla, el mismo toast pasa a mostrar el error.
+    const toastId = toast.loading("Preparando checkout...", {
       description: "Redirigiendo a la página de pago segura.",
-      duration: 3000,
     });
-    
+    loadingToastRef.current = toastId;
+
     trackEvent('checkout_started', {
       plan,
       price: pricesByPlan[plan],
       provider: 'lemon_squeezy',
       is_anonymous: !user
     });
-    
+
     try {
       const { data, error } = await supabase.functions.invoke('lemon-squeezy-checkout', {
-        body: { 
+        body: {
           userId: user?.id,
           email: email,
           plan
@@ -69,66 +85,54 @@ export function LemonSqueezyCheckout({
       });
 
       if (error) {
-        // supabase.functions.invoke wraps non-2xx as FunctionsHttpError
-        // Try to extract the actual JSON error from the response context
+        // invoke envuelve las respuestas no-2xx en FunctionsHttpError: el
+        // mensaje real y el status vienen en la Response original.
+        let status: number | undefined;
         let serverMessage: string | undefined;
-        try {
-          // FunctionsHttpError has a context with the original response
-          const context = (error as any)?.context;
-          if (context instanceof Response) {
-            const body = await context.json();
-            serverMessage = body?.message || body?.error;
-          }
-        } catch {
-          // Could not parse server response, fall through
+        if (error instanceof FunctionsHttpError) {
+          const response = error.context as Response;
+          status = response.status;
+          const body = await response.json().catch(() => null);
+          serverMessage = body?.message || body?.error;
         }
-        
-        // If it's a rate limit (429), throw with identifiable message
-        if (serverMessage?.includes('Demasiados') || serverMessage?.includes('rate') || (error as any)?.context?.status === 429) {
-          throw new Error('429: ' + (serverMessage || 'Rate limited'));
-        }
-        
-        throw new Error(serverMessage || 'Error al crear el checkout');
+        throw new CheckoutError(serverMessage || 'Error al crear el checkout', status);
       }
 
-      if (data?.checkoutUrl) {
-        trackEvent('checkout_redirect', {
-          checkout_url: data.checkoutUrl,
-          provider: 'lemon_squeezy',
-          is_anonymous: !user,
-          plan
-        });
-        window.location.href = data.checkoutUrl;
-      } else {
-        const err = new Error('No checkout URL received');
-        (err as any).responseData = data ?? null;
-        throw err;
+      if (!data?.checkoutUrl) {
+        throw new CheckoutError('No checkout URL received', undefined, data ?? null);
       }
 
+      trackEvent('checkout_redirect', {
+        checkout_url: data.checkoutUrl,
+        provider: 'lemon_squeezy',
+        is_anonymous: !user,
+        plan
+      });
+      window.location.href = data.checkoutUrl;
+      // Sin setLoading(false): el botón queda en "Redirigiendo..." hasta que
+      // el navegador cambia de página.
+      return;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al crear el checkout';
-      
-      // Detectar rate limit (429)
-      const isRateLimited = errorMessage.includes('429') || errorMessage.toLowerCase().includes('rate limit');
-      
-      if (isRateLimited) {
-        trackEvent('checkout_rate_limited', { 
+      const status = error instanceof CheckoutError ? error.status : undefined;
+
+      if (status === 429) {
+        trackEvent('checkout_rate_limited', {
           provider: 'lemon_squeezy',
           is_anonymous: !user,
           user_email: user?.email || email,
           plan,
           timestamp: new Date().toISOString()
         });
-        
-        toast({
-          variant: "destructive",
-          title: "Demasiados intentos",
+
+        toast.error("Demasiados intentos", {
+          id: toastId,
           description: "Has alcanzado el límite de intentos. Por favor espera 10 minutos e intenta nuevamente.",
-          duration: 7000
+          duration: 7000,
+          richColors: true,
         });
       } else {
-        // Track intent fallido con detalles
-        const responseData = (error as any)?.responseData;
+        const responseData = error instanceof CheckoutError ? error.responseData : undefined;
         trackEvent('checkout_failed', {
           error: errorMessage,
           provider: 'lemon_squeezy',
@@ -139,20 +143,19 @@ export function LemonSqueezyCheckout({
           response_data: responseData !== undefined ? JSON.stringify(responseData) : undefined,
           timestamp: new Date().toISOString()
         });
-        
-        toast({
-          variant: "destructive",
-          title: "Error en el checkout",
+
+        toast.error("Error en el checkout", {
+          id: toastId,
           description: "No pudimos crear la sesión de pago. Por favor intenta nuevamente o contacta a soporte.",
-          duration: 5000
+          duration: 5000,
+          richColors: true,
         });
       }
-      
-      onError?.(errorMessage);
+
       setShowEmailDialog(false);
-    } finally {
-      setLoading(false);
     }
+    loadingToastRef.current = null;
+    setLoading(false);
   };
 
   const handleButtonClick = () => {
@@ -163,10 +166,6 @@ export function LemonSqueezyCheckout({
       // Usuario no logueado - mostrar dialog para capturar email
       setShowEmailDialog(true);
     }
-  };
-
-  const handleEmailSubmit = (email: string) => {
-    handleCheckout(email);
   };
 
   // Default button text based on plan
@@ -187,11 +186,14 @@ export function LemonSqueezyCheckout({
 
   return (
     <>
-      <Button 
+      <Button
         size={size}
         variant={variant}
         className={className ?? "w-full min-h-[44px] h-auto whitespace-normal py-2 leading-snug text-center"}
         onClick={handleButtonClick}
+        // Intención de compra: se prepara la conexión y la función antes del clic.
+        onPointerEnter={warmUpCheckout}
+        onFocus={warmUpCheckout}
         disabled={loading}
       >
         {loading ? (
@@ -203,11 +205,11 @@ export function LemonSqueezyCheckout({
           children || buttonText || getDefaultButtonText()
         )}
       </Button>
-      
+
       <EmailCaptureDialog
         open={showEmailDialog}
         onOpenChange={setShowEmailDialog}
-        onEmailSubmit={handleEmailSubmit}
+        onEmailSubmit={handleCheckout}
         isLoading={loading}
         plan={plan}
       />

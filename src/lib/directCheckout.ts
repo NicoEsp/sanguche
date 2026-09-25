@@ -12,6 +12,8 @@
 // de LemonSqueezy → Products → cada producto → "Confirmation" / "Redirect URL".
 // Dejamos el query param igual como capa extra por si LS lo respeta.
 
+import { LEMONSQUEEZY_STORE_ORIGIN } from './checkoutPrefetch';
+
 export type DirectCheckoutKey = 'productastic_review' | 'productprepa_business';
 
 interface DirectCheckoutConfig {
@@ -32,7 +34,7 @@ const DIRECT_CHECKOUTS: Record<DirectCheckoutKey, DirectCheckoutConfig> = {
   },
 };
 
-const LEMONSQUEEZY_STORE_BASE = 'https://nicoproducto.lemonsqueezy.com/checkout/buy';
+const LEMONSQUEEZY_STORE_BASE = `${LEMONSQUEEZY_STORE_ORIGIN}/checkout/buy`;
 
 interface BuildOptions {
   /** Email para pre-cargar el checkout (opcional). */

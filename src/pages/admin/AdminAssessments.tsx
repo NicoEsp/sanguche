@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,8 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import { exportToCSV } from '@/utils/csvExport';
+import { fetchAllRows } from '@/utils/fetchAllRows';
 import { ASSESSMENT_TYPES, AssessmentTypeKey, getAssessmentTypeDef, getAssessmentTypeShortLabel, getContextValueLabel, getNivelDisplay } from '@/utils/scoring';
-import { toast } from 'sonner';
 
 interface Assessment {
   id: string;
@@ -26,6 +26,16 @@ interface Assessment {
     email: string | null;
     user_id: string | null;
   };
+}
+
+interface AssessmentRow {
+  id: string;
+  created_at: string;
+  assessment_type: string | null;
+  assessment_values: unknown;
+  assessment_result: unknown;
+  user_id: string;
+  profiles: { name: string | null; email: string | null; user_id: string | null } | null;
 }
 
 // Espejo de la lógica de supabase/functions/send-discount-email: ya no hay
@@ -75,33 +85,37 @@ export default function AdminAssessments() {
       }
       setError(null);
 
-      const { data: assessments, error: assessmentsError } = await supabase
-        .from('assessments')
-        .select(`
-          id,
-          created_at,
-          assessment_type,
-          assessment_values,
-          assessment_result,
-          user_id,
-          profiles!assessments_user_id_fkey(name, email, user_id)
-        `)
-        .order('created_at', { ascending: false });
+      // Paginado: PostgREST corta en 1000 filas sin avisar, y hay una
+      // evaluación por usuario.
+      const assessments = await fetchAllRows<AssessmentRow>((from, to) =>
+        supabase
+          .from('assessments')
+          .select(`
+            id,
+            created_at,
+            assessment_type,
+            assessment_values,
+            assessment_result,
+            user_id,
+            profiles!assessments_user_id_fkey(name, email, user_id)
+          `)
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true })
+          .range(from, to)
+      );
 
-      if (assessmentsError) throw assessmentsError;
-
-      const transformedData = assessments?.map(assessment => ({
-        id: assessment?.id || '',
-        created_at: assessment?.created_at || '',
-        assessment_type: assessment?.assessment_type ?? null,
-        assessment_values: assessment?.assessment_values || {},
-        assessment_result: assessment?.assessment_result || {},
+      const transformedData: Assessment[] = assessments.map(assessment => ({
+        id: assessment.id,
+        created_at: assessment.created_at,
+        assessment_type: (assessment.assessment_type ?? null) as AssessmentTypeKey | null,
+        assessment_values: assessment.assessment_values || {},
+        assessment_result: assessment.assessment_result || {},
         user: {
-          name: (assessment?.profiles as any)?.name || null,
-          email: (assessment?.profiles as any)?.email || null,
-          user_id: (assessment?.profiles as any)?.user_id || null
+          name: assessment.profiles?.name || null,
+          email: assessment.profiles?.email || null,
+          user_id: assessment.profiles?.user_id || null
         }
-      })).filter(Boolean) || [];
+      }));
 
       setAssessments(transformedData);
     } catch (err) {

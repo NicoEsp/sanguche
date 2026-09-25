@@ -2,7 +2,64 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { fetchAllRows } from '@/utils/fetchAllRows';
 import type { UserProfile } from './shared';
+
+interface ProfileRow {
+  id: string;
+  name: string | null;
+  user_id: string;
+  email: string | null;
+  created_at: string;
+  mentoria_completed: boolean;
+  is_founder: boolean | null;
+}
+
+interface AssessmentRow {
+  user_id: string;
+  created_at: string;
+  optional_domains: unknown;
+}
+
+const loadProfiles = (): Promise<ProfileRow[]> =>
+  fetchAllRows((from, to) =>
+    supabase
+      .from('profiles')
+      .select('id, name, user_id, email, created_at, mentoria_completed, is_founder')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, to)
+  );
+
+const loadSubscriptions = (): Promise<{ user_id: string; plan: string; status: string }[]> =>
+  fetchAllRows((from, to) =>
+    supabase
+      .from('user_subscriptions')
+      .select('user_id, plan, status')
+      .order('id', { ascending: true })
+      .range(from, to)
+  );
+
+const loadRoles = (): Promise<{ user_id: string; role: string }[]> =>
+  fetchAllRows((from, to) =>
+    supabase.from('user_roles').select('user_id, role').order('id', { ascending: true }).range(from, to)
+  );
+
+// Solo los opcionales del resultado: bajar assessment_result entero para
+// mirar dos claves era la mayor parte del payload. La columna va tipada como
+// string porque el parser de tipos de postgrest-js no resuelve el camino JSON
+// (TS2589); el tipo de la fila lo fija overrideTypes.
+const ASSESSMENT_COLUMNS: string = 'user_id, created_at, optional_domains:assessment_result->optionalDomains';
+
+const loadAssessments = (): Promise<AssessmentRow[]> =>
+  fetchAllRows((from, to) =>
+    supabase
+      .from('assessments')
+      .select(ASSESSMENT_COLUMNS)
+      .order('id', { ascending: true })
+      .range(from, to)
+      .overrideTypes<AssessmentRow[], { merge: false }>()
+  );
 
 interface AdminUsersHook {
   users: UserProfile[];
@@ -49,15 +106,24 @@ export function useAdminUsers(): AdminUsersHook {
       }
       setError(null);
 
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, name, user_id, created_at, mentoria_completed, is_founder')
-        .order('created_at', { ascending: false })
-        .limit(2000);
+      // Todo en paralelo y paginado: PostgREST corta en 1000 filas y los
+      // .limit(2000) de antes no lo cambiaban. El email sale de profiles, que
+      // el trigger on_auth_user_email_sync mantiene al día con auth.users:
+      // antes venía de la edge function get-admin-users, cuyo listUsers() sin
+      // paginar devolvía solo los primeros 50 usuarios (el resto, sin email).
+      const [profiles, subscriptions, roles, assessmentRows] = await Promise.all([
+        loadProfiles(),
+        loadSubscriptions(),
+        loadRoles(),
+        loadAssessments().catch((assessmentsError): AssessmentRow[] => {
+          if (import.meta.env.DEV) {
+            console.error('Error fetching assessments:', assessmentsError);
+          }
+          return [];
+        }),
+      ]);
 
-      if (profilesError) throw profilesError;
-
-      if (!profiles?.length) {
+      if (!profiles.length) {
         setUsers([]);
         setAssessments([]);
         if (!silent && !isInitialLoad) {
@@ -66,69 +132,39 @@ export function useAdminUsers(): AdminUsersHook {
         return;
       }
 
-      const emailMap = new Map<string, string>();
-
-      const emailPromise = supabase.functions.invoke('get-admin-users').catch((err) => {
-        if (import.meta.env.DEV) {
-          console.error('Error fetching user emails:', err);
-        }
-        return { data: null, error: err };
-      });
-
-      const [emailResult, subscriptionsResult, rolesResult, assessmentsResult] = await Promise.all([
-        emailPromise,
-        supabase.from('user_subscriptions').select('user_id, plan, status').limit(2000),
-        supabase.from('user_roles').select('user_id, role').limit(2000),
-        supabase.from('assessments').select('user_id, assessment_result, created_at').limit(5000),
-      ]);
-
-      if (subscriptionsResult.error) throw subscriptionsResult.error;
-      if (rolesResult.error) throw rolesResult.error;
-      if (assessmentsResult.error && import.meta.env.DEV) {
-        console.error('Error fetching assessments:', assessmentsResult.error);
-      }
-
       const usersWithOptionalAnswers = new Set<string>();
       const assessmentRecords: { created_at: string }[] = [];
-      assessmentsResult.data?.forEach((assessment) => {
+      assessmentRows.forEach((assessment) => {
         if (assessment.created_at) {
           assessmentRecords.push({ created_at: assessment.created_at });
         }
-        const result = assessment.assessment_result as { optionalDomains?: { growth?: unknown; ia_aplicada?: unknown } } | null;
-        const optionalDomains = result?.optionalDomains;
+        const optionalDomains = assessment.optional_domains as { growth?: unknown; ia_aplicada?: unknown } | null;
         if (optionalDomains && (optionalDomains.growth || optionalDomains.ia_aplicada)) {
           usersWithOptionalAnswers.add(assessment.user_id);
         }
       });
       setAssessments(assessmentRecords);
 
-      const { data: emailData, error: emailError } = emailResult as {
-        data?: { users?: Array<{ user_id?: string; email?: string }> };
-        error?: unknown;
-      };
-      if (!emailError && emailData?.users) {
-        emailData.users.forEach((u) => {
-          if (u.user_id && u.email) emailMap.set(u.user_id, u.email);
-        });
-      }
-
-      const usersData: UserProfile[] = profiles.map((profile) => {
-        const subscription = subscriptionsResult.data?.find((s) => s.user_id === profile.id);
-        const userRole = rolesResult.data?.find((r) => r.user_id === profile.id);
-
-        return {
-          id: profile.id,
-          name: profile.name,
-          user_id: profile.user_id,
-          created_at: profile.created_at,
-          mentoria_completed: profile.mentoria_completed,
-          is_founder: profile.is_founder,
-          email: emailMap.get(profile.user_id) || '',
-          subscription: subscription || { plan: 'free', status: 'active' },
-          role: userRole?.role || 'user',
-          hasOptionalAnswers: usersWithOptionalAnswers.has(profile.id),
-        };
+      // Maps en vez de un find por perfil sobre cada lista (cuadrático).
+      const subscriptionByProfile = new Map(subscriptions.map((sub) => [sub.user_id, sub]));
+      const roleByProfile = new Map<string, string>();
+      roles.forEach((r) => {
+        // Con más de un rol, admin gana: antes quedaba el primero que devolviera la base.
+        if (r.role === 'admin' || !roleByProfile.has(r.user_id)) roleByProfile.set(r.user_id, r.role);
       });
+
+      const usersData: UserProfile[] = profiles.map((profile) => ({
+        id: profile.id,
+        name: profile.name,
+        user_id: profile.user_id,
+        created_at: profile.created_at,
+        mentoria_completed: profile.mentoria_completed,
+        is_founder: profile.is_founder,
+        email: profile.email || '',
+        subscription: subscriptionByProfile.get(profile.id) || { plan: 'free', status: 'active' },
+        role: roleByProfile.get(profile.id) || 'user',
+        hasOptionalAnswers: usersWithOptionalAnswers.has(profile.id),
+      }));
 
       setUsers(usersData);
 

@@ -2,10 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserCourseProgress, CourseProgress, LessonWithProgress, CourseLesson } from "@/types/courses";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []) {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   // OPTIMIZED: Added staleTime/gcTime for better caching
   const progressQuery = useQuery({
@@ -16,10 +16,13 @@ export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []
       const lessonIds = lessons.map((l) => l.id);
       if (lessonIds.length === 0) return [];
 
+      // Filtrado por el usuario y no solo por la RLS: un admin puede leer el
+      // progreso de todos y veía como completadas lecciones de otras personas.
       const { data, error } = await supabase
         .from("user_course_progress")
-        .select("*")
-        .in("lesson_id", lessonIds);
+        .select("*, profiles!inner(user_id)")
+        .in("lesson_id", lessonIds)
+        .eq("profiles.user_id", user.id);
 
       if (error) {
         if (import.meta.env.DEV) console.error("Error fetching course progress:", error);
@@ -34,15 +37,16 @@ export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []
     refetchOnWindowFocus: false,
   });
 
+  const completedLessons = progressQuery.data?.filter((p) => p.completed_at !== null).length || 0;
+
   // Calculate progress stats
   const progressStats: CourseProgress = {
     totalLessons: lessons.length,
-    completedLessons: progressQuery.data?.filter((p) => p.completed_at !== null).length || 0,
+    completedLessons,
     progressPercentage: lessons.length > 0
-      ? Math.round(((progressQuery.data?.filter((p) => p.completed_at !== null).length || 0) / lessons.length) * 100)
+      ? Math.round((completedLessons / lessons.length) * 100)
       : 0,
-    isCompleted: lessons.length > 0 && 
-      (progressQuery.data?.filter((p) => p.completed_at !== null).length || 0) === lessons.length,
+    isCompleted: lessons.length > 0 && completedLessons === lessons.length,
   };
 
   // Get lessons with progress attached
@@ -51,7 +55,10 @@ export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []
     return {
       ...lesson,
       progress,
-      isCompleted: progress?.completed_at !== null,
+      // Sin fila de progreso, progress?.completed_at es undefined y el
+      // "!== null" de antes daba true: toda lección sin empezar figuraba
+      // completada (tilde en la lista, sin botón para marcarla).
+      isCompleted: !!progress?.completed_at,
     };
   });
 
@@ -64,6 +71,8 @@ export function useCourseProgress(courseId: string, lessons: CourseLesson[] = []
 
 export function useUpdateLessonProgress() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
 
   return useMutation({
     mutationFn: async ({
@@ -75,59 +84,41 @@ export function useUpdateLessonProgress() {
       progressSeconds?: number;
       completed?: boolean;
     }) => {
-      const { data: existingProgress, error: fetchError } = await supabase
-        .from("user_course_progress")
-        .select("*")
-        .eq("lesson_id", lessonId)
-        .maybeSingle();
-
-      if (fetchError) {
-        if (import.meta.env.DEV) console.error("Error fetching existing progress:", fetchError);
-        throw fetchError;
-      }
-
-      const updateData: Record<string, unknown> = {};
-      if (progressSeconds !== undefined) {
-        updateData.progress_seconds = progressSeconds;
-      }
-      if (completed) {
-        updateData.completed_at = new Date().toISOString();
-      }
-
-      if (existingProgress) {
-        // Update existing
+      // Un solo upsert sobre (user_id, lesson_id), que es única. Antes eran
+      // hasta tres round trips en fila (buscar el progreso, buscar el perfil,
+      // escribir), y las dos búsquedas iban sin filtro por usuario: para un
+      // admin, que por RLS ve todas las filas, fallaban.
+      let profileId = profile?.id;
+      if (!profileId) {
+        if (!user) throw new Error("No hay usuario autenticado");
         const { data, error } = await supabase
-          .from("user_course_progress")
-          .update(updateData)
-          .eq("id", existingProgress.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } else {
-        // Insert new - need to get profile id first
-        const { data: profile } = await supabase
           .from("profiles")
           .select("id")
+          .eq("user_id", user.id)
           .single();
-
-        if (!profile) throw new Error("Profile not found");
-
-        const { data, error } = await supabase
-          .from("user_course_progress")
-          .insert({
-            user_id: profile.id,
-            lesson_id: lessonId,
-            progress_seconds: progressSeconds || 0,
-            completed_at: completed ? new Date().toISOString() : null,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
+        if (error || !data) throw error ?? new Error("Profile not found");
+        profileId = data.id;
       }
+
+      // Solo van las columnas que cambian: en el upsert, las que no están en
+      // el payload no se tocan si la fila ya existe.
+      const row: {
+        user_id: string;
+        lesson_id: string;
+        progress_seconds?: number;
+        completed_at?: string;
+      } = { user_id: profileId, lesson_id: lessonId };
+      if (progressSeconds !== undefined) row.progress_seconds = progressSeconds;
+      if (completed) row.completed_at = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from("user_course_progress")
+        .upsert(row, { onConflict: "user_id,lesson_id" })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["course-progress"] });
