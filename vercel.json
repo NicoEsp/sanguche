@@ -4,6 +4,12 @@
     { "source": "/preguntas", "destination": "/descargables", "permanent": true },
     { "source": "/premium", "destination": "/planes", "permanent": true }
   ],
+  "headers": [
+    {
+      "source": "/assets/(.+\\.js|.+\\.css)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    }
+  ],
   "rewrites": [
     { "source": "/sitemap.xml", "destination": "https://lgscevufwnetegglgpnw.supabase.co/functions/v1/sitemap" },
     { "source": "/(.*)", "destination": "/app.html" }

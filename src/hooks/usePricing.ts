@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 // también los necesita y no puede importar este módulo (arrastra el cliente de
 // Supabase, que toca localStorage al importarse).
 import { FALLBACK_PRICES, type PlanPricing } from '@/constants/planesContent';
+import { prerenderedAt, prerenderedPrices } from '@/seo/prerenderedData';
 
 interface PlanCounts {
   premium: number | null;
@@ -29,6 +30,11 @@ interface PricingData {
  * sin precio; `loading` distingue "todavía no llegó" de "no se pudo".
  */
 export function usePricing() {
+  // /planes y /cursos-info traen en el HTML los precios con los que se
+  // prerenderizaron: se muestran esos al instante y se revalidan en segundo
+  // plano, en vez de arrancar con "..." y pisar el precio que ya se veía.
+  const seededPrices = prerenderedPrices();
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['pricing'],
     queryFn: async () => {
@@ -43,7 +49,12 @@ export function usePricing() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
-    retry: 2
+    retry: 2,
+    initialData: seededPrices
+      ? { plans: seededPrices, lastUpdated: '', source: 'prerender' }
+      : undefined,
+    initialDataUpdatedAt: seededPrices ? prerenderedAt() : undefined,
+    refetchOnMount: seededPrices ? true : undefined,
   });
 
   if (!data && import.meta.env.DEV && error) {

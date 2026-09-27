@@ -10,7 +10,7 @@
 // The link itself points at our own /auth page carrying the hashed token — see
 // _shared/recovery.ts for why that matters for scanned inboxes.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { emailShell, ctaButton, firstNameFrom, sendResendEmail } from "../_shared/email.ts";
+import { emailShell, ctaButton, escapeHtml, firstNameFrom, sendResendEmail } from "../_shared/email.ts";
 import { maskEmail } from "../_shared/pii.ts";
 import { generateRecoveryLink } from "../_shared/recovery.ts";
 
@@ -120,7 +120,8 @@ async function isRateLimited(
 }
 
 function buildHtml(name: string | null, link: string): string {
-  const firstName = firstNameFrom(name);
+  // El nombre lo escribe cada usuario: sin escapar, podía meter HTML en el mail.
+  const firstName = escapeHtml(firstNameFrom(name));
   return emailShell(
     "Restablecé tu contraseña",
     `<tr><td style="padding:40px;">
@@ -179,7 +180,13 @@ Deno.serve(async (req) => {
       return json({ error: "rate_limited" }, 429);
     }
 
-    const { link, userNotFound, error: linkError } = await generateRecoveryLink(supabase, email);
+    // El nombre (solo para el saludo) se busca en paralelo con el link: antes
+    // era otro round trip en fila después de generarlo.
+    const [{ link, userNotFound, error: linkError }, { data: profile, error: profileError }] =
+      await Promise.all([
+        generateRecoveryLink(supabase, email),
+        supabase.from("profiles").select("name").eq("email", email).maybeSingle(),
+      ]);
 
     if (!link) {
       if (userNotFound) {
@@ -199,12 +206,6 @@ Deno.serve(async (req) => {
 
     // Only used for the greeting: a failed lookup degrades to "¡Hola ahí!"
     // rather than holding back the email, but it shouldn't do so silently.
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("name")
-      .eq("email", email)
-      .maybeSingle();
-
     if (profileError) {
       console.error(
         `[send-password-reset] Profile lookup failed for ${emailMasked}:`,

@@ -38,8 +38,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const userId = claimsData.claims.sub;
-
     // Parse request
     const { lesson_id } = await req.json();
     if (!lesson_id || typeof lesson_id !== "string") {
@@ -75,34 +73,34 @@ Deno.serve(async (req) => {
       });
     }
 
-    const course = (lesson as any).courses;
-    const courseSlug = course.slug;
-    const isFree = course.is_free;
+    const course = lesson.courses as unknown as { slug: string; is_free: boolean };
+    const isStorageVideo = !!lesson.video_type && lesson.video_type !== "external";
 
-    // Check access: free courses → any authenticated user; paid → check plan
-    if (!isFree) {
-      // Check if user is admin
-      const { data: isAdmin } = await adminClient.rpc("is_admin_jwt", {
-        check_user_id: userId,
+    // El acceso a un curso pago lo decide has_course_access, que ya contempla
+    // admins (acá antes se llamaba además a is_admin_jwt con la service role,
+    // donde auth.jwt() no trae email ni uid: daba siempre false y costaba un
+    // round trip). La firma de la URL corre en paralelo con ese chequeo; si el
+    // acceso falla, la URL se descarta sin devolverla.
+    const [hasAccess, signed] = await Promise.all([
+      course.is_free
+        ? true
+        : userClient
+            .rpc("has_course_access", { p_course_slug: course.slug })
+            .then(({ data }) => data === true),
+      isStorageVideo
+        ? adminClient.storage.from("course-videos").createSignedUrl(lesson.video_url, 14400)
+        : null,
+    ]);
+
+    if (!hasAccess) {
+      return new Response(JSON.stringify({ error: "No access to this course" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-
-      if (!isAdmin) {
-        // Check course access via has_course_access
-        const { data: hasAccess } = await userClient.rpc("has_course_access", {
-          p_course_slug: courseSlug,
-        });
-
-        if (!hasAccess) {
-          return new Response(JSON.stringify({ error: "No access to this course" }), {
-            status: 403,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      }
     }
 
     // If external video, return URL directly
-    if (lesson.video_type === "external" || !lesson.video_type) {
+    if (!signed) {
       return new Response(
         JSON.stringify({
           url: lesson.video_url,
@@ -113,13 +111,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Storage video: generate signed URL (4 hours = 14400 seconds)
-    const { data: signedUrlData, error: signedUrlError } = await adminClient.storage
-      .from("course-videos")
-      .createSignedUrl(lesson.video_url, 14400);
-
-    if (signedUrlError || !signedUrlData?.signedUrl) {
-      console.error("Signed URL error:", signedUrlError);
+    // Storage video: signed URL (4 hours = 14400 seconds)
+    if (signed.error || !signed.data?.signedUrl) {
+      console.error("Signed URL error:", signed.error);
       return new Response(JSON.stringify({ error: "Failed to generate video URL" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -130,7 +124,7 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        url: signedUrlData.signedUrl,
+        url: signed.data.signedUrl,
         type: "storage",
         expires_at: expiresAt,
       }),

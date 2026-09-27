@@ -33,6 +33,45 @@ const PROTECTED_ROUTES = [
 ];
 
 /**
+ * Página que renderiza cada ruta en el SPA (ver src/routes.ts). Con esto el
+ * HTML de la ruta pide el chunk de su página junto con el bundle principal, en
+ * vez de descubrirlo recién cuando el bundle ejecuta.
+ */
+const PAGE_SOURCES: Record<string, string> = {
+  '/': 'src/pages/Index.tsx',
+  '/planes': 'src/pages/Planes.tsx',
+  '/cursos-info': 'src/pages/CursosInfo.tsx',
+  '/soy-dev': 'src/pages/SoyDev.tsx',
+  '/empresas': 'src/pages/Empresas.tsx',
+  '/descargables': 'src/pages/Descargables.tsx',
+  '/evaluacion-product-manager': 'src/pages/EvaluacionProductManager.tsx',
+  '/blog': 'src/pages/BlogList.tsx',
+  '/blog/:slug': 'src/pages/BlogPost.tsx',
+  '/cursos/:slug': 'src/pages/CourseDetail.tsx',
+  '/autoevaluacion': 'src/pages/Assessment.tsx',
+  '/mejoras': 'src/pages/SkillGaps.tsx',
+  '/mentoria': 'src/pages/Recommendations.tsx',
+  '/progreso': 'src/pages/Progress.tsx',
+  '/perfil': 'src/pages/Profile.tsx',
+  '/cursos': 'src/pages/Courses.tsx',
+};
+
+interface ChunkInfo {
+  fileName: string;
+  imports: string[];
+  isEntry: boolean;
+  facadeModuleId: string | null;
+  moduleIds: string[];
+}
+
+// Estado del build en curso: lo completan configResolved y writeBundle, y lo
+// lee closeBundle.
+let root = process.cwd();
+let distDir = path.resolve(root, 'dist');
+let base = '/';
+const chunks: ChunkInfo[] = [];
+
+/**
  * Prerender de las rutas públicas, después del build de Vite.
  *
  * El problema: la app es una SPA, así que el HTML servido era siempre el mismo
@@ -56,9 +95,25 @@ const PROTECTED_ROUTES = [
 export const prerenderSeoPlugin = () => ({
   name: 'prerender-seo',
   apply: 'build' as const,
+  configResolved(config: { root: string; base: string; build: { outDir: string } }) {
+    root = config.root;
+    distDir = path.resolve(config.root, config.build.outDir);
+    base = config.base;
+  },
+  writeBundle(_options: unknown, bundle: Record<string, { type: string } & Partial<ChunkInfo>>) {
+    chunks.length = 0;
+    for (const item of Object.values(bundle)) {
+      if (item.type !== 'chunk') continue;
+      chunks.push({
+        fileName: item.fileName!,
+        imports: item.imports ?? [],
+        isEntry: item.isEntry ?? false,
+        facadeModuleId: item.facadeModuleId ?? null,
+        moduleIds: item.moduleIds ?? [],
+      });
+    }
+  },
   async closeBundle() {
-    const root = process.cwd();
-    const distDir = path.resolve(root, 'dist');
     const templatePath = path.join(distDir, 'index.html');
 
     if (!fs.existsSync(templatePath)) {
@@ -72,6 +127,53 @@ export const prerenderSeoPlugin = () => ({
     const prices = await fetchPricing();
 
     const loader = await createSsrLoader(root);
+
+    /**
+     * Precarga del chunk de la página de una ruta y de los chunks que importa,
+     * salvo el principal (ya lo pide el <script> del shell). Corta el build si
+     * la página no tiene chunk: quiere decir que se renombró y PAGE_SOURCES
+     * quedó desactualizado.
+     *
+     * No van como <link rel="modulepreload"> en el head: el navegador los pide
+     * junto con el CSS, que bloquea el primer render, y le sacan ancho de banda
+     * (con red móvil el FCP empeoraba ~150 ms; fetchpriority="low" no cambia
+     * nada en modulepreload). Un script inline al final del body espera a que
+     * cargue el CSS antes de ejecutarse, así que recién ahí agrega los links:
+     * no compiten con el primer render y llegan igual antes que si se
+     * descubrieran al ejecutar el bundle.
+     */
+    const byFile = new Map(chunks.map((c) => [c.fileName, c]));
+    const modulePreloads = (pattern: string) => {
+      const source = PAGE_SOURCES[pattern];
+      if (!source) return '';
+      // Normalmente la página es la fachada de su chunk. Si el chunk además
+      // exporta algo que usa otro chunk (un import dinámico desde la página),
+      // Rollup no le asigna fachada: entonces se busca por los módulos.
+      const isSource = (id: string | null) => !!id && path.relative(root, id) === source;
+      const page =
+        chunks.find((c) => isSource(c.facadeModuleId)) ??
+        chunks.find((c) => c.moduleIds.some(isSource));
+      if (!page) {
+        throw new Error(`[prerender] No hay chunk para ${source} (ruta ${pattern}). ¿Se renombró la página?`);
+      }
+      const files = new Set<string>();
+      const visit = (file: string) => {
+        const chunk = byFile.get(file);
+        if (!chunk || chunk.isEntry || files.has(file)) return;
+        files.add(file);
+        chunk.imports.forEach(visit);
+      };
+      visit(page.fileName);
+      const hrefs = JSON.stringify([...files].map((file) => `${base}${file}`));
+      return (
+        `<script>${hrefs}.forEach(function (h) { var l = document.createElement("link"); ` +
+        `l.rel = "modulepreload"; l.crossOrigin = ""; l.href = h; document.head.appendChild(l); });</script>`
+      );
+    };
+    const withPreloads = (html: string, pattern: string) => {
+      const script = modulePreloads(pattern);
+      return script ? html.replace('</body>', `    ${script}\n  </body>`) : html;
+    };
 
     const write = (route: string, html: string) => {
       const outDir = route === '/' ? distDir : path.join(distDir, route.replace(/^\//, ''));
@@ -96,9 +198,15 @@ export const prerenderSeoPlugin = () => ({
     };
 
     /** Escribe una ruta con contenido real dentro del #root y la verifica. */
-    const writeContent = (route: string, seo: ContentSeo, body: string, seed?: object) => {
+    const writeContent = (
+      route: string,
+      seo: ContentSeo,
+      body: string,
+      seed?: object,
+      pattern: string = route
+    ) => {
       const html = injectAppHtml(
-        applySeo(template, seo, 'index, follow'),
+        withPreloads(applySeo(template, seo, 'index, follow'), pattern),
         body,
         seed ? { builtAt, ...seed } : undefined
       );
@@ -126,12 +234,12 @@ export const prerenderSeoPlugin = () => ({
       for (const [route, data] of Object.entries(SEO_ROUTES)) {
         const seo = routeSeo(data);
         const noindex = PROTECTED_ROUTES.includes(route) ? 'noindex, nofollow' : undefined;
-        write(route, applySeo(template, seo, noindex));
+        write(route, withPreloads(applySeo(template, seo, noindex), route));
       }
 
       // Protegidas sin entrada en SEO_ROUTES: alcanza con el noindex.
       for (const route of PROTECTED_ROUTES.filter((r) => !SEO_ROUTES[r])) {
-        write(route, applySeo(template, blankSeo(route), 'noindex, nofollow'));
+        write(route, withPreloads(applySeo(template, blankSeo(route), 'noindex, nofollow'), route));
       }
 
       // ---- Rutas cuyo contenido no sale de Supabase --------------------
@@ -154,14 +262,16 @@ export const prerenderSeoPlugin = () => ({
         // runtime, con los precios que se trajeron recién.
         { ...routeSeo(SEO_ROUTES['/planes']), jsonLd: planesJsonLd(prices) },
         render.renderPlanes(prices),
-        undefined
+        // Semilla para usePricing: sin ella la página arrancaba con "..." en
+        // lugar del precio que el HTML ya mostraba.
+        { prices }
       );
 
       writeContent(
         '/cursos-info',
         routeSeo(SEO_ROUTES['/cursos-info']),
         render.renderCursosInfo(courses, prices),
-        undefined
+        { prices }
       );
 
       writeContent('/soy-dev', routeSeo(SEO_ROUTES['/soy-dev']), render.renderSoyDev(), undefined);
@@ -190,14 +300,24 @@ export const prerenderSeoPlugin = () => ({
 
       for (const post of posts) {
         safeSlug(post.slug, 'blog_posts');
-        writeContent(`/blog/${post.slug}`, blogPostSeo(post), render.renderBlogPost(post), { post });
+        writeContent(
+          `/blog/${post.slug}`,
+          blogPostSeo(post),
+          render.renderBlogPost(post),
+          { post },
+          '/blog/:slug'
+        );
       }
 
       for (const course of courses) {
         safeSlug(course.slug, 'courses');
-        writeContent(`/cursos/${course.slug}`, courseSeo(course), render.renderCourse(course), {
-          course,
-        });
+        writeContent(
+          `/cursos/${course.slug}`,
+          courseSeo(course),
+          render.renderCourse(course),
+          { course },
+          '/cursos/:slug'
+        );
       }
 
       console.log(

@@ -53,7 +53,7 @@ function ResourceCard({ match, trackEvent }: { match: RecommendedResource; track
     const resolved = await resolveResourceUrl(resource);
     setActionLoading(null);
     if ('error' in resolved) return reportFailure('preview', resolved.error);
-    setPreview({ resource, url: resolved.url });
+    setPreview({ resource, url: resolved.url, verifiedAt: Date.now() });
     trackEvent('resource_previewed', matchProps);
   };
 

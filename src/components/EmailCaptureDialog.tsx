@@ -4,10 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Loader2 } from "lucide-react";
-import { z } from "zod";
+import { isValidEmail } from "@/utils/email";
 import type { PlanType } from "./LemonSqueezyCheckout";
-
-const emailSchema = z.string().email("Por favor ingresa un email válido");
 
 interface EmailCaptureDialogProps {
   open: boolean;
@@ -56,14 +54,13 @@ export function EmailCaptureDialog({ open, onOpenChange, onEmailSubmit, isLoadin
     e.preventDefault();
     setError("");
 
-    const result = emailSchema.safeParse(email.trim());
-    
-    if (!result.success) {
-      setError(result.error.errors[0].message);
+    const trimmed = email.trim();
+    if (!isValidEmail(trimmed)) {
+      setError("Por favor ingresa un email válido");
       return;
     }
 
-    onEmailSubmit(result.data);
+    onEmailSubmit(trimmed);
   };
 
   return (

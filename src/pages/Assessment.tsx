@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Seo } from "@/components/Seo";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useForm, useWatch } from "react-hook-form";
 import {
   ASSESSMENT_TYPES,
@@ -12,19 +12,20 @@ import {
   type AssessmentTypeKey,
   type OptionalAssessmentValues,
   computeSeniorityScore,
-  getAssessmentSchema,
   getAssessmentTypeDef,
   getDomainsForType,
   getNivelDisplay,
   type AnyDomainKey,
   type AssessmentResult,
 } from "@/utils/scoring";
+import { getAssessmentSchema } from "@/utils/assessmentSchema";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { saveAssessment } from "@/utils/storage";
+import type { ProfileCompositeData } from "@/hooks/useProfileCompositeData";
 import { DomainInfoPopup } from "@/components/DomainInfoPopup";
 import { OptionalQuestionTooltip } from "@/components/OptionalQuestionTooltip";
 import { AssessmentTypeSelector } from "@/components/assessment/AssessmentTypeSelector";
@@ -44,7 +45,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAssessmentData } from "@/hooks/useAssessmentData";
+import { cacheSavedAssessment, useAssessmentData } from "@/hooks/useAssessmentData";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
@@ -128,7 +129,6 @@ function parseStoredContext(raw: string | null): AssessmentContext {
 }
 
 export default function Assessment() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedDomain, setSelectedDomain] = useState<AnyDomainKey | null>(null);
@@ -692,13 +692,29 @@ export default function Assessment() {
       setLocalResult(result);
       setLocalValues(values);
 
-      // Guardar en servidor (lanza error si falla, para permitir reintento)
-      await saveAssessment(values, result, activeType);
+      if (!user) throw new Error("No hay usuario autenticado");
 
-      // Invalidar caches para sincronizar con servidor. El composite alimenta
-      // useHomeRedirect: sin esto, volver al home tras la primera evaluación
-      // puede rebotar de nuevo a /autoevaluacion por el conteo cacheado.
-      await queryClient.invalidateQueries({ queryKey: ['assessment-data'] });
+      // Guardar en servidor (lanza error si falla, para permitir reintento).
+      // El id del perfil suele estar ya en los datos compuestos.
+      const compositeKey = ['user-composite-data', user.id];
+      const profileId = queryClient.getQueryData<ProfileCompositeData>(compositeKey)?.profile?.id;
+      const { createdAt } = await saveAssessment(user.id, values, result, activeType, profileId);
+
+      // La caché queda al día con lo que se acaba de guardar, sin esperar un
+      // refetch. El composite alimenta useHomeRedirect: sin esto, volver al
+      // home tras la primera evaluación puede rebotar de nuevo a
+      // /autoevaluacion por el dato cacheado. Las invalidaciones concilian
+      // con el servidor en segundo plano.
+      cacheSavedAssessment(queryClient, user.id, {
+        result,
+        values,
+        updatedAt: createdAt,
+        assessmentType: activeType,
+      });
+      queryClient.setQueryData<ProfileCompositeData>(compositeKey, (old) =>
+        old ? { ...old, hasAssessment: true, hasLegacyAssessment: false } : old
+      );
+      queryClient.invalidateQueries({ queryKey: ['assessment-data'] });
       queryClient.invalidateQueries({ queryKey: ['user-composite-data'] });
 
       // Track assessment completion

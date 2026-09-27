@@ -97,7 +97,6 @@ export default function SkillGaps() {
     loading,
     hasAssessment,
     updatedAt,
-    optionalValues,
     assessmentType,
     isLegacyAssessment
   } = useAssessmentData();
@@ -109,11 +108,6 @@ export default function SkillGaps() {
   const neutralAreas = useMemo(() => result?.neutralAreas ?? [], [result]);
   const optionalImprovements = useMemo(() => result?.optionalImprovements ?? [], [result]);
   const answeredOptionalDomains = useMemo(() => result?.optionalDomains ?? {}, [result]);
-
-  const priorityAreasCount = useMemo(
-    () => gaps.filter(g => g.prioridad === "Alta").length,
-    [gaps]
-  );
 
   const typeDef = assessmentType ? getAssessmentTypeDef(assessmentType) : null;
 
@@ -147,14 +141,6 @@ export default function SkillGaps() {
       ...(skillName && { skill_name: skillName }),
     });
   }, [trackEvent]);
-
-  const formattedUpdatedAt = useMemo(
-    () => updatedAt ? new Intl.DateTimeFormat("es-AR", {
-      dateStyle: "long",
-      timeStyle: "short"
-    }).format(new Date(updatedAt)) : null,
-    [updatedAt]
-  );
 
   // Track skill gaps view
   useEffect(() => {

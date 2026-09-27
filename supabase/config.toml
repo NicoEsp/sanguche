@@ -71,9 +71,6 @@ verify_jwt = false
 [functions.cancel-subscription]
 verify_jwt = true
 
-[functions.get-admin-users]
-verify_jwt = true
-
 [functions.delete-user]
 verify_jwt = true
 
@@ -107,6 +104,19 @@ verify_jwt = false
 # Called from the login screen by anyone who forgot their password, so it can't
 # require a JWT. Abuse is bounded by the per-email rate limit inside.
 [functions.send-password-reset]
+verify_jwt = false
+
+# Igual que en producción. Sin entrada, un deploy con la CLI las pasaba a
+# verify_jwt = true. get-course-video valida el token por su cuenta.
+[functions.get-course-video]
+verify_jwt = false
+
+[functions.upload-course-video]
+verify_jwt = false
+
+# La llama el trigger notify_welcome_email, que no tiene un JWT de servicio:
+# la función valida el header x-welcome-secret contra Vault.
+[functions.send-welcome-email]
 verify_jwt = false
 
 [edge_runtime]

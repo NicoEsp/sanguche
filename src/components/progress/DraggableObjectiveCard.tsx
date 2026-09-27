@@ -5,7 +5,7 @@ import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDraggable } from "@dnd-kit/core";
 import type { CanvasStage } from "@/types/progress";
-import { type AvailableObjective, formatDueDate, getObjectiveDueDate } from "./shared";
+import { type AvailableObjective, availableDragId, formatDueDate, getObjectiveDueDate } from "./shared";
 
 interface DraggableObjectiveCardProps {
   objective: AvailableObjective;
@@ -23,7 +23,7 @@ export const DraggableObjectiveCard = memo(function DraggableObjectiveCard({
   onQuickAdd,
 }: DraggableObjectiveCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: objective.id,
+    id: availableDragId(objective.id),
     disabled: locked,
   });
 

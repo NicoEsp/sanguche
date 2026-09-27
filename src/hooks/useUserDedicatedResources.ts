@@ -134,7 +134,7 @@ export function useCreateDedicatedResource() {
       return resource;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dedicated-resources'] });
+      queryClient.invalidateQueries({ queryKey: ['user-dedicated-resources'] });
       toast({
         title: "Recurso creado",
         description: "El recurso fue asignado exitosamente"
@@ -173,7 +173,7 @@ export function useUpdateDedicatedResource() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dedicated-resources'] });
+      queryClient.invalidateQueries({ queryKey: ['user-dedicated-resources'] });
       toast({
         title: "Recurso actualizado",
         description: "Los cambios fueron guardados exitosamente"
@@ -216,7 +216,7 @@ export function useDeleteDedicatedResource() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dedicated-resources'] });
+      queryClient.invalidateQueries({ queryKey: ['user-dedicated-resources'] });
       toast({
         title: "Recurso eliminado",
         description: "El recurso fue eliminado exitosamente"

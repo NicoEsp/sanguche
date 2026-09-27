@@ -1,5 +1,5 @@
 import { useState } from "react";
-import cursoEstrategiaThumbnail from "@/assets/curso-estrategia-thumbnail.jpg";
+import cursoEstrategiaThumbnail from "@/assets/curso-estrategia-thumbnail.webp";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/accordion";
 
 export default function CursosInfo() {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { curso_estrategia, repremium, loading: pricingLoading } = usePricing();
   const {
     hasActiveRePremium,
@@ -271,6 +271,8 @@ export default function CursosInfo() {
                     <img
                       src={cursoEstrategiaThumbnail}
                       alt="Curso Estrategia de Producto desde cero"
+                      width={1760}
+                      height={608}
                       className="w-full h-auto rounded-t-lg"
                     />
                   </div>

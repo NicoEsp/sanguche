@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
@@ -21,7 +21,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { preloadRoute } from "@/routes";
+import { assessmentDataQuery } from "@/hooks/useAssessmentData";
+import { userProgressObjectivesQuery } from "@/hooks/useUserProgressObjectives";
 import { navItems, extraItems } from "@/constants/navigation";
 
 interface AppSidebarProps {
@@ -29,28 +31,40 @@ interface AppSidebarProps {
   onToggle: () => void;
 }
 
+// localStorage keys for badge state persistence
+const STORAGE_KEYS = {
+  NEW_BADGES_HIDDEN: 'sidebar_new_badges_hidden',
+  BADGES_COLLAPSED: 'sidebar_badges_collapsed',
+} as const;
+
+// Con el storage bloqueado (modo privado de algunos navegadores, cookies de
+// terceros) localStorage tira una excepción y tiraba abajo el sidebar.
+const readFlag = (key: string) => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const writeFlag = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Sin storage, el badge vuelve a aparecer en la próxima visita.
+  }
+};
+
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const location = useLocation();
   const { user, isAuthenticated, isAdmin, signOut, isLoading, isSigningOut } = useAuth();
   const shouldLoadProfile = isAuthenticated && !isLoading;
-  const { profile, loading: profileLoading } = useUserProfile({ skip: !shouldLoadProfile });
+  const { profile } = useUserProfile({ skip: !shouldLoadProfile });
   const queryClient = useQueryClient();
-  
-  // localStorage keys for badge state persistence
-  const STORAGE_KEYS = {
-    NEW_BADGES_HIDDEN: 'sidebar_new_badges_hidden',
-    BADGES_COLLAPSED: 'sidebar_badges_collapsed'
-  };
 
   // Badge visibility states - initialized from localStorage
-  const [showNewBadges, setShowNewBadges] = useState(() => {
-    const stored = localStorage.getItem(STORAGE_KEYS.NEW_BADGES_HIDDEN);
-    return stored !== 'true';
-  });
-  const [collapsedBadges, setCollapsedBadges] = useState(() => {
-    const stored = localStorage.getItem(STORAGE_KEYS.BADGES_COLLAPSED);
-    return stored === 'true';
-  });
+  const [showNewBadges, setShowNewBadges] = useState(() => readFlag(STORAGE_KEYS.NEW_BADGES_HIDDEN) !== 'true');
+  const [collapsedBadges, setCollapsedBadges] = useState(() => readFlag(STORAGE_KEYS.BADGES_COLLAPSED) === 'true');
 
   // Hide "Nuevo" badges after 40 seconds (only if not already hidden)
   useEffect(() => {
@@ -58,7 +72,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
     
     const timer = setTimeout(() => {
       setShowNewBadges(false);
-      localStorage.setItem(STORAGE_KEYS.NEW_BADGES_HIDDEN, 'true');
+      writeFlag(STORAGE_KEYS.NEW_BADGES_HIDDEN, 'true');
     }, 40000);
     return () => clearTimeout(timer);
   }, [showNewBadges]);
@@ -69,90 +83,39 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
     
     const timer = setTimeout(() => {
       setCollapsedBadges(true);
-      localStorage.setItem(STORAGE_KEYS.BADGES_COLLAPSED, 'true');
+      writeFlag(STORAGE_KEYS.BADGES_COLLAPSED, 'true');
     }, 60000);
     return () => clearTimeout(timer);
   }, [collapsedBadges]);
   
-  const metadataName = (() => {
-    const possibleName = user?.user_metadata?.name;
-    return typeof possibleName === "string" ? possibleName : undefined;
-  })();
-
-  const displayName = profile?.name || metadataName || user?.email?.split('@')[0] || 'Usuario';
-
   const isActive = (path: string) => {
     return location.pathname === path;
   };
 
-  // Prefetch de datos según la ruta para carga instantánea
-  const prefetchRouteData = useCallback((route: string) => {
+  // Al pasar el mouse: el chunk de la página y sus datos, con las mismas
+  // queries que usan las páginas (prefetchQuery no pide nada si están frescas).
+  const prefetchRoute = useCallback((href: string) => {
+    void preloadRoute(href);
     if (!user?.id) return;
-    
-    const userId = user.id;
-    const profileId = profile?.id;
-    
-    switch (route) {
-      case '/autoevaluacion':
-      case '/mejoras':
-      case '/mentoria':
-        // Prefetch assessment data
-        queryClient.prefetchQuery({
-          queryKey: ['assessment', userId],
-          queryFn: async () => {
-            const { data } = await supabase
-              .from('assessments')
-              .select('*')
-              .eq('user_id', userId)
-              .order('updated_at', { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            return data;
-          },
-          staleTime: 5 * 60 * 1000,
-        });
-        break;
-        
-      case '/progreso':
-        // Prefetch progress objectives
-        if (profileId) {
-          queryClient.prefetchQuery({
-            queryKey: ['user-progress-objectives', profileId],
-            queryFn: async () => {
-              const { data } = await supabase
-                .from('user_progress_objectives')
-                .select('*')
-                .eq('user_id', profileId)
-                .order('created_at', { ascending: false });
-              return data || [];
-            },
-            staleTime: 2 * 60 * 1000,
-          });
-          
-          queryClient.prefetchQuery({
-            queryKey: ['recommended-objectives', profileId],
-            queryFn: async () => {
-              const { data } = await supabase
-                .from('dismissed_recommended_objectives')
-                .select('objective_key')
-                .eq('user_id', profileId);
-              return data?.map(d => d.objective_key) || [];
-            },
-            staleTime: 2 * 60 * 1000,
-          });
-        }
-        break;
+    if (href === '/autoevaluacion' || href === '/mejoras') {
+      void queryClient.prefetchQuery(assessmentDataQuery(user.id));
+    } else if (href === '/progreso' && profile?.id) {
+      void queryClient.prefetchQuery(userProgressObjectivesQuery(profile.id));
     }
   }, [user?.id, profile?.id, queryClient]);
 
-  const NavItem = ({ item }: { item: typeof navItems[0] }) => {
+  // Función y no componente: un componente declarado acá adentro es un tipo
+  // nuevo en cada render y React remontaba todos los links (por ejemplo, cuando
+  // se ocultan los badges).
+  const renderNavItem = (item: typeof navItems[0]) => {
     const active = isActive(item.href);
     const hasRepremium = 'repremium' in item && item.repremium;
     
     const content = (
       <Link
         to={item.href}
-        onMouseEnter={() => prefetchRouteData(item.href)}
+        onMouseEnter={() => prefetchRoute(item.href)}
+        onFocus={() => prefetchRoute(item.href)}
         className={cn(
           "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
           "hover:bg-muted/50",
@@ -246,9 +209,11 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
             collapsed ? "justify-center" : "justify-between"
           )}>
             <Link to="/" className="flex items-center gap-2">
-              <img 
-                src="/assets/sanguche.png" 
-                alt="ProductPrepa Logo" 
+              <img
+                src="/assets/sanguche-96.png"
+                width={96}
+                height={96}
+                alt="ProductPrepa Logo"
                 className="h-7 w-7 object-contain"
               />
               {!collapsed && (
@@ -288,7 +253,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           <nav className="flex-1 overflow-y-auto px-3 py-4">
             <div className="space-y-1">
               {navItems.map((item) => (
-                <NavItem key={item.href} item={item} />
+                <Fragment key={item.href}>{renderNavItem(item)}</Fragment>
               ))}
             </div>
             
@@ -302,7 +267,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               )}
               <div className="space-y-1 mt-2">
                 {extraItems.map((item) => (
-                  <NavItem key={item.href} item={item} />
+                  <Fragment key={item.href}>{renderNavItem(item)}</Fragment>
                 ))}
               </div>
             </div>

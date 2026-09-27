@@ -50,23 +50,19 @@ export function useMyExercises() {
     queryKey: ['my-exercises', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      if (!profile) return [];
-      
+
+      // Una sola query: user_exercises.user_id es el id del perfil, así que se
+      // filtra por el user_id del perfil embebido (antes, primero se buscaba
+      // el perfil y después los ejercicios). La tabla tiene dos FKs a
+      // profiles, por eso el embed lleva el nombre de una.
       const { data, error } = await supabase
         .from('user_exercises')
-        .select('*')
-        .eq('user_id', profile.id)
+        .select('*, profiles!exercise_requests_user_id_fkey!inner(user_id)')
+        .eq('profiles.user_id', user.id)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
-      return data as UserExercise[];
+      return (data ?? []).map(({ profiles: _profile, ...exercise }) => exercise) as UserExercise[];
     },
     enabled: !!user,
     staleTime: 2 * 60 * 1000,

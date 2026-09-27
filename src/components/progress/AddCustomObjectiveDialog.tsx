@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { Suspense, lazy, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,13 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CalendarIcon, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import type { CanvasStage } from "@/types/progress";
 import {
   type AddCustomObjectiveState,
@@ -27,6 +23,11 @@ import {
   OBJECTIVE_TYPE_OPTIONS,
   OTHER_TYPE_SENTINEL,
 } from "./shared";
+
+// El calendario se baja al abrir el diálogo (o al pasar el mouse por el botón
+// que lo abre), no con /progreso.
+const loadDueDatePicker = () => import("./DueDatePicker");
+const DueDatePicker = lazy(loadDueDatePicker);
 
 interface AddCustomObjectiveDialogProps {
   open: boolean;
@@ -81,6 +82,8 @@ export function AddCustomObjectiveDialog({
                   <Button
                     disabled={disabled}
                     className={cn("w-full sm:w-auto", disabled && "cursor-not-allowed")}
+                    onPointerEnter={() => void loadDueDatePicker()}
+                    onFocus={() => void loadDueDatePicker()}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Objetivo personalizado
@@ -172,31 +175,20 @@ export function AddCustomObjectiveDialog({
           <div className="grid gap-2">
             <Label>Fecha estimada</Label>
             <div className="flex flex-col gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
+              <Suspense
+                fallback={
                   <Button
                     variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !state.dueDate && "text-muted-foreground"
-                    )}
+                    disabled
+                    className="w-full justify-start text-left font-normal text-muted-foreground"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {state.dueDate
-                      ? format(state.dueDate, "PPP", { locale: es })
-                      : "Seleccionar fecha..."}
+                    Seleccionar fecha...
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={state.dueDate}
-                    onSelect={(date) => setField("dueDate", date ?? undefined)}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+                }
+              >
+                <DueDatePicker value={state.dueDate} onChange={(date) => setField("dueDate", date)} />
+              </Suspense>
               {state.dueDate && (
                 <Button
                   type="button"

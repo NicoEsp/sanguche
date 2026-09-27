@@ -224,7 +224,6 @@ export default function AdminDescargables() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-downloadable-resources'] });
       queryClient.invalidateQueries({ queryKey: ['downloadable-resources'] });
-      queryClient.invalidateQueries({ queryKey: ['skill-gaps-resources'] });
       toast.success(editingResource ? 'Recurso actualizado' : 'Recurso creado');
       closeDialog();
     },
@@ -244,7 +243,6 @@ export default function AdminDescargables() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-downloadable-resources'] });
       queryClient.invalidateQueries({ queryKey: ['downloadable-resources'] });
-      queryClient.invalidateQueries({ queryKey: ['skill-gaps-resources'] });
       toast.success('Recurso eliminado');
       setDeleteConfirmId(null);
     },
@@ -264,7 +262,6 @@ export default function AdminDescargables() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-downloadable-resources'] });
       queryClient.invalidateQueries({ queryKey: ['downloadable-resources'] });
-      queryClient.invalidateQueries({ queryKey: ['skill-gaps-resources'] });
     },
     onError: (error: Error) => {
       toast.error(`Error: ${error.message}`);

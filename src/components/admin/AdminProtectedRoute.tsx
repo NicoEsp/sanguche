@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Shield } from 'lucide-react';
@@ -8,10 +8,11 @@ interface AdminProtectedRouteProps {
 }
 
 export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const { isAuthenticated, isAdmin, isAdminLoading, isLoading } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  // La validación admin ya no frena al resto de la app: se espera solo acá.
+  if (isLoading || (isAuthenticated && isAdminLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">

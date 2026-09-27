@@ -1,5 +1,6 @@
 import type { BlogPost, CoursePublic } from '@/seo/contentSeo';
 import type { BlogListItem } from '@/components/blog/BlogPostList';
+import type { PlanPricing, PricingKey } from '@/constants/planesContent';
 
 /**
  * Puente entre el HTML prerenderizado en build y el SPA cuando arranca.
@@ -22,6 +23,8 @@ interface PrerenderedData {
   post?: BlogPost;
   posts?: BlogListItem[];
   course?: CoursePublic;
+  /** Precios con los que se prerenderizaron /planes y /cursos-info. */
+  prices?: Record<PricingKey, PlanPricing>;
 }
 
 declare global {
@@ -52,3 +55,5 @@ export const prerenderedCourse = (slug?: string): CoursePublic | undefined => {
 export const prerenderedPosts = (): BlogListItem[] | undefined => read()?.posts;
 
 export const prerenderedAt = (): number | undefined => read()?.builtAt;
+
+export const prerenderedPrices = (): Record<PricingKey, PlanPricing> | undefined => read()?.prices;

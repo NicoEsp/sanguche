@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,8 +13,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon, Trash2, Edit, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjective, useDeleteUserObjective } from "@/hooks/useUserProgressObjectives";
-import { ProgressObjective, ObjectiveStep } from "@/types/progress";
+import { parseDateOnly, toDateOnly } from "@/utils/dateOnly";
+import { useUserProgressObjectives, useCreateUserObjective, useUpdateUserObjective, useDeleteUserObjective, type UserProgressObjective } from "@/hooks/useUserProgressObjectives";
+import { ObjectiveStep } from "@/types/progress";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -66,7 +67,10 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
     setDialogOpen(true);
   };
 
-  const openEditDialog = (obj: ProgressObjective) => {
+  // Las filas vienen de la base en snake_case. Leer dueDate/mentorNotes (que
+  // no existen) dejaba el formulario sin fecha ni notas, y al guardar se
+  // escribían en null.
+  const openEditDialog = (obj: UserProgressObjective) => {
     setFormState({
       id: obj.id,
       title: obj.title,
@@ -74,9 +78,9 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
       type: obj.type,
       source: obj.source,
       timeframe: obj.timeframe,
-      dueDate: obj.dueDate ? new Date(obj.dueDate) : undefined,
+      dueDate: obj.due_date ? parseDateOnly(obj.due_date) : undefined,
       checklist: obj.steps.map((s) => s.title).join("\n"),
-      mentorNotes: obj.mentorNotes || "",
+      mentorNotes: obj.mentor_notes || "",
     });
     setDialogOpen(true);
   };
@@ -87,14 +91,26 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
       return;
     }
 
+    // Un paso que ya existía conserva su id y si el usuario lo completó: antes
+    // cada edición del admin reiniciaba todo el checklist del usuario.
+    const previousSteps = new Map(
+      (objectives.find((obj) => obj.id === formState.id)?.steps ?? []).map((step) => [step.title, step])
+    );
     const steps: ObjectiveStep[] = formState.checklist
       .split("\n")
-      .filter((line) => line.trim())
-      .map((line, idx) => ({
-        id: `step-${idx}`,
-        title: line.trim(),
-        completed: false,
-      }));
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((title, idx) => {
+        const previous = previousSteps.get(title);
+        if (previous) {
+          // Una sola vez por paso: dos líneas con el mismo texto compartían id,
+          // y marcar una marcaba las dos.
+          previousSteps.delete(title);
+          return { ...previous, title };
+        }
+        return { id: `step-${Date.now()}-${idx}`, title, completed: false };
+      });
+    const dueDate = formState.dueDate ? toDateOnly(formState.dueDate) : null;
 
     if (formState.id) {
       // Update - use snake_case for DB fields and don't reset status
@@ -109,7 +125,7 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
           timeframe: formState.timeframe,
           steps,
           mentor_notes: formState.mentorNotes || null,
-          due_date: formState.dueDate ? formState.dueDate.toISOString().split('T')[0] : null,
+          due_date: dueDate,
         },
       });
       toast.success("Objetivo actualizado");
@@ -122,9 +138,10 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
         type: formState.type,
         timeframe: formState.timeframe,
         steps,
-        dueDate: formState.dueDate ? formState.dueDate.toISOString().split('T')[0] : undefined,
+        dueDate: dueDate ?? undefined,
+        mentorNotes: formState.mentorNotes || null,
       });
-      toast.success("Objetivo creado");
+      // El toast de éxito lo muestra useCreateUserObjective.
     }
 
     setDialogOpen(false);
@@ -133,8 +150,8 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
 
   const handleDelete = async () => {
     if (objectiveToDelete) {
+      // El toast de éxito lo muestra useDeleteUserObjective.
       await deleteMutation.mutateAsync({ id: objectiveToDelete, userId });
-      toast.success("Objetivo eliminado");
       setDeleteDialogOpen(false);
       setObjectiveToDelete(null);
     }
@@ -155,9 +172,9 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
     });
   };
 
-  const formatDate = (date?: string) => {
+  const formatDate = (date?: string | null) => {
     if (!date) return "Sin fecha";
-    return format(new Date(date), "dd/MM/yyyy");
+    return format(parseDateOnly(date), "dd/MM/yyyy");
   };
 
   const getStatusBadge = (status: string) => {
@@ -212,7 +229,7 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "list" | "timeline")}>
         <TabsList>
           <TabsTrigger value="list">Lista Detallada</TabsTrigger>
           <TabsTrigger value="timeline">Vista Timeline</TabsTrigger>
@@ -260,10 +277,10 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
                     <Badge variant="outline">{obj.source}</Badge>
                   </div>
 
-                  {obj.dueDate && (
+                  {obj.due_date && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CalendarIcon className="h-4 w-4" />
-                      <span>Fecha límite: {formatDate(obj.dueDate)}</span>
+                      <span>Fecha límite: {formatDate(obj.due_date)}</span>
                     </div>
                   )}
 
@@ -336,9 +353,9 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
                         {obj.source}
                       </Badge>
                     </div>
-                    {obj.dueDate && (
+                    {obj.due_date && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        {formatDate(obj.dueDate)}
+                        {formatDate(obj.due_date)}
                       </p>
                     )}
                   </CardContent>
@@ -383,9 +400,9 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
                         {obj.source}
                       </Badge>
                     </div>
-                    {obj.dueDate && (
+                    {obj.due_date && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        {formatDate(obj.dueDate)}
+                        {formatDate(obj.due_date)}
                       </p>
                     )}
                   </CardContent>
@@ -430,9 +447,9 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
                         {obj.source}
                       </Badge>
                     </div>
-                    {obj.dueDate && (
+                    {obj.due_date && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        {formatDate(obj.dueDate)}
+                        {formatDate(obj.due_date)}
                       </p>
                     )}
                   </CardContent>
@@ -515,8 +532,8 @@ export function AdminMentoriaProgress({ userId }: AdminMentoriaProgressProps) {
                 <Label htmlFor="timeframe">Horizonte</Label>
                 <Select
                   value={formState.timeframe}
-                  onValueChange={(value: any) =>
-                    setFormState({ ...formState, timeframe: value })
+                  onValueChange={(value) =>
+                    setFormState({ ...formState, timeframe: value as ObjectiveFormState["timeframe"] })
                   }
                 >
                   <SelectTrigger id="timeframe">

@@ -1,10 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import type { ProgressObjective } from '@/types/progress';
 
-export interface UserProgressObjective extends Omit<ProgressObjective, 'mentorNotes'> {
+export interface UserProgressObjective extends Omit<ProgressObjective, 'mentorNotes' | 'dueDate'> {
   user_id: string;
   objective_id: string | null;
   assigned_by_admin: string | null;
@@ -17,37 +18,23 @@ export interface UserProgressObjective extends Omit<ProgressObjective, 'mentorNo
   position: number;
 }
 
-// Fetch user's progress objectives
-export function useUserProgressObjectives(userId: string | undefined) {
-  const queryClient = useQueryClient();
+type ObjectivesCache = UserProgressObjective[] | undefined;
 
-  const query = useQuery({
-    queryKey: ['user-progress-objectives', userId],
-    queryFn: async () => {
-      if (!userId) return [];
+/**
+ * Un canal realtime por usuario, compartido por todos los componentes que usan
+ * el hook. /progreso lo monta dos veces (la página y useRecommendedObjectives):
+ * con un canal por instancia, realtime-js devolvía el mismo canal a la segunda,
+ * que le agregaba su listener después del subscribe(), y al confirmar el join
+ * el cliente veía más listeners que el servidor y se desuscribía. /progreso se
+ * quedaba sin actualizaciones en vivo.
+ */
+const objectiveChannels = new Map<string, { channel: RealtimeChannel; users: number }>();
 
-      const { data, error } = await supabase
-        .from('user_progress_objectives')
-        .select('id, user_id, objective_id, title, summary, type, timeframe, steps, status, due_date, mentor_notes, assigned_by_admin, created_at, updated_at, is_locked, locked_at, source, level, position')
-        .eq('user_id', userId)
-        .order('timeframe', { ascending: true })
-        .order('position', { ascending: true })
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      return data as unknown as UserProgressObjective[];
-    },
-    enabled: !!userId,
-    staleTime: 2 * 60 * 1000, // 2 minutos
-    gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false, // Realtime maneja updates
-  });
-
-  // Setup realtime subscription with optimistic updates
-  useEffect(() => {
-    if (!userId) return;
-
+function subscribeToObjectives(userId: string, queryClient: QueryClient): () => void {
+  const existing = objectiveChannels.get(userId);
+  if (existing) {
+    existing.users++;
+  } else {
     const channel = supabase
       .channel(`user-objectives-${userId}`)
       .on(
@@ -59,37 +46,80 @@ export function useUserProgressObjectives(userId: string | undefined) {
           filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          if (import.meta.env.DEV) {
-            console.log('Realtime update for user objectives:', payload);
-          }
-          
-          // Optimistic update instead of full invalidation
-          queryClient.setQueryData(
-            ['user-progress-objectives', userId],
-            (old: UserProgressObjective[] | undefined) => {
-              if (!old) return old;
-              
-              if (payload.eventType === 'INSERT') {
-                return [...old, payload.new as UserProgressObjective];
-              }
-              if (payload.eventType === 'UPDATE') {
-                return old.map(obj => 
-                  obj.id === (payload.new as any).id ? payload.new as UserProgressObjective : obj
-                );
-              }
-              if (payload.eventType === 'DELETE') {
-                return old.filter(obj => obj.id !== (payload.old as any).id);
-              }
-              return old;
+          queryClient.setQueryData(['user-progress-objectives', userId], (old: ObjectivesCache) => {
+            if (!old) return old;
+
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const row = payload.new as UserProgressObjective;
+              // Reemplazo por id también en el INSERT: la mutación que creó el
+              // objetivo ya invalidó la query, y si el refetch llegó antes que
+              // el evento la fila estaría dos veces.
+              const exists = old.some((obj) => obj.id === row.id);
+              if (payload.eventType === 'UPDATE' && !exists) return old;
+              return exists ? old.map((obj) => (obj.id === row.id ? row : obj)) : [...old, row];
             }
-          );
+            if (payload.eventType === 'DELETE') {
+              const removedId = (payload.old as Partial<UserProgressObjective>).id;
+              return old.filter((obj) => obj.id !== removedId);
+            }
+            return old;
+          });
         }
       )
       .subscribe();
+    objectiveChannels.set(userId, { channel, users: 1 });
+  }
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+  return () => {
+    const entry = objectiveChannels.get(userId);
+    if (!entry) return;
+    entry.users--;
+    if (entry.users === 0) {
+      objectiveChannels.delete(userId);
+      supabase.removeChannel(entry.channel);
+    }
+  };
+}
+
+/**
+ * Query de los objetivos del usuario (userId es el id del perfil). La usan el
+ * hook y el prefetch del sidebar: la copia que tenía el sidebar ordenaba
+ * distinto y, si fallaba, dejaba en caché una lista vacía.
+ */
+export const userProgressObjectivesQuery = (userId: string | undefined) => ({
+  queryKey: ['user-progress-objectives', userId] as const,
+  queryFn: async (): Promise<UserProgressObjective[]> => {
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+      .from('user_progress_objectives')
+      .select('id, user_id, objective_id, title, summary, type, timeframe, steps, status, due_date, mentor_notes, assigned_by_admin, created_at, updated_at, is_locked, locked_at, source, level, position')
+      .eq('user_id', userId)
+      .order('timeframe', { ascending: true })
+      .order('position', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data as unknown as UserProgressObjective[];
+  },
+  staleTime: 2 * 60 * 1000,
+});
+
+// Fetch user's progress objectives
+export function useUserProgressObjectives(userId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    ...userProgressObjectivesQuery(userId),
+    enabled: !!userId,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // Realtime maneja updates
+  });
+
+  useEffect(() => {
+    if (!userId) return;
+    return subscribeToObjectives(userId, queryClient);
   }, [userId, queryClient]);
 
   return query;
@@ -119,8 +149,14 @@ export function useUpdateUserObjective() {
       if (error) throw error;
       return data;
     },
-    // Note: onSuccess/onError are handled at call site for optimistic updates
-    // The realtime subscription will keep the cache in sync
+    // Los updates optimistas y los errores los maneja cada llamada. Acá se deja
+    // en caché la fila que devolvió la base, sin depender de que llegue el
+    // evento de realtime (si el websocket no conecta, el cambio no se veía).
+    onSuccess: (data, { userId }) => {
+      queryClient.setQueryData<UserProgressObjective[]>(['user-progress-objectives', userId], (old) =>
+        old?.map((obj) => (obj.id === data.id ? { ...obj, ...(data as unknown as UserProgressObjective) } : obj))
+      );
+    },
   });
 }
 
@@ -166,6 +202,7 @@ export function useCreateUserObjective() {
       objectiveId = null,
       source = 'custom',
       status = 'not-started',
+      mentorNotes = null,
     }: {
       userId: string;
       title: string;
@@ -177,6 +214,7 @@ export function useCreateUserObjective() {
       objectiveId?: string | null;
       source?: ProgressObjective['source'];
       status?: ProgressObjective['status'];
+      mentorNotes?: string | null;
     }) => {
       const { data, error } = await supabase
         .from('user_progress_objectives')
@@ -191,7 +229,7 @@ export function useCreateUserObjective() {
           source,
           status,
           due_date: dueDate || null,
-          mentor_notes: null,
+          mentor_notes: mentorNotes,
           assigned_by_admin: null,
         })
         .select()

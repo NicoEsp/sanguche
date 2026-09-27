@@ -27,6 +27,7 @@ import { DragOverlayCard } from "@/components/progress/DragOverlayCard";
 import { ObjectiveAvailableColumn } from "@/components/progress/ObjectiveAvailableColumn";
 import { RecommendedObjectivesColumn } from "@/components/progress/RecommendedObjectivesColumn";
 import { AddCustomObjectiveDialog } from "@/components/progress/AddCustomObjectiveDialog";
+import { toDateOnly } from "@/utils/dateOnly";
 import {
   type AddCustomObjectiveState,
   type StageObjectivesMap,
@@ -130,7 +131,6 @@ export default function Progress() {
     recommendedObjectives,
     canvasObjectives,
     objectivesByStage,
-    customObjectives,
     createUserObjective,
     updateUserObjective,
     queryClient,
@@ -289,9 +289,7 @@ export default function Progress() {
       type: trimmedType,
       timeframe: customState.timeframe,
       steps,
-      dueDate: customState.dueDate
-        ? customState.dueDate.toISOString().split("T")[0]
-        : undefined,
+      dueDate: customState.dueDate ? toDateOnly(customState.dueDate) : undefined,
     });
 
     trackEvent("objective_added_to_canvas", {
@@ -369,6 +367,19 @@ export default function Progress() {
     );
   }
 
+  // El paywall solo depende de la suscripción: un usuario free no tiene por
+  // qué esperar el perfil, los objetivos y la evaluación para verlo.
+  if (!subscriptionLoading && !hasAccess) {
+    return (
+      <div className="container mx-auto p-6 max-w-4xl">
+        <PaywallCard
+          title="Desbloquea tu Plan de Carrera"
+          feature="progreso personalizado"
+        />
+      </div>
+    );
+  }
+
   if ((subscriptionLoading || profileLoading || isLoadingData) && !isDemoMode) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -376,17 +387,6 @@ export default function Progress() {
           <Sparkles className="h-6 w-6 mx-auto animate-pulse text-primary" />
           <p className="text-muted-foreground">Armando tu Career Path...</p>
         </div>
-      </div>
-    );
-  }
-
-  if (isFullyLoaded && !hasAccess) {
-    return (
-      <div className="container mx-auto p-6 max-w-4xl">
-        <PaywallCard
-          title="Desbloquea tu Plan de Carrera"
-          feature="progreso personalizado"
-        />
       </div>
     );
   }

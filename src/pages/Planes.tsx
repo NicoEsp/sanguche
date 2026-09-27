@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Crown, X, ArrowRight, AlertTriangle, Search, Building2 } from "lucide-react";
+import { Check, Star, Crown, ArrowRight, AlertTriangle, Search, Building2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -12,7 +12,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePricing } from "@/hooks/usePricing";
-import { useUserProfile } from "@/hooks/useUserProfile";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { ProductReviewModal } from "@/components/planes/ProductReviewModal";
@@ -220,7 +219,6 @@ function getHeadlineVariant(
 
 export default function Planes() {
   const { user, isAuthenticated } = useAuth();
-  const { profile } = useUserProfile();
   const {
     hasActivePremium,
     hasActiveRePremium,
@@ -233,8 +231,6 @@ export default function Planes() {
   const {
     premium,
     repremium,
-    curso_estrategia,
-    cursos_all,
     planCounts,
     loading: pricingLoading
   } = usePricing();

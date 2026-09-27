@@ -119,7 +119,7 @@ function SubscriptionsTable() {
     if (!downgradeTarget) return;
     setIsDowngrading(true);
     try {
-      const { data, error } = await supabase.rpc('admin_update_subscription', {
+      const { error } = await supabase.rpc('admin_update_subscription', {
         p_target_profile_id: downgradeTarget.user_id,
         p_new_plan: 'free',
         p_notes: 'Downgraded to free by admin',

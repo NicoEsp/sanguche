@@ -12,7 +12,7 @@ import {
   ResourcePreviewDialog,
 } from '@/components/downloads/ResourcePreviewDialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAssessmentData } from '@/hooks/useAssessmentData';
+import { useProfileCompositeData } from '@/hooks/useProfileCompositeData';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 import {
@@ -44,11 +44,19 @@ const normalize = (text: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
 
+// getDownloadUrl firma por 3600 s; se reusa con margen.
+const PREVIEW_URL_REUSE_MS = 50 * 60 * 1000;
+
 export default function Descargables() {
   const { data: resources, isLoading, error } = useDownloadableResources();
   const { isAuthenticated } = useAuth();
   const { hasActivePremium, isError: subscriptionFailed } = useSubscription();
-  const { hasAssessment, loading: assessmentLoading } = useAssessmentData();
+  // Solo hace falta saber si ya hizo la evaluación, y eso ya viene en los
+  // datos compuestos que se precargan al iniciar sesión.
+  const {
+    data: { hasAssessment },
+    loading: assessmentLoading,
+  } = useProfileCompositeData();
   const { trackEvent } = useMixpanelTracking();
 
   const [search, setSearch] = useState('');
@@ -104,13 +112,13 @@ export default function Descargables() {
     const resolved = await resolveResourceUrl(resource);
     setBusy(null);
     if ('error' in resolved) return reportFailure(resource, 'preview', resolved.error);
-    setPreview({ resource, url: resolved.url });
+    setPreview({ resource, url: resolved.url, verifiedAt: Date.now() });
     trackEvent('resource_previewed', eventProps(resource));
   };
 
-  const handleDownload = async (resource: DownloadableResource) => {
+  const handleDownload = async (resource: DownloadableResource, verifiedUrl?: string) => {
     setBusy({ id: resource.id, action: 'download' });
-    const failure = await openResourceInNewTab(resource);
+    const failure = await openResourceInNewTab(resource, verifiedUrl);
     setBusy(null);
     if (failure) return reportFailure(resource, 'download', failure);
     trackEvent('resource_downloaded', eventProps(resource));
@@ -214,7 +222,15 @@ export default function Descargables() {
       <ResourcePreviewDialog
         preview={preview}
         onClose={() => setPreview(null)}
-        onDownload={() => preview && void handleDownload(preview.resource)}
+        onDownload={() =>
+          preview &&
+          void handleDownload(
+            preview.resource,
+            // La URL firmada dura una hora: con la vista previa abierta más que
+            // eso, se vuelve a firmar en vez de abrir un link vencido.
+            Date.now() - preview.verifiedAt < PREVIEW_URL_REUSE_MS ? preview.url : undefined
+          )
+        }
         downloading={busy?.action === 'download'}
       />
     </>

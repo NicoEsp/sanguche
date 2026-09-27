@@ -148,22 +148,26 @@ export default function Recommendations() {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // Show loading while subscription status is being determined (hasActivePremium === undefined)
-  if (subscriptionLoading || assessmentLoading || profileLoading || hasActivePremium === undefined) {
-    return (
-      <>
-        <Seo />
-        <div className="container py-10 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Cargando...</p>
-          </div>
+  const loadingView = (
+    <>
+      <Seo />
+      <div className="container py-10 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Cargando...</p>
         </div>
-      </>
-    );
+      </div>
+    </>
+  );
+
+  // Show loading while subscription status is being determined (hasActivePremium === undefined).
+  // La evaluación no entra acá: el paywall no la usa y un usuario free no
+  // tiene por qué esperarla.
+  if (subscriptionLoading || profileLoading || hasActivePremium === undefined) {
+    return loadingView;
   }
 
-  if (isFullyLoaded && !hasAccess) {
+  if (!hasAccess) {
     return (
       <>
         <Seo />
@@ -188,6 +192,11 @@ export default function Recommendations() {
         </div>
       </>
     );
+  }
+
+  // El contenido premium sí usa la evaluación (análisis del perfil).
+  if (assessmentLoading) {
+    return loadingView;
   }
 
   return (

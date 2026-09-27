@@ -1,5 +1,7 @@
+import { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAllRows } from '@/utils/fetchAllRows';
 
 export interface SubscriptionWithProfile {
   id: string;
@@ -50,52 +52,53 @@ export interface WebhookFilters {
   status?: 'success' | 'error' | 'all';
 }
 
+/** Búsqueda por nombre o email y filtro de cortesía, sobre lo ya traído. */
+function filterSubscriptions(
+  rows: SubscriptionWithProfile[],
+  search: string,
+  comped: NonNullable<SubscriptionFilters['comped']>
+) {
+  const searchLower = search.toLowerCase();
+  return rows.filter((sub) => {
+    if (
+      searchLower &&
+      !sub.profiles?.email?.toLowerCase().includes(searchLower) &&
+      !sub.profiles?.name?.toLowerCase().includes(searchLower)
+    ) {
+      return false;
+    }
+    if (comped === 'comped') return sub.is_comped === true;
+    if (comped === 'paid') return sub.is_comped === false;
+    return true;
+  });
+}
+
 export function useAdminSubscriptions(filters: SubscriptionFilters = {}) {
+  const { plan = 'all', status = 'all', search = '', comped = 'all' } = filters;
+
+  const select = useCallback(
+    (rows: SubscriptionWithProfile[]) => filterSubscriptions(rows, search, comped),
+    [search, comped]
+  );
+
   return useQuery({
-    queryKey: ['admin-subscriptions', filters],
-    queryFn: async () => {
-      let query = supabase
-        .from('user_subscriptions')
-        .select(`
-          *,
-          profiles!inner(id, name, email)
-        `)
-        .order('updated_at', { ascending: false });
-
-      if (filters.plan && filters.plan !== 'all') {
-        query = query.eq('plan', filters.plan);
-      }
-
-      if (filters.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      // Filter by search if provided (client-side for email/name)
-      let results = data as SubscriptionWithProfile[];
-      
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        results = results.filter(sub => 
-          sub.profiles?.email?.toLowerCase().includes(searchLower) ||
-          sub.profiles?.name?.toLowerCase().includes(searchLower)
-        );
-      }
-
-      // Filter by comped status
-      if (filters.comped && filters.comped !== 'all') {
-        if (filters.comped === 'comped') {
-          results = results.filter(sub => sub.is_comped === true);
-        } else if (filters.comped === 'paid') {
-          results = results.filter(sub => sub.is_comped === false);
-        }
-      }
-
-      return results;
-    },
+    // Solo plan y estado van a la base. Con la búsqueda en la key, cada tecla
+    // volvía a bajar la tabla entera; ahora filtra lo que ya está en caché.
+    queryKey: ['admin-subscriptions', { plan, status }],
+    // Paginado: hay una fila por usuario (también los free) y PostgREST corta
+    // en 1000 sin avisar.
+    queryFn: () =>
+      fetchAllRows<SubscriptionWithProfile>((from, to) => {
+        let query = supabase
+          .from('user_subscriptions')
+          .select('*, profiles!inner(id, name, email)')
+          .order('updated_at', { ascending: false })
+          .order('id', { ascending: true });
+        if (plan !== 'all') query = query.eq('plan', plan);
+        if (status !== 'all') query = query.eq('status', status);
+        return query.range(from, to);
+      }),
+    select,
   });
 }
 

@@ -31,7 +31,9 @@ export default function BlogList() {
       <Seo />
       <BlogPostList
         posts={posts ?? []}
-        state={isLoading ? 'loading' : isError ? 'error' : undefined}
+        // Con la lista del HTML en pantalla, un refetch fallido no la reemplaza
+        // por el mensaje de error.
+        state={isLoading ? 'loading' : isError && !posts ? 'error' : undefined}
       />
     </>
   );
