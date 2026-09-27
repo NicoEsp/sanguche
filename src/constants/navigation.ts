@@ -5,6 +5,7 @@ import {
   GraduationCap,
   BookOpen,
   FileDown,
+  Sparkles,
 } from "lucide-react";
 import { isPremiumFeature, FEATURES } from "@/utils/features";
 
@@ -51,6 +52,15 @@ export const navItems: NavItemType[] = [
     isNew: true,
   },
 ];
+
+/** Fetita, el agente: sólo aparece para quienes tienen acceso a la prueba. */
+export const fetitaNavItem: NavItemType = {
+  href: "/fetita",
+  label: "Fetita",
+  icon: Sparkles,
+  premium: false,
+  isNew: true,
+};
 
 export const extraItems: NavItemType[] = [
   {

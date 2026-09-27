@@ -35,6 +35,7 @@ import {
   SessionReservation,
   BlogList,
   BlogPost,
+  Fetita,
 } from "./routes";
 
 // Skeleton components for better perceived performance
@@ -171,6 +172,11 @@ const App = ({ initialSession }: AppProps) => (
                         <Suspense fallback={<SkeletonProgress />}>
                           <Progress />
                         </Suspense>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/fetita" element={
+                      <ProtectedRoute>
+                        <Fetita />
                       </ProtectedRoute>
                     } />
                     <Route path="*" element={<NotFound />} />

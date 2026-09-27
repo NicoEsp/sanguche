@@ -74,6 +74,10 @@ verify_jwt = true
 [functions.delete-user]
 verify_jwt = true
 
+# Fetita: la función valida el usuario y su acceso; el gateway exige el JWT.
+[functions.fetita-chat]
+verify_jwt = true
+
 [functions.pricing-config]
 verify_jwt = false
 

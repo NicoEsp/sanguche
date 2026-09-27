@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowUp, Star, Trash2, User } from 'lucide-react';
+import { ArrowUp, Sparkles, Star, Trash2, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isPremiumPlan } from '@/constants/plans';
 import { PlanBadge } from './PlanBadge';
@@ -13,6 +13,7 @@ interface UsersTableDesktopProps {
   onToggleAdmin: (userId: string) => void;
   onToggleMentoria: (userId: string, current: boolean) => void;
   onToggleFounder: (userId: string, current: boolean) => void;
+  onToggleFetita: (userId: string, current: boolean) => void;
   onDelete: (target: DeleteDialogTarget) => void;
 }
 
@@ -22,6 +23,7 @@ export function UsersTableDesktop({
   onToggleAdmin,
   onToggleMentoria,
   onToggleFounder,
+  onToggleFetita,
   onDelete,
 }: UsersTableDesktopProps) {
   return (
@@ -124,6 +126,16 @@ export function UsersTableDesktop({
                   >
                     <Star className="w-3 h-3 mr-1" />
                     {user.is_founder ? 'Founder' : 'Dar Founder'}
+                  </Button>
+                  <Button
+                    variant={user.fetita ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => onToggleFetita(user.id, user.fetita || false)}
+                    className="text-xs"
+                    title={user.fetita ? 'Quitar acceso a Fetita' : 'Dar acceso a la prueba de Fetita'}
+                  >
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    {user.fetita ? 'Fetita' : 'Dar Fetita'}
                   </Button>
                   <Button
                     variant="destructive"

@@ -78,7 +78,9 @@ export function useHomeRedirect() {
     // para loguearse: se respeta para todos, también para premium, que si no
     // terminaba en /progreso sin su lugar.
     const decodedReturnTo = returnTo ? safeDecode(returnTo) : null;
-    const returnsToSession = decodedReturnTo?.startsWith('/sesion/') ?? false;
+    // Lo mismo con Fetita: quien llega por el link de la prueba vuelve ahí.
+    const returnsToSession =
+      (decodedReturnTo?.startsWith('/sesion/') || decodedReturnTo?.startsWith('/fetita')) ?? false;
 
     if (returnsToSession) {
       dest = decodedReturnTo!;

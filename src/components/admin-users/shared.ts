@@ -12,6 +12,8 @@ export interface UserProfile {
   };
   role?: string;
   hasOptionalAnswers?: boolean;
+  /** Tiene acceso a la prueba de Fetita. */
+  fetita?: boolean;
 }
 
 export interface UpgradeModalTarget {

@@ -167,6 +167,13 @@ Checkout soporta **compra anónima** (solo email). El webhook vincula la compra 
 - Publicación programada (edge function `publish-scheduled-blog`)
 - JSON-LD (BlogPosting + BreadcrumbList) y OG tags por post
 
+### /fetita (prueba cerrada)
+- Fetita, el agente de ProductPrepa: un hilo de chat por persona con Claude, que arranca con su nombre y el historial de sus evaluaciones.
+- Sólo para quienes el admin habilitó con el botón **Fetita** en `/admin/usuarios` (los admins siempre).
+- El system prompt está en `supabase/functions/fetita-chat/prompt.ts`: se cambia ahí y se vuelve a desplegar la función.
+- Para salir: `supabase db push`, `supabase secrets set ANTHROPIC_API_KEY=...` y `supabase functions deploy fetita-chat`. Opcionales: `FETITA_MODEL` (default `claude-opus-5`) y `FETITA_EFFORT` (default `medium`). Conviene poner un tope de gasto mensual en la consola de Anthropic.
+- Las conversaciones y los tokens de cada respuesta quedan en `fetita_messages`, que el admin lee desde Supabase.
+
 -----
 
 ## 🔌 Edge Functions
@@ -177,6 +184,7 @@ Checkout soporta **compra anónima** (solo email). El webhook vincula la compra 
 |---|---|
 | `cancel-subscription` | Cancelar suscripción en LemonSqueezy |
 | `delete-user` | Borrado seguro de usuario (admin) |
+| `fetita-chat` | Conversación con Fetita por streaming contra la API de Claude |
 | `get-admin-users` | Listado paginado de usuarios para el panel admin |
 | `get-course-video` | Firma URL de video de curso (signed URL) |
 | `get-resource-access` | Valida acceso a recursos descargables |

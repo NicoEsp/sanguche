@@ -1,0 +1,285 @@
+import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import ReactMarkdown, { type Components } from 'react-markdown';
+import { ArrowUp, Loader2, RotateCcw, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
+import { Seo } from '@/components/Seo';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import {
+  fetitaMessagesKey,
+  restartFetita,
+  sendToFetita,
+  useFetitaAccess,
+  useFetitaMessages,
+  useFetitaPerfil,
+} from '@/lib/fetita';
+
+const SEO = {
+  title: 'Fetita · ProductPrepa',
+  description: 'Fetita, el agente de ProductPrepa que desafía tus decisiones de producto.',
+  canonical: '/fetita',
+  robots: 'noindex, nofollow',
+};
+
+const PROSE =
+  'prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5';
+
+// Las imágenes no se cargan: una URL armada mandaría datos de la conversación
+// a un tercero apenas se muestra. Los links abren afuera.
+const MARKDOWN: Components = {
+  h1: 'h3',
+  h2: 'h3',
+  img: ({ alt }) => (alt ? <span>[{alt}]</span> : null),
+  a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+};
+
+function UserBubble({ text }: { text: string }) {
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-sm text-primary-foreground">
+        {text}
+      </div>
+    </div>
+  );
+}
+
+function FetitaBubble({ text }: { text: string }) {
+  return (
+    <div className="flex gap-3">
+      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <Sparkles className="h-3.5 w-3.5" />
+      </div>
+      <div className={`min-w-0 flex-1 ${PROSE}`}>
+        {text ? (
+          <ReactMarkdown components={MARKDOWN}>{text}</ReactMarkdown>
+        ) : (
+          <p className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Fetita está pensando…
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** /fetita: un hilo por persona con Fetita, que arranca sabiendo su evaluación. */
+export default function Fetita() {
+  const { user } = useAuth();
+  const { profile } = useUserProfile();
+  const hasAccess = useFetitaAccess();
+  const messages = useFetitaMessages(profile?.id);
+  const perfil = useFetitaPerfil(user?.id, profile?.name);
+  const queryClient = useQueryClient();
+
+  const [draft, setDraft] = useState('');
+  const [pending, setPending] = useState<{ question: string; reply: string } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const thread = messages.data ?? [];
+  const isNewThread = thread.length === 0;
+  // El perfil viaja con el primer mensaje: se espera a tenerlo.
+  const waitingPerfil = isNewThread && perfil.isLoading;
+  const canSend = !pending && !waitingPerfil && hasAccess === true;
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [thread.length, pending?.reply, pending?.question]);
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: fetitaMessagesKey(profile?.id) });
+
+  async function send(text: string) {
+    const message = text.trim();
+    if (!message || !canSend) return;
+    setDraft('');
+    setNotice(null);
+    setPending({ question: message, reply: '' });
+
+    const outcome: { saved: boolean; failure: string | null; dropped: boolean } = {
+      saved: false,
+      failure: null,
+      dropped: false,
+    };
+    try {
+      await sendToFetita({ message, perfil: isNewThread ? perfil.data : undefined }, (event) => {
+        if (event.type === 'text') setPending((p) => p && { ...p, reply: p.reply + event.delta });
+        else if (event.type === 'done') outcome.saved = true;
+        else outcome.failure = event.message;
+      });
+      // Se cortó la conexión sin error: el servidor termina el turno y lo guarda igual.
+      outcome.dropped = !outcome.saved && !outcome.failure;
+    } catch (error) {
+      outcome.failure = error instanceof Error ? error.message : 'No pudimos hablar con Fetita. Probá de nuevo.';
+    }
+
+    await refresh();
+    setPending(null);
+    if (outcome.dropped) {
+      setNotice('Se cortó la conexión. Si Fetita llegó a responder, la respuesta aparece en unos segundos.');
+      setTimeout(() => void refresh(), 15000);
+    } else if (outcome.failure) {
+      // No se guardó nada: el mensaje vuelve al campo.
+      setNotice(outcome.failure);
+      setDraft((d) => d || message);
+    }
+  }
+
+  async function restart() {
+    try {
+      await restartFetita();
+      setNotice(null);
+      await refresh();
+    } catch {
+      toast.error('No pudimos empezar de nuevo. Probá otra vez.');
+    }
+  }
+
+  if (hasAccess === undefined || (hasAccess && messages.isLoading)) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Seo {...SEO} />
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center p-6">
+        <Seo {...SEO} />
+        <div className="max-w-md space-y-2 text-center">
+          <Sparkles className="mx-auto h-6 w-6 text-primary" />
+          <h1 className="text-lg font-semibold">Fetita está en prueba cerrada</h1>
+          <p className="text-sm text-muted-foreground">
+            Fetita es el agente de ProductPrepa que desafía tus decisiones de producto. Por ahora la están probando
+            unas pocas personas.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
+      <Seo {...SEO} />
+
+      <header className="flex items-center justify-between gap-2 border-b px-4 py-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h1 className="text-sm font-semibold">Fetita</h1>
+          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">Beta</span>
+        </div>
+        {!isNewThread && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" disabled={!!pending} className="gap-1.5 text-muted-foreground">
+                <RotateCcw className="h-3.5 w-3.5" />
+                Empezar de nuevo
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Empezar de nuevo?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta conversación se cierra y Fetita arranca de cero, con tu evaluación actualizada.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => void restart()}>Empezar de nuevo</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </header>
+
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+          {isNewThread && !pending ? (
+            <div className="space-y-4 py-8 text-center">
+              <Sparkles className="mx-auto h-8 w-8 text-primary" />
+              <div className="space-y-2">
+                <h2 className="text-xl font-semibold">Hola, soy Fetita</h2>
+                <p className="mx-auto max-w-md text-sm text-muted-foreground">
+                  Ya leí tu evaluación. Te voy a preguntar un poco sobre tu trabajo y hacia dónde querés ir, y después
+                  te ayudo a desafiar una decisión de producto o un discovery que tengas entre manos.
+                </p>
+                <p className="mx-auto max-w-md text-xs text-muted-foreground">
+                  Es una beta: la conversación se guarda para mejorar Fetita.
+                </p>
+              </div>
+              <Button onClick={() => void send('Hola Fetita')} disabled={!canSend}>
+                {waitingPerfil ? 'Cargando tu evaluación…' : 'Empezar'}
+              </Button>
+            </div>
+          ) : (
+            <>
+              {thread.map((m) =>
+                m.role === 'user' ? <UserBubble key={m.id} text={m.content} /> : <FetitaBubble key={m.id} text={m.content} />,
+              )}
+              {pending && (
+                <>
+                  <UserBubble text={pending.question} />
+                  <FetitaBubble text={pending.reply} />
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="border-t bg-background px-4 py-3">
+        <div className="mx-auto max-w-3xl space-y-2">
+          {notice && (
+            <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              {notice}
+            </p>
+          )}
+          <div className="flex items-end gap-2 rounded-2xl border bg-background p-2 focus-within:ring-2 focus-within:ring-ring">
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value.slice(0, 8000))}
+              onKeyDown={(e) => {
+                // En pantallas táctiles Enter hace salto de línea y se manda con el botón.
+                const touch = window.matchMedia?.('(pointer: coarse)').matches;
+                if (e.key === 'Enter' && !e.shiftKey && !touch && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  void send(draft);
+                }
+              }}
+              rows={2}
+              aria-label="Mensaje para Fetita"
+              placeholder={pending ? 'Fetita está respondiendo…' : 'Escribile a Fetita'}
+              className="max-h-48 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
+            />
+            <Button
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              onClick={() => void send(draft)}
+              disabled={!canSend || !draft.trim()}
+              aria-label="Enviar"
+            >
+              {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+            </Button>
+          </div>
+          <p className="px-1 text-[11px] text-muted-foreground">Fetita puede equivocarse: chequeá lo que afirma.</p>
+        </div>
+      </div>
+    </div>
+  );
+}

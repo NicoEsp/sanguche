@@ -25,6 +25,7 @@ export const Empresas = lazyPage(() => import("./pages/Empresas"));
 export const SessionReservation = lazyPage(() => import("./pages/SessionReservation"));
 export const BlogList = lazyPage(() => import("./pages/BlogList"));
 export const BlogPost = lazyPage(() => import("./pages/BlogPost"));
+export const Fetita = lazyPage(() => import("./pages/Fetita"));
 
 /**
  * Página de cada ruta, para precargar su chunk antes del primer render. Si se
@@ -52,6 +53,7 @@ const ROUTE_PAGES: ReadonlyArray<readonly [string, { preload: () => Promise<void
   ["/mejoras", SkillGaps],
   ["/mentoria", Recommendations],
   ["/progreso", Progress],
+  ["/fetita", Fetita],
 ];
 
 /**

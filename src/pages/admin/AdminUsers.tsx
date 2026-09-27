@@ -26,6 +26,7 @@ export default function AdminUsers() {
     toggleAdminRole,
     toggleMentoriaStatus,
     toggleFounderStatus,
+    toggleFetitaAccess,
     deleteUser,
   } = useAdminUsers();
 
@@ -146,6 +147,7 @@ export default function AdminUsers() {
             onToggleAdmin={toggleAdminRole}
             onToggleMentoria={toggleMentoriaStatus}
             onToggleFounder={toggleFounderStatus}
+            onToggleFetita={toggleFetitaAccess}
             onDelete={setDeleteDialogUser}
           />
 
@@ -155,6 +157,7 @@ export default function AdminUsers() {
             onToggleAdmin={toggleAdminRole}
             onToggleMentoria={toggleMentoriaStatus}
             onToggleFounder={toggleFounderStatus}
+            onToggleFetita={toggleFetitaAccess}
             onDelete={setDeleteDialogUser}
           />
 

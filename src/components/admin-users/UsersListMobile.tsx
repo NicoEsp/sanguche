@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ArrowUp, Star, Trash2, User } from 'lucide-react';
+import { ArrowUp, Sparkles, Star, Trash2, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isPremiumPlan } from '@/constants/plans';
 import { PlanBadge } from './PlanBadge';
@@ -13,6 +13,7 @@ interface UsersListMobileProps {
   onToggleAdmin: (userId: string) => void;
   onToggleMentoria: (userId: string, current: boolean) => void;
   onToggleFounder: (userId: string, current: boolean) => void;
+  onToggleFetita: (userId: string, current: boolean) => void;
   onDelete: (target: DeleteDialogTarget) => void;
 }
 
@@ -22,6 +23,7 @@ export function UsersListMobile({
   onToggleAdmin,
   onToggleMentoria,
   onToggleFounder,
+  onToggleFetita,
   onDelete,
 }: UsersListMobileProps) {
   return (
@@ -106,6 +108,15 @@ export function UsersListMobile({
             >
               <Star className="w-3 h-3 mr-1" />
               Founder
+            </Button>
+            <Button
+              variant={user.fetita ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => onToggleFetita(user.id, user.fetita || false)}
+              className="text-xs h-8"
+            >
+              <Sparkles className="w-3 h-3 mr-1" />
+              Fetita
             </Button>
             <Button
               variant="destructive"

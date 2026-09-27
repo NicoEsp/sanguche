@@ -539,6 +539,83 @@ export type Database = {
         }
         Relationships: []
       }
+      fetita_access: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fetita_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fetita_messages: {
+        Row: {
+          api_content: string
+          archived_at: string | null
+          cache_read_tokens: number | null
+          cache_write_tokens: number | null
+          content: string
+          created_at: string
+          id: string
+          input_tokens: number | null
+          model: string | null
+          output_tokens: number | null
+          role: string
+          seq: number
+          user_id: string
+        }
+        Insert: {
+          api_content: string
+          archived_at?: string | null
+          cache_read_tokens?: number | null
+          cache_write_tokens?: number | null
+          content: string
+          created_at?: string
+          id?: string
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          role: string
+          user_id: string
+        }
+        Update: {
+          api_content?: string
+          archived_at?: string | null
+          cache_read_tokens?: number | null
+          cache_write_tokens?: number | null
+          content?: string
+          created_at?: string
+          id?: string
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fetita_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_notes: {
         Row: {
           content: string
