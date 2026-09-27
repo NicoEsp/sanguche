@@ -21,7 +21,6 @@ const Assessment = lazy(() => import("./pages/Assessment"));
 const SkillGaps = lazy(() => import("./pages/SkillGaps"));
 const Recommendations = lazy(() => import("./pages/Recommendations"));
 const Progress = lazy(() => import("./pages/Progress"));
-const Fetita = lazy(() => import("./pages/Fetita"));
 const Planes = lazy(() => import("./pages/Planes"));
 const CursosInfo = lazy(() => import("./pages/CursosInfo"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -69,7 +68,6 @@ const AdminDescargables = lazy(() => import("./pages/admin/AdminDescargables"));
 const AdminCourseDetail = lazy(() => import("./pages/admin/AdminCourseDetail"));
 const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
 const AdminSessions = lazy(() => import("./pages/admin/AdminSessions"));
-const AdminFetita = lazy(() => import("./pages/admin/AdminFetita"));
 
 // Blog pages
 const BlogList = lazy(() => import("./pages/BlogList"));
@@ -120,7 +118,6 @@ const App = () => (
                   <Route path="descargables" element={<AdminDescargables />} />
                   <Route path="blog" element={<AdminBlog />} />
                   <Route path="sesiones" element={<AdminSessions />} />
-                  <Route path="fetita" element={<AdminFetita />} />
                 </Route>
                 <Route path="/*" element={
                   <AppLayout>
@@ -180,11 +177,6 @@ const App = () => (
                           <Suspense fallback={<SkeletonProgress />}>
                             <Progress />
                           </Suspense>
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/fetita" element={
-                        <ProtectedRoute>
-                          <Fetita />
                         </ProtectedRoute>
                       } />
                       <Route path="*" element={<NotFound />} />

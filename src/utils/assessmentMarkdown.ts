@@ -245,13 +245,6 @@ interface AssessmentMarkdownInput {
   values: AnyAssessmentValues | null;
   assessmentType: AssessmentTypeKey | null;
   updatedAt: string | null;
-  /**
-   * Para Fetita, el agente de ProductPrepa: el perfil entra como contexto de
-   * una conversación sobre otra cosa (una decisión de producto), así que el
-   * pedido final y los links de marca sobran. Sin esto, el agente leería
-   * "armá un plan de 30 días" como una instrucción.
-   */
-  forAgent?: boolean;
 }
 
 /**
@@ -265,8 +258,7 @@ export function buildAssessmentMarkdown({
   result,
   values,
   assessmentType,
-  updatedAt,
-  forAgent = false
+  updatedAt
 }: AssessmentMarkdownInput): string {
   const type: MarkdownTypeKey = assessmentType ?? "legacy";
   // Las evaluaciones sin tipo se respondieron sobre los once dominios base, que
@@ -400,8 +392,6 @@ export function buildAssessmentMarkdown({
     }
     push("");
   }
-
-  if (forAgent) return lines.join("\n").trimEnd();
 
   // --- El pedido concreto ------------------------------------------------
   push("## Qué me gustaría que hagas", "");

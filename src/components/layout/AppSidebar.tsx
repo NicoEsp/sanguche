@@ -22,8 +22,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { navItems, extraItems, fetitaNavItem } from "@/constants/navigation";
-import { useFetitaStatus } from "@/hooks/useFetita";
+import { navItems, extraItems } from "@/constants/navigation";
 
 interface AppSidebarProps {
   collapsed: boolean;
@@ -35,7 +34,6 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const { user, isAuthenticated, isAdmin, signOut, isLoading, isSigningOut } = useAuth();
   const shouldLoadProfile = isAuthenticated && !isLoading;
   const { profile, loading: profileLoading } = useUserProfile({ skip: !shouldLoadProfile });
-  const { hasAccess: hasFetitaAccess } = useFetitaStatus({ skip: !shouldLoadProfile });
   const queryClient = useQueryClient();
   
   // localStorage keys for badge state persistence
@@ -190,9 +188,6 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
             {'isNew' in item && item.isNew && showNewBadges && (
               <Badge className="text-[10px] px-1.5 py-0 bg-green-500/90 text-white border-0 transition-opacity duration-300">Nuevo</Badge>
             )}
-            {item.beta && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary">Beta</Badge>
-            )}
           </>
         )}
       </Link>
@@ -204,9 +199,6 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           <TooltipTrigger asChild>{content}</TooltipTrigger>
           <TooltipContent side="right" className="flex items-center gap-2">
             {item.label}
-            {item.beta && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary">Beta</Badge>
-            )}
             {item.premium && (
               <Badge 
                 variant="secondary" 
@@ -298,7 +290,6 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               {navItems.map((item) => (
                 <NavItem key={item.href} item={item} />
               ))}
-              {hasFetitaAccess && <NavItem item={fetitaNavItem} />}
             </div>
             
             {/* Extras Section */}
