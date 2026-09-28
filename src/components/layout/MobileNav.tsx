@@ -15,7 +15,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { navItems, extraItems } from "@/constants/navigation";
+import { navItems, extraItems, fetitaNavItem } from "@/constants/navigation";
+import { useFetitaAccess } from "@/lib/fetita";
 
 export function MobileNav() {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,6 +24,7 @@ export function MobileNav() {
   const { user, isAuthenticated, isAdmin, signOut, isLoading, isSigningOut } = useAuth();
   const shouldLoadProfile = isAuthenticated && !isLoading;
   const { profile, loading: profileLoading } = useUserProfile({ skip: !shouldLoadProfile });
+  const mainItems = useFetitaAccess().access ? [...navItems, fetitaNavItem] : navItems;
   
   const metadataName = (() => {
     const possibleName = user?.user_metadata?.name;
@@ -68,7 +70,7 @@ export function MobileNav() {
               <div className="flex flex-col h-full py-6">
                 {/* Navigation items */}
                 <nav className="flex-1 space-y-1">
-                  {navItems.map((item) => {
+                  {mainItems.map((item) => {
                     const active = isActive(item.href);
                     return (
                       <Link

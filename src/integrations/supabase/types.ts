@@ -539,6 +539,158 @@ export type Database = {
         }
         Relationships: []
       }
+      fetita_abandoned: {
+        Row: {
+          last_seq: number
+          reported_at: string
+          thread_id: string
+        }
+        Insert: {
+          last_seq: number
+          reported_at?: string
+          thread_id: string
+        }
+        Update: {
+          last_seq?: number
+          reported_at?: string
+          thread_id?: string
+        }
+        Relationships: []
+      }
+      fetita_access: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fetita_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fetita_messages: {
+        Row: {
+          api_content: string
+          archived_at: string | null
+          cache_read_tokens: number | null
+          cache_write_tokens: number | null
+          close_reason: string | null
+          content: string
+          created_at: string
+          error: string | null
+          feedback: string | null
+          feedback_comment: string | null
+          id: string
+          input_tokens: number | null
+          model: string | null
+          output_tokens: number | null
+          prompt_version: string | null
+          reasoning: string | null
+          role: string
+          seq: number
+          status: string
+          step: string | null
+          thread_id: string
+          user_id: string
+          verdict: string | null
+        }
+        Insert: {
+          api_content: string
+          archived_at?: string | null
+          cache_read_tokens?: number | null
+          cache_write_tokens?: number | null
+          close_reason?: string | null
+          content: string
+          created_at?: string
+          error?: string | null
+          feedback?: string | null
+          feedback_comment?: string | null
+          id?: string
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          prompt_version?: string | null
+          reasoning?: string | null
+          role: string
+          seq?: never
+          status?: string
+          step?: string | null
+          thread_id: string
+          user_id: string
+          verdict?: string | null
+        }
+        Update: {
+          api_content?: string
+          archived_at?: string | null
+          cache_read_tokens?: number | null
+          cache_write_tokens?: number | null
+          close_reason?: string | null
+          content?: string
+          created_at?: string
+          error?: string | null
+          feedback?: string | null
+          feedback_comment?: string | null
+          id?: string
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          prompt_version?: string | null
+          reasoning?: string | null
+          role?: string
+          seq?: never
+          status?: string
+          step?: string | null
+          thread_id?: string
+          user_id?: string
+          verdict?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fetita_messages_prompt_version_fkey"
+            columns: ["prompt_version"]
+            isOneToOne: false
+            referencedRelation: "fetita_prompts"
+            referencedColumns: ["version"]
+          },
+          {
+            foreignKeyName: "fetita_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fetita_prompts: {
+        Row: {
+          content: string
+          created_at: string
+          version: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          version: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       lesson_notes: {
         Row: {
           content: string
@@ -1444,6 +1596,7 @@ export type Database = {
       clean_old_rate_limits: { Args: never; Returns: undefined }
       create_admin_user: { Args: { admin_user_id: string }; Returns: boolean }
       ensure_user_defaults: { Args: never; Returns: undefined }
+      fetita_collect_abandoned: { Args: never; Returns: Json }
       get_profile_id_for_auth: { Args: never; Returns: string }
       get_session_spots_left: {
         Args: { p_session_id: string }

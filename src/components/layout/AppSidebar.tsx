@@ -24,7 +24,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { preloadRoute } from "@/routes";
 import { assessmentDataQuery } from "@/hooks/useAssessmentData";
 import { userProgressObjectivesQuery } from "@/hooks/useUserProgressObjectives";
-import { navItems, extraItems } from "@/constants/navigation";
+import { navItems, extraItems, fetitaNavItem } from "@/constants/navigation";
+import { useFetitaAccess } from "@/lib/fetita";
 
 interface AppSidebarProps {
   collapsed: boolean;
@@ -60,6 +61,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const { user, isAuthenticated, isAdmin, signOut, isLoading, isSigningOut } = useAuth();
   const shouldLoadProfile = isAuthenticated && !isLoading;
   const { profile } = useUserProfile({ skip: !shouldLoadProfile });
+  const mainItems = useFetitaAccess().access ? [...navItems, fetitaNavItem] : navItems;
   const queryClient = useQueryClient();
 
   // Badge visibility states - initialized from localStorage
@@ -252,7 +254,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto px-3 py-4">
             <div className="space-y-1">
-              {navItems.map((item) => (
+              {mainItems.map((item) => (
                 <Fragment key={item.href}>{renderNavItem(item)}</Fragment>
               ))}
             </div>

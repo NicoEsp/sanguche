@@ -167,6 +167,22 @@ Checkout soporta **compra anónima** (solo email). El webhook vincula la compra 
 - Publicación programada (edge function `publish-scheduled-blog`)
 - JSON-LD (BlogPosting + BreadcrumbList) y OG tags por post
 
+### /fetita (prueba cerrada)
+- Fetita, el agente de ProductPrepa: un hilo de chat por persona con Claude, que arranca con su nombre y el historial de sus evaluaciones.
+- Sólo para quienes el admin habilitó con el botón **Fetita** en `/admin/usuarios` (los admins siempre).
+- El system prompt está en `supabase/functions/fetita-chat/prompt.ts`: se cambia ahí y se vuelve a desplegar la función.
+- Para salir: `supabase db push`, `supabase secrets set ANTHROPIC_API_KEY=...` y `supabase functions deploy fetita-chat`. Opcionales: `FETITA_MODEL` (default `claude-opus-5`) y `FETITA_EFFORT` (default `medium`). Conviene poner un tope de gasto mensual en la consola de Anthropic.
+- Métricas en Mixpanel, enviadas desde la función y sin contenido de los mensajes: `fetita_started`, `fetita_message_sent`, `fetita_step_reached`, `fetita_verdict_given`, `fetita_feedback` y `fetita_error`, todos con `conversation_id`. El paso y el veredicto salen de marcas que el modelo agrega al final de cada respuesta (ver `MARKS` en `prompt.ts`) y que no se muestran. `fetita_abandoned` lo manda un cron de la base cada 15 minutos (`fetita_collect_abandoned`). Para medir de dónde llegan, el link de invitación puede llevar `?src=invitacion`.
+- Todo queda en `fetita_messages` para analizar y armar evals: cada conversación tiene su `thread_id`, cada respuesta guarda el resumen del razonamiento (`reasoning`), los tokens y la versión del prompt (el texto de cada versión está en `fetita_prompts`), y los turnos que fallaron quedan con `status = 'fallido'` sin reenviarse al modelo. Una conversación por fila, para leer o exportar desde el SQL editor:
+
+```sql
+select m.thread_id, p.email, min(m.created_at) as inicio,
+       string_agg(m.role || ': ' || m.content, E'\n\n' order by m.seq) filter (where m.status = 'ok') as transcripcion
+from fetita_messages m join profiles p on p.id = m.user_id
+group by m.thread_id, p.email
+order by inicio desc;
+```
+
 -----
 
 ## 🔌 Edge Functions
@@ -177,6 +193,7 @@ Checkout soporta **compra anónima** (solo email). El webhook vincula la compra 
 |---|---|
 | `cancel-subscription` | Cancelar suscripción en LemonSqueezy |
 | `delete-user` | Borrado seguro de usuario (admin) |
+| `fetita-chat` | Conversación con Fetita por streaming contra la API de Claude |
 | `get-admin-users` | Listado paginado de usuarios para el panel admin |
 | `get-course-video` | Firma URL de video de curso (signed URL) |
 | `get-resource-access` | Valida acceso a recursos descargables |

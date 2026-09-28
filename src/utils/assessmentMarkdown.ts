@@ -245,6 +245,8 @@ interface AssessmentMarkdownInput {
   values: AnyAssessmentValues | null;
   assessmentType: AssessmentTypeKey | null;
   updatedAt: string | null;
+  /** Para Fetita: sin el pedido final ni los links, que son del export para otro LLM. */
+  forAgent?: boolean;
 }
 
 /**
@@ -258,7 +260,8 @@ export function buildAssessmentMarkdown({
   result,
   values,
   assessmentType,
-  updatedAt
+  updatedAt,
+  forAgent = false
 }: AssessmentMarkdownInput): string {
   const type: MarkdownTypeKey = assessmentType ?? "legacy";
   // Las evaluaciones sin tipo se respondieron sobre los once dominios base, que
@@ -392,6 +395,8 @@ export function buildAssessmentMarkdown({
     }
     push("");
   }
+
+  if (forAgent) return lines.join("\n").trimEnd();
 
   // --- El pedido concreto ------------------------------------------------
   push("## Qué me gustaría que hagas", "");

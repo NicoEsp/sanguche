@@ -61,6 +61,13 @@ const loadAssessments = (): Promise<AssessmentRow[]> =>
       .overrideTypes<AssessmentRow[], { merge: false }>()
   );
 
+// Quiénes tienen acceso a la prueba de Fetita.
+const loadFetitaAccess = async (): Promise<Set<string>> => {
+  const { data, error } = await supabase.from('fetita_access').select('user_id');
+  if (error) throw error;
+  return new Set((data ?? []).map((row) => row.user_id));
+};
+
 interface AdminUsersHook {
   users: UserProfile[];
   assessments: { created_at: string }[];
@@ -71,6 +78,7 @@ interface AdminUsersHook {
   toggleAdminRole: (userId: string) => Promise<void>;
   toggleMentoriaStatus: (userId: string, currentStatus: boolean) => Promise<void>;
   toggleFounderStatus: (userId: string, currentStatus: boolean) => Promise<void>;
+  toggleFetitaAccess: (userId: string, currentStatus: boolean) => Promise<void>;
   deleteUser: (userId: string, displayName: string) => Promise<boolean>;
 }
 
@@ -111,7 +119,7 @@ export function useAdminUsers(): AdminUsersHook {
       // el trigger on_auth_user_email_sync mantiene al día con auth.users:
       // antes venía de la edge function get-admin-users, cuyo listUsers() sin
       // paginar devolvía solo los primeros 50 usuarios (el resto, sin email).
-      const [profiles, subscriptions, roles, assessmentRows] = await Promise.all([
+      const [profiles, subscriptions, roles, assessmentRows, fetitaAccess] = await Promise.all([
         loadProfiles(),
         loadSubscriptions(),
         loadRoles(),
@@ -121,6 +129,7 @@ export function useAdminUsers(): AdminUsersHook {
           }
           return [];
         }),
+        loadFetitaAccess().catch(() => new Set<string>()),
       ]);
 
       if (!profiles.length) {
@@ -164,6 +173,7 @@ export function useAdminUsers(): AdminUsersHook {
         subscription: subscriptionByProfile.get(profile.id) || { plan: 'free', status: 'active' },
         role: roleByProfile.get(profile.id) || 'user',
         hasOptionalAnswers: usersWithOptionalAnswers.has(profile.id),
+        fetita: fetitaAccess.has(profile.id),
       }));
 
       setUsers(usersData);
@@ -313,6 +323,28 @@ export function useAdminUsers(): AdminUsersHook {
     [isAdmin]
   );
 
+  const toggleFetitaAccess = useCallback(
+    async (userId: string, currentStatus: boolean) => {
+      if (!isAdmin) {
+        toast.error('No tienes permisos para realizar esta acción');
+        return;
+      }
+
+      const { error: accessError } = currentStatus
+        ? await supabase.from('fetita_access').delete().eq('user_id', userId)
+        : await supabase.from('fetita_access').insert({ user_id: userId });
+      if (accessError) {
+        toast.error('Error modificando el acceso a Fetita');
+        if (import.meta.env.DEV) console.error('Error updating Fetita access:', accessError);
+        return;
+      }
+      toast.success(currentStatus ? 'Acceso a Fetita quitado' : 'Acceso a Fetita habilitado');
+      // fetita_access no está en los canales de realtime: se recarga a mano.
+      await fetchUsers({ silent: true });
+    },
+    [isAdmin, fetchUsers]
+  );
+
   const deleteUser = useCallback(
     async (userId: string, displayName: string) => {
       if (!isAdmin) return false;
@@ -349,6 +381,7 @@ export function useAdminUsers(): AdminUsersHook {
     toggleAdminRole,
     toggleMentoriaStatus,
     toggleFounderStatus,
+    toggleFetitaAccess,
     deleteUser,
   };
 }
