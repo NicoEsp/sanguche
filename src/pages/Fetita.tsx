@@ -158,6 +158,8 @@ export default function Fetita() {
   const isNewThread = thread.length === 0;
   // Sin el historial no se sabe si ya hay un hilo: no se muestra uno vacío.
   const threadFailed = messages.isError && messages.data === undefined;
+  // useUserProfile no expone el error: si terminó sin perfil, no hay acceso ni hilo que buscar.
+  const profileFailed = !!user && !profileLoading && !profile;
   // El perfil viaja con el primer mensaje: se espera a tenerlo.
   const waitingPerfil = isNewThread && perfil.isLoading;
   // Sin el perfil, Fetita arrancaría sin nombre ni evaluaciones: no se deja empezar.
@@ -219,13 +221,18 @@ export default function Fetita() {
     }
   }
 
-  if (access.isError || threadFailed) {
+  if (profileFailed || access.isError || threadFailed) {
+    const retry = () => {
+      if (profileFailed) void queryClient.invalidateQueries({ queryKey: ['user-profile', user?.id] });
+      else if (access.isError) access.retry();
+      else void messages.refetch();
+    };
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-6">
         <Seo {...SEO} />
         <div className="max-w-md space-y-3 text-center">
           <p className="text-sm text-muted-foreground">No pudimos cargar Fetita. Revisá tu conexión y probá de nuevo.</p>
-          <Button variant="outline" size="sm" onClick={access.isError ? access.retry : () => void messages.refetch()}>
+          <Button variant="outline" size="sm" onClick={retry}>
             Reintentar
           </Button>
         </div>
