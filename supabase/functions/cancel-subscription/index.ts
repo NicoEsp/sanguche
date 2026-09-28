@@ -60,7 +60,11 @@ serve(async (req) => {
     }
 
     const cancelablePlans = ['premium', 'repremium'];
-    if (!cancelablePlans.includes(subscription.plan) || subscription.status !== 'active') {
+    // 'inactive' cubre past_due/unpaid/paused (ver subscription_updated en el
+    // webhook): durante el dunning la suscripción sigue viva en LemonSqueezy,
+    // así que también tiene que poder cancelarse desde acá.
+    const cancelableStatuses = ['active', 'inactive'];
+    if (!cancelablePlans.includes(subscription.plan) || !cancelableStatuses.includes(subscription.status)) {
       throw new Error('No active subscription found');
     }
 
