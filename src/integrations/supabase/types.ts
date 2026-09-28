@@ -539,6 +539,24 @@ export type Database = {
         }
         Relationships: []
       }
+      fetita_abandoned: {
+        Row: {
+          last_seq: number
+          reported_at: string
+          thread_id: string
+        }
+        Insert: {
+          last_seq: number
+          reported_at?: string
+          thread_id: string
+        }
+        Update: {
+          last_seq?: number
+          reported_at?: string
+          thread_id?: string
+        }
+        Relationships: []
+      }
       fetita_access: {
         Row: {
           created_at: string
@@ -568,9 +586,12 @@ export type Database = {
           archived_at: string | null
           cache_read_tokens: number | null
           cache_write_tokens: number | null
+          close_reason: string | null
           content: string
           created_at: string
           error: string | null
+          feedback: string | null
+          feedback_comment: string | null
           id: string
           input_tokens: number | null
           model: string | null
@@ -580,17 +601,22 @@ export type Database = {
           role: string
           seq: number
           status: string
+          step: string | null
           thread_id: string
           user_id: string
+          verdict: string | null
         }
         Insert: {
           api_content: string
           archived_at?: string | null
           cache_read_tokens?: number | null
           cache_write_tokens?: number | null
+          close_reason?: string | null
           content: string
           created_at?: string
           error?: string | null
+          feedback?: string | null
+          feedback_comment?: string | null
           id?: string
           input_tokens?: number | null
           model?: string | null
@@ -599,17 +625,22 @@ export type Database = {
           reasoning?: string | null
           role: string
           status?: string
+          step?: string | null
           thread_id: string
           user_id: string
+          verdict?: string | null
         }
         Update: {
           api_content?: string
           archived_at?: string | null
           cache_read_tokens?: number | null
           cache_write_tokens?: number | null
+          close_reason?: string | null
           content?: string
           created_at?: string
           error?: string | null
+          feedback?: string | null
+          feedback_comment?: string | null
           id?: string
           input_tokens?: number | null
           model?: string | null
@@ -618,8 +649,10 @@ export type Database = {
           reasoning?: string | null
           role?: string
           status?: string
+          step?: string | null
           thread_id?: string
           user_id?: string
+          verdict?: string | null
         }
         Relationships: [
           {

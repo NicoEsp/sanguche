@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown, { type Components } from 'react-markdown';
-import { ArrowUp, Loader2, RotateCcw, Sparkles } from 'lucide-react';
+import { ArrowUp, Loader2, RotateCcw, Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { Seo } from '@/components/Seo';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import {
   fetitaMessagesKey,
   restartFetita,
+  sendFetitaFeedback,
   sendToFetita,
   useFetitaAccess,
   useFetitaMessages,
@@ -76,6 +78,62 @@ function FetitaBubble({ text }: { text: string }) {
   );
 }
 
+/** El pulgar sobre el cierre, con un comentario opcional. */
+function ClosingFeedback({ messageId, onSaved }: { messageId: string; onSaved: () => void }) {
+  const [rating, setRating] = useState<'up' | 'down' | null>(null);
+  const [comment, setComment] = useState('');
+  const [sending, setSending] = useState(false);
+
+  async function submit() {
+    if (!rating) return;
+    setSending(true);
+    try {
+      await sendFetitaFeedback(messageId, rating, comment);
+      onSaved();
+    } catch {
+      toast.error('No pudimos guardar tu opinión. Probá otra vez.');
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="ml-10 space-y-2 rounded-lg border bg-muted/30 p-3">
+      <p className="text-sm font-medium">¿Te sirvió este cierre?</p>
+      <div className="flex gap-2">
+        {(['up', 'down'] as const).map((value) => (
+          <Button
+            key={value}
+            size="sm"
+            variant={rating === value ? 'default' : 'outline'}
+            onClick={() => setRating(value)}
+            aria-pressed={rating === value}
+            className="gap-1.5"
+          >
+            {value === 'up' ? <ThumbsUp className="h-3.5 w-3.5" /> : <ThumbsDown className="h-3.5 w-3.5" />}
+            {value === 'up' ? 'Sí' : 'No'}
+          </Button>
+        ))}
+      </div>
+      {rating && (
+        <div className="space-y-2">
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value.slice(0, 1000))}
+            rows={2}
+            aria-label="Comentario sobre el cierre"
+            placeholder="¿Algo para contarnos? Es opcional."
+            className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <Button size="sm" onClick={() => void submit()} disabled={sending}>
+            {sending && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+            Enviar opinión
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** /fetita: un hilo por persona con Fetita, que arranca sabiendo su evaluación. */
 export default function Fetita() {
   const { user } = useAuth();
@@ -84,6 +142,11 @@ export default function Fetita() {
   const messages = useFetitaMessages(profile?.id);
   const perfil = useFetitaPerfil(user?.id, profile?.name);
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  // De dónde llegó, para las métricas: ?src= en el link de invitación, la
+  // navegación de la app o un link directo.
+  const entryPoint = useRef(searchParams.get('src') ?? (location.key === 'default' ? 'link_directo' : 'app'));
 
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState<{ question: string; reply: string } | null>(null);
@@ -116,7 +179,8 @@ export default function Fetita() {
       dropped: false,
     };
     try {
-      await sendToFetita({ message, perfil: isNewThread ? perfil.data : undefined }, (event) => {
+      const opening = isNewThread ? { perfil: perfil.data, entry_point: entryPoint.current } : {};
+      await sendToFetita({ message, ...opening }, (event) => {
         if (event.type === 'text') setPending((p) => p && { ...p, reply: p.reply + event.delta });
         else if (event.type === 'done') outcome.saved = true;
         else outcome.failure = event.message;
@@ -142,6 +206,7 @@ export default function Fetita() {
   async function restart() {
     try {
       await restartFetita();
+      entryPoint.current = 'empezar_de_nuevo';
       setNotice(null);
       await refresh();
     } catch {
@@ -230,7 +295,19 @@ export default function Fetita() {
           ) : (
             <>
               {thread.map((m) =>
-                m.role === 'user' ? <UserBubble key={m.id} text={m.content} /> : <FetitaBubble key={m.id} text={m.content} />,
+                m.role === 'user' ? (
+                  <UserBubble key={m.id} text={m.content} />
+                ) : (
+                  <div key={m.id} className="space-y-3">
+                    <FetitaBubble text={m.content} />
+                    {m.verdict &&
+                      (m.feedback ? (
+                        <p className="pl-10 text-xs text-muted-foreground">Gracias por contarnos si te sirvió.</p>
+                      ) : (
+                        <ClosingFeedback messageId={m.id} onSaved={() => void refresh()} />
+                      ))}
+                  </div>
+                ),
               )}
               {pending && (
                 <>

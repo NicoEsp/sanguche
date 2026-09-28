@@ -1,20 +1,24 @@
 /**
  * fetita-chat: la conversación con Fetita, el agente de ProductPrepa.
  *
- * POST { message, perfil? } responde por Server-Sent Events:
+ * POST { message, perfil?, entry_point? } responde por Server-Sent Events:
  *   { type: "text", delta } mientras llega la respuesta,
  *   { type: "done" } cuando quedó guardada,
- *   { type: "error", message } si el turno falló (no se guarda nada).
- * POST { action: "restart" } archiva el hilo actual y responde JSON.
+ *   { type: "error", message } si el turno falló.
+ * POST { action: "restart" } archiva el hilo actual.
+ * POST { action: "feedback", message_id, rating, comment? } guarda el pulgar sobre un cierre.
  *
  * Cada persona tiene un hilo. El mensaje y la respuesta se guardan juntos al
  * final del turno. Si el turno falla, se guarda como fallido: queda para
  * análisis pero no se le reenvía al modelo. El perfil (nombre e historial de
  * evaluaciones) entra una sola vez, en el primer mensaje del hilo.
+ *
+ * Los eventos de Mixpanel salen desde acá, ver metrics.ts.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import Anthropic from "npm:@anthropic-ai/sdk@0.126.0";
-import { SYSTEM_PROMPT } from "./prompt.ts";
+import { SYSTEM } from "./prompt.ts";
+import { readMarks, secondsSince, type Step, track, type TrackEvent, visibleLength } from "./metrics.ts";
 
 const MODEL = Deno.env.get("FETITA_MODEL") || "claude-opus-5";
 const EFFORT = (Deno.env.get("FETITA_EFFORT") || "medium") as "low" | "medium" | "high" | "xhigh" | "max";
@@ -26,7 +30,8 @@ const MAX_PERFIL_CHARS = 40000;
 // Supabase corta la función a los 150 s en el plan gratuito.
 const TURN_TIMEOUT_MS = 140_000;
 // La versión del prompt es un hash del texto: cambia sola cuando se edita.
-const PROMPT_VERSION = await promptVersion(SYSTEM_PROMPT);
+const PROMPT_VERSION = await promptVersion(SYSTEM);
+const PREMIUM_PLANS = ["premium", "repremium"];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,6 +56,8 @@ Deno.serve(async (req) => {
   const token = req.headers.get("Authorization")?.replace(/^Bearer /, "");
   const { data: auth } = token ? await supabase.auth.getUser(token) : { data: null };
   if (!auth?.user) return json(401, { error: "Iniciá sesión para hablar con Fetita." });
+  // En Mixpanel la persona es su id de login, igual que en el frontend.
+  const distinctId = auth.user.id;
 
   const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", auth.user.id).maybeSingle();
   if (!profile) return json(403, { error: "No encontramos tu perfil." });
@@ -64,7 +71,7 @@ Deno.serve(async (req) => {
     return json(403, { error: "Fetita está en prueba cerrada y tu cuenta todavía no tiene acceso." });
   }
 
-  let body: { action?: unknown; message?: unknown; perfil?: unknown };
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -80,6 +87,39 @@ Deno.serve(async (req) => {
     return error ? json(500, { error: "No pudimos empezar de nuevo. Probá otra vez." }) : json(200, { ok: true });
   }
 
+  if (body.action === "feedback") {
+    const rating = body.rating === "up" || body.rating === "down" ? body.rating : null;
+    const comment = typeof body.comment === "string" ? body.comment.trim().slice(0, 1000) : "";
+    if (!rating || typeof body.message_id !== "string") return json(400, { error: "Feedback inválido." });
+    const { data: closing } = await supabase
+      .from("fetita_messages")
+      .select("id, thread_id, verdict, prompt_version")
+      .eq("id", body.message_id)
+      .eq("user_id", userId)
+      .eq("role", "assistant")
+      .not("verdict", "is", null)
+      .maybeSingle();
+    if (!closing) return json(404, { error: "No encontramos ese cierre." });
+    const { error } = await supabase
+      .from("fetita_messages")
+      .update({ feedback: rating, feedback_comment: comment || null })
+      .eq("id", closing.id);
+    if (error) return json(500, { error: "No pudimos guardar tu opinión. Probá otra vez." });
+    await track(distinctId, [
+      {
+        event: "fetita_feedback",
+        properties: {
+          conversation_id: closing.thread_id,
+          prompt_version: closing.prompt_version,
+          rating,
+          verdict: closing.verdict,
+          has_comment: comment.length > 0,
+        },
+      },
+    ]);
+    return json(200, { ok: true });
+  }
+
   const message = typeof body.message === "string" ? body.message.trim() : "";
   if (!message || message.length > MAX_MESSAGE_CHARS) {
     return json(400, { error: `El mensaje tiene que tener entre 1 y ${MAX_MESSAGE_CHARS} caracteres.` });
@@ -87,16 +127,27 @@ Deno.serve(async (req) => {
 
   const { data: rows, error: rowsError } = await supabase
     .from("fetita_messages")
-    .select("role, api_content, status, thread_id")
+    .select("role, api_content, status, thread_id, step, created_at")
     .eq("user_id", userId)
     .is("archived_at", null)
     .order("seq", { ascending: true });
   if (rowsError) return json(500, { error: "No pudimos leer la conversación. Probá otra vez." });
-  const threadId: string = rows?.[0]?.thread_id ?? crypto.randomUUID();
+  const threadRows = rows ?? [];
+  const threadId: string = threadRows[0]?.thread_id ?? crypto.randomUUID();
   // Los turnos fallidos quedan en la tabla pero no se le reenvían al modelo.
-  const history: Anthropic.Beta.BetaMessageParam[] = (rows ?? [])
-    .filter((row) => row.status === "ok")
-    .map((row) => ({ role: row.role as "user" | "assistant", content: JSON.parse(row.api_content) }));
+  const okRows = threadRows.filter((row) => row.status === "ok");
+  const history: Anthropic.Beta.BetaMessageParam[] = okRows.map((row) => ({
+    role: row.role as "user" | "assistant",
+    content: JSON.parse(row.api_content),
+  }));
+
+  // Dónde está la conversación, para las métricas.
+  const messageNumber = okRows.filter((row) => row.role === "user").length + 1;
+  const lastStep = (okRows.findLast((row) => row.role === "assistant" && row.step)?.step ?? null) as Step | null;
+  const currentStep: Step = lastStep ?? "context";
+  const lastMessageAt: string | undefined = okRows.at(-1)?.created_at;
+  const threadStartedAt: string = threadRows[0]?.created_at ?? new Date().toISOString();
+  const common = { conversation_id: threadId, prompt_version: PROMPT_VERSION };
 
   // El perfil es un dato de la persona: va en su primer mensaje y no en el
   // system, y no puede cerrar su propio bloque.
@@ -114,17 +165,36 @@ Deno.serve(async (req) => {
   const userRow = { ...base, role: "user", content: message, api_content: JSON.stringify(userContent) };
   let partial = "";
 
+  // El turno que falló queda para análisis, con lo que se alcanzó a mostrar.
+  async function failTurn(code: string, reason: string, userMessage: string) {
+    const failed = { status: "fallido", error: reason.slice(0, 1000) };
+    const shown = readMarks(partial).clean;
+    const { error } = await supabase.from("fetita_messages").insert([
+      { ...userRow, ...failed },
+      ...(shown ? [{ ...base, ...failed, role: "assistant", content: shown, api_content: "[]" }] : []),
+    ]);
+    if (error) console.error("[fetita-chat] guardar turno fallido:", error.message);
+    events.send({ type: "error", message: userMessage });
+    await track(distinctId, [
+      { event: "fetita_error", properties: { ...common, error: code, step: currentStep, message_number: messageNumber } },
+    ]);
+  }
+
   const turn = (async () => {
     try {
-      await supabase.from("fetita_prompts").upsert({ version: PROMPT_VERSION, content: SYSTEM_PROMPT }, {
-        onConflict: "version",
-        ignoreDuplicates: true,
-      });
+      await Promise.all([
+        supabase.from("fetita_prompts").upsert({ version: PROMPT_VERSION, content: SYSTEM }, {
+          onConflict: "version",
+          ignoreDuplicates: true,
+        }),
+        openingEvents().then((opening) => track(distinctId, opening)),
+      ]);
+
       const stream = anthropic.beta.messages.stream(
         {
           model: MODEL,
           max_tokens: 32000,
-          system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+          system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
           messages: [...history, { role: "user", content: userContent }],
           // Resumido: el razonamiento queda guardado para análisis. La persona no lo ve.
           thinking: { type: "adaptive", display: "summarized" },
@@ -135,22 +205,36 @@ Deno.serve(async (req) => {
         },
         { signal: AbortSignal.timeout(TURN_TIMEOUT_MS) },
       );
+      // Las marcas de paso y veredicto no se muestran mientras llega el texto.
+      let shownChars = 0;
       stream.on("text", (delta: string) => {
         partial += delta;
-        events.send({ type: "text", delta });
+        const end = visibleLength(partial);
+        if (end > shownChars) {
+          events.send({ type: "text", delta: partial.slice(shownChars, end) });
+          shownChars = end;
+        }
       });
       const final = await stream.finalMessage();
 
-      const text = final.content
-        .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
-        .map((b) => b.text)
-        .join("");
-      if (final.stop_reason === "refusal" || !text.trim()) {
-        await saveFailed(final.stop_reason === "refusal" ? "refusal" : `sin texto (${final.stop_reason})`);
-        events.send({ type: "error", message: "Fetita no pudo responder ese mensaje. Probá decirlo de otra forma." });
+      const marks = readMarks(
+        final.content
+          .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
+          .map((b) => b.text)
+          .join(""),
+      );
+      if (final.stop_reason === "refusal" || !marks.clean.trim()) {
+        const refused = final.stop_reason === "refusal";
+        await failTurn(
+          refused ? "refusal" : "sin_texto",
+          refused ? "refusal" : `sin texto (${final.stop_reason})`,
+          "Fetita no pudo responder ese mensaje. Probá decirlo de otra forma.",
+        );
         return;
       }
 
+      // Si el modelo no marcó el paso, se sostiene el anterior.
+      const step: Step = marks.step ?? (marks.verdict ? "closing" : currentStep);
       const replay = forReplay(final.content);
       const reasoning = replay
         .map((b) => (b.type === "thinking" ? b.thinking : ""))
@@ -161,9 +245,13 @@ Deno.serve(async (req) => {
         {
           ...base,
           role: "assistant",
-          content: text,
+          // Lo que se ve, sin las marcas. api_content las conserva: se reenvía tal cual.
+          content: marks.clean,
           api_content: JSON.stringify(replay),
           reasoning: reasoning || null,
+          step,
+          verdict: marks.verdict,
+          close_reason: marks.close,
           model: final.model,
           input_tokens: final.usage.input_tokens,
           output_tokens: final.usage.output_tokens,
@@ -173,22 +261,68 @@ Deno.serve(async (req) => {
       ]);
       if (error) throw new Error(`guardar: ${error.message}`);
       events.send({ type: "done" });
+
+      const closing: TrackEvent[] = [];
+      if (step !== lastStep) {
+        closing.push({ event: "fetita_step_reached", properties: { ...common, step, user_messages_count: messageNumber } });
+      }
+      if (marks.verdict) {
+        closing.push({
+          event: "fetita_verdict_given",
+          properties: {
+            ...common,
+            verdict: marks.verdict,
+            user_messages_count: messageNumber,
+            duration_seconds: secondsSince(threadStartedAt),
+            // Sin marca de motivo, se asume forzado si se llegó al tope de mensajes.
+            forced_close: marks.close ? marks.close !== "completo" : messageNumber >= 8,
+          },
+        });
+      }
+      await track(distinctId, closing);
     } catch (error) {
       console.error("[fetita-chat]", error);
-      await saveFailed(error instanceof Error ? error.message : String(error));
-      events.send({ type: "error", message: describeError(error) });
+      const { code, message: userMessage } = describeError(error);
+      await failTurn(code, error instanceof Error ? error.message : String(error), userMessage);
     } finally {
       events.close();
     }
   })();
-  // El turno que falló queda para análisis, con lo que se alcanzó a mostrar.
-  async function saveFailed(reason: string) {
-    const failed = { status: "fallido", error: reason.slice(0, 1000) };
-    const { error } = await supabase.from("fetita_messages").insert([
-      { ...userRow, ...failed },
-      ...(partial ? [{ ...base, ...failed, role: "assistant", content: partial, api_content: "[]" }] : []),
-    ]);
-    if (error) console.error("[fetita-chat] guardar turno fallido:", error.message);
+
+  // Al empezar el turno: el primer mensaje de una conversación y cada mensaje.
+  async function openingEvents(): Promise<TrackEvent[]> {
+    const opening: TrackEvent[] = [];
+    if (threadRows.length === 0) {
+      const [{ count }, { data: subscriptions }] = await Promise.all([
+        supabase.from("assessments").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        supabase.from("user_subscriptions").select("plan, status, is_comped").eq("user_id", userId),
+      ]);
+      const entryPoint = typeof body.entry_point === "string" && /^[a-z_]{1,40}$/.test(body.entry_point)
+        ? body.entry_point
+        : "desconocido";
+      opening.push({
+        event: "fetita_started",
+        properties: {
+          ...common,
+          assessments_count: count ?? 0,
+          has_premium: (subscriptions ?? []).some(
+            (s) => PREMIUM_PLANS.includes(s.plan) && (s.status === "active" || s.is_comped),
+          ),
+          entry_point: entryPoint,
+        },
+      });
+    }
+    opening.push({
+      event: "fetita_message_sent",
+      properties: {
+        ...common,
+        message_number: messageNumber,
+        step: currentStep,
+        char_count: message.length,
+        seconds_since_last_message: lastMessageAt ? secondsSince(lastMessageAt) : null,
+      },
+    });
+    return opening;
   }
 
   // Si la persona cierra la pestaña, el turno termina y se guarda igual.
@@ -219,15 +353,24 @@ async function promptVersion(text: string): Promise<string> {
   return Array.from(new Uint8Array(digest).slice(0, 6), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function describeError(error: unknown): string {
-  if (error instanceof Anthropic.RateLimitError) return "La API de Claude está saturada. Probá en un minuto.";
+/** Un código estable para las métricas y el mensaje para la persona. */
+function describeError(error: unknown): { code: string; message: string } {
+  if (error instanceof Anthropic.RateLimitError) {
+    return { code: "rate_limit", message: "La API de Claude está saturada. Probá en un minuto." };
+  }
   if (error instanceof Anthropic.BadRequestError) {
-    return "La conversación quedó en un estado que la API no acepta. Tocá “Empezar de nuevo”.";
+    return {
+      code: "api_bad_request",
+      message: "La conversación quedó en un estado que la API no acepta. Tocá “Empezar de nuevo”.",
+    };
   }
   if (error instanceof Anthropic.APIUserAbortError || error instanceof Anthropic.APIConnectionTimeoutError) {
-    return "La respuesta tardó demasiado. Probá con un mensaje más acotado.";
+    return { code: "timeout", message: "La respuesta tardó demasiado. Probá con un mensaje más acotado." };
   }
-  return "Algo falló de nuestro lado. Probá de nuevo.";
+  if (error instanceof Anthropic.APIError) {
+    return { code: "api_error", message: "La API de Claude no respondió bien. Probá de nuevo en un rato." };
+  }
+  return { code: "internal", message: "Algo falló de nuestro lado. Probá de nuevo." };
 }
 
 /** Server-Sent Events hacia el navegador. Si la persona se va, se deja de escribir sin cortar el turno. */

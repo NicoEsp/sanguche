@@ -2,9 +2,10 @@
 --
 -- Versión mínima para validar la experiencia: cada persona habilitada tiene
 -- un hilo de conversación con Fetita, que arranca con el historial de sus
--- evaluaciones. Para sacarla alcanza con borrar estas tablas y la función
--- fetita-chat. Las conversaciones se guardan completas, también los turnos que
--- fallaron, para analizarlas y armar evals.
+-- evaluaciones. Las conversaciones se guardan completas, también los turnos
+-- que fallaron, para analizarlas y armar evals; las métricas van a Mixpanel
+-- sin el contenido. Para sacarla alcanza con borrar estas tablas, el cron
+-- fetita-abandoned y la función fetita-chat.
 
 -- Quién puede usar Fetita. La fila existe = habilitada. La escribe sólo el
 -- admin: no va como columna de profiles porque cada persona puede editar su
@@ -64,6 +65,15 @@ CREATE TABLE public.fetita_messages (
   reasoning text,
   -- Con qué versión del prompt se respondió.
   prompt_version text REFERENCES public.fetita_prompts(version),
+  -- Métricas: el paso en que queda la conversación después de esta respuesta,
+  -- y el veredicto y el motivo del cierre si lo hubo. Salen de marcas que el
+  -- modelo agrega al final y que no se muestran.
+  step text CHECK (step IS NULL OR step IN ('context', 'challenge', 'closing')),
+  verdict text CHECK (verdict IS NULL OR verdict IN ('avanzar', 'falta_evidencia', 'frenar')),
+  close_reason text CHECK (close_reason IS NULL OR close_reason IN ('completo', 'tope', 'pedido')),
+  -- El pulgar de la persona sobre un cierre.
+  feedback text CHECK (feedback IS NULL OR feedback IN ('up', 'down')),
+  feedback_comment text,
   -- Consumo de la respuesta, para saber cuánto cuesta cada conversación.
   model text,
   input_tokens integer,
@@ -83,3 +93,100 @@ ALTER TABLE public.fetita_messages ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "fetita_messages_select_own_or_admin" ON public.fetita_messages
   FOR SELECT TO authenticated
   USING (user_id = public.get_profile_id_for_auth() OR public.is_admin());
+
+-- Abandono: una conversación sin veredicto y sin actividad hace 30 minutos.
+-- Un cron junta las nuevas y las manda a Mixpanel como fetita_abandoned. Cada
+-- una se reporta una vez por último mensaje: si la persona vuelve y la deja de
+-- nuevo, cuenta otra vez.
+CREATE TABLE public.fetita_abandoned (
+  thread_id uuid NOT NULL,
+  last_seq bigint NOT NULL,
+  reported_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (thread_id, last_seq)
+);
+
+ALTER TABLE public.fetita_abandoned ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "fetita_abandoned_admin_select" ON public.fetita_abandoned
+  FOR SELECT TO authenticated USING (public.is_admin());
+
+-- Marca las conversaciones abandonadas que todavía no se reportaron y devuelve
+-- los eventos listos para la API de Mixpanel. Sin contenido de los mensajes:
+-- sólo ids, conteos y el último paso, igual que los eventos de fetita-chat.
+CREATE OR REPLACE FUNCTION public.fetita_collect_abandoned()
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_events jsonb;
+BEGIN
+  WITH threads AS (
+    SELECT
+      m.thread_id,
+      m.user_id,
+      max(m.seq) AS last_seq,
+      max(m.created_at) AS last_at,
+      count(*) FILTER (WHERE m.role = 'user' AND m.status = 'ok') AS user_messages,
+      bool_or(m.verdict IS NOT NULL) AS has_verdict,
+      (array_agg(m.step ORDER BY m.seq DESC) FILTER (WHERE m.step IS NOT NULL))[1] AS last_step,
+      (array_agg(m.prompt_version ORDER BY m.seq DESC))[1] AS prompt_version
+    FROM public.fetita_messages m
+    GROUP BY m.thread_id, m.user_id
+  ),
+  nuevas AS (
+    INSERT INTO public.fetita_abandoned (thread_id, last_seq)
+    SELECT t.thread_id, t.last_seq
+    FROM threads t
+    WHERE NOT t.has_verdict
+      AND t.last_at < now() - interval '30 minutes'
+      AND t.last_at > now() - interval '1 day'
+    ON CONFLICT DO NOTHING
+    RETURNING thread_id, last_seq
+  )
+  SELECT coalesce(jsonb_agg(jsonb_build_object(
+    'event', 'fetita_abandoned',
+    'properties', jsonb_build_object(
+      -- El token público del proyecto, el mismo que usa el frontend.
+      'token', '35fe7a2706398ebc90ae3f1012d0a558',
+      'distinct_id', p.user_id,
+      '$user_id', p.user_id,
+      'user_id', p.user_id,
+      '$insert_id', 'fetita-abandoned-' || t.thread_id || '-' || t.last_seq,
+      'conversation_id', t.thread_id,
+      'prompt_version', t.prompt_version,
+      'last_step', coalesce(t.last_step, 'context'),
+      'user_messages_count', t.user_messages,
+      'seconds_since_last_message', round(extract(epoch FROM now() - t.last_at))
+    )
+  )), '[]'::jsonb)
+  INTO v_events
+  FROM nuevas n
+  JOIN threads t ON t.thread_id = n.thread_id AND t.last_seq = n.last_seq
+  JOIN public.profiles p ON p.id = t.user_id;
+
+  RETURN v_events;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.fetita_collect_abandoned() FROM PUBLIC, anon, authenticated;
+
+-- Cada 15 minutos. El token de Mixpanel es público, así que no hace falta un
+-- secreto en Vault como en los otros crons.
+CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA pg_catalog;
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+
+SELECT cron.schedule(
+  'fetita-abandoned',
+  '*/15 * * * *',
+  $cron$
+  SELECT net.http_post(
+    url := 'https://api.mixpanel.com/track?ip=0',
+    body := e.events,
+    headers := '{"Content-Type": "application/json"}'::jsonb
+  )
+  FROM (SELECT public.fetita_collect_abandoned() AS events) e
+  WHERE jsonb_array_length(e.events) > 0;
+  $cron$
+);

@@ -14,6 +14,9 @@ export interface FetitaMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /** Sólo en el cierre: avanzar, falta_evidencia o frenar. */
+  verdict: string | null;
+  feedback: 'up' | 'down' | null;
 }
 
 export type FetitaEvent = { type: 'text'; delta: string } | { type: 'done' } | { type: 'error'; message: string };
@@ -52,7 +55,7 @@ export function useFetitaMessages(profileId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fetita_messages')
-        .select('id, role, content')
+        .select('id, role, content, verdict, feedback')
         .eq('user_id', profileId!)
         .eq('status', 'ok')
         .is('archived_at', null)
@@ -109,7 +112,7 @@ export function useFetitaPerfil(userId: string | undefined, name: string | null 
 
 /** Manda un mensaje a Fetita y va pasando los eventos de la respuesta. */
 export async function sendToFetita(
-  body: { message: string; perfil?: string },
+  body: { message: string; perfil?: string; entry_point?: string },
   onEvent: (event: FetitaEvent) => void,
 ): Promise<void> {
   const { data } = await supabase.auth.getSession();
@@ -146,6 +149,14 @@ export async function sendToFetita(
       boundary = buffer.indexOf('\n\n');
     }
   }
+}
+
+/** El pulgar sobre un cierre, con un comentario opcional. */
+export async function sendFetitaFeedback(messageId: string, rating: 'up' | 'down', comment: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('fetita-chat', {
+    body: { action: 'feedback', message_id: messageId, rating, comment },
+  });
+  if (error) throw error;
 }
 
 /** Archiva el hilo actual: Fetita arranca de cero con el perfil. */
