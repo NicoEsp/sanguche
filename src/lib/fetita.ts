@@ -54,6 +54,7 @@ export function useFetitaMessages(profileId?: string) {
         .from('fetita_messages')
         .select('id, role, content')
         .eq('user_id', profileId!)
+        .eq('status', 'ok')
         .is('archived_at', null)
         .order('seq', { ascending: true });
       if (error) throw error;

@@ -8,9 +8,9 @@
  * POST { action: "restart" } archiva el hilo actual y responde JSON.
  *
  * Cada persona tiene un hilo. El mensaje y la respuesta se guardan juntos al
- * final del turno, así un error no deja la conversación a medias. El perfil
- * (nombre e historial de evaluaciones) entra una sola vez, en el primer
- * mensaje del hilo.
+ * final del turno. Si el turno falla, se guarda como fallido: queda para
+ * análisis pero no se le reenvía al modelo. El perfil (nombre e historial de
+ * evaluaciones) entra una sola vez, en el primer mensaje del hilo.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import Anthropic from "npm:@anthropic-ai/sdk@0.126.0";
@@ -25,6 +25,8 @@ const MAX_MESSAGE_CHARS = 8000;
 const MAX_PERFIL_CHARS = 40000;
 // Supabase corta la función a los 150 s en el plan gratuito.
 const TURN_TIMEOUT_MS = 140_000;
+// La versión del prompt es un hash del texto: cambia sola cuando se edita.
+const PROMPT_VERSION = await promptVersion(SYSTEM_PROMPT);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -85,15 +87,16 @@ Deno.serve(async (req) => {
 
   const { data: rows, error: rowsError } = await supabase
     .from("fetita_messages")
-    .select("role, api_content")
+    .select("role, api_content, status, thread_id")
     .eq("user_id", userId)
     .is("archived_at", null)
     .order("seq", { ascending: true });
   if (rowsError) return json(500, { error: "No pudimos leer la conversación. Probá otra vez." });
-  const history: Anthropic.Beta.BetaMessageParam[] = (rows ?? []).map((row) => ({
-    role: row.role as "user" | "assistant",
-    content: JSON.parse(row.api_content),
-  }));
+  const threadId: string = rows?.[0]?.thread_id ?? crypto.randomUUID();
+  // Los turnos fallidos quedan en la tabla pero no se le reenvían al modelo.
+  const history: Anthropic.Beta.BetaMessageParam[] = (rows ?? [])
+    .filter((row) => row.status === "ok")
+    .map((row) => ({ role: row.role as "user" | "assistant", content: JSON.parse(row.api_content) }));
 
   // El perfil es un dato de la persona: va en su primer mensaje y no en el
   // system, y no puede cerrar su propio bloque.
@@ -107,16 +110,24 @@ Deno.serve(async (req) => {
 
   const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY") });
   const events = eventStream();
+  const base = { user_id: userId, thread_id: threadId, prompt_version: PROMPT_VERSION };
+  const userRow = { ...base, role: "user", content: message, api_content: JSON.stringify(userContent) };
+  let partial = "";
 
   const turn = (async () => {
     try {
+      await supabase.from("fetita_prompts").upsert({ version: PROMPT_VERSION, content: SYSTEM_PROMPT }, {
+        onConflict: "version",
+        ignoreDuplicates: true,
+      });
       const stream = anthropic.beta.messages.stream(
         {
           model: MODEL,
           max_tokens: 32000,
           system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
           messages: [...history, { role: "user", content: userContent }],
-          thinking: { type: "adaptive" },
+          // Resumido: el razonamiento queda guardado para análisis. La persona no lo ve.
+          thinking: { type: "adaptive", display: "summarized" },
           output_config: { effort: EFFORT },
           // El turno siguiente lee de caché toda la conversación anterior.
           cache_control: { type: "ephemeral" },
@@ -124,7 +135,10 @@ Deno.serve(async (req) => {
         },
         { signal: AbortSignal.timeout(TURN_TIMEOUT_MS) },
       );
-      stream.on("text", (delta: string) => events.send({ type: "text", delta }));
+      stream.on("text", (delta: string) => {
+        partial += delta;
+        events.send({ type: "text", delta });
+      });
       const final = await stream.finalMessage();
 
       const text = final.content
@@ -132,17 +146,24 @@ Deno.serve(async (req) => {
         .map((b) => b.text)
         .join("");
       if (final.stop_reason === "refusal" || !text.trim()) {
+        await saveFailed(final.stop_reason === "refusal" ? "refusal" : `sin texto (${final.stop_reason})`);
         events.send({ type: "error", message: "Fetita no pudo responder ese mensaje. Probá decirlo de otra forma." });
         return;
       }
 
+      const replay = forReplay(final.content);
+      const reasoning = replay
+        .map((b) => (b.type === "thinking" ? b.thinking : ""))
+        .filter((t) => t.trim())
+        .join("\n\n");
       const { error } = await supabase.from("fetita_messages").insert([
-        { user_id: userId, role: "user", content: message, api_content: JSON.stringify(userContent) },
+        userRow,
         {
-          user_id: userId,
+          ...base,
           role: "assistant",
           content: text,
-          api_content: JSON.stringify(forReplay(final.content)),
+          api_content: JSON.stringify(replay),
+          reasoning: reasoning || null,
           model: final.model,
           input_tokens: final.usage.input_tokens,
           output_tokens: final.usage.output_tokens,
@@ -154,11 +175,22 @@ Deno.serve(async (req) => {
       events.send({ type: "done" });
     } catch (error) {
       console.error("[fetita-chat]", error);
+      await saveFailed(error instanceof Error ? error.message : String(error));
       events.send({ type: "error", message: describeError(error) });
     } finally {
       events.close();
     }
   })();
+  // El turno que falló queda para análisis, con lo que se alcanzó a mostrar.
+  async function saveFailed(reason: string) {
+    const failed = { status: "fallido", error: reason.slice(0, 1000) };
+    const { error } = await supabase.from("fetita_messages").insert([
+      { ...userRow, ...failed },
+      ...(partial ? [{ ...base, ...failed, role: "assistant", content: partial, api_content: "[]" }] : []),
+    ]);
+    if (error) console.error("[fetita-chat] guardar turno fallido:", error.message);
+  }
+
   // Si la persona cierra la pestaña, el turno termina y se guarda igual.
   (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime?.waitUntil(turn);
 
@@ -180,6 +212,11 @@ function forReplay(content: ContentBlock[]): ContentBlock[] {
       block.type !== "fallback" &&
       !(i < lastFallback && (block.type === "thinking" || block.type === "redacted_thinking")),
   );
+}
+
+async function promptVersion(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(digest).slice(0, 6), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function describeError(error: unknown): string {

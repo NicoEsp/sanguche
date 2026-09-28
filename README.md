@@ -172,7 +172,15 @@ Checkout soporta **compra anónima** (solo email). El webhook vincula la compra 
 - Sólo para quienes el admin habilitó con el botón **Fetita** en `/admin/usuarios` (los admins siempre).
 - El system prompt está en `supabase/functions/fetita-chat/prompt.ts`: se cambia ahí y se vuelve a desplegar la función.
 - Para salir: `supabase db push`, `supabase secrets set ANTHROPIC_API_KEY=...` y `supabase functions deploy fetita-chat`. Opcionales: `FETITA_MODEL` (default `claude-opus-5`) y `FETITA_EFFORT` (default `medium`). Conviene poner un tope de gasto mensual en la consola de Anthropic.
-- Las conversaciones y los tokens de cada respuesta quedan en `fetita_messages`, que el admin lee desde Supabase.
+- Todo queda en `fetita_messages` para analizar y armar evals: cada conversación tiene su `thread_id`, cada respuesta guarda el resumen del razonamiento (`reasoning`), los tokens y la versión del prompt (el texto de cada versión está en `fetita_prompts`), y los turnos que fallaron quedan con `status = 'fallido'` sin reenviarse al modelo. Una conversación por fila, para leer o exportar desde el SQL editor:
+
+```sql
+select m.thread_id, p.email, min(m.created_at) as inicio,
+       string_agg(m.role || ': ' || m.content, E'\n\n' order by m.seq) filter (where m.status = 'ok') as transcripcion
+from fetita_messages m join profiles p on p.id = m.user_id
+group by m.thread_id, p.email
+order by inicio desc;
+```
 
 -----
 

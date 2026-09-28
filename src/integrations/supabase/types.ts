@@ -570,12 +570,17 @@ export type Database = {
           cache_write_tokens: number | null
           content: string
           created_at: string
+          error: string | null
           id: string
           input_tokens: number | null
           model: string | null
           output_tokens: number | null
+          prompt_version: string | null
+          reasoning: string | null
           role: string
           seq: number
+          status: string
+          thread_id: string
           user_id: string
         }
         Insert: {
@@ -585,11 +590,16 @@ export type Database = {
           cache_write_tokens?: number | null
           content: string
           created_at?: string
+          error?: string | null
           id?: string
           input_tokens?: number | null
           model?: string | null
           output_tokens?: number | null
+          prompt_version?: string | null
+          reasoning?: string | null
           role: string
+          status?: string
+          thread_id: string
           user_id: string
         }
         Update: {
@@ -599,14 +609,26 @@ export type Database = {
           cache_write_tokens?: number | null
           content?: string
           created_at?: string
+          error?: string | null
           id?: string
           input_tokens?: number | null
           model?: string | null
           output_tokens?: number | null
+          prompt_version?: string | null
+          reasoning?: string | null
           role?: string
+          status?: string
+          thread_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fetita_messages_prompt_version_fkey"
+            columns: ["prompt_version"]
+            isOneToOne: false
+            referencedRelation: "fetita_prompts"
+            referencedColumns: ["version"]
+          },
           {
             foreignKeyName: "fetita_messages_user_id_fkey"
             columns: ["user_id"]
@@ -615,6 +637,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fetita_prompts: {
+        Row: {
+          content: string
+          created_at: string
+          version: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          version: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          version?: string
+        }
+        Relationships: []
       }
       lesson_notes: {
         Row: {
