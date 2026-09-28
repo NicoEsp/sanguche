@@ -182,7 +182,11 @@ export default function Profile() {
   }
 
   const upgradeInfo = getUpgradeOptions();
-  const showCancel = (isActive || isPastDue) && !isFree && !isOneTime && !isComped;
+  // cancel-subscription sólo cancela premium/repremium: un plan manual con
+  // purchase_type "subscription" (admin_update_subscription lo permite para
+  // cualquier plan) no puede cancelarse ahí, así que tampoco se ofrece acá.
+  const canCancelPlan = plan === 'premium' || plan === 'repremium';
+  const showCancel = canCancelPlan && (isActive || isPastDue) && !isFree && !isOneTime && !isComped;
   const showViewPlans = isFree || !isActive;
 
   return (
@@ -249,7 +253,7 @@ export default function Profile() {
                 </Badge>
               )}
 
-              {!isFree && isPastDue && (
+              {!isFree && isPastDue && !isComped && (
                 <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400">
                   <XCircle className="h-3 w-3 mr-1" />
                   Pago pendiente
@@ -289,7 +293,7 @@ export default function Profile() {
               <p className="text-sm text-muted-foreground">Tenés acceso hasta el {periodEnd}.</p>
             )}
 
-            {!isFree && isPastDue && (
+            {!isFree && isPastDue && !isComped && (
               <p className="text-sm text-muted-foreground">
                 Tuvimos un problema para procesar tu último pago. Actualizá tu método de pago desde el mail que te enviamos, o cancelá tu suscripción abajo.
               </p>
