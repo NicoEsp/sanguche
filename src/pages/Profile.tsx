@@ -58,6 +58,9 @@ export default function Profile() {
   const isComped = subscription?.isComped ?? false;
   // Bonificado es un override de admin: tiene acceso aunque el status de cobro no sea active.
   const isActive = status === 'active' || isComped;
+  // Pago fallido (past_due/unpaid/paused en LemonSqueezy): la suscripción
+  // sigue viva del lado de LS durante el dunning, pero perdió el acceso acá.
+  const isPastDue = status === 'inactive';
   const isOneTime = subscription?.isOneTimePurchase ?? false;
   const externalPlanLabel = EXTERNAL_PLAN_LABELS[plan];
   const badgeInfo = getPlanBadgeInfo(plan);
@@ -81,7 +84,9 @@ export default function Profile() {
 
       toast({
         title: 'Suscripción cancelada',
-        description: 'Seguirás teniendo acceso hasta el fin del período actual.',
+        description: isPastDue
+          ? 'No se te van a hacer más cobros.'
+          : 'Seguirás teniendo acceso hasta el fin del período actual.',
       });
       invalidateProfile();
     } catch (error) {
@@ -177,7 +182,7 @@ export default function Profile() {
   }
 
   const upgradeInfo = getUpgradeOptions();
-  const showCancel = isActive && !isFree && !isOneTime && !isComped;
+  const showCancel = (isActive || isPastDue) && !isFree && !isOneTime && !isComped;
   const showViewPlans = isFree || !isActive;
 
   return (
@@ -244,6 +249,13 @@ export default function Profile() {
                 </Badge>
               )}
 
+              {!isFree && isPastDue && (
+                <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Pago pendiente
+                </Badge>
+              )}
+
               {!isFree && isActive && !isComped && (
                 <Badge
                   variant="outline"
@@ -275,6 +287,12 @@ export default function Profile() {
 
             {!isFree && status === 'cancelled' && !isComped && periodEnd && (
               <p className="text-sm text-muted-foreground">Tenés acceso hasta el {periodEnd}.</p>
+            )}
+
+            {!isFree && isPastDue && (
+              <p className="text-sm text-muted-foreground">
+                Tuvimos un problema para procesar tu último pago. Actualizá tu método de pago desde el mail que te enviamos, o cancelá tu suscripción abajo.
+              </p>
             )}
 
             {isComped && (
@@ -324,7 +342,11 @@ export default function Profile() {
                         <ul className="list-disc list-inside space-y-1 text-sm">
                           <li>Perderás acceso a recursos dedicados y ejercicios personalizados</li>
                           <li>No podrás acceder a la mentoría personalizada</li>
-                          <li>Seguirás teniendo acceso hasta el fin de tu período actual</li>
+                          <li>
+                            {isPastDue
+                              ? 'No se te van a hacer más cobros'
+                              : 'Seguirás teniendo acceso hasta el fin de tu período actual'}
+                          </li>
                         </ul>
                       </div>
                     </AlertDialogDescription>
