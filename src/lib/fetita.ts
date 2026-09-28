@@ -24,14 +24,14 @@ export type FetitaEvent = { type: 'text'; delta: string } | { type: 'done' } | {
 export const fetitaMessagesKey = (profileId?: string) => ['fetita-messages', profileId] as const;
 
 /**
- * Si la persona puede usar Fetita: la habilitó el admin, o es admin. Queda en
- * undefined mientras carga o si falló, así la navegación no la esconde por un
- * error de red.
+ * Si la persona puede usar Fetita: la habilitó el admin, o es admin. access
+ * queda en undefined mientras carga. Si la consulta falla, isError lo avisa
+ * para que la página ofrezca reintentar en vez de quedarse cargando.
  */
-export function useFetitaAccess(): boolean | undefined {
+export function useFetitaAccess(): { access: boolean | undefined; isError: boolean; retry: () => void } {
   const { user, isAdmin } = useAuth();
   const { profile } = useUserProfile({ skip: !user || isAdmin });
-  const { data } = useQuery({
+  const { data, isError, refetch } = useQuery({
     queryKey: ['fetita-access', profile?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -45,7 +45,8 @@ export function useFetitaAccess(): boolean | undefined {
     enabled: !!profile?.id && !isAdmin,
     staleTime: 5 * 60 * 1000,
   });
-  return isAdmin ? true : data;
+  if (isAdmin) return { access: true, isError: false, retry: () => {} };
+  return { access: data, isError: isError && data === undefined, retry: () => void refetch() };
 }
 
 /** El hilo actual. El admin ve todo por RLS, por eso se filtra por el perfil propio. */

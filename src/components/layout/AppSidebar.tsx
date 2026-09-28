@@ -61,7 +61,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const { user, isAuthenticated, isAdmin, signOut, isLoading, isSigningOut } = useAuth();
   const shouldLoadProfile = isAuthenticated && !isLoading;
   const { profile } = useUserProfile({ skip: !shouldLoadProfile });
-  const mainItems = useFetitaAccess() ? [...navItems, fetitaNavItem] : navItems;
+  const mainItems = useFetitaAccess().access ? [...navItems, fetitaNavItem] : navItems;
   const queryClient = useQueryClient();
 
   // Badge visibility states - initialized from localStorage

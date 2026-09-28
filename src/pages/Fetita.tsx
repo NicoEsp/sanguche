@@ -138,7 +138,8 @@ function ClosingFeedback({ messageId, onSaved }: { messageId: string; onSaved: (
 export default function Fetita() {
   const { user } = useAuth();
   const { profile } = useUserProfile();
-  const hasAccess = useFetitaAccess();
+  const access = useFetitaAccess();
+  const hasAccess = access.access;
   const messages = useFetitaMessages(profile?.id);
   const perfil = useFetitaPerfil(user?.id, profile?.name);
   const queryClient = useQueryClient();
@@ -157,7 +158,9 @@ export default function Fetita() {
   const isNewThread = thread.length === 0;
   // El perfil viaja con el primer mensaje: se espera a tenerlo.
   const waitingPerfil = isNewThread && perfil.isLoading;
-  const canSend = !pending && !waitingPerfil && hasAccess === true;
+  // Sin el perfil, Fetita arrancaría sin nombre ni evaluaciones: no se deja empezar.
+  const perfilFailed = isNewThread && perfil.isError && perfil.data === undefined;
+  const canSend = !pending && !waitingPerfil && !perfilFailed && hasAccess === true;
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -212,6 +215,20 @@ export default function Fetita() {
     } catch {
       toast.error('No pudimos empezar de nuevo. Probá otra vez.');
     }
+  }
+
+  if (access.isError) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center p-6">
+        <Seo {...SEO} />
+        <div className="max-w-md space-y-3 text-center">
+          <p className="text-sm text-muted-foreground">No pudimos cargar Fetita. Revisá tu conexión y probá de nuevo.</p>
+          <Button variant="outline" size="sm" onClick={access.retry}>
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (hasAccess === undefined || (hasAccess && messages.isLoading)) {
@@ -288,9 +305,20 @@ export default function Fetita() {
                   Es una beta: la conversación se guarda para mejorar Fetita.
                 </p>
               </div>
-              <Button onClick={() => void send('Hola Fetita')} disabled={!canSend}>
-                {waitingPerfil ? 'Cargando tu evaluación…' : 'Empezar'}
-              </Button>
+              {perfilFailed ? (
+                <div className="space-y-2">
+                  <p role="alert" className="text-sm text-destructive">
+                    No pudimos cargar tu evaluación y Fetita la necesita para empezar.
+                  </p>
+                  <Button variant="outline" onClick={() => void perfil.refetch()}>
+                    Reintentar
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={() => void send('Hola Fetita')} disabled={!canSend}>
+                  {waitingPerfil ? 'Cargando tu evaluación…' : 'Empezar'}
+                </Button>
+              )}
             </div>
           ) : (
             <>

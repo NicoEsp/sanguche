@@ -24,7 +24,7 @@ export function MobileNav() {
   const { user, isAuthenticated, isAdmin, signOut, isLoading, isSigningOut } = useAuth();
   const shouldLoadProfile = isAuthenticated && !isLoading;
   const { profile, loading: profileLoading } = useUserProfile({ skip: !shouldLoadProfile });
-  const mainItems = useFetitaAccess() ? [...navItems, fetitaNavItem] : navItems;
+  const mainItems = useFetitaAccess().access ? [...navItems, fetitaNavItem] : navItems;
   
   const metadataName = (() => {
     const possibleName = user?.user_metadata?.name;
