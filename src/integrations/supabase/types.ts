@@ -624,6 +624,7 @@ export type Database = {
           prompt_version?: string | null
           reasoning?: string | null
           role: string
+          seq?: never
           status?: string
           step?: string | null
           thread_id: string
@@ -648,6 +649,7 @@ export type Database = {
           prompt_version?: string | null
           reasoning?: string | null
           role?: string
+          seq?: never
           status?: string
           step?: string | null
           thread_id?: string
@@ -1594,6 +1596,7 @@ export type Database = {
       clean_old_rate_limits: { Args: never; Returns: undefined }
       create_admin_user: { Args: { admin_user_id: string }; Returns: boolean }
       ensure_user_defaults: { Args: never; Returns: undefined }
+      fetita_collect_abandoned: { Args: never; Returns: Json }
       get_profile_id_for_auth: { Args: never; Returns: string }
       get_session_spots_left: {
         Args: { p_session_id: string }
