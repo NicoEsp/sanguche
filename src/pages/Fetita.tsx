@@ -137,7 +137,7 @@ function ClosingFeedback({ messageId, onSaved }: { messageId: string; onSaved: (
 /** /fetita: un hilo por persona con Fetita, que arranca sabiendo su evaluación. */
 export default function Fetita() {
   const { user } = useAuth();
-  const { profile } = useUserProfile();
+  const { profile, loading: profileLoading } = useUserProfile();
   const access = useFetitaAccess();
   const hasAccess = access.access;
   const messages = useFetitaMessages(profile?.id);
@@ -156,6 +156,8 @@ export default function Fetita() {
 
   const thread = messages.data ?? [];
   const isNewThread = thread.length === 0;
+  // Sin el historial no se sabe si ya hay un hilo: no se muestra uno vacío.
+  const threadFailed = messages.isError && messages.data === undefined;
   // El perfil viaja con el primer mensaje: se espera a tenerlo.
   const waitingPerfil = isNewThread && perfil.isLoading;
   // Sin el perfil, Fetita arrancaría sin nombre ni evaluaciones: no se deja empezar.
@@ -217,13 +219,13 @@ export default function Fetita() {
     }
   }
 
-  if (access.isError) {
+  if (access.isError || threadFailed) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-6">
         <Seo {...SEO} />
         <div className="max-w-md space-y-3 text-center">
           <p className="text-sm text-muted-foreground">No pudimos cargar Fetita. Revisá tu conexión y probá de nuevo.</p>
-          <Button variant="outline" size="sm" onClick={access.retry}>
+          <Button variant="outline" size="sm" onClick={access.isError ? access.retry : () => void messages.refetch()}>
             Reintentar
           </Button>
         </div>
@@ -231,7 +233,8 @@ export default function Fetita() {
     );
   }
 
-  if (hasAccess === undefined || (hasAccess && messages.isLoading)) {
+  // Mientras carga el perfil, el hilo todavía no se pidió (al admin el acceso le llega antes).
+  if (hasAccess === undefined || (hasAccess && (profileLoading || messages.isLoading))) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Seo {...SEO} />
