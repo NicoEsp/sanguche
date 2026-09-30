@@ -26,6 +26,11 @@ const EFFORT = (Deno.env.get("FETITA_EFFORT") || "medium") as "low" | "medium" |
 // otro modelo dentro de la misma llamada. Sólo en los modelos que lo soportan.
 const SERVER_FALLBACK = /^claude-(opus-5|opus-5-5|fable-5-1)\b/.test(MODEL);
 const MAX_MESSAGE_CHARS = 8000;
+// Cada persona puede tener hasta 2 conversaciones: la primera y un "empezar de
+// nuevo" para probar con otro tema. Los admins no tienen tope. Es el mismo
+// número que FETITA_MAX_CONVERSATIONS en src/lib/fetita.ts.
+const MAX_CONVERSATIONS = 2;
+const LIMIT_MESSAGE = "Ya usaste tus 2 conversaciones de la beta. Gracias por probar Fetita.";
 const MAX_PERFIL_CHARS = 40000;
 // Supabase corta la función a los 150 s en el plan gratuito.
 const TURN_TIMEOUT_MS = 140_000;
@@ -78,7 +83,24 @@ Deno.serve(async (req) => {
     return json(400, { error: "El cuerpo tiene que ser JSON." });
   }
 
+  // Conversaciones que la persona ya usó: las archivadas y la actual, si tiene
+  // algún mensaje que salió bien. Los turnos fallidos no consumen.
+  async function conversationsUsed(): Promise<number | null> {
+    const { data, error } = await supabase
+      .from("fetita_messages")
+      .select("thread_id")
+      .eq("user_id", userId)
+      .eq("status", "ok");
+    if (error) return null;
+    return new Set((data ?? []).map((row) => row.thread_id)).size;
+  }
+
   if (body.action === "restart") {
+    if (!adminRole) {
+      const used = await conversationsUsed();
+      if (used === null) return json(500, { error: "No pudimos empezar de nuevo. Probá otra vez." });
+      if (used >= MAX_CONVERSATIONS) return json(403, { error: LIMIT_MESSAGE });
+    }
     const { error } = await supabase
       .from("fetita_messages")
       .update({ archived_at: new Date().toISOString() })
@@ -133,6 +155,11 @@ Deno.serve(async (req) => {
     .order("seq", { ascending: true });
   if (rowsError) return json(500, { error: "No pudimos leer la conversación. Probá otra vez." });
   const threadRows = rows ?? [];
+  if (threadRows.length === 0 && !adminRole) {
+    const used = await conversationsUsed();
+    if (used === null) return json(500, { error: "No pudimos leer la conversación. Probá otra vez." });
+    if (used >= MAX_CONVERSATIONS) return json(403, { error: LIMIT_MESSAGE });
+  }
   const threadId: string = threadRows[0]?.thread_id ?? crypto.randomUUID();
   // Los turnos fallidos quedan en la tabla pero no se le reenvían al modelo.
   const okRows = threadRows.filter((row) => row.status === "ok");
@@ -141,8 +168,10 @@ Deno.serve(async (req) => {
     content: JSON.parse(row.api_content),
   }));
 
-  // Dónde está la conversación, para las métricas.
-  const messageNumber = okRows.filter((row) => row.role === "user").length + 1;
+  // Dónde está la conversación, para las métricas. El primer mensaje es el
+  // saludo del botón "Empezar" y no cuenta: vale 0, el primero que escribe la
+  // persona vale 1 y el tope es 8.
+  const messageNumber = okRows.filter((row) => row.role === "user").length;
   const lastStep = (okRows.findLast((row) => row.role === "assistant" && row.step)?.step ?? null) as Step | null;
   const currentStep: Step = lastStep ?? "context";
   const lastMessageAt: string | undefined = okRows.at(-1)?.created_at;

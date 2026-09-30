@@ -23,13 +23,17 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import {
+  FETITA_MAX_CONVERSATIONS,
   FETITA_MAX_MESSAGES,
+  FETITA_OPENER,
   FETITA_STEPS,
+  fetitaConversationsKey,
   fetitaMessagesKey,
   restartFetita,
   sendFetitaFeedback,
   sendToFetita,
   useFetitaAccess,
+  useFetitaArchivedConversations,
   useFetitaMessages,
   useFetitaPerfil,
 } from '@/lib/fetita';
@@ -139,11 +143,12 @@ function ClosingFeedback({ messageId, onSaved }: { messageId: string; onSaved: (
 
 /** /fetita: un hilo por persona con Fetita, que arranca sabiendo su evaluación. */
 export default function Fetita() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { profile, loading: profileLoading } = useUserProfile();
   const access = useFetitaAccess();
   const hasAccess = access.access;
   const messages = useFetitaMessages(profile?.id);
+  const archived = useFetitaArchivedConversations(profile?.id);
   const perfil = useFetitaPerfil(user?.id, profile?.name);
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -160,9 +165,16 @@ export default function Fetita() {
   const thread = messages.data ?? [];
   const isNewThread = thread.length === 0;
   // Dónde está la conversación, para la barra de avance.
-  const sentMessages = thread.filter((m) => m.role === 'user').length + (pending ? 1 : 0);
+  // El primer mensaje es el saludo del botón Empezar y no cuenta.
+  const sentMessages = Math.max(thread.filter((m) => m.role === 'user').length + (pending ? 1 : 0) - 1, 0);
   const currentStep = [...thread].reverse().find((m) => m.role === 'assistant' && m.step)?.step ?? 'context';
+  // En una conversación nueva se empieza con el botón: el primer mensaje es siempre el saludo.
+  const showComposer = !isNewThread || !!pending;
   const isClosed = thread.some((m) => !!m.verdict);
+  // Conversaciones usadas: las archivadas y la actual. Mientras no se sepa, no se ofrece empezar de nuevo.
+  const conversationsUsed = archived.data === undefined ? undefined : archived.data + (isNewThread ? 0 : 1);
+  const canRestart = isAdmin || (conversationsUsed !== undefined && conversationsUsed < FETITA_MAX_CONVERSATIONS);
+  const lastRestart = !isAdmin && conversationsUsed === FETITA_MAX_CONVERSATIONS - 1;
   // Sin el historial no se sabe si ya hay un hilo: no se muestra uno vacío.
   const threadFailed = messages.isError && messages.data === undefined;
   // useUserProfile no expone el error: si terminó sin perfil, no hay acceso ni hilo que buscar.
@@ -178,7 +190,11 @@ export default function Fetita() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [thread.length, pending?.reply, pending?.question]);
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: fetitaMessagesKey(profile?.id) });
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: fetitaMessagesKey(profile?.id) }),
+      queryClient.invalidateQueries({ queryKey: fetitaConversationsKey(profile?.id) }),
+    ]);
 
   async function send(text: string) {
     const message = text.trim();
@@ -211,9 +227,9 @@ export default function Fetita() {
       setNotice('Se cortó la conexión. Si Fetita llegó a responder, la respuesta aparece en unos segundos.');
       setTimeout(() => void refresh(), 15000);
     } else if (outcome.failure) {
-      // No se guardó nada: el mensaje vuelve al campo.
+      // No se guardó nada: el mensaje vuelve al campo. El saludo no: el campo no está.
       setNotice(outcome.failure);
-      setDraft((d) => d || message);
+      if (message !== FETITA_OPENER) setDraft((d) => d || message);
     }
   }
 
@@ -283,7 +299,7 @@ export default function Fetita() {
           <h1 className="text-sm font-semibold">Fetita</h1>
           <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">Beta</span>
         </div>
-        {!isNewThread && (
+        {!isNewThread && canRestart && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="ghost" size="sm" disabled={!!pending} className="gap-1.5 text-muted-foreground">
@@ -296,6 +312,7 @@ export default function Fetita() {
                 <AlertDialogTitle>¿Empezar de nuevo?</AlertDialogTitle>
                 <AlertDialogDescription>
                   Esta conversación se cierra y Fetita arranca de cero, con tu evaluación actualizada.
+                  {lastRestart && ' Es la última vez que podés empezar de nuevo en la beta.'}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -307,7 +324,9 @@ export default function Fetita() {
         )}
       </header>
 
-      {(!isNewThread || pending) && <FetitaProgress step={currentStep} sent={sentMessages} closed={isClosed} />}
+      {(!isNewThread || pending) && (
+        <FetitaProgress step={currentStep} sent={sentMessages} closed={isClosed} canRestart={canRestart} />
+      )}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
@@ -350,7 +369,7 @@ export default function Fetita() {
                   </Button>
                 </div>
               ) : (
-                <Button onClick={() => void send('Hola Fetita')} disabled={!canSend}>
+                <Button onClick={() => void send(FETITA_OPENER)} disabled={!canSend}>
                   {waitingPerfil ? 'Cargando tu evaluación…' : 'Empezar'}
                 </Button>
               )}
@@ -383,43 +402,49 @@ export default function Fetita() {
         </div>
       </div>
 
-      <div className="border-t bg-background px-4 py-3">
-        <div className="mx-auto max-w-3xl space-y-2">
-          {notice && (
-            <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-              {notice}
-            </p>
-          )}
-          <div className="flex items-end gap-2 rounded-2xl border bg-background p-2 focus-within:ring-2 focus-within:ring-ring">
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value.slice(0, 8000))}
-              onKeyDown={(e) => {
-                // En pantallas táctiles Enter hace salto de línea y se manda con el botón.
-                const touch = window.matchMedia?.('(pointer: coarse)').matches;
-                if (e.key === 'Enter' && !e.shiftKey && !touch && !e.nativeEvent.isComposing) {
-                  e.preventDefault();
-                  void send(draft);
-                }
-              }}
-              rows={2}
-              aria-label="Mensaje para Fetita"
-              placeholder={pending ? 'Fetita está respondiendo…' : 'Escribile a Fetita'}
-              className="max-h-48 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
-            />
-            <Button
-              size="icon"
-              className="h-9 w-9 shrink-0"
-              onClick={() => void send(draft)}
-              disabled={!canSend || !draft.trim()}
-              aria-label="Enviar"
-            >
-              {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
-            </Button>
+      {(showComposer || notice) && (
+        <div className="border-t bg-background px-4 py-3">
+          <div className="mx-auto max-w-3xl space-y-2">
+            {notice && (
+              <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                {notice}
+              </p>
+            )}
+            {showComposer && (
+              <>
+                <div className="flex items-end gap-2 rounded-2xl border bg-background p-2 focus-within:ring-2 focus-within:ring-ring">
+                  <textarea
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value.slice(0, 8000))}
+                    onKeyDown={(e) => {
+                      // En pantallas táctiles Enter hace salto de línea y se manda con el botón.
+                      const touch = window.matchMedia?.('(pointer: coarse)').matches;
+                      if (e.key === 'Enter' && !e.shiftKey && !touch && !e.nativeEvent.isComposing) {
+                        e.preventDefault();
+                        void send(draft);
+                      }
+                    }}
+                    rows={2}
+                    aria-label="Mensaje para Fetita"
+                    placeholder={pending ? 'Fetita está respondiendo…' : 'Escribile a Fetita'}
+                    className="max-h-48 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
+                  />
+                  <Button
+                    size="icon"
+                    className="h-9 w-9 shrink-0"
+                    onClick={() => void send(draft)}
+                    disabled={!canSend || !draft.trim()}
+                    aria-label="Enviar"
+                  >
+                    {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="px-1 text-[11px] text-muted-foreground">Fetita puede equivocarse: chequeá lo que afirma.</p>
+              </>
+            )}
           </div>
-          <p className="px-1 text-[11px] text-muted-foreground">Fetita puede equivocarse: chequeá lo que afirma.</p>
         </div>
-      </div>
+      )}
     </div>
   );
 }

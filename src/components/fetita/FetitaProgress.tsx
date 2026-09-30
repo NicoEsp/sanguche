@@ -7,10 +7,12 @@ interface Props {
   /** Mensajes que mandó la persona, contando el que está esperando respuesta. */
   sent: number;
   closed: boolean;
+  /** Si le queda una conversación más para empezar de nuevo. */
+  canRestart: boolean;
 }
 
 /** Dónde está la conversación: el paso, cuántos mensajes van y qué se busca en este momento. */
-export function FetitaProgress({ step, sent, closed }: Props) {
+export function FetitaProgress({ step, sent, closed, canRestart }: Props) {
   const current = closed ? FETITA_STEPS.length : FETITA_STEPS.findIndex((s) => s.key === step);
   const left = Math.max(FETITA_MAX_MESSAGES - sent, 0);
 
@@ -45,12 +47,14 @@ export function FetitaProgress({ step, sent, closed }: Props) {
             })}
           </ol>
           <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-            {closed ? 'Cerrada' : `Mensaje ${Math.min(sent, FETITA_MAX_MESSAGES)} de ${FETITA_MAX_MESSAGES}`}
+            {closed ? 'Cerrada' : `${Math.min(sent, FETITA_MAX_MESSAGES)} de ${FETITA_MAX_MESSAGES} mensajes`}
           </span>
         </div>
         <p className="text-xs text-muted-foreground">
           {closed
-            ? 'Fetita cerró la conversación. Si quedaste con ganas de más, empezá de nuevo.'
+            ? canRestart
+              ? 'Fetita cerró la conversación. Si querés probar con otro tema, podés empezar de nuevo una vez más.'
+              : 'Fetita cerró la conversación. Usaste tus 2 conversaciones de la beta, gracias por probar.'
             : left <= 2 && step !== 'closing'
               ? `Quedan ${left === 0 ? 'ningún mensaje' : left === 1 ? '1 mensaje' : `${left} mensajes`}: Fetita va a cerrar con un veredicto.`
               : `Ahora: ${FETITA_STEPS[current]?.goal ?? ''}`}

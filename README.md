@@ -169,6 +169,8 @@ Checkout soporta **compra anónima** (solo email). El webhook vincula la compra 
 
 ### /fetita (prueba cerrada)
 - Fetita, el agente de ProductPrepa: un hilo de chat por persona con Claude, que arranca con su nombre y el historial de sus evaluaciones.
+- Cada persona tiene 2 conversaciones: la primera y un "Empezar de nuevo" para probar con otro tema (los admins no tienen tope). Lo hace cumplir la edge function (`MAX_CONVERSATIONS`); el mismo número está en `FETITA_MAX_CONVERSATIONS` (`src/lib/fetita.ts`) para ocultar el botón.
+- El primer mensaje ("Hola Fetita", del botón Empezar) no cuenta para el tope de 8 mensajes ni para `message_number` en Mixpanel: el saludo vale 0 y el primer mensaje escrito vale 1.
 - Sólo para quienes el admin habilitó con el botón **Fetita** en `/admin/usuarios` (los admins siempre).
 - El system prompt está en `supabase/functions/fetita-chat/prompt.ts`: se cambia ahí y se vuelve a desplegar la función.
 - Para salir: `supabase db push`, `supabase secrets set ANTHROPIC_API_KEY=...` y `supabase functions deploy fetita-chat`. Opcionales: `FETITA_MODEL` (default `claude-opus-5`) y `FETITA_EFFORT` (default `medium`). Conviene poner un tope de gasto mensual en la consola de Anthropic.
