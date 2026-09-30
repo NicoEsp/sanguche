@@ -5,8 +5,8 @@ import {
   GraduationCap,
   BookOpen,
   FileDown,
-  Sparkles,
 } from "lucide-react";
+import { FetitaIcon } from "@/components/fetita/FetitaIcon";
 import { isPremiumFeature, FEATURES } from "@/utils/features";
 
 export interface NavItemType {
@@ -57,7 +57,7 @@ export const navItems: NavItemType[] = [
 export const fetitaNavItem: NavItemType = {
   href: "/fetita",
   label: "Fetita",
-  icon: Sparkles,
+  icon: FetitaIcon,
   premium: false,
   isNew: true,
 };

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { sendFetitaInvite } from '@/lib/fetita';
 import { fetchAllRows } from '@/utils/fetchAllRows';
 import type { UserProfile } from './shared';
 
@@ -323,6 +324,18 @@ export function useAdminUsers(): AdminUsersHook {
     [isAdmin]
   );
 
+  const inviteToFetita = useCallback(async (userId: string) => {
+    try {
+      const { sent, errors } = await sendFetitaInvite(userId);
+      if (errors.length > 0) toast.error('No pudimos enviar la invitación');
+      else if (sent > 0) toast.success('Invitación enviada');
+      else toast.info('Esa persona ya recibió la invitación');
+    } catch (err) {
+      toast.error('No pudimos enviar la invitación');
+      if (import.meta.env.DEV) console.error('Error sending Fetita invite:', err);
+    }
+  }, []);
+
   const toggleFetitaAccess = useCallback(
     async (userId: string, currentStatus: boolean) => {
       if (!isAdmin) {
@@ -338,11 +351,18 @@ export function useAdminUsers(): AdminUsersHook {
         if (import.meta.env.DEV) console.error('Error updating Fetita access:', accessError);
         return;
       }
-      toast.success(currentStatus ? 'Acceso a Fetita quitado' : 'Acceso a Fetita habilitado');
+      if (currentStatus) {
+        toast.success('Acceso a Fetita quitado');
+      } else {
+        // La invitación no sale sola: se manda con un clic, una vez por persona.
+        toast.success('Acceso a Fetita habilitado', {
+          action: { label: 'Enviar invitación', onClick: () => void inviteToFetita(userId) },
+        });
+      }
       // fetita_access no está en los canales de realtime: se recarga a mano.
       await fetchUsers({ silent: true });
     },
-    [isAdmin, fetchUsers]
+    [isAdmin, fetchUsers, inviteToFetita]
   );
 
   const deleteUser = useCallback(

@@ -10,10 +10,36 @@ import type { AnyAssessmentValues, AssessmentResult, AssessmentTypeKey } from '@
  * el hilo de mensajes, el perfil que recibe y la llamada a la edge function.
  */
 
+export type FetitaStep = 'context' | 'challenge' | 'closing';
+
+/**
+ * Mensajes de la persona hasta que Fetita cierra. Es el mismo tope que el
+ * prompt (supabase/functions/fetita-chat/prompt.ts): si cambia uno, cambia el otro.
+ */
+export const FETITA_MAX_MESSAGES = 8;
+
+/**
+ * Conversaciones por persona: la primera y un "empezar de nuevo". Los admins no
+ * tienen tope. Es el mismo número que MAX_CONVERSATIONS en la edge function,
+ * que es la que lo hace cumplir.
+ */
+export const FETITA_MAX_CONVERSATIONS = 2;
+
+/** Lo que manda el botón "Empezar". No cuenta como mensaje de la persona. */
+export const FETITA_OPENER = 'Hola Fetita';
+
+export const FETITA_STEPS: { key: FetitaStep; label: string; goal: string }[] = [
+  { key: 'context', label: 'Contexto', goal: 'Contame tu rol y hacia dónde querés llevar tu carrera.' },
+  { key: 'challenge', label: 'Challenge', goal: 'Desafiamos una decisión de producto o un discovery tuyo.' },
+  { key: 'closing', label: 'Cierre', goal: 'Te doy un veredicto y un próximo paso para esta semana.' },
+];
+
 export interface FetitaMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /** El paso en el que quedó la conversación después de esta respuesta. */
+  step: FetitaStep | null;
   /** Sólo en el cierre: avanzar, falta_evidencia o frenar. */
   verdict: string | null;
   feedback: 'up' | 'down' | null;
@@ -22,6 +48,7 @@ export interface FetitaMessage {
 export type FetitaEvent = { type: 'text'; delta: string } | { type: 'done' } | { type: 'error'; message: string };
 
 export const fetitaMessagesKey = (profileId?: string) => ['fetita-messages', profileId] as const;
+export const fetitaConversationsKey = (profileId?: string) => ['fetita-conversations', profileId] as const;
 
 /**
  * Si la persona puede usar Fetita: la habilitó el admin, o es admin. access
@@ -56,13 +83,34 @@ export function useFetitaMessages(profileId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fetita_messages')
-        .select('id, role, content, verdict, feedback')
+        .select('id, role, content, step, verdict, feedback')
         .eq('user_id', profileId!)
         .eq('status', 'ok')
         .is('archived_at', null)
         .order('seq', { ascending: true });
       if (error) throw error;
       return (data ?? []) as FetitaMessage[];
+    },
+    enabled: !!profileId,
+  });
+}
+
+/**
+ * Cuántas conversaciones archivadas tiene la persona (las que ya usó antes de
+ * la actual). Los turnos fallidos no cuentan. undefined mientras carga.
+ */
+export function useFetitaArchivedConversations(profileId?: string) {
+  return useQuery({
+    queryKey: fetitaConversationsKey(profileId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fetita_messages')
+        .select('thread_id')
+        .eq('user_id', profileId!)
+        .eq('status', 'ok')
+        .not('archived_at', 'is', null);
+      if (error) throw error;
+      return new Set((data ?? []).map((row) => row.thread_id)).size;
     },
     enabled: !!profileId,
   });
@@ -164,4 +212,11 @@ export async function sendFetitaFeedback(messageId: string, rating: 'up' | 'down
 export async function restartFetita(): Promise<void> {
   const { error } = await supabase.functions.invoke('fetita-chat', { body: { action: 'restart' } });
   if (error) throw error;
+}
+
+/** Manda a una persona con acceso el mail que la invita a probar Fetita. Sólo admins. */
+export async function sendFetitaInvite(userId: string): Promise<{ sent: number; skipped: number; errors: string[] }> {
+  const { data, error } = await supabase.functions.invoke('send-fetita-invite', { body: { user_id: userId } });
+  if (error) throw error;
+  return data as { sent: number; skipped: number; errors: string[] };
 }
