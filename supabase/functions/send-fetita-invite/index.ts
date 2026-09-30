@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    // Se reclama la fila antes de mandar. Si ya existe, sólo se reintenta si quedó en error.
+    // Se reclama la fila antes de mandar. Si ya existe, se retoma sólo lo que quedó en error o cortado.
     const claim = await supabase.from("fetita_invite_queue").insert({
       user_id: profile.id,
       email: profile.email,
