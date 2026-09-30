@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Seo } from '@/components/Seo';
 import { FetitaIcon } from '@/components/fetita/FetitaIcon';
 import { FetitaMascot } from '@/components/fetita/FetitaMascot';
+import { FetitaProgress } from '@/components/fetita/FetitaProgress';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -22,6 +23,8 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import {
+  FETITA_MAX_MESSAGES,
+  FETITA_STEPS,
   fetitaMessagesKey,
   restartFetita,
   sendFetitaFeedback,
@@ -156,6 +159,10 @@ export default function Fetita() {
 
   const thread = messages.data ?? [];
   const isNewThread = thread.length === 0;
+  // Dónde está la conversación, para la barra de avance.
+  const sentMessages = thread.filter((m) => m.role === 'user').length + (pending ? 1 : 0);
+  const currentStep = [...thread].reverse().find((m) => m.role === 'assistant' && m.step)?.step ?? 'context';
+  const isClosed = thread.some((m) => !!m.verdict);
   // Sin el historial no se sabe si ya hay un hilo: no se muestra uno vacío.
   const threadFailed = messages.isError && messages.data === undefined;
   // useUserProfile no expone el error: si terminó sin perfil, no hay acceso ni hilo que buscar.
@@ -300,6 +307,8 @@ export default function Fetita() {
         )}
       </header>
 
+      {(!isNewThread || pending) && <FetitaProgress step={currentStep} sent={sentMessages} closed={isClosed} />}
+
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
           {isNewThread && !pending ? (
@@ -308,8 +317,24 @@ export default function Fetita() {
               <div className="space-y-2">
                 <h2 className="text-xl font-semibold">Hola, soy Fetita</h2>
                 <p className="mx-auto max-w-md text-sm text-muted-foreground">
-                  Ya leí tu evaluación. Te voy a preguntar un poco sobre tu trabajo y hacia dónde querés ir, y después
-                  te ayudo a desafiar una decisión de producto o un discovery que tengas entre manos.
+                  Ya leí tu evaluación. En unos {FETITA_MAX_MESSAGES} mensajes, unos 10 minutos, vamos a desafiar una
+                  decisión de producto o un discovery que tengas entre manos.
+                </p>
+                <ol className="mx-auto max-w-md space-y-2 pt-2 text-left text-sm">
+                  {FETITA_STEPS.map((step, i) => (
+                    <li key={step.key} className="flex gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                        {i + 1}
+                      </span>
+                      <span>
+                        <span className="font-medium">{step.label}.</span>{' '}
+                        <span className="text-muted-foreground">{step.goal}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="mx-auto max-w-md text-xs text-muted-foreground">
+                  Tené a mano una decisión real, sin datos confidenciales de tu empresa.
                 </p>
                 <p className="mx-auto max-w-md text-xs text-muted-foreground">
                   Es una beta: la conversación se guarda para mejorar Fetita.

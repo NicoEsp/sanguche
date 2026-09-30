@@ -10,10 +10,26 @@ import type { AnyAssessmentValues, AssessmentResult, AssessmentTypeKey } from '@
  * el hilo de mensajes, el perfil que recibe y la llamada a la edge function.
  */
 
+export type FetitaStep = 'context' | 'challenge' | 'closing';
+
+/**
+ * Mensajes de la persona hasta que Fetita cierra. Es el mismo tope que el
+ * prompt (supabase/functions/fetita-chat/prompt.ts): si cambia uno, cambia el otro.
+ */
+export const FETITA_MAX_MESSAGES = 8;
+
+export const FETITA_STEPS: { key: FetitaStep; label: string; goal: string }[] = [
+  { key: 'context', label: 'Contexto', goal: 'Contame tu rol y hacia dónde querés llevar tu carrera.' },
+  { key: 'challenge', label: 'Challenge', goal: 'Desafiamos una decisión de producto o un discovery tuyo.' },
+  { key: 'closing', label: 'Cierre', goal: 'Te doy un veredicto y un próximo paso para esta semana.' },
+];
+
 export interface FetitaMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /** El paso en el que quedó la conversación después de esta respuesta. */
+  step: FetitaStep | null;
   /** Sólo en el cierre: avanzar, falta_evidencia o frenar. */
   verdict: string | null;
   feedback: 'up' | 'down' | null;
@@ -56,7 +72,7 @@ export function useFetitaMessages(profileId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fetita_messages')
-        .select('id, role, content, verdict, feedback')
+        .select('id, role, content, step, verdict, feedback')
         .eq('user_id', profileId!)
         .eq('status', 'ok')
         .is('archived_at', null)
