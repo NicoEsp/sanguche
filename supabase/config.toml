@@ -78,6 +78,10 @@ verify_jwt = true
 [functions.fetita-chat]
 verify_jwt = true
 
+# Invitación a la beta de Fetita: la función exige que quien llama sea admin.
+[functions.send-fetita-invite]
+verify_jwt = true
+
 [functions.pricing-config]
 verify_jwt = false
 
