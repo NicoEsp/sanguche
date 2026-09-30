@@ -215,8 +215,8 @@ export async function restartFetita(): Promise<void> {
 }
 
 /** Manda a una persona con acceso el mail que la invita a probar Fetita. Sólo admins. */
-export async function sendFetitaInvite(userId: string): Promise<{ sent: number; skipped: number }> {
+export async function sendFetitaInvite(userId: string): Promise<{ sent: number; skipped: number; errors: string[] }> {
   const { data, error } = await supabase.functions.invoke('send-fetita-invite', { body: { user_id: userId } });
   if (error) throw error;
-  return data as { sent: number; skipped: number };
+  return data as { sent: number; skipped: number; errors: string[] };
 }

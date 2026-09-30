@@ -326,8 +326,9 @@ export function useAdminUsers(): AdminUsersHook {
 
   const inviteToFetita = useCallback(async (userId: string) => {
     try {
-      const { sent } = await sendFetitaInvite(userId);
-      if (sent > 0) toast.success('Invitación enviada');
+      const { sent, errors } = await sendFetitaInvite(userId);
+      if (errors.length > 0) toast.error('No pudimos enviar la invitación');
+      else if (sent > 0) toast.success('Invitación enviada');
       else toast.info('Esa persona ya recibió la invitación');
     } catch (err) {
       toast.error('No pudimos enviar la invitación');

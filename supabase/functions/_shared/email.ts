@@ -89,6 +89,9 @@ export async function sendResendEmail(opts: {
   subject: string;
   html: string;
   replyTo?: string;
+  // Con la misma clave, Resend no manda dos veces el mismo mail si se reintenta
+  // (la retiene 24 horas). Sirve cuando una respuesta perdida deja el resultado en duda.
+  idempotencyKey?: string;
 }): Promise<SendEmailResult> {
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -96,6 +99,7 @@ export async function sendResendEmail(opts: {
       headers: {
         Authorization: `Bearer ${opts.apiKey}`,
         "Content-Type": "application/json",
+        ...(opts.idempotencyKey ? { "Idempotency-Key": opts.idempotencyKey } : {}),
       },
       body: JSON.stringify({
         from: FROM,

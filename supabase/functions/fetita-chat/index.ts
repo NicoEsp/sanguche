@@ -26,6 +26,9 @@ const EFFORT = (Deno.env.get("FETITA_EFFORT") || "medium") as "low" | "medium" |
 // otro modelo dentro de la misma llamada. Sólo en los modelos que lo soportan.
 const SERVER_FALLBACK = /^claude-(opus-5|opus-5-5|fable-5-1)\b/.test(MODEL);
 const MAX_MESSAGE_CHARS = 8000;
+// Mensajes de la persona por conversación, sin contar el saludo. Es el mismo
+// número que FETITA_MAX_MESSAGES en src/lib/fetita.ts y que el prompt.
+const MAX_MESSAGES = 8;
 // Cada persona puede tener hasta 2 conversaciones: la primera y un "empezar de
 // nuevo" para probar con otro tema. Los admins no tienen tope. Es el mismo
 // número que FETITA_MAX_CONVERSATIONS en src/lib/fetita.ts.
@@ -172,6 +175,10 @@ Deno.serve(async (req) => {
   // saludo del botón "Empezar" y no cuenta: vale 0, el primero que escribe la
   // persona vale 1 y el tope es 8.
   const messageNumber = okRows.filter((row) => row.role === "user").length;
+  // Fetita cierra en el mensaje 8: el siguiente ya no se acepta (los admins no tienen tope).
+  if (!adminRole && messageNumber > MAX_MESSAGES) {
+    return json(403, { error: `La conversación llegó al límite de ${MAX_MESSAGES} mensajes.` });
+  }
   const lastStep = (okRows.findLast((row) => row.role === "assistant" && row.step)?.step ?? null) as Step | null;
   const currentStep: Step = lastStep ?? "context";
   const lastMessageAt: string | undefined = okRows.at(-1)?.created_at;

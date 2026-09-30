@@ -21,6 +21,9 @@ const corsHeaders = {
 const FETITA_URL = `${SITE_URL}/fetita?src=invitacion`;
 const MASCOT_URL = `${SITE_URL}/brand/fetita/mascota.png`;
 const SUBJECT = "Te invito a probar Fetita, ahora en beta";
+// Una invitación que lleva más que esto en "pending" viene de un envío que se cortó: se puede retomar.
+// La función corta a los 150 s, así que 10 minutos alcanzan para no pisar un envío en curso.
+const STALE_PENDING_MS = 10 * 60_000;
 
 function json(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -113,11 +116,14 @@ Deno.serve(async (req) => {
         errors.push(`${profile.email}: ${claim.error.message}`);
         continue;
       }
+      // Se retoma si quedó en error o si un envío se cortó antes de anotar el resultado.
+      // El update es atómico: si otra llamada ya lo tomó, no devuelve la fila.
+      const staleBefore = new Date(Date.now() - STALE_PENDING_MS).toISOString();
       const { data: retried } = await supabase
         .from("fetita_invite_queue")
-        .update({ status: "pending", error_message: null })
+        .update({ status: "pending", error_message: null, created_at: new Date().toISOString() })
         .eq("user_id", profile.id)
-        .eq("status", "error")
+        .or(`status.eq.error,and(status.eq.pending,created_at.lt.${staleBefore})`)
         .select("user_id");
       if (!retried?.length) {
         skipped++;
@@ -130,17 +136,29 @@ Deno.serve(async (req) => {
       to: profile.email,
       subject: SUBJECT,
       html: buildEmailHtml(profile.name),
+      // Si se retoma un envío dudoso, Resend no manda el mail dos veces.
+      idempotencyKey: `fetita-invite-${profile.id}`,
     });
-    await supabase
-      .from("fetita_invite_queue")
-      .update(
-        result.ok
-          ? { status: "sent", sent_at: new Date().toISOString() }
-          : { status: "error", error_message: result.body.slice(0, 1000) },
-      )
-      .eq("user_id", profile.id);
-    if (result.ok) sent++;
-    else errors.push(`${profile.email}: ${result.status}`);
+
+    // El resultado se anota con un reintento. Sin esto la fila queda en "pending" y no se sabría qué pasó.
+    const outcome = result.ok
+      ? { status: "sent", sent_at: new Date().toISOString() }
+      : { status: "error", error_message: result.body.slice(0, 1000) };
+    let recorded = false;
+    for (let attempt = 0; attempt < 2 && !recorded; attempt++) {
+      const { error } = await supabase.from("fetita_invite_queue").update(outcome).eq("user_id", profile.id);
+      recorded = !error;
+    }
+
+    if (!recorded) {
+      errors.push(
+        `${profile.email}: ${result.ok ? "el mail salió" : "el mail falló"}, pero no se pudo guardar el estado`,
+      );
+    } else if (result.ok) {
+      sent++;
+    } else {
+      errors.push(`${profile.email}: ${result.status}`);
+    }
   }
 
   console.log(`[send-fetita-invite] enviados: ${sent}, salteados: ${skipped}, errores: ${errors.length}`);

@@ -169,11 +169,14 @@ export default function Fetita() {
   const sentMessages = Math.max(thread.filter((m) => m.role === 'user').length + (pending ? 1 : 0) - 1, 0);
   const currentStep = [...thread].reverse().find((m) => m.role === 'assistant' && m.step)?.step ?? 'context';
   // En una conversación nueva se empieza con el botón: el primer mensaje es siempre el saludo.
-  const showComposer = !isNewThread || !!pending;
+  // Al llegar al tope de mensajes ya no se puede escribir (los admins no tienen tope).
+  const limitReached = !isAdmin && sentMessages >= FETITA_MAX_MESSAGES;
+  const showComposer = (!isNewThread || !!pending) && !limitReached;
   const isClosed = thread.some((m) => !!m.verdict);
   // Conversaciones usadas: las archivadas y la actual. Mientras no se sepa, no se ofrece empezar de nuevo.
   const conversationsUsed = archived.data === undefined ? undefined : archived.data + (isNewThread ? 0 : 1);
   const canRestart = isAdmin || (conversationsUsed !== undefined && conversationsUsed < FETITA_MAX_CONVERSATIONS);
+  const restartKnown = isAdmin || conversationsUsed !== undefined;
   const lastRestart = !isAdmin && conversationsUsed === FETITA_MAX_CONVERSATIONS - 1;
   // Sin el historial no se sabe si ya hay un hilo: no se muestra uno vacío.
   const threadFailed = messages.isError && messages.data === undefined;
@@ -325,7 +328,7 @@ export default function Fetita() {
       </header>
 
       {(!isNewThread || pending) && (
-        <FetitaProgress step={currentStep} sent={sentMessages} closed={isClosed} canRestart={canRestart} />
+        <FetitaProgress step={currentStep} sent={sentMessages} closed={isClosed} canRestart={restartKnown ? canRestart : undefined} />
       )}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
