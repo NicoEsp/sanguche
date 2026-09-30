@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown, { type Components } from 'react-markdown';
-import { ArrowUp, Loader2, RotateCcw, Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { ArrowUp, Loader2, RotateCcw, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { Seo } from '@/components/Seo';
+import { FetitaIcon } from '@/components/fetita/FetitaIcon';
+import { FetitaMascot } from '@/components/fetita/FetitaMascot';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -61,9 +63,7 @@ function UserBubble({ text }: { text: string }) {
 function FetitaBubble({ text }: { text: string }) {
   return (
     <div className="flex gap-3">
-      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-        <Sparkles className="h-3.5 w-3.5" />
-      </div>
+      <FetitaIcon className="mt-0.5 h-7 w-7 shrink-0" />
       <div className={`min-w-0 flex-1 ${PROSE}`}>
         {text ? (
           <ReactMarkdown components={MARKDOWN}>{text}</ReactMarkdown>
@@ -255,7 +255,7 @@ export default function Fetita() {
       <div className="flex min-h-[60vh] items-center justify-center p-6">
         <Seo {...SEO} />
         <div className="max-w-md space-y-2 text-center">
-          <Sparkles className="mx-auto h-6 w-6 text-primary" />
+          <FetitaIcon className="mx-auto h-10 w-10" />
           <h1 className="text-lg font-semibold">Fetita está en prueba cerrada</h1>
           <p className="text-sm text-muted-foreground">
             Fetita es el agente de ProductPrepa que desafía tus decisiones de producto. Por ahora la están probando
@@ -272,7 +272,7 @@ export default function Fetita() {
 
       <header className="flex items-center justify-between gap-2 border-b px-4 py-2">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
+          <FetitaIcon className="h-6 w-6" />
           <h1 className="text-sm font-semibold">Fetita</h1>
           <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">Beta</span>
         </div>
@@ -304,7 +304,7 @@ export default function Fetita() {
         <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
           {isNewThread && !pending ? (
             <div className="space-y-4 py-8 text-center">
-              <Sparkles className="mx-auto h-8 w-8 text-primary" />
+              <FetitaMascot className="mx-auto h-32 w-auto" />
               <div className="space-y-2">
                 <h2 className="text-xl font-semibold">Hola, soy Fetita</h2>
                 <p className="mx-auto max-w-md text-sm text-muted-foreground">
