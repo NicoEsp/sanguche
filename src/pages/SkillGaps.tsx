@@ -1,10 +1,10 @@
 import { Seo } from "@/components/Seo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Link } from "react-router-dom";
 import { ArrowRight, FileDown } from "lucide-react";
 import { useSubscription } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { ResourcesList } from "@/components/resources/ResourcesList";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,6 +23,7 @@ import { ContextualCTA } from "@/components/ContextualCTA";
 import { CompetencyRadar } from "@/components/assessment/CompetencyRadar";
 import { PlanCTACard } from "@/components/assessment/PlanCTACard";
 import { ReevaluationBanner } from "@/components/assessment/ReevaluationBanner";
+import { NoAssessmentState } from "@/components/assessment/NoAssessmentState";
 import { ShareRadarButton } from "@/components/assessment/ShareRadarButton";
 import { CopyForLlmButton } from "@/components/assessment/CopyForLlmButton";
 
@@ -101,6 +102,14 @@ export default function SkillGaps() {
     isLegacyAssessment
   } = useAssessmentData();
   const { trackEvent } = useMixpanelTracking();
+  const { user } = useAuth();
+
+  // Nombre de pila para el saludo del estado vacío (Google guarda full_name,
+  // el alta por email guarda name).
+  const firstName = useMemo(() => {
+    const meta = user?.user_metadata as { full_name?: string; name?: string } | undefined;
+    return (meta?.full_name ?? meta?.name)?.trim().split(/\s+/)[0] || null;
+  }, [user]);
 
   // Memoized calculations to avoid re-computation
   const gaps = useMemo(() => result?.gaps ?? [], [result]);
@@ -154,6 +163,12 @@ export default function SkillGaps() {
       });
     }
   }, [loading, result, gaps, strengths, neutralAreas, trackEvent, assessmentType]);
+
+  // Cuántas personas llegan acá sin evaluación y cuántas siguen a una.
+  useEffect(() => {
+    if (!loading && !hasAssessment) trackEvent('skill_gaps_empty_viewed');
+  }, [loading, hasAssessment, trackEvent]);
+
   return <>
       <Seo />
 
@@ -163,12 +178,14 @@ export default function SkillGaps() {
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-48 w-full" />
           </div>}
-        {!loading && !hasAssessment ? <Alert className="mb-6">
-            <AlertTitle>No hay resultados aún</AlertTitle>
-            <AlertDescription>
-              Realizá primero la <Link to="/autoevaluacion" className="underline">evaluación</Link> para ver tus brechas priorizadas.
-            </AlertDescription>
-          </Alert> : null}
+        {/* Sin evaluación: en vez de un aviso vacío, se muestra qué va a haber
+            en esta pantalla y se manda a la evaluación del perfil elegido. */}
+        {!loading && !hasAssessment && (
+          <NoAssessmentState
+            firstName={firstName}
+            onSelectProfile={(type) => trackEvent('skill_gaps_empty_profile_click', { assessment_type: type })}
+          />
+        )}
 
         {/* Evaluaciones del formato anterior: invitar a re-evaluarse para ver el radar */}
         {!loading && isLegacyAssessment && (
