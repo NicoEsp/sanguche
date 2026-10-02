@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Seo } from '@/components/Seo';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft } from 'lucide-react';
@@ -19,6 +17,8 @@ import {
   ResetFormData,
   UpdatePasswordFormData,
   useRecoveryLink,
+  AuthShell,
+  AuthModeSwitch,
 } from '@/components/auth';
 
 type AuthMode = 'login' | 'signup' | 'reset' | 'email-verification' | 'update-password';
@@ -142,26 +142,39 @@ export default function Auth() {
 
   const getTitle = () => {
     switch (mode) {
-      case 'login': return 'Iniciar Sesión';
-      case 'signup': return 'Crear Cuenta';
-      case 'reset': return 'Recuperar Contraseña';
-      case 'email-verification': return 'Verifica tu Email';
-      case 'update-password': return 'Nueva Contraseña';
+      case 'login': return 'Iniciar sesión';
+      case 'signup': return 'Crear cuenta';
+      case 'reset': return 'Recuperar contraseña';
+      case 'email-verification': return 'Verificá tu email';
+      case 'update-password': return 'Nueva contraseña';
+    }
+  };
+
+  const getHeading = () => {
+    switch (mode) {
+      case 'login': return 'Qué bueno verte de nuevo';
+      case 'signup': return 'Empezá tu evaluación';
+      case 'reset': return 'Recuperá tu acceso';
+      case 'email-verification': return 'Revisá tu email';
+      case 'update-password': return 'Elegí tu nueva contraseña';
     }
   };
 
   const getDescription = () => {
     switch (mode) {
-      case 'login': return 'Ingresa tus credenciales para acceder a tu cuenta';
-      case 'signup': return 'Crea una cuenta nueva para empezar';
-      case 'reset': return 'Te enviaremos un enlace para restablecer tu contraseña';
-      case 'email-verification': return 'Te enviamos un correo para validar tu cuenta';
+      case 'login': return 'Ingresá para retomar tu evaluación y tus recomendaciones.';
+      case 'signup': return 'Creá tu cuenta gratis y descubrí tu nivel en 5 minutos.';
+      case 'reset': return 'Ingresá tu email y te mandamos un enlace para elegir una contraseña nueva.';
+      case 'email-verification': return 'Te enviamos un correo para validar tu cuenta.';
       case 'update-password':
         return recovery.status === 'expired'
-          ? 'El enlace de recuperación ya no es válido'
-          : 'Ingresa tu nueva contraseña';
+          ? 'El enlace de recuperación ya no es válido.'
+          : 'Usá una contraseña de al menos 6 caracteres.';
     }
   };
+
+  const showModeSwitch = mode === 'login' || mode === 'signup';
+  const showBackToLogin = mode === 'reset' || mode === 'update-password';
 
   return (
     <>
@@ -171,109 +184,68 @@ export default function Auth() {
         canonical="/auth"
         keywords="login productprepa, registro PM, acceso cuenta"
       />
-      
-      <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">{getTitle()}</CardTitle>
-            <CardDescription className="text-center">{getDescription()}</CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-4">
-            {mode === 'login' && (
-              <LoginForm onSubmit={handleLogin} onGoogleSignIn={handleGoogleSignIn} isLoading={isSubmitting} />
-            )}
 
-            {mode === 'signup' && (
-              <SignUpForm onSubmit={handleSignUp} onGoogleSignIn={handleGoogleSignIn} isLoading={isSubmitting} />
-            )}
+      <AuthShell>
+        <div className="space-y-8">
+          {showModeSwitch && <AuthModeSwitch mode={mode} onChange={setMode} />}
 
-            {mode === 'reset' && (
-              <ResetPasswordForm onSubmit={handleResetPassword} isLoading={isSubmitting} />
-            )}
+          {showBackToLogin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-ml-3 text-muted-foreground"
+              onClick={() => setMode('login')}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver a iniciar sesión
+            </Button>
+          )}
 
-            {mode === 'update-password' && (
-              <UpdatePasswordForm
-                onSubmit={handleUpdatePassword}
-                isLoading={isSubmitting}
-                status={recovery.status}
-                errorMessage={recovery.errorMessage}
-                onConfirmLink={recovery.confirm}
-                onRequestNewLink={handleRequestNewLink}
-              />
-            )}
-
-            {mode === 'email-verification' && (
-              <EmailVerificationView
-                email={verificationEmail}
-                onBack={() => setMode('login')}
-                onResend={handleResendConfirmation}
-                isLoading={isSubmitting}
-              />
-            )}
-
-            <div className="space-y-4">
-              <Separator />
-              
-              {mode !== 'email-verification' && mode !== 'update-password' && (
-                <div className="text-center space-y-3">
-                  {mode === 'login' && (
-                    <>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => setMode('signup')}
-                      >
-                        ¿No tienes cuenta? Regístrate
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="text-sm"
-                        onClick={() => setMode('reset')}
-                      >
-                        ¿Olvidaste tu contraseña?
-                      </Button>
-                    </>
-                  )}
-                  
-                  {mode === 'signup' && (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setMode('login')}
-                    >
-                      ¿Ya tienes cuenta? Inicia sesión
-                    </Button>
-                  )}
-                  
-                  {mode === 'reset' && (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setMode('login')}
-                    >
-                      Volver al inicio de sesión
-                    </Button>
-                  )}
-                </div>
-              )}
-
-              {mode === 'update-password' && (
-                <div className="text-center">
-                  <Button
-                    variant="link"
-                    className="text-sm"
-                    onClick={() => setMode('login')}
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Volver al inicio de sesión
-                  </Button>
-                </div>
-              )}
+          {mode !== 'email-verification' && (
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold tracking-tight text-balance">{getHeading()}</h1>
+              <p className="text-muted-foreground">{getDescription()}</p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+
+          {mode === 'login' && (
+            <LoginForm
+              onSubmit={handleLogin}
+              onGoogleSignIn={handleGoogleSignIn}
+              onForgotPassword={() => setMode('reset')}
+              isLoading={isSubmitting}
+            />
+          )}
+
+          {mode === 'signup' && (
+            <SignUpForm onSubmit={handleSignUp} onGoogleSignIn={handleGoogleSignIn} isLoading={isSubmitting} />
+          )}
+
+          {mode === 'reset' && (
+            <ResetPasswordForm onSubmit={handleResetPassword} isLoading={isSubmitting} />
+          )}
+
+          {mode === 'update-password' && (
+            <UpdatePasswordForm
+              onSubmit={handleUpdatePassword}
+              isLoading={isSubmitting}
+              status={recovery.status}
+              errorMessage={recovery.errorMessage}
+              onConfirmLink={recovery.confirm}
+              onRequestNewLink={handleRequestNewLink}
+            />
+          )}
+
+          {mode === 'email-verification' && (
+            <EmailVerificationView
+              email={verificationEmail}
+              onBack={() => setMode('login')}
+              onResend={handleResendConfirmation}
+              isLoading={isSubmitting}
+            />
+          )}
+        </div>
+      </AuthShell>
     </>
   );
 }

@@ -1,23 +1,22 @@
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { loginSchema, LoginFormData } from './authSchemas';
 import { GoogleAuthButton } from './GoogleAuthButton';
+import { PasswordInput } from './PasswordInput';
+import { AuthDivider } from './AuthDivider';
 
 interface LoginFormProps {
   onSubmit: (data: LoginFormData) => Promise<void>;
   onGoogleSignIn: () => void;
+  onForgotPassword: () => void;
   isLoading: boolean;
 }
 
-export function LoginForm({ onSubmit, onGoogleSignIn, isLoading }: LoginFormProps) {
-  const [showPassword, setShowPassword] = useState(false);
-  
+export function LoginForm({ onSubmit, onGoogleSignIn, onForgotPassword, isLoading }: LoginFormProps) {
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -27,27 +26,21 @@ export function LoginForm({ onSubmit, onGoogleSignIn, isLoading }: LoginFormProp
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <GoogleAuthButton onClick={onGoogleSignIn} isLoading={isLoading} />
-      
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <Separator className="w-full" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">
-            o continúa con email
-          </span>
-        </div>
-      </div>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <AuthDivider>o con tu email</AuthDivider>
+
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             type="email"
+            autoComplete="email"
             placeholder="tu@email.com"
+            className="h-11"
+            aria-invalid={!!form.formState.errors.email}
             {...form.register('email')}
           />
           {form.formState.errors.email && (
@@ -56,45 +49,40 @@ export function LoginForm({ onSubmit, onGoogleSignIn, isLoading }: LoginFormProp
             </p>
           )}
         </div>
-        
+
         <div className="space-y-2">
-          <Label htmlFor="password">Contraseña</Label>
-          <div className="relative">
-            <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="••••••"
-              {...form.register('password')}
-            />
-            <Button
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Contraseña</Label>
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
-              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={onForgotPassword}
+              className="text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-primary hover:underline focus-visible:outline-none focus-visible:underline"
             >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </Button>
+              ¿La olvidaste?
+            </button>
           </div>
+          <PasswordInput
+            id="password"
+            autoComplete="current-password"
+            placeholder="Tu contraseña"
+            aria-invalid={!!form.formState.errors.password}
+            {...form.register('password')}
+          />
           {form.formState.errors.password && (
             <p className="text-sm text-destructive">
               {form.formState.errors.password.message}
             </p>
           )}
         </div>
-        
-        <Button type="submit" className="w-full" disabled={isLoading}>
+
+        <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Iniciando sesión...
             </>
           ) : (
-            'Iniciar Sesión'
+            'Iniciar sesión'
           )}
         </Button>
       </form>

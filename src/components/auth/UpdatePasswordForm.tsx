@@ -1,12 +1,11 @@
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Eye, EyeOff, KeyRound, AlertCircle } from 'lucide-react';
+import { Loader2, KeyRound, AlertCircle } from 'lucide-react';
 import { updatePasswordSchema, UpdatePasswordFormData } from './authSchemas';
 import { RecoveryStatus } from './useRecoveryLink';
+import { PasswordInput } from './PasswordInput';
 
 interface UpdatePasswordFormProps {
   onSubmit: (data: UpdatePasswordFormData) => Promise<void>;
@@ -25,9 +24,6 @@ export function UpdatePasswordForm({
   onConfirmLink,
   onRequestNewLink,
 }: UpdatePasswordFormProps) {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
   const form = useForm<UpdatePasswordFormData>({
     resolver: zodResolver(updatePasswordSchema),
     defaultValues: {
@@ -88,36 +84,15 @@ export function UpdatePasswordForm({
   }
 
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-      <div className="flex justify-center mb-4">
-        <div className="rounded-full bg-primary/10 p-3">
-          <KeyRound className="h-8 w-8 text-primary" />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="new-password">Nueva Contraseña</Label>
-        <div className="relative">
-          <Input
-            id="new-password"
-            type={showPassword ? 'text' : 'password'}
-            placeholder="••••••"
-            {...form.register('password')}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5" noValidate>
+            <div className="space-y-2">
+        <Label htmlFor="new-password">Nueva contraseña</Label>
+        <PasswordInput
+          id="new-password"
+          autoComplete="new-password"
+          placeholder="Mínimo 6 caracteres"
+          {...form.register('password')}
+        />
         {form.formState.errors.password && (
           <p className="text-sm text-destructive">
             {form.formState.errors.password.message}
@@ -126,28 +101,13 @@ export function UpdatePasswordForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirm-new-password">Confirmar Nueva Contraseña</Label>
-        <div className="relative">
-          <Input
-            id="confirm-new-password"
-            type={showConfirmPassword ? 'text' : 'password'}
-            placeholder="••••••"
-            {...form.register('confirmPassword')}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-          >
-            {showConfirmPassword ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+        <Label htmlFor="confirm-new-password">Confirmar contraseña</Label>
+        <PasswordInput
+          id="confirm-new-password"
+          autoComplete="new-password"
+          placeholder="Repetí tu contraseña"
+          {...form.register('confirmPassword')}
+        />
         {form.formState.errors.confirmPassword && (
           <p className="text-sm text-destructive">
             {form.formState.errors.confirmPassword.message}
@@ -155,14 +115,14 @@ export function UpdatePasswordForm({
         )}
       </div>
       
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Actualizando...
           </>
         ) : (
-          'Actualizar Contraseña'
+          'Actualizar contraseña'
         )}
       </Button>
     </form>

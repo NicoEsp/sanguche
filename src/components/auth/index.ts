@@ -6,3 +6,5 @@ export * from './UpdatePasswordForm';
 export * from './useRecoveryLink';
 export * from './EmailVerificationView';
 export { GoogleAuthButton } from './GoogleAuthButton';
+export { AuthShell } from './AuthShell';
+export { AuthModeSwitch } from './AuthModeSwitch';
