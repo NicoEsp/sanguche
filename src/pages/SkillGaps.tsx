@@ -107,8 +107,13 @@ export default function SkillGaps() {
   // Nombre de pila para el saludo del estado vacío (Google guarda full_name,
   // el alta por email guarda name).
   const firstName = useMemo(() => {
-    const meta = user?.user_metadata as { full_name?: string; name?: string } | undefined;
-    return (meta?.full_name ?? meta?.name)?.trim().split(/\s+/)[0] || null;
+    const meta = user?.user_metadata as { full_name?: unknown; name?: unknown } | undefined;
+    // La metadata de Supabase admite cualquier JSON: se exige string antes de
+    // llamar a trim() para que un valor raro no tire el render de /mejoras.
+    const fullName = [meta?.full_name, meta?.name].find(
+      (v): v is string => typeof v === "string" && v.trim() !== ""
+    );
+    return fullName?.trim().split(/\s+/)[0] ?? null;
   }, [user]);
 
   // Memoized calculations to avoid re-computation
