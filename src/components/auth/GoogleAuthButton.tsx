@@ -16,7 +16,8 @@ export function GoogleAuthButton({
     <Button
       type="button"
       variant="outline"
-      className="w-full"
+      size="lg"
+      className="w-full font-medium"
       onClick={onClick}
       disabled={isLoading}
     >

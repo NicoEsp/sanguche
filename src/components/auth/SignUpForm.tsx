@@ -1,13 +1,13 @@
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { signUpSchema, SignUpFormData } from './authSchemas';
 import { GoogleAuthButton } from './GoogleAuthButton';
+import { PasswordInput } from './PasswordInput';
+import { AuthDivider } from './AuthDivider';
 
 interface SignUpFormProps {
   onSubmit: (data: SignUpFormData) => Promise<void>;
@@ -16,9 +16,6 @@ interface SignUpFormProps {
 }
 
 export function SignUpForm({ onSubmit, onGoogleSignIn, isLoading }: SignUpFormProps) {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
   const form = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
@@ -29,129 +26,92 @@ export function SignUpForm({ onSubmit, onGoogleSignIn, isLoading }: SignUpFormPr
     },
   });
 
+  const { errors } = form.formState;
+
   const handleSubmit = async (data: SignUpFormData) => {
     await onSubmit(data);
     form.reset();
   };
 
   return (
-    <div className="space-y-4">
-      <GoogleAuthButton 
-        onClick={onGoogleSignIn} 
-        isLoading={isLoading} 
+    <div className="space-y-6">
+      <GoogleAuthButton
+        onClick={onGoogleSignIn}
+        isLoading={isLoading}
         label="Registrarse con Google"
       />
-      
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <Separator className="w-full" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">
-            o continúa con email
-          </span>
-        </div>
-      </div>
 
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+      <AuthDivider>o con tu email</AuthDivider>
+
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5" noValidate>
         <div className="space-y-2">
           <Label htmlFor="name">Nombre</Label>
           <Input
             id="name"
             type="text"
+            autoComplete="name"
             placeholder="Tu nombre"
+            className="h-11"
+            aria-invalid={!!errors.name}
             {...form.register('name')}
           />
-          {form.formState.errors.name && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.name.message}
-            </p>
+          {errors.name && (
+            <p className="text-sm text-destructive">{errors.name.message}</p>
           )}
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="signup-email">Email</Label>
           <Input
             id="signup-email"
             type="email"
+            autoComplete="email"
             placeholder="tu@email.com"
+            className="h-11"
+            aria-invalid={!!errors.email}
             {...form.register('email')}
           />
-          {form.formState.errors.email && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.email.message}
-            </p>
+          {errors.email && (
+            <p className="text-sm text-destructive">{errors.email.message}</p>
           )}
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="signup-password">Contraseña</Label>
-          <div className="relative">
-            <Input
-              id="signup-password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="••••••"
-              {...form.register('password')}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-          {form.formState.errors.password && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.password.message}
-            </p>
+          <PasswordInput
+            id="signup-password"
+            autoComplete="new-password"
+            placeholder="Mínimo 6 caracteres"
+            aria-invalid={!!errors.password}
+            {...form.register('password')}
+          />
+          {errors.password && (
+            <p className="text-sm text-destructive">{errors.password.message}</p>
           )}
         </div>
-        
+
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
-          <div className="relative">
-            <Input
-              id="confirmPassword"
-              type={showConfirmPassword ? 'text' : 'password'}
-              placeholder="••••••"
-              {...form.register('confirmPassword')}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            >
-              {showConfirmPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-          {form.formState.errors.confirmPassword && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.confirmPassword.message}
-            </p>
+          <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+          <PasswordInput
+            id="confirmPassword"
+            autoComplete="new-password"
+            placeholder="Repetí tu contraseña"
+            aria-invalid={!!errors.confirmPassword}
+            {...form.register('confirmPassword')}
+          />
+          {errors.confirmPassword && (
+            <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
           )}
         </div>
-        
-        <Button type="submit" className="w-full" disabled={isLoading}>
+
+        <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Creando cuenta...
             </>
           ) : (
-            'Crear Cuenta'
+            'Crear cuenta'
           )}
         </Button>
       </form>

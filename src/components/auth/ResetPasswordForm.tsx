@@ -25,13 +25,16 @@ export function ResetPasswordForm({ onSubmit, isLoading }: ResetPasswordFormProp
   };
 
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5" noValidate>
       <div className="space-y-2">
         <Label htmlFor="reset-email">Email</Label>
         <Input
           id="reset-email"
           type="email"
+          autoComplete="email"
           placeholder="tu@email.com"
+          className="h-11"
+          aria-invalid={!!form.formState.errors.email}
           {...form.register('email')}
         />
         {form.formState.errors.email && (
@@ -41,14 +44,14 @@ export function ResetPasswordForm({ onSubmit, isLoading }: ResetPasswordFormProp
         )}
       </div>
       
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Enviando...
           </>
         ) : (
-          'Enviar Email de Recuperación'
+          'Enviar enlace de recuperación'
         )}
       </Button>
     </form>

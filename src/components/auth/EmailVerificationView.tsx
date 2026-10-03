@@ -44,7 +44,7 @@ export function EmailVerificationView({
       </div>
       
       <div className="space-y-2">
-        <h3 className="text-lg font-semibold">Revisa tu bandeja de entrada</h3>
+        <h1 className="text-3xl font-bold tracking-tight">Revisá tu bandeja de entrada</h1>
         <p className="text-muted-foreground">
           Te enviamos un correo de confirmación a:
         </p>
@@ -53,10 +53,10 @@ export function EmailVerificationView({
 
       <div className="space-y-3 text-sm text-muted-foreground">
         <p>
-          Haz clic en el enlace del correo para activar tu cuenta.
+          Hacé clic en el enlace del correo para activar tu cuenta.
         </p>
         <p>
-          Si no encuentras el correo, revisa tu carpeta de spam.
+          Si no lo encontrás, revisá la carpeta de spam.
         </p>
       </div>
 
@@ -91,7 +91,7 @@ export function EmailVerificationView({
           className="w-full"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver al login
+          Volver a iniciar sesión
         </Button>
       </div>
     </div>
