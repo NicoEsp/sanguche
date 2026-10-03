@@ -65,7 +65,7 @@ const planFeatures = (key: SubscriptionPlanDef["key"]) =>
   planDef(key).features.map(renderFeature);
 
 interface PlanCardProps {
-  name: React.ReactNode;
+  name: string;
   price: string;
   priceLabel: string;
   description: string;
@@ -133,7 +133,7 @@ function PlanCard({
             type="button"
             aria-expanded={expanded}
             aria-controls={panelId}
-            aria-label="Ver para quién es este plan"
+            aria-label={`${expanded ? "Cerrar" : "Ver"} para quién es el ${name}`}
             onClick={() => setExpanded((open) => !open)}
             className={cn(
               "absolute right-3 top-3 z-20 flex h-7 w-7 items-center justify-center rounded-full border transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
