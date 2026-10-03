@@ -28,6 +28,9 @@ export interface SubscriptionPlanDef {
   features: PlanFeature[];
   /** Cupo de mentoría: es una condición del plan, no un beneficio extra. */
   sessionsNote?: string;
+  /** Para quién es el plan. La tarjeta lo revela con el botón "+"; si falta,
+   *  la tarjeta no muestra el botón. */
+  idealFor?: string;
   /** Descripción del servicio para el JSON-LD de Offer. */
   offerDescription?: string;
 }
@@ -62,6 +65,7 @@ export const SUBSCRIPTION_PLANS: readonly SubscriptionPlanDef[] = [
       { text: 'Nuevos contenidos cada mes' },
     ],
     sessionsNote: '1 sesión de mentoría por mes, no acumulable',
+    idealFor: 'Plan ideal si estás comenzando',
     offerDescription: 'Sesión mensual 1:1, Career Path personalizado, recursos curados',
   },
   {
@@ -79,6 +83,7 @@ export const SUBSCRIPTION_PLANS: readonly SubscriptionPlanDef[] = [
       { text: 'Canal directo de comunicación' },
     ],
     sessionsNote: '2 sesiones de mentoría por mes, no acumulables',
+    idealFor: 'Plan ideal si querés un acompañamiento intensivo',
     offerDescription: 'Todo Premium + 2 sesiones mensuales + acceso a todos los cursos',
   },
 ];

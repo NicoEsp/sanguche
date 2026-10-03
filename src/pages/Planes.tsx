@@ -1,17 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Crown, ArrowRight, AlertTriangle, Search, Building2 } from "lucide-react";
+import { Check, Star, Crown, ArrowRight, AlertTriangle, Search, Building2, Plus } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Seo } from "@/components/Seo";
 import { LemonSqueezyCheckout, PlanType } from "@/components/LemonSqueezyCheckout";
 import { useMixpanelTracking } from "@/hooks/useMixpanelTracking";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePricing } from "@/hooks/usePricing";
+import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useAssessmentData } from "@/hooks/useAssessmentData";
 import { ProductReviewModal } from "@/components/planes/ProductReviewModal";
@@ -82,6 +83,8 @@ interface PlanCardProps {
   /** Cupo de mentoría del plan. Va debajo de los features, no como uno más:
    *  es una condición del plan, no un beneficio extra. */
   sessionsNote?: string;
+  /** Si viene, la tarjeta suma un "+" que revela este texto sobre un fondo naranja. */
+  idealFor?: string;
 }
 
 /** Tarjeta de un plan de suscripción: precio, features y el CTA que corresponda
@@ -102,69 +105,119 @@ function PlanCard({
   onHover,
   enrichedCtaText,
   enrichedSubtext,
-  sessionsNote
+  sessionsNote,
+  idealFor
 }: PlanCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const panelId = useId();
+
   return (
     <Card
       className={`relative flex flex-col h-full min-w-0 ${isHighlighted ? 'border-primary bg-primary/5' : ''}`}
       onPointerEnter={onHover}
+      onKeyDown={(e) => { if (e.key === 'Escape') setExpanded(false); }}
     >
       {badge && (
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+        <div className={cn(
+          "absolute -top-3 left-1/2 transform -translate-x-1/2 transition-opacity duration-200",
+          expanded && "opacity-0"
+        )}>
           <Badge variant={badge === "Nuevo" ? "nuevo" : "default"} className="px-3 py-1 shadow-sm">
             {badge}
           </Badge>
         </div>
       )}
-      <CardHeader className="text-center pb-4">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          {icon}
-          <CardTitle className="text-xl min-h-[56px] flex items-center justify-center text-center">
-            {name}
-          </CardTitle>
-        </div>
-        <CardDescription className="min-h-[48px]">{description}</CardDescription>
-        <div className="mt-3">
-          <span className="text-3xl font-bold">{price}</span>
-          <span className="text-sm text-muted-foreground ml-1">{priceLabel}</span>
-          <p className="text-xs text-muted-foreground mt-0.5">Pesos Argentinos</p>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col">
-        <ul className="space-y-2 flex-1 min-h-[160px]">
-          {features.map((feature, index) => (
-            <li key={index} className="flex items-start gap-2">
-              <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-              <span className="text-sm">{feature}</span>
-            </li>
-          ))}
-        </ul>
-        {sessionsNote && (
-          <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
-            {sessionsNote}
-          </p>
-        )}
-        <div className="mt-6">
-          {isCurrentPlan ? (
-            <Button variant="secondary" className="w-full" disabled>
-              Plan actual
-            </Button>
-          ) : ctaLink ? (
-            <Button asChild className="w-full" variant={isHighlighted ? "default" : "outline"}>
-              <Link to={ctaLink}>{ctaText}</Link>
-            </Button>
-          ) : plan ? (
-            <>
-              <LemonSqueezyCheckout plan={plan} buttonText={enrichedCtaText || ctaText} />
-              {enrichedSubtext && (
-                <p className="text-xs text-muted-foreground text-center mt-2 leading-relaxed">
-                  {enrichedSubtext}
-                </p>
-              )}
-            </>
-          ) : null}
-        </div>
-      </CardContent>
+      {idealFor && (
+        <>
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={panelId}
+            aria-label="Ver para quién es este plan"
+            onClick={() => setExpanded((open) => !open)}
+            className={cn(
+              "absolute right-3 top-3 z-20 flex h-7 w-7 items-center justify-center rounded-full border transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+              expanded
+                ? "border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/15 focus-visible:ring-primary-foreground focus-visible:ring-offset-primary"
+                : "border-input text-muted-foreground hover:border-primary hover:text-primary focus-visible:ring-ring"
+            )}
+          >
+            <Plus className={cn("h-4 w-4 transition-transform duration-300 ease-out motion-reduce:transition-none", expanded && "rotate-45")} />
+          </button>
+          {/* El círculo crece desde el centro del "+" (27px = 12px de right/top
+              + 14px de radio + 1px del borde que el panel también cubre). */}
+          <div
+            id={panelId}
+            onClick={() => setExpanded(false)}
+            className={cn(
+              "absolute -inset-px z-10 flex cursor-pointer items-center justify-center rounded-lg bg-primary px-10 text-center text-primary-foreground",
+              "transition-[clip-path,visibility] [transition-timing-function:cubic-bezier(0.33,1,0.68,1)] motion-reduce:transition-none",
+              expanded
+                ? "visible duration-500 [clip-path:circle(142%_at_calc(100%-27px)_27px)]"
+                : "invisible duration-300 [clip-path:circle(0%_at_calc(100%-27px)_27px)]"
+            )}
+          >
+            <p className={cn(
+              "font-handwritten text-4xl font-bold leading-tight text-balance transition-[opacity,transform] duration-300 motion-reduce:transition-none",
+              expanded ? "translate-y-0 opacity-100 delay-200" : "translate-y-2 opacity-0"
+            )}>
+              {idealFor}
+            </p>
+          </div>
+        </>
+      )}
+      {/* inert: con el panel abierto el CTA queda tapado y no debe recibir foco. */}
+      <div className="flex flex-1 flex-col" {...(expanded ? { inert: "" } : {})}>
+        <CardHeader className="text-center pb-4">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            {icon}
+            <CardTitle className="text-xl min-h-[56px] flex items-center justify-center text-center">
+              {name}
+            </CardTitle>
+          </div>
+          <CardDescription className="min-h-[48px]">{description}</CardDescription>
+          <div className="mt-3">
+            <span className="text-3xl font-bold">{price}</span>
+            <span className="text-sm text-muted-foreground ml-1">{priceLabel}</span>
+            <p className="text-xs text-muted-foreground mt-0.5">Pesos Argentinos</p>
+          </div>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col">
+          <ul className="space-y-2 flex-1 min-h-[160px]">
+            {features.map((feature, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <span className="text-sm">{feature}</span>
+              </li>
+            ))}
+          </ul>
+          {sessionsNote && (
+            <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+              {sessionsNote}
+            </p>
+          )}
+          <div className="mt-6">
+            {isCurrentPlan ? (
+              <Button variant="secondary" className="w-full" disabled>
+                Plan actual
+              </Button>
+            ) : ctaLink ? (
+              <Button asChild className="w-full" variant={isHighlighted ? "default" : "outline"}>
+                <Link to={ctaLink}>{ctaText}</Link>
+              </Button>
+            ) : plan ? (
+              <>
+                <LemonSqueezyCheckout plan={plan} buttonText={enrichedCtaText || ctaText} />
+                {enrichedSubtext && (
+                  <p className="text-xs text-muted-foreground text-center mt-2 leading-relaxed">
+                    {enrichedSubtext}
+                  </p>
+                )}
+              </>
+            ) : null}
+          </div>
+        </CardContent>
+      </div>
     </Card>
   );
 }
@@ -554,6 +607,7 @@ export default function Planes() {
                 features={planFeatures("premium")}
                 plan="premium"
                 sessionsNote={planDef("premium").sessionsNote}
+                idealFor={planDef("premium").idealFor}
                 ctaText={hasActivePremium ? "Ir a tu mentoría" : "Suscribirse a Premium"}
                 ctaLink={hasActivePremium ? "/mentoria" : undefined}
                 isCurrentPlan={hasActivePremium && !hasActiveRePremium}
@@ -573,6 +627,7 @@ export default function Planes() {
                 features={planFeatures("repremium")}
                 plan="repremium"
                 sessionsNote={planDef("repremium").sessionsNote}
+                idealFor={planDef("repremium").idealFor}
                 ctaText={hasActiveRePremium ? "Ir a tu mentoría" : "Suscribirse a RePremium"}
                 ctaLink={hasActiveRePremium ? "/mentoria" : undefined}
                 isCurrentPlan={hasActiveRePremium}
